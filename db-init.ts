@@ -14,7 +14,8 @@ export async function initializeDatabase(connectionString: string) {
   });
 
   try {
-    console.log('🔍 Checking if database is initialized...');
+    console.log('🔍 [DB-INIT] Checking if database is initialized...');
+    console.log('🔌 [DB-INIT] Connection string:', connectionString.substring(0, 50) + '...');
     
     // Check if stores table exists and has data
     const result = await client.query(`
@@ -25,27 +26,34 @@ export async function initializeDatabase(connectionString: string) {
     `);
 
     const tableExists = result.rows[0].exists;
+    console.log('📊 [DB-INIT] Stores table exists:', tableExists);
     
     if (tableExists) {
       // Check if data exists
       const dataCheck = await client.query('SELECT COUNT(*) FROM stores');
       const dataExists = parseInt(dataCheck.rows[0].count) > 0;
+      const storeCount = parseInt(dataCheck.rows[0].count);
+      
+      console.log('📊 [DB-INIT] Stores count:', storeCount);
       
       if (dataExists) {
-        console.log('✅ Database already initialized with data');
+        console.log('✅ [DB-INIT] Database already initialized with data');
         return;
       }
     }
 
-    console.log('📂 Loading database backup...');
+    console.log('📂 [DB-INIT] Loading database backup...');
     const backupPath = path.join(__dirname, 'database_backup.sql');
+    console.log('📁 [DB-INIT] Backup file path:', backupPath);
     
     if (!fs.existsSync(backupPath)) {
-      console.log('⚠️  No backup file found, skipping initialization');
+      console.log('⚠️  [DB-INIT] No backup file found, skipping initialization');
       return;
     }
 
+    console.log('✓ [DB-INIT] Backup file found, reading content...');
     const backupContent = fs.readFileSync(backupPath, 'utf8');
+    console.log('✓ [DB-INIT] Backup size:', (backupContent.length / 1024).toFixed(2), 'KB');
     
     // Split by lines to handle multi-line statements better
     const lines = backupContent.split('\n');
@@ -72,7 +80,7 @@ export async function initializeDatabase(connectionString: string) {
       statements.push(currentStatement.trim());
     }
 
-    console.log(`🚀 Executing ${statements.length} SQL statements...`);
+    console.log(`🚀 [DB-INIT] Executing ${statements.length} SQL statements...`);
     
     let count = 0;
     let successCount = 0;
@@ -83,12 +91,12 @@ export async function initializeDatabase(connectionString: string) {
       try {
         if (statement.length === 0) continue;
         
-        process.stdout.write(`\r⏳ Executing statement ${count}/${statements.length}...`);
+        process.stdout.write(`\r⏳ [DB-INIT] Executing statement ${count}/${statements.length}...`);
         await client.query(statement);
         successCount++;
         
         if (count % 20 === 0) {
-          console.log(`\n  ✓ ${count}/${statements.length} processed (${successCount} successful)`);
+          console.log(`\n  ✓ [DB-INIT] ${count}/${statements.length} processed (${successCount} successful)`);
         }
       } catch (err: any) {
         // Ignore common non-critical errors
@@ -100,16 +108,17 @@ export async function initializeDatabase(connectionString: string) {
         ) {
           skippedCount++;
         } else {
-          console.warn(`\n  ⚠️  Statement ${count} error: ${errMsg.substring(0, 80)}`);
+          console.warn(`\n  ⚠️  [DB-INIT] Statement ${count} error: ${errMsg.substring(0, 80)}`);
         }
       }
     }
 
-    console.log(`\n\n✅ Database initialization complete!`);
-    console.log(`📊 Statements: ${successCount} executed, ${skippedCount} skipped (already exist)`);
+    console.log(`\n\n✅ [DB-INIT] Database initialization complete!`);
+    console.log(`📊 [DB-INIT] Statements: ${successCount} executed, ${skippedCount} skipped (already exist)`);
     
   } catch (err: any) {
-    console.error('❌ Database initialization error:', err.message);
+    console.error('❌ [DB-INIT] Database initialization error:', err.message);
+    console.error('❌ [DB-INIT] Error details:', err);
   } finally {
     await client.end();
   }

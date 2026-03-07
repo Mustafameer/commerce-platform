@@ -12,6 +12,12 @@ dotenv.config();
 
 console.log("📡 [SERVER] Dotenv loaded");
 
+// Log environment variables
+console.log("📋 Environment Variables:");
+console.log("  DATABASE_URL:", process.env.DATABASE_URL ? "✓ Set" : "❌ Not set");
+console.log("  PORT:", process.env.PORT || "3000 (default)");
+console.log("  NODE_ENV:", process.env.NODE_ENV || "development (default)");
+
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 
@@ -47,6 +53,9 @@ console.log("🔌 Database connection string:", process.env.DATABASE_URL || "pos
 async function testConnection() {
   try {
     console.log("🔄 Testing database connection...");
+    const dbUrl = process.env.DATABASE_URL || "postgresql://postgres:123@localhost:5432/multi_ecommerce";
+    console.log("🔌 Using DATABASE_URL:", dbUrl.substring(0, 50) + "...");
+    
     const result = await pool.query("SELECT NOW()");
     console.log("✅ Database connection successful!");
     console.log("Current time from DB:", result.rows[0]);
@@ -703,24 +712,34 @@ async function startServer() {
     // Test database endpoint
     app.get("/api/test-db", async (req, res) => {
       try {
+        console.log("🧪 Testing database...");
+        
         const storesCount = await pool.query("SELECT COUNT(*) as count FROM stores");
         const ordersCount = await pool.query("SELECT COUNT(*) as count FROM orders");
         const usersCount = await pool.query("SELECT COUNT(*) as count FROM users");
         const ordersData = await pool.query("SELECT id, store_id, total_amount, created_at FROM orders LIMIT 5");
         const storesData = await pool.query("SELECT id, store_name, owner_name, percentage_enabled, commission_percentage FROM stores LIMIT 5");
         
-        res.json({ 
+        const result = {
           status: "ok", 
-          stores_count: storesCount.rows[0].count,
-          orders_count: ordersCount.rows[0].count,
-          users_count: usersCount.rows[0].count,
+          stores_count: parseInt(storesCount.rows[0].count),
+          orders_count: parseInt(ordersCount.rows[0].count),
+          users_count: parseInt(usersCount.rows[0].count),
           orders_sample: ordersData.rows,
           stores_sample: storesData.rows
-        });
+        };
+        
+        console.log("✅ Database test successful:", result);
+        res.json(result);
       } catch (error) {
+        const errorMessage = (error as any).message || 'Unknown error';
+        console.error("❌ Database test error:", errorMessage);
+        console.error("Full error:", error);
+        
         res.status(500).json({ 
           status: "error", 
-          message: (error as any).message 
+          message: errorMessage,
+          error: (error as any).code || 'UNKNOWN'
         });
       }
     });
