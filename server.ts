@@ -4,6 +4,7 @@ import pg from "pg";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import { initializeDatabase } from "./db-init.ts";
 
 console.log("📡 [SERVER] Server module loading...");
 
@@ -652,6 +653,10 @@ async function startServer() {
     if (!connected) {
       console.warn("⚠️  Database connection failed, but starting server anyway (check database settings)");
     } else {
+      // Load/restore data from backup if database is empty
+      const dbUrl = process.env.DATABASE_URL || "postgresql://postgres:123@localhost:5432/multi_ecommerce";
+      await initializeDatabase(dbUrl);
+      
       // Only initialize DB if connected
       await initDb();
       
