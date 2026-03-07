@@ -46,30 +46,67 @@ export async function initializeDatabase(connectionString: string) {
     }
 
     const backupContent = fs.readFileSync(backupPath, 'utf8');
-    const statements = backupContent
-      .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--'));
+    
+    // Split by lines to handle multi-line statements better
+    const lines = backupContent.split('\n');
+    let currentStatement = '';
+    const statements: string[] = [];
+    
+    for (const line of lines) {
+      // Skip comments and empty lines
+      if (line.trim().startsWith('--') || line.trim().length === 0) {
+        continue;
+      }
+      
+      currentStatement += line + '\n';
+      
+      // Check if statement ends with semicolon
+      if (line.trim().endsWith(';')) {
+        statements.push(currentStatement.trim());
+        currentStatement = '';
+      }
+    }
+    
+    // Add any remaining statement
+    if (currentStatement.trim().length > 0) {
+      statements.push(currentStatement.trim());
+    }
 
     console.log(`🚀 Executing ${statements.length} SQL statements...`);
     
     let count = 0;
+    let successCount = 0;
+    let skippedCount = 0;
+    
     for (const statement of statements) {
+      count++;
       try {
+        if (statement.length === 0) continue;
+        
+        process.stdout.write(`\r⏳ Executing statement ${count}/${statements.length}...`);
         await client.query(statement);
-        count++;
-        if (count % 10 === 0) {
-          console.log(`  ✓ ${count}/${statements.length} statements executed`);
+        successCount++;
+        
+        if (count % 20 === 0) {
+          console.log(`\n  ✓ ${count}/${statements.length} processed (${successCount} successful)`);
         }
       } catch (err: any) {
-        // Ignore "already exists" errors
-        if (!err.message.includes('already exists')) {
-          console.warn(`  ⚠️  Error: ${err.message.substring(0, 100)}`);
+        // Ignore common non-critical errors
+        const errMsg = err.message || '';
+        if (
+          errMsg.includes('already exists') ||
+          errMsg.includes('duplicate key') ||
+          errMsg.includes('violates unique constraint')
+        ) {
+          skippedCount++;
+        } else {
+          console.warn(`\n  ⚠️  Statement ${count} error: ${errMsg.substring(0, 80)}`);
         }
       }
     }
 
-    console.log(`✅ Database initialized with ${count} statements executed`);
+    console.log(`\n\n✅ Database initialization complete!`);
+    console.log(`📊 Statements: ${successCount} executed, ${skippedCount} skipped (already exist)`);
     
   } catch (err: any) {
     console.error('❌ Database initialization error:', err.message);
@@ -77,3 +114,4 @@ export async function initializeDatabase(connectionString: string) {
     await client.end();
   }
 }
+
