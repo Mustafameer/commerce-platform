@@ -40,15 +40,41 @@ const __dirname = path.dirname(__filename);
 
 console.log("📡 [SERVER] Creating database pool...");
 
+// Build connection string from various sources
+let connectionString = process.env.DATABASE_URL;
+
+// If DATABASE_URL not set, try to build from individual variables (Railway PostgreSQL service)
+if (!connectionString) {
+  const pgHost = process.env.PGHOST || process.env.DB_HOST || "postgres.railway.internal";
+  const pgPort = process.env.PGPORT || process.env.DB_PORT || "5432";
+  const pgUser = process.env.PGUSER || process.env.DB_USER || "postgres";
+  const pgPassword = process.env.PGPASSWORD || process.env.DB_PASSWORD || "";
+  const pgDatabase = process.env.PGDATABASE || process.env.DB_NAME || "railway";
+  
+  if (pgPassword) {
+    connectionString = `postgresql://${pgUser}:${pgPassword}@${pgHost}:${pgPort}/${pgDatabase}`;
+  } else {
+    connectionString = `postgresql://${pgUser}@${pgHost}:${pgPort}/${pgDatabase}`;
+  }
+  
+  console.log("ℹ️  [SERVER] DATABASE_URL not set, building from environment variables");
+}
+
+// Fallback to localhost if nothing is configured (development only)
+if (!connectionString || !connectionString.includes("@")) {
+  connectionString = "postgresql://postgres:123@localhost:5432/multi_ecommerce";
+  console.log("⚠️  [SERVER] Using localhost fallback (development mode)");
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || "postgresql://postgres:123@localhost:5432/multi_ecommerce",
+  connectionString,
   connectionTimeoutMillis: 5000,
   idleTimeoutMillis: 30000,
   max: 20,
 });
 
 console.log("✅ [SERVER] Database pool created");
-console.log("🔌 Database connection string:", process.env.DATABASE_URL || "postgresql://postgres:123@localhost:5432/multi_ecommerce");
+console.log("🔌 Database connection string:", connectionString.substring(0, 50) + "...");
 
 async function testConnection() {
   try {
