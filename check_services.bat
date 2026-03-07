@@ -1,0 +1,6 @@
+@echo off
+echo Checking if server is running...
+curl http://localhost:3000/api/test-db
+echo.
+echo Checking if frontend is running...
+curl http://localhost:5173

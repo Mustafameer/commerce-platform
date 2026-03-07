@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+* {
+  font-family: 'El Messiri', sans-serif;
+}
+
+html, body {
+  direction: rtl;
+}
+
+/* RTL-friendly utilities */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+/* Adjust margins and padding for RTL */
+[dir="rtl"] .start-0 {
+  right: 0;
+  left: auto;
+}
+
+[dir="rtl"] .end-0 {
+  left: 0;
+  right: auto;
+}
+
+/* Custom RTL margin classes */
+[dir="rtl"] .flex-row-reverse {
+  flex-direction: row-reverse;
+}
