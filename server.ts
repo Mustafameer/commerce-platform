@@ -1821,10 +1821,11 @@ async function startServer() {
         });
       } catch (error) {
         console.error("Admin stats error:", error);
-        res.json({
+        res.status(200).json({
           totalStores: 0,
           totalOrders: 0,
           totalUsers: 0,
+          totalCustomers: 0,
           totalRevenue: 0,
           adminCommissionPercentage: 0,
           adminCommission: 0,
