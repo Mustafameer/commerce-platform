@@ -6017,7 +6017,8 @@ const MerchantDashboard = () => {
 }
 
 const CustomerStorefront = () => {
-  const { storeId } = useParams();
+  const { slug } = useParams();
+  const storeId = slug; // Use slug as storeId
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
