@@ -2308,7 +2308,7 @@ async function startServer() {
     app.post("/api/admin/approve-store/:id", async (req, res) => {
       try {
         const storeId = parseInt(req.params.id);
-        if (!storeId) {
+        if (isNaN(storeId) || storeId <= 0) {
           return res.status(400).json({ error: "Invalid store ID" });
         }
         
@@ -2332,7 +2332,7 @@ async function startServer() {
     app.post("/api/admin/reject-store/:id", async (req, res) => {
       try {
         const storeId = parseInt(req.params.id);
-        if (!storeId) {
+        if (isNaN(storeId) || storeId <= 0) {
           return res.status(400).json({ error: "Invalid store ID" });
         }
         
@@ -2356,7 +2356,7 @@ async function startServer() {
     app.post("/api/admin/suspend-store/:id", async (req, res) => {
       try {
         const storeId = parseInt(req.params.id);
-        if (!storeId) {
+        if (isNaN(storeId) || storeId <= 0) {
           return res.status(400).json({ error: "Invalid store ID" });
         }
         
@@ -2382,7 +2382,7 @@ async function startServer() {
         const storeId = parseInt(req.params.id);
         const { subscription_paid } = req.body;
         
-        if (!storeId) {
+        if (isNaN(storeId) || storeId <= 0) {
           return res.status(400).json({ error: "Invalid store ID" });
         }
         
@@ -2412,7 +2412,7 @@ async function startServer() {
         const storeId = parseInt(req.params.id);
         const { store_name, owner_name, percentage_enabled } = req.body;
         
-        if (!storeId) {
+        if (isNaN(storeId) || storeId <= 0) {
           return res.status(400).json({ error: "Invalid store ID" });
         }
         
