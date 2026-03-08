@@ -1297,27 +1297,7 @@ async function startServer() {
     app.get("/api/orders", async (req, res) => {
       try {
         const storeId = req.query.storeId as string;
-        let query = `SELECT 
-                      o.id,
-                      o.customer_id,
-                      o.store_id,
-                      o.total_amount,
-                      o.discount_amount,
-                      o.status,
-                      o.phone,
-                      o.address,
-                      o.is_topup_order,
-                      o.topup_codes,
-                      o.created_at,
-                      o.customer_type,
-                      o.payment_status,
-                      s.subscription_paid,
-                      s.owner_name,
-                      s.store_name,
-                      s.percentage_enabled 
-                     FROM orders o 
-                     LEFT JOIN stores s ON o.store_id = s.id 
-                     ORDER BY o.created_at DESC`;
+        let query = "";
         let params: any[] = [];
         
         if (storeId) {
@@ -1331,7 +1311,6 @@ async function startServer() {
                       o.phone,
                       o.address,
                       o.is_topup_order,
-                      o.topup_codes,
                       o.created_at,
                       o.customer_type,
                       o.payment_status,
@@ -1345,12 +1324,41 @@ async function startServer() {
                    ORDER BY o.created_at DESC`;
           params = [parseInt(storeId)];
           console.log(`📋 Fetching orders for store: ${storeId}`);
+        } else {
+          // When no storeId filter, get all orders with store info
+          query = `SELECT 
+                      o.id,
+                      o.customer_id,
+                      o.store_id,
+                      o.total_amount,
+                      o.discount_amount,
+                      o.status,
+                      o.phone,
+                      o.address,
+                      o.is_topup_order,
+                      o.created_at,
+                      o.customer_type,
+                      o.payment_status,
+                      s.subscription_paid,
+                      s.owner_name,
+                      s.store_name,
+                      s.percentage_enabled 
+                   FROM orders o 
+                   LEFT JOIN stores s ON o.store_id = s.id 
+                   ORDER BY o.created_at DESC`;
         }
         
         const result = await pool.query(query, params);
         console.log(`📋 Found ${result.rows.length} orders with store info`);
+        
+        // Log first order for debugging
+        if (result.rows.length > 0) {
+          console.log(`📋 Sample order:`, JSON.stringify(result.rows[0]));
+        }
+        
         res.json(result.rows);
       } catch (error) {
+        console.error("Orders fetch error:", error);
         res.status(500).json({ error: (error as any).message });
       }
     });
