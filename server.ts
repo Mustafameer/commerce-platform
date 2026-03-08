@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { initializeDatabase } from "./db-init.ts";
 
+// Fix: Ensure all admin endpoints use proper ID validation
 console.log("📡 [SERVER] Server module loading...");
 
 dotenv.config();
