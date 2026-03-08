@@ -4372,6 +4372,11 @@ async function startServer() {
 
     // ========== END AUCTION ENDPOINTS ==========
 
+    // Test Endpoint
+    app.get("/api/test", (req, res) => {
+      res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    });
+
     // Database Restore Endpoint (Admin Only)
     app.post("/api/admin/restore-database", async (req, res) => {
       try {
