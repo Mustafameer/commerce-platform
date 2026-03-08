@@ -8,21 +8,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export async function initializeDatabase(connectionString: string) {
-  // If connectionString is empty, try to build from environment variables
+  // If connectionString is empty or invalid, use Railway hardcoded connection
   if (!connectionString || !connectionString.includes("@")) {
-    const pgHost = process.env.PGHOST || process.env.DB_HOST || "postgres.railway.internal";
-    const pgPort = process.env.PGPORT || process.env.DB_PORT || "5432";
-    const pgUser = process.env.PGUSER || process.env.DB_USER || "postgres";
-    const pgPassword = process.env.PGPASSWORD || process.env.DB_PASSWORD || "";
-    const pgDatabase = process.env.PGDATABASE || process.env.DB_NAME || "railway";
-    
-    if (pgPassword) {
-      connectionString = `postgresql://${pgUser}:${pgPassword}@${pgHost}:${pgPort}/${pgDatabase}`;
-    } else {
-      connectionString = `postgresql://${pgUser}@${pgHost}:${pgPort}/${pgDatabase}`;
-    }
-    
-    console.log('ℹ️  [DB-INIT] Building connection string from environment variables');
+    connectionString = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway';
+    console.log('ℹ️  [DB-INIT] Using Railway hardcoded connection');
   }
   
   const client = new Pool({

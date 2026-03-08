@@ -43,13 +43,19 @@ console.log("📡 [SERVER] Creating database pool...");
 // Build connection string from various sources
 let connectionString = process.env.DATABASE_URL;
 
-// If DATABASE_URL not set, try to build from individual variables (Railway PostgreSQL service)
-if (!connectionString) {
-  const pgHost = process.env.PGHOST || process.env.DB_HOST || "postgres.railway.internal";
+// If DATABASE_URL not set, try Railway hardcoded connection (production)
+if (!connectionString || !connectionString.includes("@")) {
+  connectionString = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway';
+  console.log("ℹ️  [SERVER] Using Railway hardcoded connection");
+}
+
+// Fallback to localhost if not Railway (development only)
+if (!connectionString.includes('postgres.railway.internal') && !connectionString.includes('localhost')) {
+  const pgHost = process.env.PGHOST || process.env.DB_HOST || "localhost";
   const pgPort = process.env.PGPORT || process.env.DB_PORT || "5432";
   const pgUser = process.env.PGUSER || process.env.DB_USER || "postgres";
-  const pgPassword = process.env.PGPASSWORD || process.env.DB_PASSWORD || "";
-  const pgDatabase = process.env.PGDATABASE || process.env.DB_NAME || "railway";
+  const pgPassword = process.env.PGPASSWORD || process.env.DB_PASSWORD || "123";
+  const pgDatabase = process.env.PGDATABASE || process.env.DB_NAME || "multi_ecommerce";
   
   if (pgPassword) {
     connectionString = `postgresql://${pgUser}:${pgPassword}@${pgHost}:${pgPort}/${pgDatabase}`;
@@ -57,13 +63,7 @@ if (!connectionString) {
     connectionString = `postgresql://${pgUser}@${pgHost}:${pgPort}/${pgDatabase}`;
   }
   
-  console.log("ℹ️  [SERVER] DATABASE_URL not set, building from environment variables");
-}
-
-// Fallback to localhost if nothing is configured (development only)
-if (!connectionString || !connectionString.includes("@")) {
-  connectionString = "postgresql://postgres:123@localhost:5432/multi_ecommerce";
-  console.log("⚠️  [SERVER] Using localhost fallback (development mode)");
+  console.log("ℹ️  [SERVER] Using environment variables");
 }
 
 const pool = new Pool({
