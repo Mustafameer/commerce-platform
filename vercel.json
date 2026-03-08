@@ -4,14 +4,10 @@
   "env": {
     "VITE_API_URL": "@vite_api_url"
   },
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "https://web-production-9efff.up.railway.app/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
