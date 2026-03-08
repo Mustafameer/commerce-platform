@@ -3520,7 +3520,26 @@ const MerchantDashboard = () => {
   };
 
   const saveProduct = async () => {
-    if (!user?.store_id) return;
+    if (!user?.store_id) {
+      alert("❌ خطأ: لم يتم العثور على معرّف المتجر الخاص بك");
+      return;
+    }
+
+    // Validate required fields
+    if (!productForm.name?.trim()) {
+      alert("❌ يرجى إدخال اسم المنتج");
+      return;
+    }
+
+    if (!productForm.price) {
+      alert("❌ يرجى إدخال سعر المنتج");
+      return;
+    }
+
+    if (!productForm.stock) {
+      alert("❌ يرجى إدخال الكمية المتاحة");
+      return;
+    }
     
     const isTopupStore = user?.store_type === 'topup';
     const method = isEditingProduct ? 'PUT' : 'POST';
