@@ -15,6 +15,9 @@ async function restoreDatabaseViAPI() {
     
     console.log('📤 Sending restore request to Railway...\n');
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
+    
     const response = await fetch('https://web-production-9efff.up.railway.app/api/admin/restore-database', {
       method: 'POST',
       headers: {
@@ -23,21 +26,32 @@ async function restoreDatabaseViAPI() {
       body: JSON.stringify({
         authToken: 'admin-restore-key-2024',
         sql: sqlContent
-      })
+      }),
+      signal: controller.signal
     });
     
-    const result = await response.json();
+    clearTimeout(timeoutId);
+    
+    console.log(`Response status: ${response.status}\n`);
+    
+    const text = await response.text();
     
     if (!response.ok) {
-      console.error('❌ Restore failed:', result.error);
+      console.error('❌ Restore failed:', text);
       process.exit(1);
     }
     
-    console.log('✅ Restore completed successfully!');
-    console.log(`📊 Statements executed: ${result.executed}`);
-    if (result.errors && result.errors.length > 0) {
-      console.log(`⚠️  Errors encountered: ${result.errors.length}`);
-      result.errors.forEach(err => console.log(`   - ${err.substring(0, 100)}`));
+    try {
+      const result = JSON.parse(text);
+      console.log('✅ Restore completed successfully!');
+      console.log(`📊 Statements executed: ${result.executed}`);
+      if (result.errors && result.errors.length > 0) {
+        console.log(`⚠️  Errors encountered: ${result.errors.length}`);
+        result.errors.slice(0, 5).forEach(err => console.log(`   - ${err.substring(0, 100)}`));
+      }
+    } catch (e) {
+      console.log('✅ Restore completed!');
+      console.log('Response:', text.substring(0, 200));
     }
     
     process.exit(0);

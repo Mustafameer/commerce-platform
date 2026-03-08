@@ -4427,12 +4427,25 @@ async function startServer() {
       }
     });
 
-    // Serve static files from dist (MUST be before catch-all, AFTER all API routes)
-    app.use(express.static(path.join(__dirname, "dist")));
+    // Serve static files from dist with fallback to index.html for SPA routing
+    const distPath = path.join(__dirname, "dist");
+    
+    // Serve assets with caching
+    app.use('/assets', express.static(path.join(distPath, "assets"), {
+      maxAge: '1y',
+      etag: false
+    }));
+    
+    // Serve other static files
+    app.use(express.static(distPath, {
+      extensions: ['html', 'js', 'css', 'json', 'svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'woff', 'woff2'],
+      index: false // Disable automatic index.html handling
+    }));
 
-    // Catch-all route
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "dist", "index.html"));
+    // Catch-all route - serve index.html for all non-API, non-file requests (SPA routing)
+    app.use("*", (req, res) => {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.sendFile(path.join(distPath, "index.html"));
     });
     
     const PORT = Number.parseInt(process.env.PORT || "3000", 10);
