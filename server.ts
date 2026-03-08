@@ -538,6 +538,19 @@ async function runMigrations() {
     `);
     console.log("✅ Migration: customer_id foreign key constraint updated");
 
+    // Add can_access_admin column to users if it doesn't exist
+    await pool.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS can_access_admin BOOLEAN DEFAULT false;
+    `);
+    console.log("✅ Migration: can_access_admin column added to users");
+
+    // Set admin users to have can_access_admin = true
+    await pool.query(`
+      UPDATE users SET can_access_admin = true WHERE role = 'admin' AND can_access_admin = false;
+    `);
+    console.log("✅ Migration: Admin users updated with can_access_admin = true");
+
   } catch (error) {
     // Ignore column already exists errors
     const errorMsg = (error as any).message || '';
