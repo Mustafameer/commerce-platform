@@ -682,8 +682,19 @@ const CartPage = () => {
   };
 
   const handleCheckout = async () => {
+    // التحقق من جميع الحقول المطلوبة
+    if (!name.trim()) {
+      alert('❌ يرجى إدخال اسمك الكامل');
+      return;
+    }
+
     if (!phone.trim()) {
-      alert('يرجى إدخال رقم الهاتف');
+      alert('❌ يرجى إدخال رقم الهاتف');
+      return;
+    }
+
+    if (!address.trim()) {
+      alert('❌ يرجى إدخال عنوان التسليم');
       return;
     }
 
@@ -709,6 +720,7 @@ const CartPage = () => {
         verifiedCustomer = {
           name: name.trim(),
           phone: phone.trim(),
+          address: address.trim(),
           customer_type: customerType || 'cash'
         };
       }
@@ -717,6 +729,7 @@ const CartPage = () => {
       setVerificationModal({
         name: verifiedCustomer.name || name.trim() || 'عميل',
         phone: phone.trim(),
+        address: address.trim(),
         customer_type: verifiedCustomer.customer_type || customerType || 'cash',
         isExisting: !!customerData?.id
       });
@@ -1209,11 +1222,12 @@ const CartPage = () => {
 
             {/* بيانات التسليم */}
             <div className="mb-6 pb-6 border-b" style={{borderColor: isDarkMode ? '#374151' : '#e5e7eb'}}>
-              <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>� الاسم</label>
+              <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>👤 الاسم</label>
               <input 
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                placeholder="أدخل اسمك الكامل"
                 className={cn("w-full px-3 py-2 border rounded text-sm mb-3", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
               />
               <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>📱 الهاتف</label>
@@ -1221,6 +1235,15 @@ const CartPage = () => {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                placeholder="أدخل رقم الهاتف"
+                className={cn("w-full px-3 py-2 border rounded text-sm mb-3", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
+              />
+              <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>📍 العنوان</label>
+              <input 
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="أدخل عنوان التسليم"
                 className={cn("w-full px-3 py-2 border rounded text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
               />
               
@@ -1263,7 +1286,7 @@ const CartPage = () => {
             <div className="space-y-2">
               <button 
                 onClick={handleCheckout}
-                disabled={isCheckingOut || items.length === 0}
+                disabled={isCheckingOut || items.length === 0 || !name.trim() || !phone.trim() || !address.trim()}
                 className="w-full py-3 rounded-lg text-white font-normal transition-all disabled:opacity-50"
                 style={{ backgroundColor: primaryColor }}
               >
