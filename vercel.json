@@ -34,11 +34,15 @@
   ],
   "rewrites": [
     {
-      "source": "/(.*).(?:js|css|svg|png|jpg|jpeg|gif|ico|webp|woff|woff2|ttf|eot)$",
-      "destination": "/$1.$2"
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/assets/:path*",
+      "destination": "/assets/:path*"
+    },
+    {
+      "source": "/:path*",
       "destination": "/index.html"
     }
   ],
