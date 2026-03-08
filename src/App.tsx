@@ -55,6 +55,8 @@ function cn(...inputs: ClassValue[]) {
 
 // --- API Configuration ---
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+console.log(`🛠️ API_BASE_URL initialized: "${API_BASE_URL}" ${API_BASE_URL ? '✅' : '❌'}`);
+
 const apiCall = async (path: string, options?: RequestInit) => {
   const url = API_BASE_URL ? `${API_BASE_URL}${path}` : path;
   console.log(`📡 API Call: ${url}`);
@@ -65,9 +67,10 @@ const apiCall = async (path: string, options?: RequestInit) => {
 const originalFetch = window.fetch;
 (window as any).fetch = function(input: RequestInfo | URL, init?: RequestInit) {
   const url = typeof input === 'string' ? input : input.toString();
-  const finalUrl = (url.startsWith('/api') && API_BASE_URL) ? `${API_BASE_URL}${url}` : url;
+  const shouldRedirect = url.startsWith('/api') && API_BASE_URL;
+  const finalUrl = shouldRedirect ? `${API_BASE_URL}${url}` : url;
   
-  if (finalUrl !== url) {
+  if (shouldRedirect) {
     console.log(`🔄 Redirecting fetch: ${url} → ${finalUrl}`);
   }
   
