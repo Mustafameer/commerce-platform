@@ -2033,13 +2033,29 @@ async function startServer() {
         const result = await pool.query(`
           SELECT 
             o.id,
+            o.store_id,
+            o.customer_id,
             o.created_at,
             o.total_amount,
+            o.discount_amount,
             o.status,
+            o.phone,
+            o.address,
+            o.is_topup_order,
+            o.customer_type,
+            o.payment_status,
             s.store_name,
+            s.subscription_paid,
+            s.percentage_enabled,
+            s.commission_percentage,
             COALESCE(s.owner_name, u.name, 'غير معروف') as owner_name,
             s.owner_phone,
-            c.name as customer_name
+            c.name as customer_name,
+            CASE 
+              WHEN s.percentage_enabled = true AND s.commission_percentage > 0 THEN 
+                FLOOR(CAST(o.total_amount AS DECIMAL) * (CAST(s.commission_percentage AS DECIMAL) / 100))
+              ELSE 0 
+            END as commission_amount
           FROM orders o
           LEFT JOIN stores s ON o.store_id = s.id
           LEFT JOIN users u ON s.owner_id = u.id
@@ -2048,6 +2064,7 @@ async function startServer() {
         `);
         res.json(result.rows);
       } catch (error) {
+        console.error("Orders report error:", error);
         res.status(500).json({ error: (error as any).message });
       }
     });
