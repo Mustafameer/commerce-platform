@@ -1297,14 +1297,48 @@ async function startServer() {
     app.get("/api/orders", async (req, res) => {
       try {
         const storeId = req.query.storeId as string;
-        let query = `SELECT o.*, s.subscription_paid, s.owner_name, s.store_name, s.percentage_enabled 
+        let query = `SELECT 
+                      o.id,
+                      o.customer_id,
+                      o.store_id,
+                      o.total_amount,
+                      o.discount_amount,
+                      o.status,
+                      o.phone,
+                      o.address,
+                      o.is_topup_order,
+                      o.topup_codes,
+                      o.created_at,
+                      o.customer_type,
+                      o.payment_status,
+                      s.subscription_paid,
+                      s.owner_name,
+                      s.store_name,
+                      s.percentage_enabled 
                      FROM orders o 
                      LEFT JOIN stores s ON o.store_id = s.id 
                      ORDER BY o.created_at DESC`;
         let params: any[] = [];
         
         if (storeId) {
-          query = `SELECT o.*, s.subscription_paid, s.owner_name, s.store_name, s.percentage_enabled 
+          query = `SELECT 
+                      o.id,
+                      o.customer_id,
+                      o.store_id,
+                      o.total_amount,
+                      o.discount_amount,
+                      o.status,
+                      o.phone,
+                      o.address,
+                      o.is_topup_order,
+                      o.topup_codes,
+                      o.created_at,
+                      o.customer_type,
+                      o.payment_status,
+                      s.subscription_paid,
+                      s.owner_name,
+                      s.store_name,
+                      s.percentage_enabled 
                    FROM orders o 
                    LEFT JOIN stores s ON o.store_id = s.id 
                    WHERE o.store_id = $1 
@@ -1314,7 +1348,7 @@ async function startServer() {
         }
         
         const result = await pool.query(query, params);
-        console.log(`📋 Found ${result.rows.length} orders`);
+        console.log(`📋 Found ${result.rows.length} orders with store info`);
         res.json(result.rows);
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
