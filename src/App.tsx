@@ -3145,6 +3145,7 @@ const MerchantDashboard = () => {
   // Order Details
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
   const [orderItems, setOrderItems] = useState<any[]>([]);
+  const [invoiceModal, setInvoiceModal] = useState<any>(null);
 
   // Sales Modal
   const [showSalesModal, setShowSalesModal] = useState(false);
@@ -5951,10 +5952,19 @@ const MerchantDashboard = () => {
                           </Button>
                         )}
                         <Button 
-                          onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation();
-                            // Open invoice in new window for printing
-                            window.open(`/api/orders/${order.id}/invoice`, '_blank', 'width=900,height=700');
+                            try {
+                              const res = await fetch(`/api/orders/${order.id}/invoice`);
+                              const invoiceHtml = await res.text();
+                              setInvoiceModal({
+                                id: order.id,
+                                html: invoiceHtml
+                              });
+                            } catch (err) {
+                              console.error('خطأ في تحميل الفاتورة:', err);
+                              alert('حدث خطأ في تحميل الفاتورة. يرجى المحاولة لاحقاً.');
+                            }
                           }}
                           className={cn("border-2 text-xs font-normal py-2 rounded-xl flex-1 transition-all", isDarkMode ? "bg-gray-700 border-gray-600 hover:bg-gray-600 text-white" : "bg-white border-black/5 hover:bg-gray-100 text-gray-600")}
                         >
@@ -6034,6 +6044,48 @@ const MerchantDashboard = () => {
         {renderCategoryModal()}
         {renderCouponModal()}
         {renderCustomerModal()}
+
+        {/* Invoice Modal */}
+        {invoiceModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" dir="rtl">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={cn("rounded-2xl w-full max-w-4xl shadow-2xl max-h-[90vh] overflow-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
+            >
+              <div className={cn("p-6 border-b sticky top-0 flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
+                <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>الفاتورة #{invoiceModal.id}</h3>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => {
+                      const printWindow = window.open('', '', 'height=600,width=800');
+                      if (printWindow) {
+                        printWindow.document.write(invoiceModal.html);
+                        printWindow.document.close();
+                        printWindow.print();
+                      }
+                    }}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-normal text-sm hover:bg-indigo-700 transition-all"
+                  >
+                    🖨️ طباعة
+                  </button>
+                  <button 
+                    onClick={() => setInvoiceModal(null)}
+                    className={cn("p-2 rounded-lg transition-colors", isDarkMode ? "hover:bg-gray-600 text-gray-300" : "hover:bg-gray-200 text-gray-600")}
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                <div 
+                  dangerouslySetInnerHTML={{ __html: invoiceModal.html }}
+                  className={cn("prose prose-sm max-w-none", isDarkMode ? "prose-invert" : "")}
+                />
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
