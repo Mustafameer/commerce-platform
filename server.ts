@@ -707,9 +707,11 @@ async function startServer() {
       'http://localhost:3000',
       'http://127.0.0.1:5173',
       'http://127.0.0.1:3000',
+      'https://commerce-platform-six.vercel.app', // Vercel frontend production
+      'https://web-production-9efff.up.railway.app', // Rail way backend (self)
     ];
     
-    // Add Vercel and Railway URLs when available
+    // Add dynamic Vercel and Railway URLs when available as environment variables
     if (process.env.VERCEL_URL) {
       allowedOrigins.push(`https://${process.env.VERCEL_URL}`);
     }
