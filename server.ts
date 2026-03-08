@@ -4372,6 +4372,59 @@ async function startServer() {
 
     // ========== END AUCTION ENDPOINTS ==========
 
+    // Database Restore Endpoint (Admin Only)
+    app.post("/api/admin/restore-database", async (req, res) => {
+      try {
+        const { authToken } = req.body;
+        
+        // Simple auth check (should be the admin password or token)
+        if (authToken !== 'admin-restore-key-2024') {
+          return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const { sql } = req.body;
+        if (!sql || typeof sql !== 'string') {
+          return res.status(400).json({ error: 'SQL content required' });
+        }
+
+        console.log('🔄 Starting database restore...');
+        
+        const client = await pool.connect();
+        
+        // Split SQL into statements and execute
+        const statements = sql.split(';').filter(s => s.trim());
+        let executed = 0;
+        let errors = [];
+        
+        for (const statement of statements) {
+          const trimmed = statement.trim();
+          if (!trimmed || trimmed.startsWith('--')) continue;
+          
+          try {
+            await client.query(trimmed);
+            executed++;
+          } catch (error) {
+            console.error(`Error executing statement: ${error.message}`);
+            errors.push(error.message);
+          }
+        }
+        
+        client.release();
+        
+        console.log(`✅ Database restore completed: ${executed} statements executed`);
+        res.json({ 
+          success: true, 
+          executed,
+          errors: errors.length > 0 ? errors : undefined,
+          message: `Restored database with ${executed} statements`
+        });
+        
+      } catch (error) {
+        console.error('Database restore error:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // Catch-all route
     app.get("*", (req, res) => {
       res.sendFile(path.join(__dirname, "dist", "index.html"));
