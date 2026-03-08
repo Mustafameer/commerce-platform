@@ -743,9 +743,6 @@ async function startServer() {
     // Increase JSON body size limit to allow base64 images (logos) in settings
     app.use(express.json({ limit: "10mb" }));
     
-    // Serve static files from dist
-    app.use(express.static(path.join(__dirname, "dist")));
-    
     // Health check endpoint
     app.get("/api/health", (req, res) => {
       res.json({ status: "ok", message: "Server is running" });
@@ -4429,6 +4426,9 @@ async function startServer() {
         res.status(500).json({ error: error.message });
       }
     });
+
+    // Serve static files from dist (MUST be before catch-all, AFTER all API routes)
+    app.use(express.static(path.join(__dirname, "dist")));
 
     // Catch-all route
     app.get("*", (req, res) => {
