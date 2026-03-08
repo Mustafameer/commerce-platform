@@ -263,7 +263,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
           </div>
         </div>
         
-        <nav className="flex-1 px-3 space-y-1 overflow-y-auto pb-4">
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto pb-20">
           {navItems.map((item, index) => (
             <Link
               key={item.label}
@@ -272,7 +272,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
                 setDashboardQuery('');
                 setSidebarOpen(false);
               }}
-              className={cn("flex items-center justify-between px-4 py-3 rounded-xl transition-colors group", isDarkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-indigo-50 hover:text-indigo-600", index === navItems.length - 1 ? "mb-4" : "")}
+              className={cn("flex items-center justify-between px-4 py-3 rounded-xl transition-colors group", isDarkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-indigo-50 hover:text-indigo-600")}
             >
               <div className="flex items-center gap-3 min-w-0">
                 {item.icon && <item.icon size={20} className="group-hover:scale-110 transition-transform flex-shrink-0" />}
