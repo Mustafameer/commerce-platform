@@ -4294,8 +4294,8 @@ async function startServer() {
     });
     
     const PORT = Number.parseInt(process.env.PORT || "3000", 10);
-    const server = app.listen(PORT, () => {
-      console.log(`✅ Server is running on http://localhost:${PORT}`);
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`✅ Server is running on http://0.0.0.0:${PORT}`);
       console.log(`📡 Test DB at: http://localhost:${PORT}/api/test-db`);
     });
     
