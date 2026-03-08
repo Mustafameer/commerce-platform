@@ -53,6 +53,27 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// --- API Configuration ---
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const apiCall = async (path: string, options?: RequestInit) => {
+  const url = API_BASE_URL ? `${API_BASE_URL}${path}` : path;
+  console.log(`📡 API Call: ${url}`);
+  return fetch(url, options);
+};
+
+// Monkey-patch fetch to use API_BASE_URL for relative /api/* paths
+const originalFetch = window.fetch;
+(window as any).fetch = function(input: RequestInfo | URL, init?: RequestInit) {
+  const url = typeof input === 'string' ? input : input.toString();
+  const finalUrl = (url.startsWith('/api') && API_BASE_URL) ? `${API_BASE_URL}${url}` : url;
+  
+  if (finalUrl !== url) {
+    console.log(`🔄 Redirecting fetch: ${url} → ${finalUrl}`);
+  }
+  
+  return originalFetch.call(this, finalUrl, init);
+};
+
 const formatCurrency = (amount: number | string) => {
   const val = typeof amount === 'string' ? parseFloat(amount) : amount;
   const rounded = Math.floor(val);
