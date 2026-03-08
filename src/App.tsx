@@ -301,15 +301,6 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
             </Link>
           )}
 
-          <div className={cn("flex items-center gap-3 px-4 py-3 rounded-xl border", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-black/5")}>
-            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center font-normal border flex-shrink-0", isDarkMode ? "bg-blue-900 text-blue-300 border-blue-700" : "bg-indigo-100 text-indigo-600 border-indigo-200")}>
-              {user?.name?.[0] || 'A'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className={cn("text-sm font-normal truncate", isDarkMode ? "text-gray-100" : "text-gray-900")}>{user?.name}</p>
-              <p className={cn("text-[10px] font-normal truncate", isDarkMode ? "text-gray-400" : "text-gray-400")}>{user?.phone}</p>
-            </div>
-          </div>
           <button
             onClick={handleLogout}
             className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm", isDarkMode ? "text-red-400 hover:bg-red-900/30" : "text-red-600 hover:bg-red-50")}
