@@ -2387,10 +2387,14 @@ async function startServer() {
     // Toggle subscription paid status endpoint
     app.put("/api/admin/stores/:id/toggle-subscription-paid", async (req, res) => {
       try {
-        const storeId = parseInt(req.params.id);
+        const rawId = req.params.id;
+        const storeId = parseInt(rawId);
         const { subscription_paid } = req.body;
         
+        console.log(`🔄 Toggle subscription request: rawId=${rawId}, parsedId=${storeId}, isNaN=${isNaN(storeId)}, subscription_paid=${subscription_paid}`);
+        
         if (isNaN(storeId) || storeId <= 0) {
+          console.error(`❌ Invalid store ID: ${rawId} → ${storeId}`);
           return res.status(400).json({ error: "Invalid store ID" });
         }
         
@@ -2407,6 +2411,7 @@ async function startServer() {
           return res.status(404).json({ error: "Store not found" });
         }
         
+        console.log(`✅ Store ${storeId} subscription updated to ${subscription_paid}`);
         res.json({ success: true, store: result.rows[0] });
       } catch (error) {
         console.error("Toggle subscription error:", error);

@@ -2073,6 +2073,7 @@ const AdminDashboard = () => {
   // Toggle subscription paid status
   const toggleSubscriptionStatus = async (storeId: number, currentStatus: boolean) => {
     try {
+      console.log(`🔄 Toggling subscription: storeId=${storeId}, currentStatus=${currentStatus}`);
       const response = await fetch(`/api/admin/stores/${storeId}/toggle-subscription-paid`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -2080,6 +2081,7 @@ const AdminDashboard = () => {
       });
       
       const data = await response.json();
+      console.log(`📊 Response:`, data, `Status: ${response.status}`);
       
       if (response.ok) {
         // Update local state
