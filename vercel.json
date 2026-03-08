@@ -2,17 +2,13 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/admin", "destination": "/index.html" },
-    { "source": "/admin/:path*", "destination": "/index.html" },
-    { "source": "/stores", "destination": "/index.html" },
-    { "source": "/stores/:path*", "destination": "/index.html" },
-    { "source": "/merchant", "destination": "/index.html" },
-    { "source": "/merchant/:path*", "destination": "/index.html" },
-    { "source": "/cart", "destination": "/index.html" },
-    { "source": "/login", "destination": "/index.html" },
-    { "source": "/register-merchant", "destination": "/index.html" }
+    {
+      "source": "/(?!.*\\.)(.*)",
+      "destination": "/index.html"
+    }
   ],
   "env": {
     "VITE_API_URL": "@vite_api_url"
   }
 }
+
