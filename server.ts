@@ -1297,11 +1297,18 @@ async function startServer() {
     app.get("/api/orders", async (req, res) => {
       try {
         const storeId = req.query.storeId as string;
-        let query = "SELECT * FROM orders ORDER BY created_at DESC";
+        let query = `SELECT o.*, s.subscription_paid, s.owner_name, s.store_name, s.percentage_enabled 
+                     FROM orders o 
+                     LEFT JOIN stores s ON o.store_id = s.id 
+                     ORDER BY o.created_at DESC`;
         let params: any[] = [];
         
         if (storeId) {
-          query = "SELECT * FROM orders WHERE store_id = $1 ORDER BY created_at DESC";
+          query = `SELECT o.*, s.subscription_paid, s.owner_name, s.store_name, s.percentage_enabled 
+                   FROM orders o 
+                   LEFT JOIN stores s ON o.store_id = s.id 
+                   WHERE o.store_id = $1 
+                   ORDER BY o.created_at DESC`;
           params = [parseInt(storeId)];
           console.log(`📋 Fetching orders for store: ${storeId}`);
         }
