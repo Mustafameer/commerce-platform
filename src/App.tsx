@@ -3207,131 +3207,65 @@ const MerchantDashboard = () => {
     if (user?.store_id) {
       console.log('📥 MerchantDashboard - Fetching data for store:', user.store_id, 'Type:', user?.store_type);
       
-      fetch(`/api/products?storeId=${user.store_id}`)
-        .then(res => res.json())
-        .then(data => setProducts(Array.isArray(data) ? data : []))
-        .catch(() => setProducts([]));
-
-      fetch(`/api/categories?storeId=${user.store_id}`)
-        .then(res => res.json())
-        .then(data => {
-          const validCategories = Array.isArray(data) ? data.filter(c => c && c.name) : [];
-          setCategories(validCategories);
-        })
-        .catch(() => setCategories([]));
-
-      // For topup stores, use /api/topup/orders; for regular stores, use /api/orders
+      // Fetch all data in parallel for faster loading
       const ordersEndpoint = user?.store_type === 'topup'
         ? `/api/topup/orders?storeId=${user.store_id}`
         : `/api/orders?storeId=${user.store_id}`;
-      
-      console.log('📥 Fetching orders from:', ordersEndpoint);
 
-      fetch(ordersEndpoint)
-        .then(res => {
-          console.log('🔄 Orders Response Status:', res.status, res.statusText);
-          return res.json();
-        })
-        .then(data => {
-          console.log('📥 API Response for orders:', data);
-          console.log('📥 Is array?', Array.isArray(data));
-          console.log('📥 Data length:', data?.length || 'N/A');
-          setOrders(Array.isArray(data) ? data : []);
-        })
-        .catch((err) => {
-          console.error('❌ Failed to fetch orders:', err);
-          setOrders([]);
-        });
-
-      fetch(`/api/merchant/customers?storeId=${user.store_id}`)
-        .then(res => res.json())
-        .then(data => setCustomers(Array.isArray(data) ? data : []))
-        .catch(() => setCustomers([]));
-
-      fetch(`/api/coupons?storeId=${user.store_id}`)
-        .then(res => res.json())
-        .then(data => setCoupons(Array.isArray(data) ? data : []))
-        .catch(() => setCoupons([]));
-
-      fetch(`/api/merchant/stats?storeId=${user.store_id}`)
-        .then(res => res.json())
-        .then(data => setMerchantStats(data && !data.error ? data : {
+      Promise.all([
+        fetch(`/api/products?storeId=${user.store_id}`).then(r => r.json()).catch(() => []),
+        fetch(`/api/categories?storeId=${user.store_id}`).then(r => r.json()).catch(() => []),
+        fetch(ordersEndpoint).then(r => r.json()).catch(() => []),
+        fetch(`/api/merchant/customers?storeId=${user.store_id}`).then(r => r.json()).catch(() => []),
+        fetch(`/api/coupons?storeId=${user.store_id}`).then(r => r.json()).catch(() => []),
+        fetch(`/api/merchant/stats?storeId=${user.store_id}`).then(r => r.json()).catch(() => ({})),
+        fetch(`/api/auctions/active`).then(r => r.json()).catch(() => [])
+      ]).then(([products, categories, orders, customers, coupons, stats, auctions]) => {
+        setProducts(Array.isArray(products) ? products : []);
+        
+        const validCategories = Array.isArray(categories) ? categories.filter(c => c && c.name) : [];
+        setCategories(validCategories);
+        
+        setOrders(Array.isArray(orders) ? orders : []);
+        setCustomers(Array.isArray(customers) ? customers : []);
+        setCoupons(Array.isArray(coupons) ? coupons : []);
+        
+        setMerchantStats(stats && !stats.error ? stats : {
           totalRevenue: 0,
           orderStats: { total: 0, pending: 0, completed: 0 },
           topProducts: []
-        }))
-        .catch(() => {});
-
-      // Fetch auctions for this merchant's store
-      fetch(`/api/auctions/active`)
-        .then(res => res.json())
-        .then(data => {
-          const merchantAuctions = Array.isArray(data) ? data.filter((a: any) => a.store_id === user.store_id) : [];
-          setAuctions(merchantAuctions);
-        })
-        .catch(() => setAuctions([]));
+        });
+        
+        const merchantAuctions = Array.isArray(auctions) ? auctions.filter((a: any) => a.store_id === user.store_id) : [];
+        setAuctions(merchantAuctions);
+      });
     }
   }, [user, user?.store_type]);
 
-  // Auto-refresh merchant data every 5 seconds
+  // Auto-refresh merchant data every 30 seconds (reduced from 5 for better performance)
   useEffect(() => {
     if (!user?.store_id) return;
 
     const interval = setInterval(() => {
-      fetch(`/api/products?storeId=${user.store_id}`)
-        .then(res => res.json())
-        .then(data => setProducts(Array.isArray(data) ? data : []))
-        .catch(() => {});
-
-      fetch(`/api/categories?storeId=${user.store_id}`)
-        .then(res => res.json())
-        .then(data => {
-          const validCategories = Array.isArray(data) ? data.filter(c => c && c.name) : [];
-          setCategories(validCategories);
-        })
-        .catch(() => {});
-
-      // For topup stores, use /api/topup/orders; for regular stores, use /api/orders
       const ordersEndpoint = user?.store_type === 'topup' 
         ? `/api/topup/orders?storeId=${user.store_id}`
         : `/api/orders?storeId=${user.store_id}`;
 
-      fetch(ordersEndpoint)
-        .then(res => res.json())
-        .then(data => {
-          console.log('♻️ Auto-refresh orders:', data);
-          setOrders(Array.isArray(data) ? data : []);
-        })
-        .catch((err) => console.error('❌ Auto-refresh orders failed:', err));
-
-      fetch(`/api/merchant/customers?storeId=${user.store_id}`)
-        .then(res => res.json())
-        .then(data => setCustomers(Array.isArray(data) ? data : []))
-        .catch(() => {});
-
-      fetch(`/api/coupons?storeId=${user.store_id}`)
-        .then(res => res.json())
-        .then(data => setCoupons(Array.isArray(data) ? data : []))
-        .catch(() => {});
-
-      fetch(`/api/merchant/stats?storeId=${user.store_id}`)
-        .then(res => res.json())
-        .then(data => setMerchantStats(data && !data.error ? data : {
+      // Fetch all refresh data in parallel
+      Promise.all([
+        fetch(`/api/products?storeId=${user.store_id}`).then(r => r.json()).catch(() => []),
+        fetch(ordersEndpoint).then(r => r.json()).catch(() => []),
+        fetch(`/api/merchant/stats?storeId=${user.store_id}`).then(r => r.json()).catch(() => ({}))
+      ]).then(([products, orders, stats]) => {
+        setProducts(Array.isArray(products) ? products : []);
+        setOrders(Array.isArray(orders) ? orders : []);
+        setMerchantStats(stats && !stats.error ? stats : {
           totalRevenue: 0,
           orderStats: { total: 0, pending: 0, completed: 0 },
           topProducts: []
-        }))
-        .catch(() => {});
-
-      // Auto-refresh auctions
-      fetch(`/api/auctions/active`)
-        .then(res => res.json())
-        .then(data => {
-          const merchantAuctions = Array.isArray(data) ? data.filter((a: any) => a.store_id === user.store_id) : [];
-          setAuctions(merchantAuctions);
-        })
-        .catch(() => {});
-    }, 5000); // Refresh every 5 seconds
+        });
+      });
+    }, 30000); // Refresh every 30 seconds
 
     return () => clearInterval(interval);
   }, [user?.store_id, user?.store_type]);
