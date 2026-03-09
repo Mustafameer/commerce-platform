@@ -474,7 +474,6 @@ const CartPage = () => {
         const data = JSON.parse(topupData);
         console.log('✅ Initial load - Found topupCustomer:', data);
         setName(data.name || '');
-        setPhone(data.phone || '');
       } catch (err) {
         console.error('⚠️ Error in initial check:', err);
       }
@@ -492,7 +491,6 @@ const CartPage = () => {
           const data = JSON.parse(topupData);
           console.log('✅ Reloaded from topupCustomer (PRIORITY):', data);
           if (data.name) setName(data.name);
-          if (data.phone) setPhone(data.phone);
           return;
         } catch (err) {
           console.error('⚠️ Error parsing topupCustomer:', err);
@@ -506,7 +504,6 @@ const CartPage = () => {
           const data = JSON.parse(customerData);
           console.log('✅ Reloaded from customerData:', data);
           if (data.name) setName(data.name);
-          if (data.phone) setPhone(data.phone);
         } catch (err) {
           console.error('⚠️ Error parsing customerData:', err);
         }
@@ -542,7 +539,6 @@ const CartPage = () => {
         const data = JSON.parse(topupData);
         console.log('✅ Loading from topupCustomer (PRIORITY):', data);
         if (data.name) setName(data.name);
-        if (data.phone) setPhone(data.phone);
         // لا نرجع هنا حتى نتابع الـ useEffect الآخر
       } catch (err) {
         console.error('⚠️ Error parsing topupCustomer:', err);
@@ -557,7 +553,6 @@ const CartPage = () => {
       try {
         const data = JSON.parse(customerData);
         if (data.name) setName(data.name);
-        if (data.phone) setPhone(data.phone);
         console.log('✅ Loaded from customerData:', data);
         return;
       } catch (err) {
@@ -566,16 +561,15 @@ const CartPage = () => {
     }
     
     // ثالثاً: جرب الحصول على بيانات المستخدم المسجل الدخول فقط إذا لم يكن هناك topup data
-    if (user?.id && user?.name && user?.phone) {
+    if (user?.id && user?.name) {
       setName(user.name);
-      setPhone(user.phone);
-      console.log('✅ Loaded from logged-in user:', { name: user.name, phone: user.phone });
+      console.log('✅ Loaded from logged-in user:', { name: user.name });
       return;
     }
     
     // رابعاً: إذا لم يكن هناك user id، لا تفعل شيئاً
     console.log('ℹ️ No user data available');
-  }, [user?.id, user?.name, user?.phone]);
+  }, [user?.id, user?.name]);
 
   // التحقق من العميل في قاعدة البيانات عند تغيير رقم الهاتف
   useEffect(() => {
