@@ -1626,10 +1626,12 @@ async function startServer() {
           <head>
             <meta charset="UTF-8">
             <style>
-              body { font-family: Arial, sans-serif; margin: 20px; direction: rtl; }
+              body { font-family: 'Times New Roman', Times, serif; font-size: 14px; margin: 20px; direction: rtl; }
               .invoice { max-width: 600px; margin: 0 auto; }
               .header { text-align: center; margin-bottom: 30px; }
-              .header h1 { margin: 0; }
+              .header { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+              .header img { max-width: 150px; height: auto; }
+              .header h1 { margin: 0; font-size: 18px; }
               .info { margin-bottom: 20px; }
               .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
               table { width: 100%; border-collapse: collapse; margin: 20px 0; }
@@ -1642,7 +1644,8 @@ async function startServer() {
           <body dir="rtl">
             <div class="invoice">
               <div class="header">
-                <h1>فاتورة الطلب</h1>
+                ${order.logo_url ? `<img src="${order.logo_url}" alt="شعار المتجر">` : ''}
+                <h1>${order.store_name || 'متجر'}</h1>
               </div>
               <div class="info" dir="rtl">
                 <div class="info-row">
