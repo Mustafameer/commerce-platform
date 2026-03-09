@@ -10035,6 +10035,9 @@ const TopupStorefront = () => {
   useEffect(() => {
     if (!storeId) return;
     
+    console.log(`🚀 TopupStorefront mount with storeId: ${storeId}`);
+    console.log(`📡 API_BASE_URL: "${API_BASE_URL}"`);
+    
     const fetchData = async () => {
       try {
         // إضافة timestamp لفرض جلب البيانات الجديدة من قاعدة البيانات
@@ -10050,8 +10053,12 @@ const TopupStorefront = () => {
         
         // First, get store by slug to get actual store ID
         let storeRes;
+        const storeUrl = `/api/stores/slug/${storeId}?_t=${timestamp}`;
+        console.log(`📍 Fetching store from: ${storeUrl}`);
+        console.log(`   Full URL will be: ${API_BASE_URL ? API_BASE_URL + storeUrl : storeUrl}`);
+        
         try {
-          const resp = await fetch(`/api/stores/slug/${storeId}?_t=${timestamp}`, { 
+          const resp = await fetch(storeUrl, { 
             cache: 'no-store',
             signal: controller.signal 
           });
@@ -10065,7 +10072,7 @@ const TopupStorefront = () => {
           }
           
           storeRes = await resp.json();
-          console.log('✅ Store response received');
+          console.log('✅ Store response received:', storeRes);
         } catch (e) {
           clearTimeout(timeoutId);
           if (e instanceof TypeError && e.message.includes('aborted')) {
