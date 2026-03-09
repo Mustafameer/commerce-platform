@@ -108,6 +108,7 @@ const createCartStore = (storageKey: string) =>
 
 export const useCartStore = createCartStore('cart-store');
 export const useRegularCartStore = createCartStore('regular-cart-store');
+export const useTopupCartStore = createCartStore('topup-cart-store');
 
 interface SettingsState {
   appName: string;

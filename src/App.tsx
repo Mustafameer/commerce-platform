@@ -45,7 +45,7 @@ import {
   Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useAuthStore, useCartStore, useSettingsStore, useSearchStore, useRefreshStore } from './store';
+import { useAuthStore, useRegularCartStore, useSettingsStore, useSearchStore, useRefreshStore, useTopupCartStore } from './store';
 import type { User, Store, Product, Order } from './types';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -366,11 +366,16 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
 
 // --- Pages ---
 
-const CartPage = () => {
-  const { items, removeItem, updateQuantity, clearCart, appliedCoupon, setAppliedCoupon } = useCartStore();
+type CartMode = 'regular' | 'topup';
+
+const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
+  const regularCart = useRegularCartStore();
+  const topupCart = useTopupCartStore();
+  const { items, removeItem, updateQuantity, clearCart, appliedCoupon, setAppliedCoupon } = cartMode === 'topup' ? topupCart : regularCart;
   const { user } = useAuthStore();
   const { primaryColor } = useSettingsStore();
   const { isDarkMode } = useTheme();
+  const isTopupCart = cartMode === 'topup';
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -474,6 +479,8 @@ const CartPage = () => {
 
   // تحقق فوري من localStorage عند تحميل الصفحة
   useEffect(() => {
+    if (!isTopupCart) return;
+
     console.log('🔍 Initial localStorage check in CartPage');
     const topupData = localStorage.getItem('topupCustomer');
     if (topupData) {
@@ -481,14 +488,17 @@ const CartPage = () => {
         const data = JSON.parse(topupData);
         console.log('✅ Initial load - Found topupCustomer:', data);
         setName(data.name || '');
+        setPhone(data.phone || '');
       } catch (err) {
         console.error('⚠️ Error in initial check:', err);
       }
     }
-  }, []);
+  }, [isTopupCart]);
 
   // مراقبة تغييرات topupCustomer في localStorage
   useEffect(() => {
+    if (!isTopupCart) return;
+
     const handleStorageChange = () => {
       console.log('🔄 localStorage changed - reloading customer data');
       // تحقق من topupCustomer أولاً (أولوية أعلى)
@@ -498,6 +508,7 @@ const CartPage = () => {
           const data = JSON.parse(topupData);
           console.log('✅ Reloaded from topupCustomer (PRIORITY):', data);
           if (data.name) setName(data.name);
+          if (data.phone) setPhone(data.phone);
           return;
         } catch (err) {
           console.error('⚠️ Error parsing topupCustomer:', err);
@@ -511,6 +522,7 @@ const CartPage = () => {
           const data = JSON.parse(customerData);
           console.log('✅ Reloaded from customerData:', data);
           if (data.name) setName(data.name);
+          if (data.phone) setPhone(data.phone);
         } catch (err) {
           console.error('⚠️ Error parsing customerData:', err);
         }
@@ -533,25 +545,25 @@ const CartPage = () => {
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(checkInterval);
     };
-  }, []);
+  }, [isTopupCart]);
 
   // ملء الاسم والهاتف تلقائياً من بيانات المستخدم المسجل الدخول أو البيانات المحفوظة
   useEffect(() => {
     console.log('👤 Populating user data in CartPage');
     
-    // أولاً: جرب الحصول على بيانات من localStorage (شراء topup جديد - الأولوية الأعلى)
-    const topupData = localStorage.getItem('topupCustomer');
-    if (topupData) {
-      try {
-        const data = JSON.parse(topupData);
-        console.log('✅ Loading from topupCustomer (PRIORITY):', data);
-        if (data.name) setName(data.name);
-        // لا نرجع هنا حتى نتابع الـ useEffect الآخر
-      } catch (err) {
-        console.error('⚠️ Error parsing topupCustomer:', err);
+    if (isTopupCart) {
+      const topupData = localStorage.getItem('topupCustomer');
+      if (topupData) {
+        try {
+          const data = JSON.parse(topupData);
+          console.log('✅ Loading from topupCustomer (PRIORITY):', data);
+          if (data.name) setName(data.name);
+          if (data.phone) setPhone(data.phone);
+          return;
+        } catch (err) {
+          console.error('⚠️ Error parsing topupCustomer:', err);
+        }
       }
-      // إذا كان topupCustomer موجود، لا نحمل user
-      return;
     }
     
     // ثانياً: إذا لم يكن topupCustomer، جرب customerData
@@ -560,6 +572,7 @@ const CartPage = () => {
       try {
         const data = JSON.parse(customerData);
         if (data.name) setName(data.name);
+        if (data.phone) setPhone(data.phone);
         console.log('✅ Loaded from customerData:', data);
         return;
       } catch (err) {
@@ -570,13 +583,14 @@ const CartPage = () => {
     // ثالثاً: جرب الحصول على بيانات المستخدم المسجل الدخول فقط إذا لم يكن هناك topup data
     if (user?.id && user?.name) {
       setName(user.name);
+      if (user.phone) setPhone(user.phone);
       console.log('✅ Loaded from logged-in user:', { name: user.name });
       return;
     }
     
     // رابعاً: إذا لم يكن هناك user id، لا تفعل شيئاً
     console.log('ℹ️ No user data available');
-  }, [user?.id, user?.name]);
+  }, [isTopupCart, user?.id, user?.name, user?.phone]);
 
   // التحقق من العميل في قاعدة البيانات عند تغيير رقم الهاتف
   useEffect(() => {
@@ -745,7 +759,7 @@ const CartPage = () => {
     try {
       // First try to get customer_id from localStorage (topup customer data)
       let customerId = null;
-      const savedCustomer = localStorage.getItem('topupCustomer');
+      const savedCustomer = isTopupCart ? localStorage.getItem('topupCustomer') : null;
       if (savedCustomer) {
         try {
           const topupCustData = JSON.parse(savedCustomer);
@@ -1219,14 +1233,32 @@ const CartPage = () => {
 
             {/* بيانات التسليم */}
             <div className="mb-6 pb-6 border-b" style={{borderColor: isDarkMode ? '#374151' : '#e5e7eb'}}>
+              {isTopupCart && (
+                <>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>الاسم</label>
+                  <input 
+                    type="text"
+                    value={name}
+                    readOnly
+                    placeholder="اسم العميل المسجل"
+                    className={cn("w-full px-3 py-2 border rounded text-sm mb-3 cursor-not-allowed", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-300" : "bg-gray-100 border-gray-200 text-gray-700")}
+                  />
+                </>
+              )}
               <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}> الهاتف</label>
               <input 
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="أدخل رقم الهاتف"
-                className={cn("w-full px-3 py-2 border rounded text-sm mb-3", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
+                readOnly={isTopupCart}
+                className={cn("w-full px-3 py-2 border rounded text-sm mb-3", isTopupCart ? (isDarkMode ? "bg-gray-700 border-gray-600 text-gray-300 cursor-not-allowed" : "bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed") : (isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"))}
               />
+              {isTopupCart && (
+                <p className={cn("text-xs mb-3", isDarkMode ? "text-gray-400" : "text-gray-500")}>
+                  تم تعبئة الاسم ورقم الهاتف من تسجيل دخول العميل في متجر الشحن.
+                </p>
+              )}
               <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>📍 العنوان</label>
               <input 
                 type="text"
@@ -6099,7 +6131,7 @@ const CustomerStorefront = () => {
   const [verificationError, setVerificationError] = useState('');
   
   const { isDarkMode } = useTheme();
-  const { items, addItem } = useCartStore();
+  const { items, addItem } = useRegularCartStore();
   const { user } = useAuthStore();
   const { appName, logoUrl, primaryColor, setSettings } = useSettingsStore();
   
@@ -6671,10 +6703,14 @@ const CustomerStorefront = () => {
   );
 };
 
+const CartPage = () => <CartPageContent cartMode="regular" />;
+
+const TopupCartPage = () => <CartPageContent cartMode="topup" />;
+
 const MarketplacePage = () => {
   const { isDarkMode, setIsDarkMode } = useTheme();
   const { appName, primaryColor } = useSettingsStore();
-  const { items, addItem, updateQuantity } = useCartStore();
+  const { items, addItem, updateQuantity } = useRegularCartStore();
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
@@ -8217,6 +8253,7 @@ function App() {
           <Route path="/stores" element={<StoresPage />} />
           <Route path="/store/:slug" element={<CustomerStorefront />} />
           <Route path="/cart" element={<CartPage />} />
+          <Route path="/topup-cart" element={<TopupCartPage />} />
           <Route path="/login" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'merchant' ? '/merchant' : '/'} replace /> : <LoginPage />} />
           <Route path="/register-merchant" element={<RegisterMerchantPage />} />
           
@@ -9949,7 +9986,7 @@ const TopupStorefront = () => {
   const { slug: storeId } = useParams();
   const { isDarkMode } = useTheme();
   const { primaryColor } = useSettingsStore();
-  const { addItem, items: cartItems } = useCartStore();
+  const { addItem, items: cartItems } = useTopupCartStore();
   const navigate = useNavigate();
   
   const [storeInfo, setStoreInfo] = useState<any>(null);
@@ -10688,7 +10725,7 @@ const TopupStorefront = () => {
                     console.log('✅ Saving purchaseForm to topupCustomer:', purchaseForm);
                     localStorage.setItem('topupCustomer', JSON.stringify(purchaseForm));
                   }
-                  navigate('/cart');
+                  navigate('/topup-cart');
                 }}
                 className="relative rounded-lg font-normal text-white transition-all hover:scale-105 flex items-center gap-2 shadow group"
                 style={{ backgroundColor: primaryColor }}
