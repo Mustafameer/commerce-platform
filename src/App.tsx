@@ -9266,13 +9266,6 @@ const MerchantTopupDashboard = () => {
           {/* Codes Section */}
           {currentSection === 'codes' && (
             <div className="space-y-6">
-              <button
-                onClick={() => setShowCodeUploadModal(true)}
-                className="px-6 py-3 bg-green-600 text-white font-normal rounded-lg hover:bg-green-700 flex items-center gap-2"
-              >
-                <Upload size={18} /> رفع أكواد جديدة
-              </button>
-
               <Card className={cn("overflow-hidden", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
                 <table className="w-full">
                   <thead>
