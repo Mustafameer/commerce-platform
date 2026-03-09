@@ -10293,7 +10293,7 @@ const TopupStorefront = () => {
         body: JSON.stringify({
           phone: authPhone,
           password: authPassword,
-          store_id: storeId
+          store_id: actualStoreId
         })
       });
 
@@ -10525,7 +10525,7 @@ const TopupStorefront = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          store_id: storeId,
+          store_id: actualStoreId,
           topup_product_id: selectedProduct.id,
           quantity,
           customer_id: customer?.customer_id || null,
@@ -11077,7 +11077,7 @@ const TopupStorefront = () => {
                               ...product,
                               price: correctPrice,  // Override with correct price
                               store_type: 'topup',
-                              store_id: parseInt(storeId || '0'),
+                              store_id: actualStoreId || parseInt(storeId || '0'),
                               quantity: selectedProduct?.id === product.id ? quantity : 1 
                             });
                             playAddToCartSound();
