@@ -2396,6 +2396,8 @@ async function startServer() {
     app.post("/api/admin/approve-store/:id", async (req, res) => {
       try {
         const storeId = parseInt(req.params.id);
+        const { phone } = req.body; // Get the custom phone from body
+        
         if (isNaN(storeId) || storeId <= 0) {
           return res.status(400).json({ error: "Invalid store ID" });
         }
@@ -2411,11 +2413,12 @@ async function startServer() {
         }
         
         const store = storeCheckResult.rows[0];
+        const phoneToUse = phone || store.owner_phone; // Use provided phone or fallback to owner_phone
         
         // Verify that the owner has a user account
         if (store.owner_id) {
           const userCheckResult = await pool.query(
-            "SELECT id, store_id FROM users WHERE id = $1",
+            "SELECT id, store_id, phone FROM users WHERE id = $1",
             [store.owner_id]
           );
           
@@ -2426,23 +2429,23 @@ async function startServer() {
             });
           }
           
-          // Make sure the user's store_id is set correctly
-          if (!userCheckResult.rows[0].store_id) {
+          // Make sure the user's store_id and phone are set correctly
+          if (!userCheckResult.rows[0].store_id || userCheckResult.rows[0].phone !== phoneToUse) {
             await pool.query(
-              "UPDATE users SET store_id = $1 WHERE id = $2",
-              [storeId, store.owner_id]
+              "UPDATE users SET store_id = $1, phone = $2 WHERE id = $3",
+              [storeId, phoneToUse, store.owner_id]
             );
-            console.log(`✅ Updated user ${store.owner_id} with store_id ${storeId}`);
+            console.log(`✅ Updated user ${store.owner_id} with store_id ${storeId} and phone ${phoneToUse}`);
           }
         }
         
-        // Update store status
+        // Update store status and phone
         const result = await pool.query(
-          "UPDATE stores SET status = $1, is_active = $2 WHERE id = $3 RETURNING *",
-          ['approved', true, storeId]
+          "UPDATE stores SET status = $1, is_active = $2, owner_phone = $3 WHERE id = $4 RETURNING *",
+          ['approved', true, phoneToUse, storeId]
         );
         
-        console.log(`✅ Store ${storeId} (${store.store_type}) approved successfully`);
+        console.log(`✅ Store ${storeId} (${store.store_type}) approved successfully with phone ${phoneToUse}`);
         
         res.json({ success: true, store: result.rows[0] });
       } catch (error) {
