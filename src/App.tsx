@@ -55,7 +55,9 @@ function cn(...inputs: ClassValue[]) {
 
 // --- API Configuration ---
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
-console.log(`🛠️ API_BASE_URL initialized: "${API_BASE_URL}" ${API_BASE_URL ? '✅' : '❌'}`);
+console.log(`🛠️ API_BASE_URL initialized: "${API_BASE_URL}" ${API_BASE_URL ? '✅' : '⚠️ EMPTY'}`);
+console.log(`🛠️ Environment: ${typeof window !== 'undefined' ? 'Browser' : 'Node'}`);
+console.log(`🛠️ Current URL: ${typeof window !== 'undefined' ? window.location.href : 'N/A'}`);
 
 const apiCall = async (path: string, options?: RequestInit) => {
   const url = API_BASE_URL ? `${API_BASE_URL}${path}` : path;
@@ -65,6 +67,8 @@ const apiCall = async (path: string, options?: RequestInit) => {
 
 // Monkey-patch fetch to use API_BASE_URL for relative /api/* paths
 const originalFetch = window.fetch;
+console.log(`🔧 Original fetch function: ${originalFetch ? '✅' : '❌'}`);
+
 (window as any).fetch = function(input: RequestInfo | URL, init?: RequestInit) {
   const url = typeof input === 'string' ? input : input.toString();
   const shouldRedirect = url.startsWith('/api') && API_BASE_URL;
@@ -72,10 +76,13 @@ const originalFetch = window.fetch;
   
   if (shouldRedirect) {
     console.log(`🔄 Redirecting fetch: ${url} → ${finalUrl}`);
+  } else if (url.startsWith('/api')) {
+    console.warn(`⚠️ NOT redirecting ${url} - API_BASE_URL is empty!`);
   }
   
   return originalFetch.call(this, finalUrl, init);
 };
+console.log(`🔧 Fetch monkey-patch applied`);
 
 const formatCurrency = (amount: number | string) => {
   const val = typeof amount === 'string' ? parseFloat(amount) : amount;
