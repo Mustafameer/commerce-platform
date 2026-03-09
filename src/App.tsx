@@ -10115,11 +10115,11 @@ const TopupStorefront = () => {
     // Fetch immediately on mount
     fetchData();
     
-    // تحديث البيانات كل 3 ثوان للتحقق من أكواد جديدة
+    // تحديث البيانات كل 30 ثانية للتحقق من تحديثات جديدة (بدلاً من كل 3 ثواني)
     const refreshInterval = setInterval(() => {
       console.log('🔄 Auto-refreshing products data...');
       fetchData();
-    }, 3000);
+    }, 30000);
     
     return () => {
       clearInterval(refreshInterval);
