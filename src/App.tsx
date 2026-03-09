@@ -10593,7 +10593,13 @@ const TopupStorefront = () => {
     }
   };
 
-  if (loading) return <div className="p-8 text-center">جاري التحميل...</div>;
+  if (loading) return (
+    <div className={cn("p-8 text-center min-h-screen flex flex-col items-center justify-center", isDarkMode ? "bg-gray-900" : "bg-white")}>
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+      <p className={isDarkMode ? "text-gray-300" : "text-gray-700"}>جاري التحميل...</p>
+      <p className={cn("text-sm mt-2", isDarkMode ? "text-gray-500" : "text-gray-500")}>يرجى الانتظار قليلاً</p>
+    </div>
+  );
 
   return (
     <div className={cn("min-h-screen", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900")} dir="rtl">
