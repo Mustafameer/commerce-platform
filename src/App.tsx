@@ -703,7 +703,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
       return;
     }
 
-    if (!address.trim()) {
+    if (!isTopupCart && !address.trim()) {
       alert('❌ يرجى إدخال عنوان التسليم');
       return;
     }
@@ -1259,14 +1259,18 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                   تم تعبئة الاسم ورقم الهاتف من تسجيل دخول العميل في متجر الشحن.
                 </p>
               )}
-              <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>📍 العنوان</label>
-              <input 
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="أدخل عنوان التسليم"
-                className={cn("w-full px-3 py-2 border rounded text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
-              />
+              {!isTopupCart && (
+                <>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>📍 العنوان</label>
+                  <input 
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="أدخل عنوان التسليم"
+                    className={cn("w-full px-3 py-2 border rounded text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
+                  />
+                </>
+              )}
               
               {/* عرض نوع العميل والسعر المطبق */}
               {phone && (
@@ -1307,7 +1311,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             <div className="space-y-2">
               <button 
                 onClick={handleCheckout}
-                disabled={isCheckingOut || items.length === 0 || !phone.trim() || !address.trim()}
+                disabled={isCheckingOut || items.length === 0 || !phone.trim() || (!isTopupCart && !address.trim())}
                 className="w-full py-3 rounded-lg text-white font-normal transition-all disabled:opacity-50"
                 style={{ backgroundColor: primaryColor }}
               >
