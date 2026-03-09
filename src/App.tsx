@@ -10044,12 +10044,12 @@ const TopupStorefront = () => {
         const timestamp = Date.now();
         console.log('🔍 Fetching products with timestamp:', timestamp);
         
-        // Create AbortController with 10-second timeout
+        // Create AbortController with 30-second timeout (Railway can be slow)
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
-          console.warn('⏱️ Fetch timeout after 10 seconds');
+          console.warn('⏱️ Fetch timeout after 30 seconds');
           controller.abort();
-        }, 10000);
+        }, 30000);
         
         // First, get store by slug to get actual store ID
         let storeRes;
