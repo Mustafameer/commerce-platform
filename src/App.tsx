@@ -847,7 +847,7 @@ const CartPage = () => {
                 customer_id: customerId || null,
                 customer_type: customerType || user?.customer_type || 'cash',
                 phone: phone.trim(),
-                address: `${name.trim()} | ${phone.trim()}`,
+                address: address.trim(),
                 total_amount: itemAmount - itemDiscount
               })
             });
@@ -912,6 +912,7 @@ const CartPage = () => {
             customer_id: customerId,
             name: name.trim(),
             phone: phone.trim(),
+            address: address.trim(),
             store_id: parseInt(storeId),
             is_topup: false
           };
