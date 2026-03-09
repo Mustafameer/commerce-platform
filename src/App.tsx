@@ -451,8 +451,8 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
         </div>
 
         {/* Mobile Footer Navigation */}
-        <div className={cn("md:hidden fixed bottom-0 inset-x-0 z-30 border-t px-2 py-2", isDarkMode ? "bg-gray-800/95 border-gray-700 backdrop-blur-sm" : "bg-white/95 border-black/5 backdrop-blur-sm")}>
-          <div className="flex items-stretch gap-2 overflow-x-auto pb-1">
+        <div className={cn("fixed bottom-0 inset-x-0 z-50 border-t px-2 py-2 flex lg:hidden", isDarkMode ? "bg-gray-800/95 border-gray-700 backdrop-blur-sm" : "bg-white/95 border-black/5 backdrop-blur-sm")}>
+          <div className="w-full flex items-stretch gap-2 overflow-x-auto pb-1">
             {navItems.map((item) => (
               <Link
                 key={`mobile-${item.path}`}
@@ -1745,8 +1745,8 @@ const MobileFooterNav = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className={cn("md:hidden fixed bottom-0 inset-x-0 z-30 border-t px-2 py-2", isDarkMode ? "bg-gray-800/95 border-gray-700 backdrop-blur-sm" : "bg-white/95 border-black/5 backdrop-blur-sm")}>
-      <div className="flex items-stretch gap-2 overflow-x-auto pb-1">
+    <div className={cn("fixed bottom-0 inset-x-0 z-50 border-t px-2 py-2 flex lg:hidden", isDarkMode ? "bg-gray-800/95 border-gray-700 backdrop-blur-sm" : "bg-white/95 border-black/5 backdrop-blur-sm")}>
+      <div className="w-full flex items-stretch gap-2 overflow-x-auto pb-1">
         {navItems.map((item) => (
           <Link
             key={`mobile-nav-${item.path}`}
