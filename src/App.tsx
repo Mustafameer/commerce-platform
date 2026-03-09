@@ -8439,13 +8439,17 @@ const MerchantTopupDashboard = () => {
     let usedCodes = 0;
     let totalRevenue = 0;
 
-    // Calculate codes statistics
+    // Calculate codes statistics from products
     prod.forEach(p => {
       if (p.codes && Array.isArray(p.codes)) {
         totalCodes += p.codes.length;
-        usedCodes += p.codes.filter((c: any) => c.used || c.status === 'used').length;
       }
     });
+
+    // Calculate used codes from orders (each order = one code used)
+    if (Array.isArray(ordersData) && ordersData.length > 0) {
+      usedCodes = ordersData.length; // Each order uses at least one code
+    }
 
     // Calculate revenue from orders (convert to number properly)
     ordersData.forEach(order => {
