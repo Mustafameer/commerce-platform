@@ -10035,38 +10035,69 @@ const TopupStorefront = () => {
         console.log('🔍 Fetching products with timestamp:', timestamp);
         
         // First, get store by slug to get actual store ID
-        const storeRes = await fetch(`/api/stores/slug/${storeId}?_t=${timestamp}`, { cache: 'no-store' }).then(r => r.json());
+        const storeRes = await fetch(`/api/stores/slug/${storeId}?_t=${timestamp}`, { cache: 'no-store' }).then(r => {
+          if (!r.ok) {
+            console.error('❌ Store fetch failed:', r.status, r.statusText);
+            throw new Error(`Store fetch failed: ${r.status}`);
+          }
+          return r.json();
+        });
         
         if (!storeRes || storeRes.error) {
           console.error('Store not found:', storeRes?.error);
           setLoading(false);
+          alert(`متجر غير موجود: ${storeRes?.error}`);
           return;
         }
         
         const actualStoreId = storeRes.id;
+        console.log('✅ Store found:', { storeId, actualStoreId, store_name: storeRes.store_name });
         setActualStoreId(actualStoreId);
         
         // Now fetch other data using actual store ID
-        const [companiesRes, categoriesRes, productsRes] = await Promise.all([
-          fetch(`/api/topup/companies/${actualStoreId}?_t=${timestamp}`, { cache: 'no-store' }).then(r => r.json()),
-          fetch(`/api/topup/categories/${actualStoreId}?_t=${timestamp}`, { cache: 'no-store' }).then(r => r.json()),
-          fetch(`/api/topup/products/${actualStoreId}?_t=${timestamp}`, { cache: 'no-store' }).then(r => r.json())
-        ]);
+        const companiesRes = await fetch(`/api/topup/companies/${actualStoreId}?_t=${timestamp}`, { cache: 'no-store' }).then(async r => {
+          if (!r.ok) {
+            console.error('❌ Companies fetch failed:', r.status);
+            return [];
+          }
+          const data = await r.json();
+          console.log('✅ Companies fetched:', Array.isArray(data) ? data.length : (typeof data === 'object' && data.value ? data.value.length : 0));
+          return Array.isArray(data) ? data : (data.value || []);
+        }).catch(e => {
+          console.error('❌ Companies error:', e.message);
+          return [];
+        });
         
-        console.log('📊 Raw Products Response:', productsRes);
-        console.log('📊 Products fetched from API:', {
-          count: Array.isArray(productsRes) ? productsRes.length : 0,
-          timestamp,
-          full_data: productsRes,
-          samples: Array.isArray(productsRes) && productsRes.slice(0, 5).map(p => ({
-            id: p.id,
-            name: p.company_name,
-            amount: p.amount,
-            available_codes: p.available_codes,
-            codes_array: p.codes,
-            codes_count: p.codes?.length,
-            all_keys: Object.keys(p)
-          }))
+        const categoriesRes = await fetch(`/api/topup/categories/${actualStoreId}?_t=${timestamp}`, { cache: 'no-store' }).then(async r => {
+          if (!r.ok) {
+            console.error('❌ Categories fetch failed:', r.status);
+            return [];
+          }
+          const data = await r.json();
+          console.log('✅ Categories fetched:', Array.isArray(data) ? data.length : 0);
+          return Array.isArray(data) ? data : [];
+        }).catch(e => {
+          console.error('❌ Categories error:', e.message);
+          return [];
+        });
+        
+        const productsRes = await fetch(`/api/topup/products/${actualStoreId}?_t=${timestamp}`, { cache: 'no-store' }).then(async r => {
+          if (!r.ok) {
+            console.error('❌ Products fetch failed:', r.status);
+            return [];
+          }
+          const data = await r.json();
+          console.log('✅ Products fetched:', Array.isArray(data) ? data.length : 0);
+          return Array.isArray(data) ? data : [];
+        }).catch(e => {
+          console.error('❌ Products error:', e.message);
+          return [];
+        });
+        
+        console.log('📊 Data Summary:', {
+          companies: companiesRes.length,
+          categories: categoriesRes.length,
+          products: productsRes.length
         });
         
         setStoreInfo(storeRes);
@@ -10076,6 +10107,7 @@ const TopupStorefront = () => {
         setLoading(false);
       } catch (error) {
         console.error('❌ Error loading data:', error);
+        alert(`خطأ في تحميل البيانات: ${(error as Error).message}`);
         setLoading(false);
       }
     };
