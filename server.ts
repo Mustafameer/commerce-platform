@@ -1617,7 +1617,7 @@ async function startServer() {
         // Format currency function
         const formatCurrency = (amount: any) => {
           const num = parseInt(amount);
-          return num.toLocaleString('ar-SA');
+          return num.toLocaleString('en-US');
         };
         
         const html = `
@@ -1626,7 +1626,7 @@ async function startServer() {
           <head>
             <meta charset="UTF-8">
             <style>
-              body { font-family: 'Times New Roman', Times, serif; font-size: 14px; margin: 20px; direction: rtl; }
+              body { font-family: 'Times New Roman', Times, serif; font-size: 16px; margin: 20px; direction: rtl; }
               .invoice { max-width: 600px; margin: 0 auto; }
               .header { text-align: center; margin-bottom: 30px; }
               .header { display: flex; flex-direction: column; align-items: center; gap: 15px; }
