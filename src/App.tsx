@@ -9946,7 +9946,7 @@ const MerchantTopupDashboard = () => {
 // ========== TOP-UP SYSTEM COMPONENTS ==========
 
 const TopupStorefront = () => {
-  const { storeId } = useParams();
+  const { slug: storeId } = useParams();
   const { isDarkMode } = useTheme();
   const { primaryColor } = useSettingsStore();
   const { addItem, items: cartItems } = useCartStore();
