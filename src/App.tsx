@@ -1982,6 +1982,9 @@ const AdminDashboard = () => {
     (u.phone || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
     (u.role && u.role.toLowerCase().includes(dashboardQuery.toLowerCase()))
   );
+
+  const isStoreApproved = (store: any) => Boolean(store?.is_active || store?.status === 'approved' || store?.status === 'active');
+  const isStorePending = (store: any) => Boolean(!isStoreApproved(store) && store?.status === 'pending');
   
   useEffect(() => {
     if (section === 'settings') {
@@ -2443,11 +2446,11 @@ const AdminDashboard = () => {
                   <td className="px-6 py-4">
                     <span className={cn(
                       "px-3 py-1 text-[10px] font-normal uppercase rounded-full tracking-wider",
-                      store.status === 'pending' ? "bg-amber-100 text-amber-700" : 
+                      isStorePending(store) ? "bg-amber-100 text-amber-700" : 
                       store.status === 'rejected' ? "bg-red-100 text-red-700" :
                       "bg-emerald-100 text-emerald-700"
                     )}>
-                      {store.status === 'pending' ? 'بانتظار الموافقة' : 
+                      {isStorePending(store) ? 'بانتظار الموافقة' : 
                        store.status === 'rejected' ? 'مرفوض' : 'نشط'}
                     </span>
                   </td>
@@ -2461,7 +2464,7 @@ const AdminDashboard = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      {store.status === 'active' && (
+                      {isStoreApproved(store) && store.status !== 'rejected' && (
                         <button 
                           onClick={() => handleSuspend(store.id)}
                           className="flex items-center gap-1 text-amber-600 hover:text-amber-700 font-normal text-xs bg-amber-50 px-3 py-1 rounded-lg transition-colors"
@@ -2471,7 +2474,7 @@ const AdminDashboard = () => {
                           تعليق
                         </button>
                       )}
-                      {store.status === 'pending' && (
+                      {isStorePending(store) && (
                         <button 
                           onClick={() => handleApprove(store)}
                           className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-normal text-xs bg-emerald-50 px-3 py-1 rounded-lg transition-colors"
@@ -2925,7 +2928,7 @@ const AdminDashboard = () => {
   };
 
   const renderApprovals = () => {
-    const pendingStores = filteredStores.filter(s => s.status === 'pending');
+    const pendingStores = filteredStores.filter(isStorePending);
     return (
       <Card className={cn(isDarkMode ? "bg-gray-800" : "bg-white")}>
         <div className={cn("p-6 border-b border-black/5", isDarkMode ? "bg-gray-900" : "bg-white")}>
@@ -2979,7 +2982,7 @@ const AdminDashboard = () => {
 
   const sidebarCounts = {
     stores: stores.length,
-    approvals: stores.filter(s => s.status === 'pending').length,
+    approvals: stores.filter(isStorePending).length,
     users: adminUsers.length
   };
 

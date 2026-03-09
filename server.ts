@@ -1856,13 +1856,14 @@ async function startServer() {
     // Admin stats
     app.get("/api/admin/stats", async (req, res) => {
       try {
+        const salesStatuses = ['pending', 'completed'];
         const storesResult = await pool.query("SELECT COUNT(*) as count FROM stores");
-        const ordersResult = await pool.query("SELECT COUNT(*) as count FROM orders WHERE status = 'completed'");
-        const customersResult = await pool.query("SELECT COUNT(DISTINCT customer_id) as count FROM orders WHERE customer_id IS NOT NULL AND status = 'completed'");
+        const ordersResult = await pool.query("SELECT COUNT(*) as count FROM orders WHERE status = ANY($1::text[])", [salesStatuses]);
+        const customersResult = await pool.query("SELECT COUNT(DISTINCT customer_id) as count FROM orders WHERE customer_id IS NOT NULL AND status = ANY($1::text[])", [salesStatuses]);
         const usersResult = await pool.query("SELECT COUNT(*) as count FROM users");
-        const revenueResult = await pool.query("SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE status = 'completed'");
+        const revenueResult = await pool.query("SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE status = ANY($1::text[])", [salesStatuses]);
         
-        // Calculate commission from stores that have percentage_enabled = true (only completed orders)
+        // Calculate commission from stores that have percentage_enabled = true across sales orders.
         const commissionPerStoreResult = await pool.query(`
           SELECT 
             s.id,
@@ -1870,9 +1871,9 @@ async function startServer() {
             s.commission_percentage,
             COALESCE(SUM(o.total_amount), 0) as store_revenue
           FROM stores s
-          LEFT JOIN orders o ON s.id = o.store_id AND o.status = 'completed'
+          LEFT JOIN orders o ON s.id = o.store_id AND o.status = ANY($1::text[])
           GROUP BY s.id, s.percentage_enabled, s.commission_percentage
-        `);
+        `, [salesStatuses]);
         
         let totalAdminCommission = 0;
         commissionPerStoreResult.rows.forEach((row: any) => {
