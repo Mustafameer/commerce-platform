@@ -848,12 +848,28 @@ async function startServer() {
     app.get("/api/stores/slug/:slug", async (req, res) => {
       try {
         const { slug } = req.params;
-        const result = await pool.query(`
-          SELECT s.*, u.name as owner_name_from_user, u.phone as owner_phone_from_user
-          FROM stores s
-          LEFT JOIN users u ON s.owner_id = u.id
-          WHERE s.slug = $1
-        `, [slug]);
+        
+        // Check if slug is numeric (ID)
+        const isNumericId = /^\d+$/.test(slug);
+        
+        let result;
+        if (isNumericId) {
+          // Search by ID
+          result = await pool.query(`
+            SELECT s.*, u.name as owner_name_from_user, u.phone as owner_phone_from_user
+            FROM stores s
+            LEFT JOIN users u ON s.owner_id = u.id
+            WHERE s.id = $1
+          `, [parseInt(slug)]);
+        } else {
+          // Search by slug
+          result = await pool.query(`
+            SELECT s.*, u.name as owner_name_from_user, u.phone as owner_phone_from_user
+            FROM stores s
+            LEFT JOIN users u ON s.owner_id = u.id
+            WHERE s.slug = $1
+          `, [slug]);
+        }
         
         if (result.rows.length === 0) {
           return res.status(404).json({ error: 'Store not found' });
