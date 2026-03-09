@@ -949,7 +949,7 @@ async function startServer() {
           
           // Verify password
           if (user.password !== password) {
-            return res.status(401).json({ error: "Invalid credentials" });
+            return res.status(401).json({ error: "❌ رقم الهاتف أو رمز الدخول غير صحيحة" });
           }
           
           // Get store info if user is a merchant
@@ -995,7 +995,7 @@ async function startServer() {
           
           // Verify password
           if (!customer.password || customer.password !== password) {
-            return res.status(401).json({ error: "Invalid credentials" });
+            return res.status(401).json({ error: "❌ رقم الهاتف أو رمز الدخول غير صحيحة" });
           }
           
           // Get store info
@@ -1017,7 +1017,7 @@ async function startServer() {
           });
         }
         
-        return res.status(401).json({ error: "Invalid credentials" });
+        return res.status(401).json({ error: "❌ رقم الهاتف أو رمز الدخول غير صحيحة" });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
       }
@@ -2400,14 +2400,49 @@ async function startServer() {
           return res.status(400).json({ error: "Invalid store ID" });
         }
         
+        // Get store details first
+        const storeCheckResult = await pool.query(
+          "SELECT id, owner_id, owner_phone, owner_name, store_type FROM stores WHERE id = $1",
+          [storeId]
+        );
+        
+        if (storeCheckResult.rows.length === 0) {
+          return res.status(404).json({ error: "Store not found" });
+        }
+        
+        const store = storeCheckResult.rows[0];
+        
+        // Verify that the owner has a user account
+        if (store.owner_id) {
+          const userCheckResult = await pool.query(
+            "SELECT id, store_id FROM users WHERE id = $1",
+            [store.owner_id]
+          );
+          
+          if (userCheckResult.rows.length === 0) {
+            console.warn(`⚠️ Store owner ${store.owner_id} not found in users table for store ${storeId}`);
+            return res.status(400).json({ 
+              error: "صاحب المتجر لا يملك حساب مستخدم. يرجى التحقق من بيانات المتجر." 
+            });
+          }
+          
+          // Make sure the user's store_id is set correctly
+          if (!userCheckResult.rows[0].store_id) {
+            await pool.query(
+              "UPDATE users SET store_id = $1 WHERE id = $2",
+              [storeId, store.owner_id]
+            );
+            console.log(`✅ Updated user ${store.owner_id} with store_id ${storeId}`);
+          }
+        }
+        
+        // Update store status
         const result = await pool.query(
           "UPDATE stores SET status = $1, is_active = $2 WHERE id = $3 RETURNING *",
           ['approved', true, storeId]
         );
         
-        if (result.rows.length === 0) {
-          return res.status(404).json({ error: "Store not found" });
-        }
+        console.log(`✅ Store ${storeId} (${store.store_type}) approved successfully`);
         
         res.json({ success: true, store: result.rows[0] });
       } catch (error) {
