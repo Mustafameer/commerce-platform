@@ -1627,12 +1627,14 @@ async function startServer() {
             <meta charset="UTF-8">
             <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;700&display=swap" rel="stylesheet">
             <style>
-              body { font-family: 'El Messiri', serif; font-size: 12px; margin: 20px; direction: rtl; }
+              body { font-family: 'El Messiri', serif; font-size: 14px; margin: 20px; direction: rtl; }
               .invoice { max-width: 600px; margin: 0 auto; }
               .header { text-align: center; margin-bottom: 30px; }
               .header { display: flex; flex-direction: column; align-items: center; gap: 15px; }
               .header img { max-width: 150px; height: auto; }
               .header h1 { margin: 0; font-size: 18px; }
+              .customer-info { margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px; }
+              .customer-info h3 { margin: 0 0 10px 0; font-size: 14px; font-weight: bold; }
               .info { margin-bottom: 20px; }
               .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
               table { width: 100%; border-collapse: collapse; margin: 20px 0; }
@@ -1657,9 +1659,14 @@ async function startServer() {
                   <span>المتجر: ${order.store_name || 'متجر'}</span>
                   <span>الحالة: ${order.status}</span>
                 </div>
+              </div>
+              <div class="customer-info">
+                <h3>🔹 معلومات العميل</h3>
+                <div class="info-row">
+                  <span>الهاتف: ${order.phone}</span>
+                </div>
                 <div class="info-row">
                   <span>العنوان: ${order.address}</span>
-                  <span>الهاتف: ${order.phone}</span>
                 </div>
               </div>
               <table dir="rtl" style="text-align: right;">
