@@ -1418,11 +1418,11 @@ const CartPage = () => {
 
               {/* Content */}
               <div className="p-6 space-y-4">
-                {/* Customer Info */}
+                {/* Address */}
                 <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                  <p className={cn("text-xs mb-2 font-medium", isDarkMode ? "text-gray-400" : "text-gray-600")}>👤 الاسم</p>
+                  <p className={cn("text-xs mb-2 font-medium", isDarkMode ? "text-gray-400" : "text-gray-600")}>📍 العنوان</p>
                   <p className={cn("text-lg font-bold", isDarkMode ? "text-gray-100" : "text-gray-900")}>
-                    {verificationModal.name}
+                    {verificationModal.address}
                   </p>
                 </div>
 
