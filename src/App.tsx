@@ -6185,6 +6185,12 @@ const CustomerStorefront = () => {
           return;
         }
         
+        // If this is a regular (non-topup) store, clear topup customer data
+        if (storeRes.store_type !== 'topup') {
+          console.log('🧹 Clearing topupCustomer as entering regular store');
+          localStorage.removeItem('topupCustomer');
+        }
+        
         let productsRes = [];
         const actualStoreId = storeRes.id;
         
