@@ -1,5 +1,5 @@
 ﻿import * as React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Link, useParams, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, 
@@ -165,6 +165,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
   const { appName, logoUrl } = useSettingsStore();
   const { dashboardQuery, setDashboardQuery } = useSearchStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const [settings, setSettings] = useState({ app_name: appName, logo_url: logoUrl });
   const { isDarkMode, setIsDarkMode } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -223,19 +224,53 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
     { icon: Settings, label: 'إعدادات المتجر', path: '/merchant/settings' },
   ];
 
+  const isNavItemActive = (path: string) => {
+    const rootPath = role === 'admin' ? '/admin' : '/merchant';
+    if (path === rootPath) {
+      return location.pathname === path;
+    }
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
+
   return (
-      <div className={cn("flex h-screen w-screen overflow-hidden flex-col md:flex-row", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}
-      >
-        {/* Mobile Menu Button */}
-        <div className={cn("md:hidden p-4 border-b flex items-center justify-between", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5")}>
-          <button 
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={cn("p-2 rounded-lg transition-colors", isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100")}
-          >
-            <Menu size={24} className={isDarkMode ? "text-gray-100" : "text-gray-900"} />
-          </button>
-          <h2 className={cn("text-lg font-normal flex-1 text-center", isDarkMode ? "text-gray-100" : "text-gray-900")}>{title}</h2>
-          <div className="w-10"></div>
+      <div className={cn("flex h-screen w-screen overflow-hidden flex-col md:flex-row", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
+        {/* Mobile Header */}
+        <div className={cn("md:hidden border-b px-4 py-3 sticky top-0 z-30 backdrop-blur-sm", isDarkMode ? "bg-gray-800/95 border-gray-700" : "bg-white/95 border-black/5")}>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className={cn("p-2 rounded-lg transition-colors flex-shrink-0", isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100")}
+              aria-label="فتح القائمة"
+            >
+              {sidebarOpen ? <X size={22} className={isDarkMode ? "text-gray-100" : "text-gray-900"} /> : <Menu size={22} className={isDarkMode ? "text-gray-100" : "text-gray-900"} />}
+            </button>
+            <div className="min-w-0 flex-1 text-center">
+              <h2 className={cn("text-base font-normal truncate", isDarkMode ? "text-gray-100" : "text-gray-900")}>{title}</h2>
+              <p className={cn("text-[10px] truncate", isDarkMode ? "text-gray-400" : "text-gray-500")}>{settings.app_name}</p>
+            </div>
+            <button 
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className={cn(
+                "p-2 rounded-lg border transition-all flex items-center justify-center flex-shrink-0",
+                isDarkMode 
+                  ? "bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800" 
+                  : "bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100"
+              )}
+              title={isDarkMode ? "الوضع الفاتح" : "الوضع الداكن"}
+            >
+              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          </div>
+          <div className="relative mt-3">
+            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2", isDarkMode ? "text-gray-500" : "text-gray-400")} size={16} />
+            <input 
+              type="text" 
+              placeholder="بحث..." 
+              value={dashboardQuery}
+              onChange={(e) => setDashboardQuery(e.target.value)}
+              className={cn("w-full pl-9 pr-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition-colors text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500" : "bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400")}
+            />
+          </div>
         </div>
 
         {/* Sidebar Overlay for Mobile */}
@@ -246,10 +281,59 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
           />
         )}
 
+        {/* Mobile Quick Actions */}
+        <div className={cn(
+          "fixed inset-y-0 right-0 z-50 w-72 max-w-[85vw] transform border-l transition-transform md:hidden",
+          sidebarOpen ? "translate-x-0" : "translate-x-full",
+          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5"
+        )}>
+          <div className={cn("p-5 border-b", isDarkMode ? "border-gray-700" : "border-black/5")}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className={cn("text-lg font-normal truncate", isDarkMode ? "text-gray-100" : "text-gray-900")}>{settings.app_name}</h3>
+                <p className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-500")}>لوحة {role === 'admin' ? 'الإدارة' : 'التاجر'}</p>
+              </div>
+              {settings.logo_url ? (
+                <div className={cn("w-14 h-14 rounded-full overflow-hidden ring-2 flex-shrink-0", isDarkMode ? "ring-gray-600 bg-gray-700" : "ring-indigo-100 bg-gray-50")}>
+                  <img src={settings.logo_url} className="w-full h-full object-cover" alt="logo" />
+                </div>
+              ) : (
+                <div className="w-14 h-14 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg font-normal flex-shrink-0">
+                  {settings.app_name?.[0]}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            <div className={cn("rounded-2xl p-3 text-sm", isDarkMode ? "bg-gray-700 text-gray-200" : "bg-gray-50 text-gray-700")}>
+              القسم الحالي: <span className="font-medium">{title}</span>
+            </div>
+            {role === 'merchant' && user?.store_slug && (
+              <Link 
+                to={`/store/${user.store_slug}`} 
+                target="_blank"
+                onClick={() => setSidebarOpen(false)}
+                className={cn("w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all shadow-lg group text-sm font-normal", isDarkMode ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-900" : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100")}
+              >
+                <div className="flex items-center gap-3">
+                  <ExternalLink size={18} className="flex-shrink-0" />
+                  <span className="truncate">عرض المتجر</span>
+                </div>
+              </Link>
+            )}
+            <button
+              onClick={handleLogout}
+              className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm", isDarkMode ? "text-red-400 hover:bg-red-900/30" : "text-red-600 hover:bg-red-50")}
+            >
+              <LogOut size={18} />
+              <span className="truncate">تسجيل الخروج</span>
+            </button>
+          </div>
+        </div>
+
         {/* Sidebar */}
         <aside className={cn(
-          "fixed md:relative md:w-64 h-full md:h-screen border-r flex flex-col overflow-hidden transition-all z-50 w-64",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          "hidden md:flex md:relative md:w-64 h-full md:h-screen border-r flex-col overflow-hidden",
           isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5"
         )}>
           <div className={cn("p-6 text-center border-b flex-shrink-0", isDarkMode ? "border-gray-700" : "border-black/5")}>
@@ -279,7 +363,12 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
                 setDashboardQuery('');
                 setSidebarOpen(false);
               }}
-              className={cn("flex items-center justify-between px-4 py-3 rounded-xl transition-colors group", isDarkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-indigo-50 hover:text-indigo-600")}
+              className={cn(
+                "flex items-center justify-between px-4 py-3 rounded-xl transition-colors group",
+                isNavItemActive(item.path)
+                  ? (isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-indigo-50 text-indigo-600")
+                  : (isDarkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-indigo-50 hover:text-indigo-600")
+              )}
             >
               <div className="flex items-center gap-3 min-w-0">
                 {item.icon && <item.icon size={20} className="group-hover:scale-110 transition-transform flex-shrink-0" />}
@@ -356,8 +445,40 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
 
         {/* Mobile Content View */}
         <div className="md:hidden flex-1 h-full overflow-y-auto">
-          <div className={cn("px-4 py-4", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
+          <div className={cn("px-4 py-4 pb-28", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
             {children}
+          </div>
+        </div>
+
+        {/* Mobile Footer Navigation */}
+        <div className={cn("md:hidden fixed bottom-0 inset-x-0 z-30 border-t px-2 py-2", isDarkMode ? "bg-gray-800/95 border-gray-700 backdrop-blur-sm" : "bg-white/95 border-black/5 backdrop-blur-sm")}>
+          <div className="flex items-stretch gap-2 overflow-x-auto pb-1">
+            {navItems.map((item) => (
+              <Link
+                key={`mobile-${item.path}`}
+                to={item.path}
+                onClick={() => {
+                  setDashboardQuery('');
+                  setSidebarOpen(false);
+                }}
+                className={cn(
+                  "relative min-w-[72px] flex-1 rounded-2xl px-2 py-2 text-center transition-colors",
+                  isNavItemActive(item.path)
+                    ? (isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-indigo-50 text-indigo-600")
+                    : (isDarkMode ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100")
+                )}
+              >
+                <div className="flex flex-col items-center gap-1">
+                  {item.icon && <item.icon size={18} className="flex-shrink-0" />}
+                  <span className="text-[10px] leading-tight line-clamp-2">{item.label}</span>
+                </div>
+                {item.count !== undefined && item.count > 0 && (
+                  <span className={cn("absolute top-1 right-1 min-w-5 h-5 px-1 rounded-full text-[10px] leading-5", isDarkMode ? "bg-blue-600 text-white" : "bg-indigo-600 text-white")}>
+                    {item.count > 99 ? '99+' : item.count}
+                  </span>
+                )}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
@@ -979,18 +1100,63 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
   // عرض تأكيد الطلب مع الأكواد
   if (orderConfirmation) {
     return (
-      <div className={cn("w-full min-h-screen p-8", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900")} dir="rtl">
+      <div className={cn("w-full min-h-screen p-4 sm:p-8", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900")} dir="rtl">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <div className="inline-block p-4 rounded-full bg-green-100 mb-4">
               <CheckCircle size={48} className="text-green-600" />
             </div>
-            <h1 className="text-3xl font-normal mb-2">✅ تم تأكيد الطلب بنجاح!</h1>
+            <h1 className="text-2xl sm:text-3xl font-normal mb-2">✅ تم تأكيد الطلب بنجاح!</h1>
             <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>الإجمالي: {formatCurrency(orderConfirmation.totalAmount)}</p>
           </div>
 
+          <div className="space-y-4 md:hidden">
+            {orderConfirmation.confirmations.map((conf: any, idx: number) => 
+              conf.items.map((item: any, itemIdx: number) => {
+                let codes = conf.codes;
+                if (!Array.isArray(codes)) {
+                  codes = [];
+                }
+
+                const displayQuantity = item.quantity || 0;
+                const availableCodes = codes.slice(0, displayQuantity);
+
+                let displayName = '';
+                if (item.product_name && item.product_name !== 'undefined') {
+                  displayName = item.product_name;
+                } else if (item.company_name && item.company_name !== 'undefined' && item.name) {
+                  displayName = `${item.company_name} - ${item.name}`;
+                } else if (item.name) {
+                  displayName = item.name;
+                } else {
+                  displayName = 'منتج بدون اسم';
+                }
+
+                return (
+                  <div key={`${idx}-${itemIdx}`} className={cn("rounded-2xl border p-4", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50")}>
+                    <div className="mb-3">
+                      <h3 className={cn("font-normal text-sm leading-6 break-words", isDarkMode ? "text-gray-100" : "text-gray-900")}>{displayName}</h3>
+                      <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>الكمية: {displayQuantity}</p>
+                    </div>
+                    {availableCodes.length > 0 ? (
+                      <div className="flex flex-col gap-2">
+                        {availableCodes.map((code: string, cIdx: number) => (
+                          <div key={cIdx} className={cn("px-3 py-2 rounded-xl font-mono text-sm text-center break-all", isDarkMode ? "bg-gray-700 text-gray-100" : "bg-white text-gray-900 border border-gray-200")}>
+                            {code}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-500 text-sm">لا توجد أكواد متاحة</span>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
           {/* جدول المنتجات والأكواد */}
-          <div className={cn("rounded-lg border overflow-auto", isDarkMode ? "border-gray-700" : "border-gray-200")}>
+          <div className={cn("hidden md:block rounded-lg border overflow-auto", isDarkMode ? "border-gray-700" : "border-gray-200")}>
             <table className="w-full">
               <thead>
                 <tr className={isDarkMode ? "bg-gray-800" : "bg-gray-100"}>
@@ -1067,7 +1233,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
           </div>
 
           {/* أزرار النسخ والعودة */}
-          <div className={cn("mt-8 flex gap-4 justify-center")}>
+          <div className={cn("mt-8 flex flex-col sm:flex-row gap-4 justify-center")}>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(
@@ -1109,7 +1275,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 
   if (items.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto p-8 text-center" dir="rtl">
+      <div className="max-w-4xl mx-auto p-4 sm:p-8 text-center" dir="rtl">
         <div className={cn("p-12 rounded-2xl shadow-sm", isDarkMode ? "bg-gray-800" : "bg-white")}>
           <ShoppingCart size={64} className={cn("mx-auto mb-4", isDarkMode ? "text-gray-700" : "text-gray-300")} />
           <h2 className={cn("text-2xl font-normal mb-2", isDarkMode ? "text-gray-200" : "text-gray-900")}>عربة التسوق فارغة</h2>
@@ -1129,18 +1295,18 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
   return (
     <div className={cn("w-full min-h-screen", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900")} dir="rtl">
       {/* Header */}
-      <div className={cn("px-8 py-6 border-b", isDarkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200")}>
-        <h1 className={cn("text-3xl font-normal flex items-center gap-3", isDarkMode ? "text-gray-100" : "text-gray-900")}>
+      <div className={cn("px-4 py-4 sm:px-8 sm:py-6 border-b", isDarkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200")}>
+        <h1 className={cn("text-2xl sm:text-3xl font-normal flex items-center gap-3", isDarkMode ? "text-gray-100" : "text-gray-900")}>
           <ShoppingCart className="text-indigo-600" />
           عربة التسوق
         </h1>
       </div>
 
-      <div className="max-w-7xl mx-auto p-8">
-        <div className="grid grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto p-4 sm:p-8">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
           {/* جدول المنتجات */}
-          <div className="col-span-2">
-            <div className={cn("overflow-x-auto rounded-lg border", isDarkMode ? "border-gray-700" : "border-gray-200")}>
+          <div className="xl:col-span-2">
+            <div className={cn("hidden md:block overflow-x-auto rounded-lg border", isDarkMode ? "border-gray-700" : "border-gray-200")}>
               <table className="w-full">
                 <thead>
                   <tr className={isDarkMode ? "bg-gray-800" : "bg-gray-100"}>
@@ -1200,14 +1366,60 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                 </tbody>
               </table>
             </div>
+
+            <div className="space-y-4 md:hidden">
+              {enrichedItems.map((item) => (
+                <div key={item.id} className={cn("rounded-2xl border p-4", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50")}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className={cn("font-normal text-sm leading-6 break-words", isDarkMode ? "text-gray-100" : "text-gray-900")}>
+                        {(item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name || `[بدون اسم - رقم: ${item.id}]`}
+                      </h3>
+                      <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>
+                        سعر الوحدة: {formatCurrency(getItemPrice(item, customerType || user?.customer_type))}
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => removeItem(item.id)}
+                      className="text-red-500 hover:text-red-600 transition-colors flex-shrink-0"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => item.quantity > 1 && updateQuantity(item.id, item.quantity - 1)}
+                        className={cn("px-3 py-1.5 rounded-xl border transition-all", isDarkMode ? "border-gray-700 hover:bg-gray-700" : "border-gray-200 hover:bg-gray-100")}
+                        title="تقليل الكمية"
+                      >
+                        −
+                      </button>
+                      <span className="min-w-8 text-center text-base font-bold">{item.quantity}</span>
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        className={cn("px-3 py-1.5 rounded-xl border transition-all", isDarkMode ? "border-gray-700 hover:bg-gray-700" : "border-gray-200 hover:bg-gray-100")}
+                        title="زيادة الكمية"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <div className={cn("text-sm font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>
+                      {formatCurrency(getItemPrice(item, customerType || user?.customer_type) * item.quantity)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* الملخص والأزرار */}
-          <div className={cn("p-6 rounded-lg border sticky top-8 h-fit", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200")}>
+          <div className={cn("p-4 sm:p-6 rounded-lg border xl:sticky xl:top-8 h-fit", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200")}>
             {/* قسيمة الخصم */}
             <div className="mb-6 pb-6 border-b" style={{borderColor: isDarkMode ? '#374151' : '#e5e7eb'}}>
               <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>قسيمة الخصم</label>
-              <div className="flex gap-2 mb-2">
+              <div className="flex flex-col sm:flex-row gap-2 mb-2">
                 <input 
                   type="text"
                   placeholder="أدخل الرمز"
@@ -1516,6 +1728,47 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
   );
 };
 
+// Mobile Footer Navigation Component
+const MobileFooterNav = () => {
+  const { isDarkMode } = useTheme();
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const navItems = [
+    { icon: Home, label: 'الرئيسية', path: '/' },
+    { icon: StoreIcon, label: 'المتاجر', path: '/stores' },
+    { icon: FileText, label: 'المساعدة', path: '/help' },
+    { icon: user ? UserIcon : LogOut, label: user ? 'حسابي' : 'تسجيل', path: user ? '/merchant' : '/login' },
+  ];
+
+  const isActive = (path: string) => location.pathname === path;
+
+  return (
+    <div className={cn("md:hidden fixed bottom-0 inset-x-0 z-30 border-t px-2 py-2", isDarkMode ? "bg-gray-800/95 border-gray-700 backdrop-blur-sm" : "bg-white/95 border-black/5 backdrop-blur-sm")}>
+      <div className="flex items-stretch gap-2 overflow-x-auto pb-1">
+        {navItems.map((item) => (
+          <Link
+            key={`mobile-nav-${item.path}`}
+            to={item.path}
+            className={cn(
+              "relative min-w-[72px] flex-1 rounded-2xl px-2 py-2 text-center transition-colors",
+              isActive(item.path)
+                ? (isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-indigo-50 text-indigo-600")
+                : (isDarkMode ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100")
+            )}
+          >
+            <div className="flex flex-col items-center gap-1">
+              {item.icon && <item.icon size={18} className="flex-shrink-0" />}
+              <span className="text-[10px] leading-tight line-clamp-2">{item.label}</span>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const LoginPage = () => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -1592,7 +1845,7 @@ const LoginPage = () => {
           </button>
         </div>
       </div>
-      <div className="flex items-center justify-center flex-1 p-4">
+      <div className="flex items-center justify-center flex-1 p-4 pb-28 md:pb-4">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -1655,6 +1908,7 @@ const LoginPage = () => {
         </Card>
       </motion.div>
       </div>
+      <MobileFooterNav />
     </div>
   );
 };
@@ -1826,7 +2080,7 @@ const RegisterMerchantPage = () => {
   }
 
   return (
-    <div className={cn("min-h-screen py-12 px-4 flex items-center justify-center", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
+    <div className={cn("min-h-screen py-12 px-4 pb-28 md:pb-12 flex flex-col items-center justify-center", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-lg">
         <Card className="p-8 md:p-10">
           <div className="text-center mb-10">
@@ -1944,6 +2198,7 @@ const RegisterMerchantPage = () => {
           </form>
         </Card>
       </motion.div>
+      <MobileFooterNav />
     </div>
   );
 };
@@ -6342,30 +6597,30 @@ const CustomerStorefront = () => {
       const codes = Array.isArray(selectedProduct.topup_codes) ? selectedProduct.topup_codes : [];
       
       return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-4 overflow-y-auto" dir="rtl">
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className={cn("rounded-[2.5rem] w-full max-w-2xl max-h-[95vh] overflow-hidden shadow-2xl flex flex-col relative", isDarkMode ? "bg-gray-800" : "bg-white")}
+            className={cn("rounded-[2rem] sm:rounded-[2.5rem] w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-2xl flex flex-col relative", isDarkMode ? "bg-gray-800" : "bg-white")}
           >
             <button onClick={() => setSelectedProduct(null)} className={cn("absolute top-4 right-4 z-20 p-3 backdrop-blur-xl border rounded-full transition-all", isDarkMode ? "bg-gray-700/40 border-gray-600/50 text-gray-300 hover:bg-gray-700" : "bg-white/20 border-white/30 text-gray-400 hover:bg-gray-100")}>
               <X size={24} />
             </button>
 
-            <div className="p-8 flex flex-col overflow-y-auto flex-1">
+            <div className="p-4 sm:p-8 flex flex-col overflow-y-auto flex-1">
               <div className="mb-6">
                 <span className={cn("px-4 py-1.5 rounded-xl text-[10px] font-normal uppercase tracking-widest border inline-block", isDarkMode ? "bg-indigo-900/30 text-indigo-400 border-indigo-700" : "bg-indigo-50 text-indigo-600 border-indigo-100")}>💳 بطاقة شحن</span>
-                <h2 className={cn("text-4xl font-bold mt-4", isDarkMode ? "text-gray-100" : "text-gray-900")}>{selectedProduct.name}</h2>
-                <p className={cn("text-lg mt-2", isDarkMode ? "text-gray-300" : "text-gray-600")}>{selectedProduct.description}</p>
+                <h2 className={cn("text-2xl sm:text-4xl font-bold mt-4", isDarkMode ? "text-gray-100" : "text-gray-900")}>{selectedProduct.name}</h2>
+                <p className={cn("text-sm sm:text-lg mt-2", isDarkMode ? "text-gray-300" : "text-gray-600")}>{selectedProduct.description}</p>
               </div>
 
               <div className={cn("p-6 rounded-2xl mb-6 border-2", isDarkMode ? "bg-green-900/30 border-green-700" : "bg-green-50 border-green-200")}>
                 <div className="flex items-center justify-between">
                   <div>
                     <span className={cn("text-sm font-normal block mb-2", isDarkMode ? "text-green-400" : "text-green-600")}>عدد الأكواد المتاحة</span>
-                    <span className="text-4xl font-bold text-green-500">{codes.length}</span>
+                    <span className="text-3xl sm:text-4xl font-bold text-green-500">{codes.length}</span>
                   </div>
-                  <div className="text-5xl">🔑</div>
+                  <div className="text-4xl sm:text-5xl">🔑</div>
                 </div>
               </div>
 
@@ -6374,7 +6629,7 @@ const CustomerStorefront = () => {
               <div className="flex justify-between items-end pb-6 border-b border-black/10 mb-6">
                 <div>
                   <p className={cn("text-xs font-normal mb-2 uppercase", isDarkMode ? "text-gray-500" : "text-gray-500")}>السعر لكل كود</p>
-                  <p className={cn("text-5xl font-bold", isDarkMode ? "text-white" : "text-gray-900")}>{formatCurrency(selectedProduct.price)}</p>
+                  <p className={cn("text-3xl sm:text-5xl font-bold", isDarkMode ? "text-white" : "text-gray-900")}>{formatCurrency(selectedProduct.price)}</p>
                 </div>
               </div>
 
@@ -6383,7 +6638,7 @@ const CustomerStorefront = () => {
                   addItem(selectedProduct);
                   setSelectedProduct(null);
                 }}
-                className="w-full py-4 rounded-2xl text-white font-bold text-xl shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 group"
+                className="w-full py-4 rounded-2xl text-white font-bold text-base sm:text-xl shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 group"
                 style={{ backgroundColor: primaryColor }}
               >
                 <ShoppingCart size={24} />
@@ -6490,7 +6745,7 @@ const CustomerStorefront = () => {
   };
 
   return (
-    <div className={cn("min-h-screen", isDarkMode ? "bg-gray-900" : "bg-gray-50")}>
+    <div className={cn("min-h-screen pb-28 md:pb-0 flex flex-col", isDarkMode ? "bg-gray-900" : "bg-gray-50")}>
       {/* التحقق من العميل لمتاجر الشحن */}
       {storeType === 'topup' && (
         <>
@@ -6530,8 +6785,8 @@ const CustomerStorefront = () => {
 
           {/* Shopping Cart Modal */}
       {showCartModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className={cn('rounded-2xl shadow-lg p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto', isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900')}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
+          <div className={cn('rounded-2xl shadow-lg p-4 sm:p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto', isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900')}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">سلة المشتريات</h2>
               <button
@@ -6569,8 +6824,8 @@ const CustomerStorefront = () => {
       )}
 
       {/* Header - Blue Navigation Bar */}
-      <header className="bg-gradient-to-r from-indigo-900 to-indigo-800 text-white px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <header className="bg-gradient-to-r from-indigo-900 to-indigo-800 text-white px-4 sm:px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           {/* Right: Admin Logo or Back Button */}
           {storeId ? (
             <button 
@@ -6578,7 +6833,7 @@ const CustomerStorefront = () => {
               className="relative flex items-center justify-center p-2 hover:bg-indigo-700 rounded-lg transition-all"
               title="العودة للشاشة الرئيسية"
             >
-              <ArrowRight size={28} />
+              <ArrowRight size={24} />
             </button>
           ) : (
             <button 
@@ -6587,23 +6842,23 @@ const CustomerStorefront = () => {
               title="عرض السلة"
             >
               {displayLogoUrl ? (
-                <img src={displayLogoUrl} alt={displayAppName} className="h-12 w-12 object-contain" />
+                <img src={displayLogoUrl} alt={displayAppName} className="h-10 w-10 sm:h-12 sm:w-12 object-contain" />
               ) : (
-                <Home size={28} />
+                <Home size={24} />
               )}
             </button>
           )}
 
           {/* Center: Platform Name or Store Name */}
-          <div className="flex-1 text-center">
-            <h1 className="text-2xl font-normal">{storeId ? displayAppName : 'منصة مير للتجارة الالكترونية'}</h1>
-            <p className="text-xs text-indigo-200">{storeId ? 'متجر متخصص' : 'جميع متاجر السوق في مكان واحد'}</p>
+          <div className="flex-1 text-center min-w-0">
+            <h1 className="text-base sm:text-2xl font-normal truncate">{storeId ? displayAppName : 'منصة مير للتجارة الالكترونية'}</h1>
+            <p className="text-[10px] sm:text-xs text-indigo-200 truncate">{storeId ? 'متجر متخصص' : 'جميع متاجر السوق في مكان واحد'}</p>
           </div>
 
           {/* Left: Cart and Auth */}
           <div className="flex gap-2 items-center">
             <Link to="/cart" className="relative flex items-center justify-center p-2 hover:bg-indigo-700 rounded-lg transition-all" title="عرض السلة">
-              <ShoppingCart size={24} />
+              <ShoppingCart size={20} />
               <AnimatePresence>
                 {items && items.length > 0 && (
                   <motion.span 
@@ -6624,16 +6879,16 @@ const CustomerStorefront = () => {
       </header>
 
       {/* Product Grid */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
-        <div className="space-y-20 pb-10">
+        <div className="space-y-12 sm:space-y-20 pb-10">
           {sortedCategories.map((category) => (
             <section key={category} className="w-full">
               {/* Category Header - Completely Separate */}
-              <div className="mb-12 pb-8">
-                <h2 className={cn("text-3xl font-bold mb-3", isDarkMode ? "text-white" : "text-indigo-600")}>{category}</h2>
-                <p className={cn("text-base font-semibold mb-6", isDarkMode ? "text-white" : "text-gray-700")}>
-                  عدد المنتجات: <span className={cn("text-2xl", isDarkMode ? "text-white" : "text-gray-900")}>{productsByCategory[category].length}</span>
+              <div className="mb-8 sm:mb-12 pb-6 sm:pb-8">
+                <h2 className={cn("text-2xl sm:text-3xl font-bold mb-3", isDarkMode ? "text-white" : "text-indigo-600")}>{category}</h2>
+                <p className={cn("text-sm sm:text-base font-semibold mb-6", isDarkMode ? "text-white" : "text-gray-700")}>
+                  عدد المنتجات: <span className={cn("text-xl sm:text-2xl", isDarkMode ? "text-white" : "text-gray-900")}>{productsByCategory[category].length}</span>
                 </p>
                 <div className="h-2 w-32 rounded-full" style={{ backgroundColor: isDarkMode ? '#818cf8' : '#4f46e5' }} />
                 <div className="h-1 w-full mt-6 rounded-full" style={{ backgroundColor: isDarkMode ? '#374151' : '#e5e7eb' }} />
@@ -6641,7 +6896,7 @@ const CustomerStorefront = () => {
 
               {/* Products Grid - 8 columns */}
               <div className="w-full">
-                <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-8 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
                   {productsByCategory[category].map((product) => (
                   <motion.div 
                     key={product.id}
@@ -6710,6 +6965,7 @@ const CustomerStorefront = () => {
           </div>
         )}
       </main>
+      <MobileFooterNav />
         </>
       )}
     </div>
@@ -6735,6 +6991,7 @@ const MarketplacePage = () => {
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [showCartModal, setShowCartModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [auctionBidForm, setAuctionBidForm] = useState({ bid_price: '', customer_name: '', customer_phone: '' });
   const [bidSubmitting, setBidSubmitting] = useState(false);
   const [bidMessage, setBidMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -6927,33 +7184,103 @@ const MarketplacePage = () => {
     <div className={cn('min-h-screen', isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900')} dir="rtl">
       {/* Header */}
       <header className={cn('border-b sticky top-0 z-40', isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-black/5')}>
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          {/* شعار الآدمن (صورة) أقصى اليمين */}
-          <div className="flex-shrink-0 flex items-center justify-start w-36 h-28">
-            <button
-              className="relative focus:outline-none"
-              onClick={() => setShowCartModal(true)}
-              title="عرض المشتريات"
-            >
-              {/* شعار الآدمن */}
-              {useSettingsStore.getState().logoUrl ? (
-                <img
-                  src={useSettingsStore.getState().logoUrl}
-                  alt="شعار الآدمن"
-                  className="h-24 w-24 object-contain rounded-full border-2 border-indigo-200 bg-white shadow"
-                  style={{ maxHeight: 112, maxWidth: 112 }}
-                />
-              ) : (
-                <UserIcon size={64} className={isDarkMode ? 'text-indigo-400' : 'text-indigo-700'} />
-              )}
-              {/* رقم السلة */}
-              {items.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-600 text-white text-lg font-bold w-9 h-9 rounded-full flex items-center justify-center border-2 border-white shadow-lg animate-bounce z-10">
-                  {items.length}
-                </span>
-              )}
-            </button>
+        <div className="max-w-7xl mx-auto px-4 py-3 md:py-4">
+          <div className="flex items-center justify-between gap-3 md:gap-4">
+            {/* شعار الآدمن (صورة) أقصى اليمين */}
+            <div className="flex-shrink-0 flex items-center justify-start w-auto md:w-36 h-auto md:h-28">
+              <button
+                className="relative focus:outline-none"
+                onClick={() => setShowCartModal(true)}
+                title="عرض المشتريات"
+              >
+                {/* شعار الآدمن */}
+                {useSettingsStore.getState().logoUrl ? (
+                  <img
+                    src={useSettingsStore.getState().logoUrl}
+                    alt="شعار الآدمن"
+                    className="h-14 w-14 md:h-24 md:w-24 object-contain rounded-full border-2 border-indigo-200 bg-white shadow"
+                    style={{ maxHeight: 112, maxWidth: 112 }}
+                  />
+                ) : (
+                  <UserIcon size={40} className={isDarkMode ? 'text-indigo-400' : 'text-indigo-700'} />
+                )}
+                {/* رقم السلة */}
+                {items.length > 0 && (
+                  <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-red-600 text-white text-xs md:text-lg font-bold min-w-6 h-6 md:w-9 md:h-9 px-1 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-10">
+                    {items.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center flex-1 text-center min-w-0 px-1">
+              <h1 className={cn('text-lg sm:text-2xl md:text-4xl font-normal leading-tight truncate', isDarkMode ? 'text-white' : 'text-gray-900')}>
+                {appName || 'منصة مير للتجارة الالكترونية'}
+              </h1>
+            </div>
+
+            <div className="hidden md:flex gap-2 items-center mt-2 justify-end w-fit">
+              <button 
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className={cn('p-2 rounded-lg transition-all', isDarkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300')}
+                title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}
+              >
+                {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+              <Link to="/stores">
+                <button className={cn("px-4 py-2 rounded-lg font-normal text-lg transition-all flex items-center gap-2", isDarkMode ? "bg-gray-700 text-white hover:bg-gray-800 border border-gray-600" : "bg-white text-indigo-700 hover:bg-indigo-50 border border-indigo-100")}>
+                  <StoreIcon size={20} />
+                  المتاجر
+                </button>
+              </Link>
+              <Link to="/register-merchant">
+                <button className="px-4 py-2 rounded-lg font-normal text-white bg-indigo-600 hover:bg-indigo-700 transition-all">انضم كتاجر</button>
+              </Link>
+              <button className="px-4 py-2 rounded-lg font-normal text-indigo-600 border border-indigo-200 bg-white hover:bg-indigo-50 transition-all" onClick={() => setShowLoginModal(true)}>
+                تسجيل الدخول
+              </button>
+            </div>
+
+            <div className="md:hidden flex items-center gap-2">
+              <button 
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className={cn('p-2 rounded-lg transition-all', isDarkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300')}
+                title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}
+              >
+                {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+              <button
+                onClick={() => setShowMobileMenu(prev => !prev)}
+                className={cn('p-2 rounded-lg transition-all', isDarkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-100 text-gray-800 hover:bg-gray-200')}
+                title="القائمة"
+              >
+                {showMobileMenu ? <X size={18} /> : <Menu size={18} />}
+              </button>
+            </div>
           </div>
+
+          {showMobileMenu && (
+            <div className={cn('md:hidden mt-3 grid grid-cols-2 gap-2', isDarkMode ? 'text-gray-100' : 'text-gray-900')}>
+              <Link to="/stores" onClick={() => setShowMobileMenu(false)}>
+                <button className={cn("w-full px-3 py-2.5 rounded-xl font-normal text-sm transition-all flex items-center justify-center gap-2", isDarkMode ? "bg-gray-700 text-white hover:bg-gray-600 border border-gray-600" : "bg-white text-indigo-700 hover:bg-indigo-50 border border-indigo-100")}>
+                  <StoreIcon size={16} />
+                  المتاجر
+                </button>
+              </Link>
+              <Link to="/register-merchant" onClick={() => setShowMobileMenu(false)}>
+                <button className="w-full px-3 py-2.5 rounded-xl font-normal text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-all">انضم كتاجر</button>
+              </Link>
+              <button
+                className="col-span-2 w-full px-3 py-2.5 rounded-xl font-normal text-sm text-indigo-600 border border-indigo-200 bg-white hover:bg-indigo-50 transition-all"
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  setShowLoginModal(true);
+                }}
+              >
+                تسجيل الدخول
+              </button>
+            </div>
+          )}
 
           {/* Cart Modal (عند الضغط على شعار الآدمن) */}
           {showCartModal && (
@@ -7013,30 +7340,6 @@ const MarketplacePage = () => {
               </div>
             </div>
           )}
-          <div className="flex flex-col items-center flex-1 text-center">
-            <h1 className={cn('text-3xl md:text-4xl font-normal mb-2', isDarkMode ? 'text-white' : 'text-gray-900')}>{appName || 'منصة مير للتجارة الالكترونية'}</h1>
-          </div>
-          <div className="flex gap-2 items-center mt-2 justify-end w-fit">
-            <button 
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className={cn('p-2 rounded-lg transition-all', isDarkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300')}
-              title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}
-            >
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            <Link to="/stores">
-              <button className={cn("px-4 py-2 rounded-lg font-normal text-lg transition-all flex items-center gap-2", isDarkMode ? "bg-gray-700 text-white hover:bg-gray-800 border border-gray-600" : "bg-white text-indigo-700 hover:bg-indigo-50 border border-indigo-100")}>
-                <StoreIcon size={20} />
-                المتاجر
-              </button>
-            </Link>
-            <Link to="/register-merchant">
-              <button className="px-4 py-2 rounded-lg font-normal text-white bg-indigo-600 hover:bg-indigo-700 transition-all">انضم كتاجر</button>
-            </Link>
-            <button className="px-4 py-2 rounded-lg font-normal text-indigo-600 border border-indigo-200 bg-white hover:bg-indigo-50 transition-all" onClick={() => setShowLoginModal(true)}>
-              تسجيل الدخول
-            </button>
-          </div>
         </div>
       </header>
 
@@ -7122,9 +7425,9 @@ const MarketplacePage = () => {
       )}
       
       {/* Search Bar */}
-      <div className={cn('border-b sticky top-0 z-30', isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-black/5')}>
+      <div className={cn('border-b z-30 md:sticky md:top-0', isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-black/5')}>
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="w-full max-w-sm">
+          <div className="w-full md:max-w-sm">
             <div className={cn('flex items-center gap-2 px-4 py-3 rounded-lg border', isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300')}>
               <Search size={20} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
               <input
@@ -7140,13 +7443,13 @@ const MarketplacePage = () => {
       </div>
       
       {/* Content */}
-      <main className="max-w-7xl mx-auto px-4 py-10">
+      <main className="max-w-7xl mx-auto px-4 py-6 sm:py-10">
         {/* Auctions Section */}
         {auctions.length > 0 && auctions.filter(a => !shouldHideAuction(a.auction_end_time, a.auction_date)).length > 0 && (
           <div className="mb-12">
             <div className="flex items-center gap-3 mb-6">
               <Zap size={24} className="text-amber-500" />
-              <h2 className={cn('text-2xl font-bold', isDarkMode ? 'text-white' : 'text-gray-900')}>
+              <h2 className={cn('text-xl sm:text-2xl font-bold', isDarkMode ? 'text-white' : 'text-gray-900')}>
                 🔥 المنتجات قيد المزاد
               </h2>
             </div>
@@ -7247,7 +7550,7 @@ const MarketplacePage = () => {
 
         {/* Regular Products Section */}
         <div>
-          <h2 className={cn('text-2xl font-bold mb-6', isDarkMode ? 'text-white' : 'text-gray-900')}>
+          <h2 className={cn('text-xl sm:text-2xl font-bold mb-6', isDarkMode ? 'text-white' : 'text-gray-900')}>
             المنتجات
           </h2>
         {loading ? (
@@ -7275,7 +7578,7 @@ const MarketplacePage = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
             {filteredProducts.map((p) => (
               <motion.div key={p.id} whileHover={{ y: -4 }}>
                 <Card className={cn('h-full flex flex-col border-2 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group', isDarkMode ? 'bg-gray-800 border-green-700 hover:border-green-600' : 'bg-white border-green-500 hover:border-green-600')}>
@@ -7322,7 +7625,7 @@ const MarketplacePage = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className={cn('rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl relative flex flex-col md:flex-row', isDarkMode ? 'bg-gray-800' : 'bg-white')}
+            className={cn('rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl relative flex flex-col md:flex-row', isDarkMode ? 'bg-gray-800' : 'bg-white')}
           >
             <button
               onClick={() => setSelectedProduct(null)}
@@ -7383,7 +7686,7 @@ const MarketplacePage = () => {
                 <p className={cn('text-base leading-relaxed', isDarkMode ? 'text-gray-300' : 'text-gray-600')}>{selectedProduct.description}</p>
 
                 {/* Product Details */}
-                <div className="grid grid-cols-2 gap-3 pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
                   <div className={cn('p-3 rounded-lg border', isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200')}>
                     <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>المخزون المتاح</p>
                     <p className={cn('font-bold text-lg', selectedProduct.stock === 0 ? 'text-red-600' : 'text-green-600')}>
@@ -7438,7 +7741,7 @@ const MarketplacePage = () => {
                 <div className="space-y-3">
                   <div className={cn('p-4 rounded-lg border-2', isDarkMode ? 'bg-indigo-900/30 border-indigo-700' : 'bg-indigo-50 border-indigo-200')}>
                     <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>السعر النهائي</p>
-                    <p className={cn('text-3xl font-bold', isDarkMode ? 'text-indigo-300' : 'text-indigo-900')}>
+                    <p className={cn('text-2xl sm:text-3xl font-bold', isDarkMode ? 'text-indigo-300' : 'text-indigo-900')}>
                       {formatCurrency(selectedProduct.price * (quantities[selectedProduct.id] || 1))}
                     </p>
                   </div>
@@ -7653,7 +7956,7 @@ const MarketplacePage = () => {
       )}
 
       {/* Footer */}
-      <footer className={cn("border-t py-12 mt-12", isDarkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-black/5 text-gray-500")}> 
+      <footer className={cn("border-t py-12 mt-12 flex-1", isDarkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-black/5 text-gray-500")}> 
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <h4 className={cn("text-xl font-normal tracking-tighter mb-4", isDarkMode ? "text-white" : "text-indigo-600")}>{appName}</h4>
@@ -7680,32 +7983,34 @@ const MarketplacePage = () => {
           </div>
         </div>
       </footer>
+      <MobileFooterNav />
     </div>
   );
 };
 
 // About Page - من نحن
 const AboutPage = () => {
+  const { isDarkMode } = useTheme();
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
-      <div className="max-w-4xl mx-auto px-6 py-16">
-        <h1 className="text-4xl font-normal text-gray-900 mb-8">من نحن</h1>
-        <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
+    <div className={cn("min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-28 md:pb-0 flex flex-col", isDarkMode ? 'bg-gray-900' : '')}>
+      <div className="flex-1 max-w-4xl mx-auto px-6 py-16">
+        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>من نحن</h1>
+        <div className={cn("rounded-2xl shadow-lg p-8 space-y-6", isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white')}>
           <div>
-            <h2 className="text-2xl font-normal text-indigo-600 mb-4">🌍 منصتنا</h2>
-            <p className="text-gray-700 leading-relaxed">
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🌍 منصتنا</h2>
+            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
               نحن منصة تجارة إلكترونية حديثة توفر حلولاً شاملة للتجار والمتاجر الإلكترونية. تأسست المنصة بهدف تمكين الشركات الصغيرة والمتوسطة من الانطلاق رقمياً بسهولة وفعالية.
             </p>
           </div>
           <div>
-            <h2 className="text-2xl font-normal text-indigo-600 mb-4">🎯 رسالتنا</h2>
-            <p className="text-gray-700 leading-relaxed">
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🎯 رسالتنا</h2>
+            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
               توفير أدوات وخدمات متقدمة تمكّن التجار من إدارة متاجرهم الإلكترونية بكفاءة وتوسيع أعمالهم في السوق الرقمي.
             </p>
           </div>
           <div>
-            <h2 className="text-2xl font-normal text-indigo-600 mb-4">✨ قيمنا</h2>
-            <ul className="space-y-2 text-gray-700">
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>✨ قيمنا</h2>
+            <ul className={cn("space-y-2", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
               <li>✓ الشفافية والأمانة في جميع معاملاتنا</li>
               <li>✓ الابتكار المستمر لتحسين الخدمات</li>
               <li>✓ دعم العملاء على مدار الساعة</li>
@@ -7714,116 +8019,123 @@ const AboutPage = () => {
           </div>
         </div>
       </div>
+      <MobileFooterNav />
     </div>
   );
 };
 
 // Help Center Page - مركز المساعدة
 const HelpCenterPage = () => {
+  const { isDarkMode } = useTheme();
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
-      <div className="max-w-4xl mx-auto px-6 py-16">
-        <h1 className="text-4xl font-normal text-gray-900 mb-8">مركز المساعدة</h1>
-        <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
+    <div className={cn("min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-28 md:pb-0 flex flex-col", isDarkMode ? 'bg-gray-900' : '')}>
+      <div className="flex-1 max-w-4xl mx-auto px-6 py-16">
+        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>مركز المساعدة</h1>
+        <div className={cn("rounded-2xl shadow-lg p-8 space-y-6", isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white')}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="border-l-4 border-indigo-600 pl-4">
-              <h3 className="text-xl font-normal text-indigo-600 mb-2">❓ الأسئلة الشائعة</h3>
-              <p className="text-gray-700 text-sm">ستجد الإجابات على الأسئلة الأكثر شيوعاً حول استخدام المنصة وإدارة متجرك.</p>
+            <div className={cn("border-l-4 border-indigo-600 pl-4", isDarkMode ? 'bg-gray-700' : '')}>
+              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>❓ الأسئلة الشائعة</h3>
+              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>ستجد الإجابات على الأسئلة الأكثر شيوعاً حول استخدام المنصة وإدارة متجرك.</p>
             </div>
-            <div className="border-l-4 border-indigo-600 pl-4">
-              <h3 className="text-xl font-normal text-indigo-600 mb-2">📚 الدلائل والأدلة</h3>
-              <p className="text-gray-700 text-sm">خطوات مفصلة وأدلة شاملة تساعدك في البدء والقيام بمختلف العمليات.</p>
+            <div className={cn("border-l-4 border-indigo-600 pl-4", isDarkMode ? 'bg-gray-700' : '')}>
+              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>📚 الدلائل والأدلة</h3>
+              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>خطوات مفصلة وأدلة شاملة تساعدك في البدء والقيام بمختلف العمليات.</p>
             </div>
-            <div className="border-l-4 border-indigo-600 pl-4">
-              <h3 className="text-xl font-normal text-indigo-600 mb-2">💬 دعم العملاء</h3>
-              <p className="text-gray-700 text-sm">فريق الدعم الخاص بنا متاح لمساعدتك على مدار الساعة يومياً.</p>
+            <div className={cn("border-l-4 border-indigo-600 pl-4", isDarkMode ? 'bg-gray-700' : '')}>
+              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>💬 دعم العملاء</h3>
+              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>فريق الدعم الخاص بنا متاح لمساعدتك على مدار الساعة يومياً.</p>
             </div>
-            <div className="border-l-4 border-indigo-600 pl-4">
-              <h3 className="text-xl font-normal text-indigo-600 mb-2">🛠️ الصيانة والتحديثات</h3>
-              <p className="text-gray-700 text-sm">تابع آخر التحديثات والصيانة الدورية للمنصة.</p>
+            <div className={cn("border-l-4 border-indigo-600 pl-4", isDarkMode ? 'bg-gray-700' : '')}>
+              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🛠️ الصيانة والتحديثات</h3>
+              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>تابع آخر التحديثات والصيانة الدورية للمنصة.</p>
             </div>
           </div>
-          <div className="bg-indigo-50 p-6 rounded-xl mt-8">
-            <p className="text-gray-700">
+          <div className={cn("p-6 rounded-xl mt-8", isDarkMode ? 'bg-gray-700' : 'bg-indigo-50')}>
+            <p className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>
               <strong>📧 تواصل معنا:</strong> إذا لم تجد الإجابة، يمكنك التواصل مع فريقنا عبر البريد الإلكتروني أو خلال ساعات العمل.
             </p>
           </div>
         </div>
       </div>
+      <MobileFooterNav />
     </div>
   );
 };
 
 // Security Policy Page - سياسة الأمان
 const SecurityPolicyPage = () => {
+  const { isDarkMode } = useTheme();
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
-      <div className="max-w-4xl mx-auto px-6 py-16">
-        <h1 className="text-4xl font-normal text-gray-900 mb-8">سياسة الأمان</h1>
-        <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
+    <div className={cn("min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-28 md:pb-0 flex flex-col", isDarkMode ? 'bg-gray-900' : '')}>
+      <div className="flex-1 max-w-4xl mx-auto px-6 py-16">
+        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>سياسة الأمان</h1>
+        <div className={cn("rounded-2xl shadow-lg p-8 space-y-6", isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white')}>
           <div>
-            <h2 className="text-2xl font-normal text-indigo-600 mb-4">🔒 أمان البيانات</h2>
-            <p className="text-gray-700 leading-relaxed">
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🔒 أمان البيانات</h2>
+            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
               نستخدم تقنيات التشفير الحديثة لحماية معلومات عملائنا والحفاظ على سرية بيانات المتاجر والعملاء.
             </p>
           </div>
           <div>
-            <h2 className="text-2xl font-normal text-indigo-600 mb-4">🛡️ حماية المعاملات</h2>
-            <p className="text-gray-700 leading-relaxed">
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🛡️ حماية المعاملات</h2>
+            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
               جميع المعاملات المالية محمية بمعايير أمان دولية. لا نقبل بطاقات ائتمان مباشرة - يتم التعامل من خلال بوابات دفع آمنة معتمدة.
             </p>
           </div>
           <div>
-            <h2 className="text-2xl font-normal text-indigo-600 mb-4">🔐 كلمات المرور</h2>
-            <p className="text-gray-700 leading-relaxed">
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🔐 كلمات المرور</h2>
+            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
               استخدم كلمات مرور قوية ولا تشارك حسابك مع أحد. يمكنك تحديث كلمة المرور في أي وقت من إعدادات الحساب.
             </p>
           </div>
           <div>
-            <h2 className="text-2xl font-normal text-indigo-600 mb-4">الإبلاغ عن المشاكل الأمنية</h2>
-            <p className="text-gray-700 leading-relaxed">
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>الإبلاغ عن المشاكل الأمنية</h2>
+            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
               إذا اكتشفت أي مشكلة أمنية، يرجى الإبلاغ عنها فوراً إلى فريق الأمان بخصوصية تامة.
             </p>
           </div>
         </div>
       </div>
+      <MobileFooterNav />
     </div>
   );
 };
 
 // Privacy Policy Page - سياسة الخصوصية
 const PrivacyPolicyPage = () => {
+  const { isDarkMode } = useTheme();
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
-      <div className="max-w-4xl mx-auto px-6 py-16">
-        <h1 className="text-4xl font-normal text-gray-900 mb-8">سياسة الخصوصية</h1>
-        <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
+    <div className={cn("min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-28 md:pb-0 flex flex-col", isDarkMode ? 'bg-gray-900' : '')}>
+      <div className="flex-1 max-w-4xl mx-auto px-6 py-16">
+        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>سياسة الخصوصية</h1>
+        <div className={cn("rounded-2xl shadow-lg p-8 space-y-6", isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white')}>
           <div>
-            <h2 className="text-2xl font-normal text-indigo-600 mb-4">📋 جمع البيانات</h2>
-            <p className="text-gray-700 leading-relaxed">
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>📋 جمع البيانات</h2>
+            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
               نجمع المعلومات الضرورية لتقديم الخدمة فقط، مثل البيانات الشخصية والمعاملات التجارية.
             </p>
           </div>
           <div>
-            <h2 className="text-2xl font-normal text-indigo-600 mb-4">🔒 استخدام البيانات</h2>
-            <p className="text-gray-700 leading-relaxed">
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🔒 استخدام البيانات</h2>
+            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
               نستخدم بيانات العملاء فقط لتحسين الخدمة والتواصل حول الحسابات والعروض الخاصة. لا بيع البيانات لأطراف ثالثة.
             </p>
           </div>
           <div>
-            <h2 className="text-2xl font-normal text-indigo-600 mb-4">🚀 ملفات تعريف الارتباط</h2>
-            <p className="text-gray-700 leading-relaxed">
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🚀 ملفات تعريف الارتباط</h2>
+            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
               نستخدم الملفات التعريفية لتحسين تجربة الاستخدام. يمكنك إدارة الملفات التعريفية من إعدادات المتصفح.
             </p>
           </div>
           <div>
-            <h2 className="text-2xl font-normal text-indigo-600 mb-4">🗑️ حقوقك</h2>
-            <p className="text-gray-700 leading-relaxed">
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🗑️ حقوقك</h2>
+            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
               لديك الحق في طلب معلوماتك الشخصية، تصحيحها، أو حذفها في أي وقت.
             </p>
           </div>
         </div>
       </div>
+      <MobileFooterNav />
     </div>
   );
 };
@@ -8006,24 +8318,24 @@ const StoresPage = () => {
   }
 
   return (
-    <div className={cn("min-h-screen", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-gradient-to-b from-indigo-50 to-white text-gray-900")} dir="rtl">
+    <div className={cn("min-h-screen pb-28 md:pb-0 flex flex-col", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-gradient-to-b from-indigo-50 to-white text-gray-900")} dir="rtl">
       {/* Header */}
       <div className={cn("border-b sticky top-0 z-40", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5")}>
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
           <Link
             to="/"
             className={cn("flex items-center gap-2 font-normal transition-colors", isDarkMode ? "text-gray-400 hover:text-indigo-400" : "text-gray-600 hover:text-indigo-600")}
           >
             <ChevronRight size={20} />
-            العودة
+            <span className="hidden sm:inline">العودة</span>
           </Link>
-          <h1 className={cn("text-2xl font-normal", isDarkMode ? "text-white" : "text-gray-900")}>استكشف جميع المتاجر</h1>
-          <div className="flex gap-2"></div>
+          <h1 className={cn("text-lg sm:text-2xl font-normal text-center flex-1 truncate", isDarkMode ? "text-white" : "text-gray-900")}>استكشف جميع المتاجر</h1>
+          <div className="w-8 sm:w-16"></div>
         </div>
       </div>
 
       {/* Stores Grid */}
-      <main className="max-w-7xl mx-auto px-4 py-12">
+      <main className="flex-1 max-w-7xl mx-auto px-4 py-6 sm:py-12">
         {stores.length === 0 ? (
           <div className="text-center py-20">
             <StoreIcon size={64} className="mx-auto text-gray-400 mb-4" />
@@ -8031,7 +8343,7 @@ const StoresPage = () => {
             <p className="text-gray-300">تحقق لاحقاً للتسوق من متاجر جديدة</p>
           </div>
         ) : (
-          <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-8 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
             {stores.map((store) => (
               <motion.div
                 key={store.id}
@@ -8039,7 +8351,7 @@ const StoresPage = () => {
                 onClick={() => handleStoreClick(store)}
                 className="cursor-pointer"
               >
-                <Card className="h-full flex flex-col border-none shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group max-w-[170px]">
+                <Card className="h-full flex flex-col border-none shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group w-full">
                   {/* Store Logo Badge - Always Visible */}
                   <div className="p-0 flex items-center justify-center h-24 overflow-hidden rounded-t-lg bg-white">
                     {storesWithLogos.has(store.id) && storesWithLogos.get(store.id) ? (
@@ -8067,10 +8379,10 @@ const StoresPage = () => {
                   {/* Store Info */}
                   <div className="p-3 flex-1 flex flex-col justify-between gap-2">
                     <div>
-                      <h3 className="font-normal text-xs text-white line-clamp-1 group-hover:text-indigo-300 transition-colors mb-1">
+                      <h3 className={cn("font-normal text-xs line-clamp-1 group-hover:text-indigo-300 transition-colors mb-1", isDarkMode ? "text-white" : "text-gray-900")}>
                         {store.store_name}
                       </h3>
-                      <p className="text-[10px] text-white font-normal line-clamp-2">
+                      <p className={cn("text-[10px] font-normal line-clamp-2", isDarkMode ? "text-gray-300" : "text-gray-600")}>
                         {store.description || 'متجر متخصص'}
                       </p>
                     </div>
@@ -8078,8 +8390,8 @@ const StoresPage = () => {
                     {/* Store Owner */}
                     {store.owner_name && (
                       <div className="text-[9px]">
-                        <p className="text-gray-300 font-normal">صاحب المتجر</p>
-                        <p className="font-normal text-white">{store.owner_name}</p>
+                        <p className={cn("font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>صاحب المتجر</p>
+                        <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>{store.owner_name}</p>
                       </div>
                     )}
 
@@ -8104,7 +8416,7 @@ const StoresPage = () => {
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className={cn("rounded-2xl w-full max-w-md shadow-2xl p-6", isDarkMode ? "bg-gray-800" : "bg-white")}
+            className={cn("rounded-2xl w-full max-w-md shadow-2xl p-4 sm:p-6", isDarkMode ? "bg-gray-800" : "bg-white")}
           >
             <div className="mb-6">
               <h2 className={cn("text-2xl font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>
@@ -8155,7 +8467,7 @@ const StoresPage = () => {
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleTopupStoreVerification}
                 disabled={topupAuthLoading}
@@ -8177,6 +8489,7 @@ const StoresPage = () => {
           </motion.div>
         </div>
       )}
+      <MobileFooterNav />
     </div>
   );
 };
@@ -10802,7 +11115,7 @@ const TopupStorefront = () => {
                   </div>
                   {customer.customer_id && (
                     <div className={cn("p-3 rounded-lg border", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-white border-blue-100")}>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div>
                           <p className={cn("text-[10px] font-normal mb-0.5", isDarkMode ? "text-gray-400" : "text-gray-500")}>حد الائتمان</p>
                           <p className={cn("text-sm font-bold", isDarkMode ? "text-blue-300" : "text-blue-600")}>{Math.round(Number(customer.credit_limit) || 0)?.toLocaleString('en-US')} د.ع</p>
@@ -10968,7 +11281,7 @@ const TopupStorefront = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Filters and Purchase Details */}
           <div className="md:col-span-1 space-y-6">
@@ -11104,7 +11417,7 @@ const TopupStorefront = () => {
 
           {/* Products Grid */}
           <div className="md:col-span-2">
-            <div className="grid grid-cols-3 md:grid-cols-4 gap-4" key={`products-${products.length}-${Date.now()}`}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4" key={`products-${products.length}-${Date.now()}`}>
               {filteredProducts.map((product, idx) => {
                 // العملاء المفردون (cash): wholesale_price
                 // العملاء الجملة (reseller): retail_price
@@ -11120,7 +11433,7 @@ const TopupStorefront = () => {
                     key={`product-${product.id}-${product.available_codes}`}
                     whileHover={{ y: -4 }}
                     className={cn(
-                      "p-4 rounded-lg border-2 cursor-pointer transition-all relative",
+                      "p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-all relative",
                       selectedProduct?.id === product.id
                         ? `border-[${primaryColor}] bg-opacity-10`
                         : isDarkMode ? "border-green-700 hover:border-green-600" : "border-green-500 hover:border-green-600"
@@ -11150,12 +11463,12 @@ const TopupStorefront = () => {
                       className="mb-4"
                     >
                       <div className="text-xs font-normal text-gray-500 mb-1">{product.company_name}</div>
-                      <div className="text-2xl font-normal mb-2">{product.amount.toLocaleString('en-US')} دينار</div>
+                      <div className="text-lg sm:text-2xl font-normal mb-2">{product.amount.toLocaleString('en-US')} دينار</div>
                       <div className={cn("text-xs font-normal mb-3", isDarkMode ? "text-gray-400" : "text-gray-600")}> 
                         {product.category_name}
                       </div>
                       <div className="space-y-1">
-                        <div className={cn("text-lg font-normal", selectedProduct?.id === product.id ? "text-green-500" : isDarkMode ? "text-blue-400" : "text-indigo-600")}> 
+                        <div className={cn("text-base sm:text-lg font-normal", selectedProduct?.id === product.id ? "text-green-500" : isDarkMode ? "text-blue-400" : "text-indigo-600")}> 
                           {displayPrice.toLocaleString('en-US')} د.ع
                         </div>
                         {showBulkBadge && (
@@ -11168,7 +11481,7 @@ const TopupStorefront = () => {
 
                     {/* Quantity and Cart Controls */}
                     <div className="mt-4 pt-4 border-t" style={{borderColor: isDarkMode ? '#374151' : '#e5e7eb'}}>
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-2 bg-opacity-10 rounded px-2 py-1">
                           <button
                             onClick={(e) => {
@@ -11284,16 +11597,16 @@ const TopupOrderDetails = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (loading) return <div className="p-8 text-center">جاري تحميل أكوادك...</div>;
+  if (loading) return <div className="p-4 sm:p-8 text-center">جاري تحميل أكوادك...</div>;
 
   return (
-    <div className={cn("min-h-screen p-8", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900")} dir="rtl">
+    <div className={cn("min-h-screen p-4 sm:p-8", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900")} dir="rtl">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
           <div className="inline-block p-4 rounded-full bg-green-100 mb-4">
             <CheckCircle size={48} className="text-green-600" />
           </div>
-          <h1 className="text-3xl font-normal mb-2">شكراً لك! 🎉</h1>
+          <h1 className="text-2xl sm:text-3xl font-normal mb-2">شكراً لك! 🎉</h1>
           <p className={cn(isDarkMode ? "text-gray-400" : "text-gray-600")}>تم استلام طلبك بنجاح</p>
         </div>
 
