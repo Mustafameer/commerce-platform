@@ -8040,6 +8040,14 @@ const StoresPage = () => {
                         alt={store.store_name}
                         onError={(e) => console.error("Logo load error for", store.store_name)}
                       />
+                    ) : store.store_type === 'topup' ? (
+                      // Default logo for topup stores
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
+                        <div className="text-center">
+                          <div className="text-4xl font-bold text-red-600 mb-1">💳</div>
+                          <p className="text-xs font-normal text-red-600">بطاقات شحن</p>
+                        </div>
+                      </div>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-white text-gray-300">
                         <StoreIcon size={40} />
