@@ -9501,7 +9501,7 @@ const MerchantTopupDashboard = () => {
                         <tr key={order.id} className={cn("border-t hover:bg-opacity-50", isDarkMode ? "border-gray-700 hover:bg-gray-700" : "border-gray-200 hover:bg-gray-50")}>
                           <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>#{order.id}</td>
                           <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>{order.phone || 'غير محدد'}</td>
-                          <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>{order.company_name && order.product_amount ? `${order.company_name} - ${order.product_amount} جنية` : 'منتج'}</td>
+                          <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>{order.company_name && order.product_amount ? `${order.company_name} - ${order.product_amount}` : order.company_name || 'منتج'}</td>
                           <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>{order.total_amount} د.ع</td>
                           <td className={cn("px-6 py-4 text-right text-sm font-medium", isDarkMode ? order.status === 'completed' ? "text-green-400" : order.status === 'pending' ? "text-yellow-400" : "text-red-400" : order.status === 'completed' ? "text-green-600" : order.status === 'pending' ? "text-yellow-600" : "text-red-600")}>
                             {order.status === 'completed' ? '✓ مكتمل' : order.status === 'pending' ? '⏳ معلق' : order.status === 'returned' ? '↩️ مسترجع' : 'ملغي'}
