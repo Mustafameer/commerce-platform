@@ -1617,7 +1617,7 @@ async function startServer() {
         // Format currency function
         const formatCurrency = (amount: any) => {
           const num = parseInt(amount);
-          return num.toLocaleString('en-US');
+          return `${num.toLocaleString('en-US')} IQD`;
         };
         
         const html = `
@@ -1663,10 +1663,10 @@ async function startServer() {
               <div class="customer-info">
                 <h3>🔹 معلومات العميل</h3>
                 <div class="info-row">
-                  <span>الهاتف: ${order.phone}</span>
+                  <span>الهاتف: ${order.phone || '---'}</span>
                 </div>
                 <div class="info-row">
-                  <span>العنوان: ${order.address}</span>
+                  <span>العنوان: ${order.address || 'لم يتم تحديد عنوان'}</span>
                 </div>
               </div>
               <table dir="rtl" style="text-align: right;">
