@@ -10034,65 +10034,107 @@ const TopupStorefront = () => {
         const timestamp = Date.now();
         console.log('🔍 Fetching products with timestamp:', timestamp);
         
+        // Create AbortController with 10-second timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          console.warn('⏱️ Fetch timeout after 10 seconds');
+          controller.abort();
+        }, 10000);
+        
         // First, get store by slug to get actual store ID
-        const storeRes = await fetch(`/api/stores/slug/${storeId}?_t=${timestamp}`, { cache: 'no-store' }).then(r => {
-          if (!r.ok) {
-            console.error('❌ Store fetch failed:', r.status, r.statusText);
-            throw new Error(`Store fetch failed: ${r.status}`);
+        let storeRes;
+        try {
+          const resp = await fetch(`/api/stores/slug/${storeId}?_t=${timestamp}`, { 
+            cache: 'no-store',
+            signal: controller.signal 
+          });
+          
+          if (!resp.ok) {
+            console.error('❌ Store fetch failed:', resp.status, resp.statusText);
+            clearTimeout(timeoutId);
+            alert(`خطأ: لم تتمكن من جلب بيانات المتجر (${resp.status})`);
+            setLoading(false);
+            return;
           }
-          return r.json();
-        });
+          
+          storeRes = await resp.json();
+          console.log('✅ Store response received');
+        } catch (e) {
+          clearTimeout(timeoutId);
+          if (e instanceof TypeError && e.message.includes('aborted')) {
+            console.error('❌ Store fetch timeout');
+            alert('انتهت مهلة الاتصال بالمتجر. يرجى المحاولة لاحقاً');
+          } else {
+            console.error('❌ Store fetch error:', e);
+            alert(`خطأ في جلب المتجر: ${(e as Error).message}`);
+          }
+          setLoading(false);
+          return;
+        }
         
         if (!storeRes || storeRes.error) {
+          clearTimeout(timeoutId);
           console.error('Store not found:', storeRes?.error);
-          setLoading(false);
           alert(`متجر غير موجود: ${storeRes?.error}`);
+          setLoading(false);
           return;
         }
         
         const actualStoreId = storeRes.id;
         console.log('✅ Store found:', { storeId, actualStoreId, store_name: storeRes.store_name });
         setActualStoreId(actualStoreId);
+        setStoreInfo(storeRes);
         
-        // Now fetch other data using actual store ID
-        const companiesRes = await fetch(`/api/topup/companies/${actualStoreId}?_t=${timestamp}`, { cache: 'no-store' }).then(async r => {
+        // Fetch companies, categories, products with timeout
+        const companiesRes = await fetch(`/api/topup/companies/${actualStoreId}?_t=${timestamp}`, { 
+          cache: 'no-store',
+          signal: controller.signal 
+        }).then(async r => {
           if (!r.ok) {
-            console.error('❌ Companies fetch failed:', r.status);
+            console.warn('⚠️ Companies fetch returned status:', r.status);
             return [];
           }
           const data = await r.json();
-          console.log('✅ Companies fetched:', Array.isArray(data) ? data.length : (typeof data === 'object' && data.value ? data.value.length : 0));
-          return Array.isArray(data) ? data : (data.value || []);
+          console.log('✅ Companies fetched:', Array.isArray(data) ? data.length : 0);
+          return Array.isArray(data) ? data : [];
         }).catch(e => {
-          console.error('❌ Companies error:', e.message);
+          console.warn('⚠️ Companies fetch error (non-blocking):', e.message);
           return [];
         });
         
-        const categoriesRes = await fetch(`/api/topup/categories/${actualStoreId}?_t=${timestamp}`, { cache: 'no-store' }).then(async r => {
+        const categoriesRes = await fetch(`/api/topup/categories/${actualStoreId}?_t=${timestamp}`, { 
+          cache: 'no-store',
+          signal: controller.signal 
+        }).then(async r => {
           if (!r.ok) {
-            console.error('❌ Categories fetch failed:', r.status);
+            console.warn('⚠️ Categories fetch returned status:', r.status);
             return [];
           }
           const data = await r.json();
           console.log('✅ Categories fetched:', Array.isArray(data) ? data.length : 0);
           return Array.isArray(data) ? data : [];
         }).catch(e => {
-          console.error('❌ Categories error:', e.message);
+          console.warn('⚠️ Categories fetch error (non-blocking):', e.message);
           return [];
         });
         
-        const productsRes = await fetch(`/api/topup/products/${actualStoreId}?_t=${timestamp}`, { cache: 'no-store' }).then(async r => {
+        const productsRes = await fetch(`/api/topup/products/${actualStoreId}?_t=${timestamp}`, { 
+          cache: 'no-store',
+          signal: controller.signal 
+        }).then(async r => {
           if (!r.ok) {
-            console.error('❌ Products fetch failed:', r.status);
+            console.warn('⚠️ Products fetch returned status:', r.status);
             return [];
           }
           const data = await r.json();
           console.log('✅ Products fetched:', Array.isArray(data) ? data.length : 0);
           return Array.isArray(data) ? data : [];
         }).catch(e => {
-          console.error('❌ Products error:', e.message);
+          console.warn('⚠️ Products fetch error (non-blocking):', e.message);
           return [];
         });
+        
+        clearTimeout(timeoutId);
         
         console.log('📊 Data Summary:', {
           companies: companiesRes.length,
@@ -10100,7 +10142,6 @@ const TopupStorefront = () => {
           products: productsRes.length
         });
         
-        setStoreInfo(storeRes);
         setCompanies(companiesRes);
         setCategories(categoriesRes);
         setProducts(productsRes);
