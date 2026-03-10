@@ -169,6 +169,22 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
   const [settings, setSettings] = useState({ app_name: appName, logo_url: logoUrl });
   const { isDarkMode, setIsDarkMode } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Handle window resize to detect mobile/desktop
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     // Only fetch settings once when user role changes or on mount
@@ -232,130 +248,9 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  return (
-      <>
-      {/* Desktop Layout */}
-      <div className={cn("h-screen w-screen overflow-hidden flex-row", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} 
-        data-dashboard-layout="desktop"
-        dir="rtl"
-      >
-
-
-        {/* Sidebar */}
-        <aside className={cn(
-          "relative w-64 h-screen border-r flex-col overflow-hidden flex",
-          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5"
-        )}>
-          <div className={cn("p-6 text-center border-b flex-shrink-0", isDarkMode ? "border-gray-700" : "border-black/5")}>
-          <div className="flex flex-col items-center gap-3">
-            {settings.logo_url ? (
-              <div className={cn("w-20 h-20 rounded-full overflow-hidden ring-4 shadow-lg flex items-center justify-center flex-shrink-0", isDarkMode ? "ring-gray-700 bg-gray-700" : "ring-indigo-50 bg-gray-50")}>
-                <img src={settings.logo_url} className="w-full h-full object-cover" alt="logo" />
-              </div>
-            ) : (
-              <div className="w-20 h-20 rounded-full bg-indigo-600 flex items-center justify-center text-white text-2xl font-normal shadow-lg ring-4 ring-indigo-50 flex-shrink-0">
-                {settings.app_name?.[0]}
-              </div>
-            )}
-            <div>
-              <h1 className={cn("text-lg font-normal tracking-tighter mb-0.5", isDarkMode ? "text-blue-400" : "text-indigo-600")}>{settings.app_name}</h1>
-              <p className={cn("text-[9px] uppercase tracking-[0.2em] font-normal italic", isDarkMode ? "text-gray-500" : "text-gray-400")}>لوحة {role === 'admin' ? 'الإدارة' : 'التاجر'}</p>
-            </div>
-          </div>
-        </div>
-        
-        <nav className="flex-1 px-3 space-y-1 overflow-y-auto pb-20">
-          {navItems.map((item, index) => (
-            <Link
-              key={item.label}
-              to={item.path}
-              onClick={() => {
-                setDashboardQuery('');
-                setSidebarOpen(false);
-              }}
-              className={cn(
-                "flex items-center justify-between px-4 py-3 rounded-xl transition-colors group",
-                isNavItemActive(item.path)
-                  ? (isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-indigo-50 text-indigo-600")
-                  : (isDarkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-indigo-50 hover:text-indigo-600")
-              )}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                {item.icon && <item.icon size={20} className="group-hover:scale-110 transition-transform flex-shrink-0" />}
-                <span className="font-medium text-sm truncate">{item.label}</span>
-              </div>
-              {item.count !== undefined && item.count > 0 && (
-                <span className={cn("text-[10px] font-normal px-2 py-0.5 rounded-full ring-2 shadow-sm group-hover:transition-all flex-shrink-0", isDarkMode ? "bg-blue-900 text-blue-300 ring-gray-700 group-hover:bg-blue-600 group-hover:text-white" : "bg-indigo-100 text-indigo-600 ring-white group-hover:bg-indigo-600 group-hover:text-white")}>
-                  {item.count}
-                </span>
-              )}
-            </Link>
-          ))}
-        </nav>
-
-        <div className={cn("p-3 border-t space-y-2 flex-shrink-0", isDarkMode ? "border-gray-700" : "border-black/5")}>
-          {role === 'merchant' && user?.store_slug && (
-            <Link 
-              to={`/store/${user.store_slug}`} 
-              target="_blank"
-              className={cn("w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all shadow-lg group text-sm font-normal", isDarkMode ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-900" : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100")}
-            >
-              <div className="flex items-center gap-3">
-                <ExternalLink size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform flex-shrink-0" />
-                <span className="truncate">عرض المتجر</span>
-              </div>
-            </Link>
-          )}
-
-          <button
-            onClick={handleLogout}
-            className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm", isDarkMode ? "text-red-400 hover:bg-red-900/30" : "text-red-600 hover:bg-red-50")}
-          >
-            <LogOut size={18} />
-            <span className="truncate">تسجيل الخروج</span>
-          </button>
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1 hidden md:flex h-full overflow-hidden flex-col">
-          <header className={cn("px-8 py-6 border-b flex justify-between items-center flex-shrink-0", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5")}>
-            <h2 className={cn("text-3xl font-normal tracking-tight hidden sm:block", isDarkMode ? "text-gray-100" : "text-gray-900")}>{title}</h2>
-            <div className="flex gap-4 items-center">
-              {/* Theme Toggle Button */}
-              <button 
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className={cn(
-                  "p-2.5 rounded-lg border transition-all flex items-center justify-center",
-                  isDarkMode 
-                    ? "bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800" 
-                    : "bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100"
-                )}
-                title={isDarkMode ? "الوضع الفاتح" : "الوضع الداكن"}
-              >
-                {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-              </button>
-              
-              <div className="relative hidden sm:block">
-                <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2", isDarkMode ? "text-gray-500" : "text-gray-400")} size={18} />
-                <input 
-                  type="text" 
-                  placeholder="بحث..." 
-                  value={dashboardQuery}
-                  onChange={(e) => setDashboardQuery(e.target.value)}
-                  className={cn("pl-10 pr-4 py-2 border rounded-xl focus:outline-none focus:ring-2 w-64 transition-colors", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500" : "bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400")}
-                />
-              </div>
-            </div>
-          </header>
-          <div className={cn("flex-1 overflow-y-auto px-8 py-8", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
-            {children}
-          </div>
-        </main>
-      </div>
-      </>
-      
-      {/* Mobile Layout */}
+  if (isMobile) {
+    // Mobile Layout
+    return (
       <div className={cn("flex flex-col h-screen w-screen overflow-hidden", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} 
         data-dashboard-layout="mobile"
         dir="rtl"
@@ -490,7 +385,127 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
         {/* Mobile Footer Navigation */}
         <MobileFooterNav />
       </div>
-      </>
+    );
+  }
+
+  // Desktop Layout
+  return (
+    <div className={cn("h-screen w-screen overflow-hidden flex-row", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} 
+      data-dashboard-layout="desktop"
+      dir="rtl"
+    >
+      {/* Sidebar */}
+      <aside className={cn(
+        "relative w-64 h-screen border-r flex-col overflow-hidden flex",
+        isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5"
+      )}>
+        <div className={cn("p-6 text-center border-b flex-shrink-0", isDarkMode ? "border-gray-700" : "border-black/5")}>
+        <div className="flex flex-col items-center gap-3">
+          {settings.logo_url ? (
+            <div className={cn("w-20 h-20 rounded-full overflow-hidden ring-4 shadow-lg flex items-center justify-center flex-shrink-0", isDarkMode ? "ring-gray-700 bg-gray-700" : "ring-indigo-50 bg-gray-50")}>
+              <img src={settings.logo_url} className="w-full h-full object-cover" alt="logo" />
+            </div>
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-indigo-600 flex items-center justify-center text-white text-2xl font-normal shadow-lg ring-4 ring-indigo-50 flex-shrink-0">
+              {settings.app_name?.[0]}
+            </div>
+          )}
+          <div>
+            <h1 className={cn("text-lg font-normal tracking-tighter mb-0.5", isDarkMode ? "text-blue-400" : "text-indigo-600")}>{settings.app_name}</h1>
+            <p className={cn("text-[9px] uppercase tracking-[0.2em] font-normal italic", isDarkMode ? "text-gray-500" : "text-gray-400")}>لوحة {role === 'admin' ? 'الإدارة' : 'التاجر'}</p>
+          </div>
+        </div>
+      </div>
+      
+      <nav className="flex-1 px-3 space-y-1 overflow-y-auto pb-20">
+        {navItems.map((item, index) => (
+          <Link
+            key={item.label}
+            to={item.path}
+            onClick={() => {
+              setDashboardQuery('');
+              setSidebarOpen(false);
+            }}
+            className={cn(
+              "flex items-center justify-between px-4 py-3 rounded-xl transition-colors group",
+              isNavItemActive(item.path)
+                ? (isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-indigo-50 text-indigo-600")
+                : (isDarkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-indigo-50 hover:text-indigo-600")
+            )}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              {item.icon && <item.icon size={20} className="group-hover:scale-110 transition-transform flex-shrink-0" />}
+              <span className="font-medium text-sm truncate">{item.label}</span>
+            </div>
+            {item.count !== undefined && item.count > 0 && (
+              <span className={cn("text-[10px] font-normal px-2 py-0.5 rounded-full ring-2 shadow-sm group-hover:transition-all flex-shrink-0", isDarkMode ? "bg-blue-900 text-blue-300 ring-gray-700 group-hover:bg-blue-600 group-hover:text-white" : "bg-indigo-100 text-indigo-600 ring-white group-hover:bg-indigo-600 group-hover:text-white")}>
+                {item.count}
+              </span>
+            )}
+          </Link>
+        ))}
+      </nav>
+
+      <div className={cn("p-3 border-t space-y-2 flex-shrink-0", isDarkMode ? "border-gray-700" : "border-black/5")}>
+        {role === 'merchant' && user?.store_slug && (
+          <Link 
+            to={`/store/${user.store_slug}`} 
+            target="_blank"
+            className={cn("w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all shadow-lg group text-sm font-normal", isDarkMode ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-900" : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100")}
+          >
+            <div className="flex items-center gap-3">
+              <ExternalLink size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform flex-shrink-0" />
+              <span className="truncate">عرض المتجر</span>
+            </div>
+          </Link>
+        )}
+
+        <button
+          onClick={handleLogout}
+          className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm", isDarkMode ? "text-red-400 hover:bg-red-900/30" : "text-red-600 hover:bg-red-50")}
+        >
+          <LogOut size={18} />
+          <span className="truncate">تسجيل الخروج</span>
+        </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 h-full overflow-hidden flex-col flex">
+        <header className={cn("px-8 py-6 border-b flex justify-between items-center flex-shrink-0", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5")}>
+          <h2 className={cn("text-3xl font-normal tracking-tight", isDarkMode ? "text-gray-100" : "text-gray-900")}>{title}</h2>
+          <div className="flex gap-4 items-center">
+            {/* Theme Toggle Button */}
+            <button 
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className={cn(
+                "p-2.5 rounded-lg border transition-all flex items-center justify-center",
+                isDarkMode 
+                  ? "bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800" 
+                  : "bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100"
+              )}
+              title={isDarkMode ? "الوضع الفاتح" : "الوضع الداكن"}
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            
+            <div className="relative hidden sm:block">
+              <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2", isDarkMode ? "text-gray-500" : "text-gray-400")} size={18} />
+              <input 
+                type="text" 
+                placeholder="بحث..." 
+                value={dashboardQuery}
+                onChange={(e) => setDashboardQuery(e.target.value)}
+                className={cn("pl-10 pr-4 py-2 border rounded-xl focus:outline-none focus:ring-2 w-64 transition-colors", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500" : "bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400")}
+              />
+            </div>
+          </div>
+        </header>
+        <div className={cn("flex-1 overflow-y-auto px-8 py-8", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
+          {children}
+        </div>
+      </main>
+    </div>
   );
 };
 
