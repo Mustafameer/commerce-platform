@@ -10102,6 +10102,7 @@ const MerchantTopupDashboard = () => {
                                   setShowCustomerStatement(true);
                                 }}
                                 className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-green-900/30 text-green-400 hover:bg-green-900/60" : "text-green-600 hover:bg-green-50")}
+                                title="كشف الحساب"
                               >
                                 <FileText size={16} />
                               </button>
@@ -10112,6 +10113,7 @@ const MerchantTopupDashboard = () => {
                                   setShowCustomerModal(true);
                                 }}
                                 className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-blue-900/30 text-blue-400 hover:bg-blue-900/60" : "text-blue-600 hover:bg-blue-50")}
+                                title="تعديل"
                               >
                                 <Edit2 size={16} />
                               </button>
@@ -10132,6 +10134,7 @@ const MerchantTopupDashboard = () => {
                                   }
                                 }}
                                 className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-red-900/30 text-red-400 hover:bg-red-900/60" : "text-red-600 hover:bg-red-50")}
+                                title="حذف"
                               >
                                 <Trash2 size={16} />
                               </button>
