@@ -233,103 +233,10 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
   };
 
   return (
-      <div className={cn("flex h-screen w-screen overflow-hidden flex-col md:flex-row", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} dir="rtl">
-        {/* Mobile Header */}
-        <div className={cn("md:hidden border-b px-4 py-3 sticky top-0 z-30 backdrop-blur-sm", isDarkMode ? "bg-gray-800/95 border-gray-700" : "bg-white/95 border-black/5")}>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className={cn("p-2 rounded-lg transition-colors flex-shrink-0", isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100")}
-              aria-label="فتح القائمة"
-            >
-              {sidebarOpen ? <X size={22} className={isDarkMode ? "text-gray-100" : "text-gray-900"} /> : <Menu size={22} className={isDarkMode ? "text-gray-100" : "text-gray-900"} />}
-            </button>
-            <div className="min-w-0 flex-1 text-center">
-              <h2 className={cn("text-base font-normal truncate", isDarkMode ? "text-gray-100" : "text-gray-900")}>{title}</h2>
-              <p className={cn("text-[10px] truncate", isDarkMode ? "text-gray-400" : "text-gray-500")}>{settings.app_name}</p>
-            </div>
-            <button 
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className={cn(
-                "p-2 rounded-lg border transition-all flex items-center justify-center flex-shrink-0",
-                isDarkMode 
-                  ? "bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800" 
-                  : "bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100"
-              )}
-              title={isDarkMode ? "الوضع الفاتح" : "الوضع الداكن"}
-            >
-              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-          </div>
-          <div className="relative mt-3">
-            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2", isDarkMode ? "text-gray-500" : "text-gray-400")} size={16} />
-            <input 
-              type="text" 
-              placeholder="بحث..." 
-              value={dashboardQuery}
-              onChange={(e) => setDashboardQuery(e.target.value)}
-              className={cn("w-full pl-9 pr-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition-colors text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500" : "bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400")}
-            />
-          </div>
-        </div>
+      <>
+      {/* Desktop Layout */}
+      <div className={cn("hidden md:flex h-screen w-screen overflow-hidden flex-row", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} dir="rtl">
 
-        {/* Sidebar Overlay for Mobile */}
-        {sidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black/50 md:hidden z-40"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        {/* Mobile Quick Actions */}
-        <div className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] transform border-r transition-transform md:hidden",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full",
-          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5"
-        )}>
-          <div className={cn("p-5 border-b", isDarkMode ? "border-gray-700" : "border-black/5")}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className={cn("text-lg font-normal truncate", isDarkMode ? "text-gray-100" : "text-gray-900")}>{settings.app_name}</h3>
-                <p className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-500")}>لوحة {role === 'admin' ? 'الإدارة' : 'التاجر'}</p>
-              </div>
-              {settings.logo_url ? (
-                <div className={cn("w-14 h-14 rounded-full overflow-hidden ring-2 flex-shrink-0", isDarkMode ? "ring-gray-600 bg-gray-700" : "ring-indigo-100 bg-gray-50")}>
-                  <img src={settings.logo_url} className="w-full h-full object-cover" alt="logo" />
-                </div>
-              ) : (
-                <div className="w-14 h-14 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg font-normal flex-shrink-0">
-                  {settings.app_name?.[0]}
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="p-4 space-y-3">
-            <div className={cn("rounded-2xl p-3 text-sm", isDarkMode ? "bg-gray-700 text-gray-200" : "bg-gray-50 text-gray-700")}>
-              القسم الحالي: <span className="font-medium">{title}</span>
-            </div>
-            {role === 'merchant' && user?.store_slug && (
-              <Link 
-                to={`/store/${user.store_slug}`} 
-                target="_blank"
-                onClick={() => setSidebarOpen(false)}
-                className={cn("w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all shadow-lg group text-sm font-normal", isDarkMode ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-900" : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100")}
-              >
-                <div className="flex items-center gap-3">
-                  <ExternalLink size={18} className="flex-shrink-0" />
-                  <span className="truncate">عرض المتجر</span>
-                </div>
-              </Link>
-            )}
-            <button
-              onClick={handleLogout}
-              className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm", isDarkMode ? "text-red-400 hover:bg-red-900/30" : "text-red-600 hover:bg-red-50")}
-            >
-              <LogOut size={18} />
-              <span className="truncate">تسجيل الخروج</span>
-            </button>
-          </div>
-        </div>
 
         {/* Sidebar */}
         <aside className={cn(
@@ -442,19 +349,142 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
             {children}
           </div>
         </main>
+      </div>
+      </>
+      
+      {/* Mobile Layout */}
+      <div className={cn("md:hidden flex flex-col h-screen w-screen overflow-hidden", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} dir="rtl">
+        {/* Mobile Header */}
+        <div className={cn("border-b px-4 py-3 sticky top-0 z-30 backdrop-blur-sm", isDarkMode ? "bg-gray-800/95 border-gray-700" : "bg-white/95 border-black/5")}>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className={cn("p-2 rounded-lg transition-colors flex-shrink-0", isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100")}
+              aria-label="فتح القائمة"
+            >
+              {sidebarOpen ? <X size={22} className={isDarkMode ? "text-gray-100" : "text-gray-900"} /> : <Menu size={22} className={isDarkMode ? "text-gray-100" : "text-gray-900"} />}
+            </button>
+            <div className="min-w-0 flex-1 text-center">
+              <h2 className={cn("text-base font-normal truncate", isDarkMode ? "text-gray-100" : "text-gray-900")}>{title}</h2>
+              <p className={cn("text-[10px] truncate", isDarkMode ? "text-gray-400" : "text-gray-500")}>{settings.app_name}</p>
+            </div>
+            <button 
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className={cn(
+                "p-2 rounded-lg border transition-all flex items-center justify-center flex-shrink-0",
+                isDarkMode 
+                  ? "bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800" 
+                  : "bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100"
+              )}
+              title={isDarkMode ? "الوضع الفاتح" : "الوضع الداكن"}
+            >
+              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          </div>
+          <div className="relative mt-3">
+            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2", isDarkMode ? "text-gray-500" : "text-gray-400")} size={16} />
+            <input 
+              type="text" 
+              placeholder="بحث..." 
+              value={dashboardQuery}
+              onChange={(e) => setDashboardQuery(e.target.value)}
+              className={cn("w-full pl-9 pr-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition-colors text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500" : "bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400")}
+            />
+          </div>
+        </div>
 
-        {/* Mobile Content View */}
-        <div className="md:hidden flex-1 overflow-y-auto">
+        {/* Mobile Menu Drawer Overlay */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Mobile Menu Drawer */}
+        <div className={cn(
+          "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] transform border-r transition-transform",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5"
+        )}>
+          <div className={cn("p-5 border-b", isDarkMode ? "border-gray-700" : "border-black/5")}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className={cn("text-lg font-normal truncate", isDarkMode ? "text-gray-100" : "text-gray-900")}>{settings.app_name}</h3>
+                <p className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-500")}>لوحة {role === 'admin' ? 'الإدارة' : 'التاجر'}</p>
+              </div>
+              {settings.logo_url ? (
+                <div className={cn("w-14 h-14 rounded-full overflow-hidden ring-2 flex-shrink-0", isDarkMode ? "ring-gray-600 bg-gray-700" : "ring-indigo-100 bg-gray-50")}>
+                  <img src={settings.logo_url} className="w-full h-full object-cover" alt="logo" />
+                </div>
+              ) : (
+                <div className="w-14 h-14 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg font-normal flex-shrink-0">
+                  {settings.app_name?.[0]}
+                </div>
+              )}
+            </div>
+          </div>
+          <nav className="flex-1 px-3 space-y-1 overflow-y-auto p-4">
+            {navItems.map((item) => (
+              <Link
+                key={item.label}
+                to={item.path}
+                onClick={() => {
+                  setDashboardQuery('');
+                  setSidebarOpen(false);
+                }}
+                className={cn(
+                  "flex items-center justify-between px-4 py-3 rounded-xl transition-colors group",
+                  isNavItemActive(item.path)
+                    ? (isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-indigo-50 text-indigo-600")
+                    : (isDarkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-indigo-50 hover:text-indigo-600")
+                )}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {item.icon && <item.icon size={20} className="group-hover:scale-110 transition-transform flex-shrink-0" />}
+                  <span className="font-medium text-sm truncate">{item.label}</span>
+                </div>
+                {item.count !== undefined && item.count > 0 && (
+                  <span className={cn("text-[10px] font-normal px-2 py-0.5 rounded-full ring-2 shadow-sm flex-shrink-0", isDarkMode ? "bg-blue-900 text-blue-300 ring-gray-700" : "bg-indigo-100 text-indigo-600 ring-white")}>
+                    {item.count}
+                  </span>
+                )}
+              </Link>
+            ))}
+          </nav>
+          <div className={cn("p-3 border-t space-y-2", isDarkMode ? "border-gray-700" : "border-black/5")}>
+            {role === 'merchant' && user?.store_slug && (
+              <Link 
+                to={`/store/${user.store_slug}`} 
+                target="_blank"
+                onClick={() => setSidebarOpen(false)}
+                className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-normal", isDarkMode ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-indigo-600 text-white hover:bg-indigo-700")}
+              >
+                <ExternalLink size={18} className="flex-shrink-0" />
+                <span className="truncate">عرض المتجر</span>
+              </Link>
+            )}
+            <button
+              onClick={handleLogout}
+              className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm", isDarkMode ? "text-red-400 hover:bg-red-900/30" : "text-red-600 hover:bg-red-50")}
+            >
+              <LogOut size={18} />
+              <span className="truncate">تسجيل الخروج</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Content */}
+        <div className="flex-1 overflow-y-auto">
           <div className={cn("px-4 py-4 pb-28", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
             {children}
           </div>
         </div>
 
-        {/* Mobile Footer Navigation - using the shared component */}
-        <div className="md:hidden w-full">
-          <MobileFooterNav />
-        </div>
+        {/* Mobile Footer Navigation */}
+        <MobileFooterNav />
       </div>
+      </>
   );
 };
 
