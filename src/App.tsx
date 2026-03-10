@@ -5171,7 +5171,8 @@ const MerchantDashboard = () => {
                   <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-400" : "text-gray-400")}>النوع</th>
                   <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-400" : "text-gray-400")}>الرقم</th>
                   <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>حد الائتمان</th>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الرصيد الحالي</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الرصيد الابتدائي</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الديون الحالية</th>
                   <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الإجراءات</th>
                 </>
               ) : (
@@ -5219,6 +5220,9 @@ const MerchantDashboard = () => {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className={cn("text-sm font-normal font-mono", isDarkMode ? "text-gray-300" : "text-gray-700")}>{formatCurrency(cust.credit_limit || 0)}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={cn("text-sm font-normal font-mono px-2 py-1 rounded-lg", isDarkMode ? "bg-purple-900/20 text-purple-300" : "bg-purple-50 text-purple-700")}>{formatCurrency(cust.starting_balance || 0)}</span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className={cn("px-3 py-1 rounded-lg text-sm font-normal font-mono", creditStatusBg(cust.current_debt || 0, cust.credit_limit || 0), creditStatusColor(cust.current_debt || 0, cust.credit_limit || 0))}>
@@ -10051,6 +10055,7 @@ const MerchantTopupDashboard = () => {
                       <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الهاتف</th>
                       <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>النوع</th>
                       <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>حد الائتمان</th>
+                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الرصيد الابتدائي</th>
                       <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الديون الحالية</th>
                       <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الإجراءات</th>
                     </tr>
@@ -10067,6 +10072,7 @@ const MerchantTopupDashboard = () => {
                             </span>
                           </td>
                           <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{Math.round(customer.credit_limit)?.toLocaleString('en-US')} د.ع</td>
+                          <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-purple-300" : "text-purple-700")}>{Math.round(customer.starting_balance || 0)?.toLocaleString('en-US')} د.ع</td>
                           <td className={cn("px-6 py-4 font-semibold", customer.current_debt > customer.credit_limit ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-400" : "text-yellow-600"))}>{Math.round(customer.current_debt)?.toLocaleString('en-US')} د.ع</td>
                           <td className="px-6 py-4">
                             <div className="flex gap-2">
