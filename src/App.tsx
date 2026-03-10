@@ -2895,6 +2895,7 @@ const AdminDashboard = () => {
                 <th className="px-6 py-5">المالك</th>
                 <th className="px-6 py-5">الحالة</th>
                 <th className="px-6 py-5">النسبة %</th>
+                <th className="px-6 py-5">الرابط</th>
                 <th className="px-6 py-5">الإجراءات</th>
               </tr>
             </thead>
@@ -2924,6 +2925,17 @@ const AdminDashboard = () => {
                     )}>
                       {(store as any).percentage_enabled !== false ? '✓ مفعل' : '✗ معطل'}
                     </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <a
+                      href={`/store/${(store as any).slug || store.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-normal text-sm hover:underline"
+                    >
+                      <span className="truncate">@{(store as any).slug || store.id}</span>
+                      <ExternalLink size={16} className="flex-shrink-0" />
+                    </a>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -2966,7 +2978,7 @@ const AdminDashboard = () => {
               ))}
               {displayedStores.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400 font-normal">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-normal">
                     {dashboardQuery ? 'لا توجد نتائج تطابق بحثك.' : 'لا توجد متاجر مسجلة حالياً'}
                   </td>
                 </tr>
