@@ -35,17 +35,22 @@
         const height = window.innerHeight;
         const isMobile = width < 768;
         const orientation = width > height ? 'Landscape' : 'Portrait';
+        const appElement = document.getElementById('root');
+        const rootContent = appElement ? appElement.innerHTML.length : 0;
+        const hasContent = rootContent > 100;
         
         debugContent.innerHTML = `
           📱 Size: ${width}x${height}<br/>
           🔄 Orientation: ${orientation}<br/>
           ⚙️ Mode: ${isMobile ? '📱 MOBILE' : '🖥️ DESKTOP'}<br/>
           ⏰ Time: ${new Date().toLocaleTimeString()}<br/>
-          🌐 URL: ${window.location.hostname}
+          🌐 URL: ${window.location.hostname}<br/>
+          📦 React: ${hasContent ? '✅ Loaded' : '⏳ Loading...'}
         `;
       }
       
       updateDebugPanel();
+      setInterval(updateDebugPanel, 1000);
       window.addEventListener('resize', updateDebugPanel);
       window.addEventListener('orientationchange', updateDebugPanel);
       
