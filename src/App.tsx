@@ -11591,9 +11591,22 @@ const TopupStorefront = () => {
                 <div className="p-6 space-y-4">
                   {/* Customer Info */}
                   <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-gray-700/30" : "bg-gray-50")}>
-                    <p className={cn("text-xs mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>العميل</p>
-                    <p className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>{customer.name}</p>
-                    <p className={cn("text-xs mt-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>{customer.phone}</p>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className={cn("text-xs mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>العميل</p>
+                        <p className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>{customer.name}</p>
+                        <p className={cn("text-xs mt-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>{customer.phone}</p>
+                      </div>
+                      {Number(customer?.current_debt || 0) > 0 && (
+                        <button
+                          onClick={() => setShowPaymentForm(true)}
+                          className={cn("ml-2 p-2 hover:scale-110 transition-transform", isDarkMode ? "text-green-400 hover:text-green-300" : "text-green-600 hover:text-green-700")}
+                          title="تسديد مبلغ"
+                        >
+                          <span className="text-2xl">💳</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Account Stats */}
@@ -11607,7 +11620,16 @@ const TopupStorefront = () => {
                     </div>
 
                     <div className={cn("p-4 rounded-lg border-2", isDarkMode ? "bg-purple-900/20 border-purple-600" : "bg-purple-50 border-purple-300")}>
-                      <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-purple-400" : "text-purple-600")}>الرصيد الأولي</p>
+                      <div className="flex justify-between items-center mb-2">
+                        <p className={cn("text-xs font-normal", isDarkMode ? "text-purple-400" : "text-purple-600")}>الرصيد الأولي</p>
+                        <button
+                          onClick={() => setShowPaymentForm(true)}
+                          className={cn("text-xl transition-colors", isDarkMode ? "text-purple-400 hover:text-purple-300" : "text-purple-600 hover:text-purple-700")}
+                          title="إضافة/تعديل الرصيد الأولي"
+                        >
+                          ✎️
+                        </button>
+                      </div>
                       <p className={cn("text-2xl font-bold", isDarkMode ? "text-purple-300" : "text-purple-600")}>
                         {Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')}
                       </p>
