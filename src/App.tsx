@@ -283,8 +283,8 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
 
         {/* Mobile Quick Actions */}
         <div className={cn(
-          "fixed inset-y-0 right-0 z-50 w-72 max-w-[85vw] transform border-l transition-transform md:hidden",
-          sidebarOpen ? "translate-x-0" : "translate-x-full",
+          "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] transform border-r transition-transform md:hidden",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full",
           isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5"
         )}>
           <div className={cn("p-5 border-b", isDarkMode ? "border-gray-700" : "border-black/5")}>
@@ -444,14 +444,16 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
         </main>
 
         {/* Mobile Content View */}
-        <div className="md:hidden flex-1 h-full overflow-y-auto">
+        <div className="md:hidden flex-1 overflow-y-auto">
           <div className={cn("px-4 py-4 pb-28", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
             {children}
           </div>
         </div>
 
         {/* Mobile Footer Navigation - using the shared component */}
-        <MobileFooterNav />
+        <div className="md:hidden w-full">
+          <MobileFooterNav />
+        </div>
       </div>
   );
 };
