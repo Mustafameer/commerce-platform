@@ -1,8 +1,6 @@
 ﻿import * as React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
-import * as QRCode from 'qrcode.react';
-import html2canvas from 'html2canvas';
 import { 
   LayoutDashboard, 
   Store as StoreIcon, 
@@ -44,11 +42,7 @@ import {
   Edit,
   Home,
   ArrowRight,
-  Zap,
-  Download,
-  Share2,
-  Copy,
-  MessageCircle
+  Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuthStore, useRegularCartStore, useSettingsStore, useSearchStore, useRefreshStore, useTopupCartStore } from './store';
@@ -394,7 +388,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
     );
   }
 
-  // Desktop Layout
+  // ...
   return (
     <div className={cn("h-screen w-screen overflow-hidden flex-row", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} 
       data-dashboard-layout="desktop"
@@ -1897,245 +1891,6 @@ const DashboardMenuModal = ({ isOpen, onClose, onSelectSection }: { isOpen: bool
   );
 };
 
-// Store Share Modal with QR Code
-const StoreShareModal = ({ 
-  isOpen, 
-  onClose, 
-  store 
-}: { 
-  isOpen: boolean; 
-  onClose: () => void; 
-  store?: any;
-}) => {
-  const { isDarkMode } = useTheme();
-  const qrRef = useRef<any>(null);
-  const [copied, setCopied] = useState(false);
-
-  if (!isOpen || !store) return null;
-
-  const storeUrl = `${window.location.origin}/store/${store.slug || store.id}`;
-  const appName = store.store_name || store.name || 'المتجر';
-
-  const handleDownloadQR = async () => {
-    if (qrRef.current) {
-      try {
-        const canvas = await html2canvas(qrRef.current, {
-          backgroundColor: '#ffffff',
-          scale: 2,
-        });
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL('image/png');
-        link.download = `${appName}-qr-code.png`;
-        link.click();
-      } catch (error) {
-        console.error('Error downloading QR:', error);
-      }
-    }
-  };
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(storeUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleShareWhatsApp = () => {
-    const text = `🛍️ تفضل بزيارة متجر ${appName}\n${storeUrl}`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(whatsappUrl, '_blank');
-  };
-
-  const handleShareTelegram = () => {
-    const text = `🛍️ تفضل بزيارة متجر ${appName}\n${storeUrl}`;
-    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(storeUrl)}&text=${encodeURIComponent(appName)}`;
-    window.open(telegramUrl, '_blank');
-  };
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
-        onClick={onClose}
-      />
-      {/* Modal */}
-      <div 
-        className={cn(
-          "fixed inset-0 z-50 flex items-center justify-center p-4 md:hidden",
-        )}
-      >
-        <div 
-          className={cn(
-            "w-full max-w-sm rounded-2xl border p-6 shadow-2xl",
-            isDarkMode 
-              ? "bg-gray-800 border-gray-700" 
-              : "bg-white border-gray-200"
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h3 className={cn("text-xl font-semibold", isDarkMode ? "text-white" : "text-gray-900")}>
-              مشاركة المتجر
-            </h3>
-            <button
-              onClick={onClose}
-              className={cn(
-                "p-1 rounded-lg transition-colors",
-                isDarkMode ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-100 text-gray-500"
-              )}
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* QR Code Container */}
-          <div className="flex justify-center mb-6">
-            <div 
-              ref={qrRef}
-              className={cn(
-                "p-4 rounded-lg flex items-center justify-center",
-                isDarkMode ? "bg-white" : "bg-white"
-              )}
-              style={{ position: 'relative' }}
-            >
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <QRCode
-                  value={storeUrl}
-                  size={200}
-                  level="H"
-                  includeMargin={true}
-                  fgColor="#000000"
-                  bgColor="#ffffff"
-                />
-                {/* Store Icon/Logo in QR Center - Optional */}
-                {store.logo_url && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      width: '50px',
-                      height: '50px',
-                      backgroundColor: '#ffffff',
-                      borderRadius: '8px',
-                      padding: '4px',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <img
-                      src={store.logo_url}
-                      alt={appName}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        borderRadius: '4px',
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Store Info */}
-          <div className={cn(
-            "p-4 rounded-lg mb-6 text-center",
-            isDarkMode ? "bg-gray-700" : "bg-gray-50"
-          )}>
-            <p className={cn("text-sm font-medium mb-2", isDarkMode ? "text-gray-100" : "text-gray-900")}>
-              {appName}
-            </p>
-            <p className={cn(
-              "text-xs break-all font-mono",
-              isDarkMode ? "text-gray-400" : "text-gray-600"
-            )}>
-              {storeUrl}
-            </p>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="space-y-3">
-            {/* Download Button */}
-            <button
-              onClick={handleDownloadQR}
-              className={cn(
-                "w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-colors",
-                isDarkMode
-                  ? "bg-blue-900 hover:bg-blue-800 text-blue-100"
-                  : "bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
-              )}
-            >
-              <Download size={18} />
-              تحميل رمز QR
-            </button>
-
-            {/* Copy Link Button */}
-            <button
-              onClick={handleCopyLink}
-              className={cn(
-                "w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-colors",
-                copied
-                  ? "bg-emerald-500 text-white"
-                  : isDarkMode
-                  ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-900"
-              )}
-            >
-              <Copy size={18} />
-              {copied ? "تم النسخ ✓" : "نسخ الرابط"}
-            </button>
-
-            {/* Share Buttons */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={handleShareWhatsApp}
-                className={cn(
-                  "flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-colors",
-                  isDarkMode
-                    ? "bg-green-900 hover:bg-green-800 text-green-100"
-                    : "bg-green-50 hover:bg-green-100 text-green-700 border border-green-200"
-                )}
-              >
-                <MessageCircle size={18} />
-                WhatsApp
-              </button>
-              <button
-                onClick={handleShareTelegram}
-                className={cn(
-                  "flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-colors",
-                  isDarkMode
-                    ? "bg-blue-900 hover:bg-blue-800 text-blue-100"
-                    : "bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
-                )}
-              >
-                <Share2 size={18} />
-                Telegram
-              </button>
-            </div>
-          </div>
-
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className={cn(
-              "w-full mt-4 px-4 py-2 rounded-xl font-medium transition-colors",
-              isDarkMode
-                ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
-                : "bg-gray-100 hover:bg-gray-200 text-gray-900"
-            )}
-          >
-            إغلاق
-          </button>
-        </div>
-      </div>
-    </>
-  );
-};
-
 // Mobile Footer Navigation Component
 const MobileFooterNav = () => {
   const { isDarkMode } = useTheme();
@@ -2765,10 +2520,6 @@ const AdminDashboard = () => {
   const [dateToFilter, setDateToFilter] = useState('');
   const [subscriptionFilter, setSubscriptionFilter] = useState('all'); // 'all', 'paid', 'unpaid'
 
-  // Store Share Modal states
-  const [isStoreShareOpen, setIsStoreShareOpen] = useState(false);
-  const [selectedStoreForShare, setSelectedStoreForShare] = useState<any>(null);
-
   const filteredStores = stores.filter(s => 
     ((s as any).store_name || s.name || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
     (s.owner_name || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
@@ -3263,17 +3014,15 @@ const AdminDashboard = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <button
-                      onClick={() => {
-                        setSelectedStoreForShare(store);
-                        setIsStoreShareOpen(true);
-                      }}
-                      className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-normal text-sm hover:underline transition-colors"
-                      title="مشاركة المتجر"
+                    <a
+                      href={`/store/${(store as any).slug || store.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-normal text-sm hover:underline"
                     >
                       <span className="truncate">@{(store as any).slug || store.id}</span>
-                      <Share2 size={16} className="flex-shrink-0" />
-                    </button>
+                      <ExternalLink size={16} className="flex-shrink-0" />
+                    </a>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -3923,14 +3672,6 @@ const AdminDashboard = () => {
          section === 'settings' ? renderSettings() : 
          renderOverview()}
          {renderApproveModal()}
-        <StoreShareModal 
-          isOpen={isStoreShareOpen}
-          onClose={() => {
-            setIsStoreShareOpen(false);
-            setSelectedStoreForShare(null);
-          }}
-          store={selectedStoreForShare}
-        />
       </>
     </DashboardLayout>
   );
