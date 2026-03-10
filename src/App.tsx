@@ -10714,8 +10714,13 @@ const MerchantTopupDashboard = () => {
                                 if (confirm('هل تأكد من حذف هذا التسديد؟')) {
                                   fetch(`/api/customer-payments/${payment.id}`, { method: 'DELETE' })
                                     .then(r => r.json())
-                                    .then(() => {
+                                    .then(async () => {
+                                      // Remove from payments list
                                       setPayments(payments.filter((p: any) => p.id !== payment.id));
+                                      // Refetch customers to update debt
+                                      const customersResponse = await fetch(`/api/topup/customers/${user?.store_id}`);
+                                      const customersData = await customersResponse.json();
+                                      setCustomers(Array.isArray(customersData) ? customersData : []);
                                     })
                                     .catch(err => alert('خطأ في الحذف: ' + err.message));
                                 }
@@ -10791,10 +10796,15 @@ const MerchantTopupDashboard = () => {
                           });
                           if (response.ok) {
                             alert('تم تحديث التسديد بنجاح');
-                            // Refetch payments
-                            const paymentsResponse = await fetch(`/api/customer-payments/${user?.store_id}/${selectedCustomerForPayments.id}`);
+                            // Refetch both payments and customers to update debt
+                            const [paymentsResponse, customersResponse] = await Promise.all([
+                              fetch(`/api/customer-payments/${user?.store_id}/${selectedCustomerForPayments.id}`),
+                              fetch(`/api/topup/customers/${user?.store_id}`)
+                            ]);
                             const paymentsData = await paymentsResponse.json();
+                            const customersData = await customersResponse.json();
                             setPayments(Array.isArray(paymentsData) ? paymentsData : []);
+                            setCustomers(Array.isArray(customersData) ? customersData : []);
                             setPaymentForm({ amount: '', payment_method: '', notes: '' });
                             setIsEditingPayment(null);
                           }
@@ -10813,10 +10823,15 @@ const MerchantTopupDashboard = () => {
                           });
                           if (response.ok) {
                             alert('تم إضافة التسديد بنجاح');
-                            // Refetch payments
-                            const paymentsResponse = await fetch(`/api/customer-payments/${user?.store_id}/${selectedCustomerForPayments.id}`);
+                            // Refetch both payments and customers to update debt
+                            const [paymentsResponse, customersResponse] = await Promise.all([
+                              fetch(`/api/customer-payments/${user?.store_id}/${selectedCustomerForPayments.id}`),
+                              fetch(`/api/topup/customers/${user?.store_id}`)
+                            ]);
                             const paymentsData = await paymentsResponse.json();
+                            const customersData = await customersResponse.json();
                             setPayments(Array.isArray(paymentsData) ? paymentsData : []);
+                            setCustomers(Array.isArray(customersData) ? customersData : []);
                             setPaymentForm({ amount: '', payment_method: '', notes: '' });
                           }
                         }

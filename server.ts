@@ -2212,12 +2212,21 @@ async function startServer() {
                 );
                 debtFromOrders = parseFloat(fallbackResult.rows[0]?.total_debt || 0);
               }
+
+              // Get total payments for this customer
+              const paymentsResult = await pool.query(
+                `SELECT COALESCE(SUM(amount), 0) as total_payments
+                 FROM customer_payments
+                 WHERE store_id = $1 AND customer_id = $2`,
+                [parseInt(storeId), customer.id]
+              );
+              const totalPayments = parseFloat(paymentsResult.rows[0]?.total_payments || 0);
               
-              console.log(`📊 [TOPUP CUSTOMER] ${customer.name} (Phone: ${customer.phone}, ID: ${customer.id}) - Debt: ${debtFromOrders}`);
+              console.log(`📊 [TOPUP CUSTOMER] ${customer.name} (Phone: ${customer.phone}, ID: ${customer.id}) - Debt from orders: ${debtFromOrders} - Payments: ${totalPayments}`);
               
               return {
                 ...customer,
-                current_debt: parseFloat(customer.starting_balance || 0) + debtFromOrders
+                current_debt: Math.max(0, parseFloat(customer.starting_balance || 0) + debtFromOrders - totalPayments)
               };
             })
           );
@@ -3052,9 +3061,18 @@ async function startServer() {
               debtFromOrders = parseFloat(debtResult.rows[0]?.total_debt || 0);
             }
             
+            // Get total payments for this customer
+            const paymentsResult = await pool.query(
+              `SELECT COALESCE(SUM(amount), 0) as total_payments
+               FROM customer_payments
+               WHERE store_id = $1 AND customer_id = $2`,
+              [parseInt(storeId), customer.id]
+            );
+            const totalPayments = parseFloat(paymentsResult.rows[0]?.total_payments || 0);
+            
             return {
               ...customer,
-              current_debt: parseFloat(customer.starting_balance || 0) + debtFromOrders
+              current_debt: Math.max(0, parseFloat(customer.starting_balance || 0) + debtFromOrders - totalPayments)
             };
           })
         );
@@ -4618,7 +4636,7 @@ async function startServer() {
           return res.status(400).json({ error: "customer_id, store_id, and amount are required" });
         }
 
-        // Add payment record
+        // Add payment record (current_debt will be recalculated in GET endpoints)
         const paymentResult = await pool.query(
           `INSERT INTO customer_payments (customer_id, store_id, amount, payment_method, notes)
            VALUES ($1, $2, $3, $4, $5)
@@ -4626,15 +4644,7 @@ async function startServer() {
           [customer_id, store_id, amount, payment_method || null, notes || null]
         );
 
-        // Reduce current_debt by payment amount
-        await pool.query(
-          `UPDATE customers 
-           SET current_debt = GREATEST(0, current_debt - $1)
-           WHERE id = $2`,
-          [amount, customer_id]
-        );
-
-        console.log(`💳 [PAYMENT ADDED] Customer: ${customer_id} - Amount: ${amount} - Debt reduced ✓`);
+        console.log(`💳 [PAYMENT ADDED] Customer: ${customer_id} - Amount: ${amount} - Debt will be recalculated ✓`);
         res.json(paymentResult.rows[0]);
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
@@ -4647,22 +4657,7 @@ async function startServer() {
         const { id } = req.params;
         const { amount, payment_method, notes } = req.body;
 
-        // Get the old payment record to calculate difference
-        const oldPaymentResult = await pool.query(
-          `SELECT amount, customer_id FROM customer_payments WHERE id = $1`,
-          [parseInt(id)]
-        );
-
-        if (oldPaymentResult.rows.length === 0) {
-          return res.status(404).json({ error: "Payment not found" });
-        }
-
-        const oldAmount = oldPaymentResult.rows[0].amount;
-        const customerId = oldPaymentResult.rows[0].customer_id;
-        const newAmount = amount || oldAmount;
-        const amountDifference = newAmount - oldAmount; // positive = increase, negative = decrease
-
-        // Update the payment record
+        // Update the payment record (current_debt will be recalculated in GET endpoints)
         const result = await pool.query(
           `UPDATE customer_payments 
            SET amount = COALESCE($1, amount),
@@ -4674,18 +4669,11 @@ async function startServer() {
           [amount || null, payment_method || null, notes || null, parseInt(id)]
         );
 
-        // Adjust current_debt based on the difference
-        // If amount increased, reduce debt more; if decreased, reduce debt less
-        if (amountDifference !== 0) {
-          await pool.query(
-            `UPDATE customers 
-             SET current_debt = GREATEST(0, current_debt - $1)
-             WHERE id = $2`,
-            [amountDifference, customerId]
-          );
+        if (result.rows.length === 0) {
+          return res.status(404).json({ error: "Payment not found" });
         }
 
-        console.log(`✏️ [PAYMENT UPDATED] ID: ${id} - Debt adjusted by: ${amountDifference}`);
+        console.log(`✏️ [PAYMENT UPDATED] ID: ${id} - Debt will be recalculated ✓`);
         res.json(result.rows[0]);
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
@@ -4697,34 +4685,18 @@ async function startServer() {
       try {
         const { id } = req.params;
 
-        // Get the payment record before deleting
-        const paymentResult = await pool.query(
-          `SELECT amount, customer_id FROM customer_payments WHERE id = $1`,
+        // Delete the payment record (current_debt will be recalculated in GET endpoints)
+        const result = await pool.query(
+          `DELETE FROM customer_payments WHERE id = $1 RETURNING id, amount`,
           [parseInt(id)]
         );
 
-        if (paymentResult.rows.length === 0) {
+        if (result.rows.length === 0) {
           return res.status(404).json({ error: "Payment not found" });
         }
 
-        const { amount, customer_id } = paymentResult.rows[0];
-
-        // Delete the payment record
-        await pool.query(
-          `DELETE FROM customer_payments WHERE id = $1`,
-          [parseInt(id)]
-        );
-
-        // Add the payment amount back to current_debt
-        await pool.query(
-          `UPDATE customers 
-           SET current_debt = current_debt + $1
-           WHERE id = $2`,
-          [amount, customer_id]
-        );
-
-        console.log(`🗑️ [PAYMENT DELETED] ID: ${id} - Amount: ${amount} added back to debt ✓`);
-        res.json({ success: true, message: "تم حذف التسديد بنجاح وإعادة المبلغ للديون" });
+        console.log(`🗑️ [PAYMENT DELETED] ID: ${id} - Debt will be recalculated ✓`);
+        res.json({ success: true, message: "تم حذف التسديد بنجاح وستُعاد الديون تلقائياً" });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
       }
