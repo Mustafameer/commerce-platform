@@ -6927,9 +6927,9 @@ const CustomerStorefront = () => {
                 <div className="h-1 w-full mt-6 rounded-full" style={{ backgroundColor: isDarkMode ? '#374151' : '#e5e7eb' }} />
               </div>
 
-              {/* Products Grid - 8 columns */}
+              {/* Products Grid - 4 columns on mobile, more on larger screens */}
               <div className="w-full">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
+                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2">
                   {productsByCategory[category].map((product) => (
                   <motion.div 
                     key={product.id}
