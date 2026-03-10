@@ -240,7 +240,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
 
         {/* Sidebar */}
         <aside className={cn(
-          "hidden md:flex md:relative md:w-64 h-full md:h-screen border-r flex-col overflow-hidden",
+          "relative w-64 h-screen border-r flex-col overflow-hidden flex",
           isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5"
         )}>
           <div className={cn("p-6 text-center border-b flex-shrink-0", isDarkMode ? "border-gray-700" : "border-black/5")}>
