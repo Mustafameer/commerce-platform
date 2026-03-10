@@ -6783,7 +6783,15 @@ const CustomerStorefront = () => {
           setStoreName(storeRes.store_name || '');
           setDisplayAppName(storeRes.store_name || '');
           setDisplayLogoUrl(storeRes.store_logo || storeRes.logo_url || '');
-          setStoreType(storeRes.store_type === 'topup' ? 'topup' : 'regular');
+          const isTopup = storeRes.store_type === 'topup';
+          setStoreType(isTopup ? 'topup' : 'regular');
+          
+          // اذا كان المتجر topup، اعد التوجيه إلى TopupStorefront
+          if (isTopup) {
+            console.log('🔄 Store is topup, redirecting to /topup/:slug');
+            navigate(`/topup/${slug}`, { replace: true });
+            return;
+          }
         }
 
         const rows = Array.isArray(productsRes) ? productsRes : [];
