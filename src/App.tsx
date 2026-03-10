@@ -6738,14 +6738,21 @@ const CustomerStorefront = () => {
   }, []);
 
   useEffect(() => {
-    if (!storeId) return;
+    if (!storeId) {
+      console.log('❌ CustomerStorefront: storeId is empty', { slug, storeId });
+      return;
+    }
+
+    console.log('🔄 CustomerStorefront: Starting to load store and products', { storeId, slug });
 
     const loadStoreAndProducts = async () => {
       try {
+        console.log(`📡 Fetching store from /api/stores/slug/${storeId}`);
         const storeRes = await fetch(`/api/stores/slug/${storeId}`).then(r => r.json());
+        console.log('📥 Store response:', storeRes);
         
         if (storeRes && storeRes.error) {
-          console.error('Store not found:', storeRes.error);
+          console.error('❌ Store not found:', storeRes.error);
           setProducts([]);
           return;
         }
@@ -6758,11 +6765,14 @@ const CustomerStorefront = () => {
         
         let productsRes = [];
         const actualStoreId = storeRes.id;
+        console.log(`✅ Store loaded: ${storeRes.store_name} (ID: ${actualStoreId}, Type: ${storeRes.store_type})`);
         
         // Use the correct endpoint based on store type
         if (storeRes && storeRes.store_type === 'topup') {
           // Topup store: Use /api/topup/products endpoint (includes retail_price & wholesale_price)
+          console.log(`📡 Fetching topup products from /api/topup/products/${actualStoreId}`);
           const topupProducts = await fetch(`/api/topup/products/${actualStoreId}`).then(r => r.json());
+          console.log(`📥 Topup products response (${Array.isArray(topupProducts) ? topupProducts.length : 0} items):`, topupProducts);
           // Map topup products to include store_name from company_name
           productsRes = Array.isArray(topupProducts) ? topupProducts.map((p: any) => ({
             ...p,
@@ -6771,7 +6781,9 @@ const CustomerStorefront = () => {
           })) : [];
         } else {
           // Regular store: Use /api/products endpoint
+          console.log(`📡 Fetching products from /api/products?storeId=${actualStoreId}`);
           productsRes = await fetch(`/api/products?storeId=${actualStoreId}`).then(r => r.json());
+          console.log(`📥 Products response (${Array.isArray(productsRes) ? productsRes.length : 0} items):`, productsRes);
           // Ensure regular products have store_type
           productsRes = Array.isArray(productsRes) ? productsRes.map((p: any) => ({
             ...p,
@@ -6795,12 +6807,13 @@ const CustomerStorefront = () => {
         }
 
         const rows = Array.isArray(productsRes) ? productsRes : [];
+        console.log(`✅ Setting ${rows.length} products to state`);
         setProducts(rows);
         
         // Reset selectedProduct when products are loaded to avoid stale state
         setSelectedProduct(null);
       } catch (err) {
-        console.error('Error loading store/products:', err);
+        console.error('❌ Error loading store/products:', err);
         setProducts([]);
       }
     };
@@ -6903,6 +6916,18 @@ const CustomerStorefront = () => {
 
   // Sort categories alphabetically
   const sortedCategories = Object.keys(productsByCategory).sort();
+  
+  useEffect(() => {
+    console.log('🔍 CustomerStorefront State Update:', {
+      products_count: products.length,
+      filtered_products_count: filteredProducts.length,
+      categories_count: sortedCategories.length,
+      categories: sortedCategories,
+      products_sample: products.slice(0, 2),
+      store_name: storeName,
+      store_type: storeType
+    });
+  }, [products, filteredProducts, sortedCategories]);
 
   const renderProductDetails = () => {
     if (!selectedProduct) return null;
