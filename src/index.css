@@ -31,7 +31,7 @@ html, body {
 
 /* Debug indicators */
 [data-dashboard-layout="desktop"]::before {
-  content: '🖥️ DESKTOP LAYOUT (md+)';
+  content: '';
   position: fixed;
   top: 10px;
   right: 10px;
@@ -45,7 +45,7 @@ html, body {
 }
 
 [data-dashboard-layout="mobile"]::before {
-  content: '📱 MOBILE LAYOUT (<768px)';
+  content: '';
   position: fixed;
   top: 10px;
   right: 10px;
