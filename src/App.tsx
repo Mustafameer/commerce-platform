@@ -1794,6 +1794,83 @@ const MobileFooterNav = () => {
   );
 };
 
+// Mobile Footer Nav for Store Pages (with back button and cart)
+const StorePageMobileFooter = ({ storeSlug, cartCount }: { storeSlug?: string; cartCount?: number }) => {
+  const { isDarkMode } = useTheme();
+  const navigate = useNavigate();
+  const { items } = useRegularCartStore();
+  const itemsCount = cartCount || items.length;
+
+  return (
+    <div className={cn("fixed bottom-0 inset-x-0 z-50 border-t px-2 py-2 md:hidden flex", isDarkMode ? "bg-gray-800/95 border-gray-700 backdrop-blur-sm" : "bg-white/95 border-black/5 backdrop-blur-sm")}>
+      <div className="w-full flex items-stretch gap-2">
+        {/* Back Button */}
+        <button
+          onClick={() => navigate('/stores')}
+          className={cn(
+            "min-w-[72px] flex-1 rounded-2xl px-2 py-2 text-center transition-colors",
+            isDarkMode ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
+          )}
+        >
+          <div className="flex flex-col items-center gap-1">
+            <ArrowRight size={18} className="flex-shrink-0" />
+            <span className="text-[10px] leading-tight">عودة</span>
+          </div>
+        </button>
+
+        {/* Home Button */}
+        <button
+          onClick={() => navigate('/')}
+          className={cn(
+            "min-w-[72px] flex-1 rounded-2xl px-2 py-2 text-center transition-colors",
+            isDarkMode ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
+          )}
+        >
+          <div className="flex flex-col items-center gap-1">
+            <Home size={18} className="flex-shrink-0" />
+            <span className="text-[10px] leading-tight">الرئيسية</span>
+          </div>
+        </button>
+
+        {/* Cart Button */}
+        <button
+          onClick={() => navigate('/cart')}
+          className={cn(
+            "min-w-[72px] flex-1 relative rounded-2xl px-2 py-2 text-center transition-colors",
+            isDarkMode ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
+          )}
+        >
+          <div className="flex flex-col items-center gap-1">
+            <div className="relative">
+              <ShoppingCart size={18} className="flex-shrink-0" />
+              {itemsCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                  {itemsCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] leading-tight">السلة</span>
+          </div>
+        </button>
+
+        {/* Stores Button */}
+        <button
+          onClick={() => navigate('/stores')}
+          className={cn(
+            "min-w-[72px] flex-1 rounded-2xl px-2 py-2 text-center transition-colors",
+            isDarkMode ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
+          )}
+        >
+          <div className="flex flex-col items-center gap-1">
+            <StoreIcon size={18} className="flex-shrink-0" />
+            <span className="text-[10px] leading-tight">متاجر</span>
+          </div>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const LoginPage = () => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -6990,7 +7067,7 @@ const CustomerStorefront = () => {
           </div>
         )}
       </main>
-      <MobileFooterNav />
+      <StorePageMobileFooter storeSlug={storeId} />
         </>
       )}
     </div>
