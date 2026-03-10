@@ -8299,7 +8299,6 @@ const MarketplacePage = () => {
           </div>
         </div>
       </footer>
-      <MobileFooterNav />
     </div>
   );
 };
@@ -8335,7 +8334,6 @@ const AboutPage = () => {
           </div>
         </div>
       </div>
-      <MobileFooterNav />
     </div>
   );
 };
@@ -8373,7 +8371,6 @@ const HelpCenterPage = () => {
           </div>
         </div>
       </div>
-      <MobileFooterNav />
     </div>
   );
 };
@@ -8412,7 +8409,6 @@ const SecurityPolicyPage = () => {
           </div>
         </div>
       </div>
-      <MobileFooterNav />
     </div>
   );
 };
@@ -8451,7 +8447,6 @@ const PrivacyPolicyPage = () => {
           </div>
         </div>
       </div>
-      <MobileFooterNav />
     </div>
   );
 };
@@ -8805,7 +8800,6 @@ const StoresPage = () => {
           </motion.div>
         </div>
       )}
-      <MobileFooterNav />
     </div>
   );
 };
