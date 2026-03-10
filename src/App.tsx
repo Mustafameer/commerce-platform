@@ -576,11 +576,12 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
         return;
       }
 
+      let regularProducts: any[] = []; // Define outside try block
       try {
         // جلب المنتجات العادية
         const productsRes = await fetch('/api/products');
         const productsData = await productsRes.json();
-        const regularProducts = Array.isArray(productsData) ? productsData : [];
+        regularProducts = Array.isArray(productsData) ? productsData : [];
 
         // جلب منتجات الشحن
         let topupProducts: any[] = [];
@@ -6927,9 +6928,9 @@ const CustomerStorefront = () => {
                 <div className="h-1 w-full mt-6 rounded-full" style={{ backgroundColor: isDarkMode ? '#374151' : '#e5e7eb' }} />
               </div>
 
-              {/* Products Grid - 4 columns on mobile, more on larger screens */}
+              {/* Products Grid - 8 columns */}
               <div className="w-full">
-                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
                   {productsByCategory[category].map((product) => (
                   <motion.div 
                     key={product.id}
@@ -7031,40 +7032,21 @@ const MarketplacePage = () => {
 
   useEffect(() => {
     const load = async () => {
+      let regularProducts: any[] = []; // Define outside try block
       try {
-        console.log("📊 MarketplacePage: Starting product load...");
         setLoading(true);
         
         // Fetch only regular products (not topup products)
-        console.log("📊 Fetching /api/products...");
+        const productsRes = await fetch('/api/products');
+        const productsData = await productsRes.json();
+        regularProducts = Array.isArray(productsData) ? productsData : [];
         
-        // Add 10 second timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        
-        try {
-          const productsRes = await fetch('/api/products', { signal: controller.signal });
-          clearTimeout(timeoutId);
-          console.log("📊 Products Response Status:", productsRes.status);
-          
-          const productsData = await productsRes.json();
-          console.log("📊 Products Data:", Array.isArray(productsData) ? `${productsData.length} products` : 'not array', productsData?.length);
-          
-          const regularProducts = Array.isArray(productsData) ? productsData : [];
-          setProducts(regularProducts);
-          console.log("✅ Products loaded:", regularProducts.length);
-        } catch (fetchErr) {
-          clearTimeout(timeoutId);
-          console.error("❌ Fetch error:", fetchErr);
-          setProducts([]);
-        }
+        setProducts(regularProducts);
         
         // Fetch active auctions
         try {
-          console.log("🎯 Fetching /api/auctions/active...");
           const auctionsRes = await fetch('/api/auctions/active');
           const auctionsData = await auctionsRes.json();
-          console.log("✅ Auctions loaded:", Array.isArray(auctionsData) ? auctionsData.length : 0);
           setAuctions(Array.isArray(auctionsData) ? auctionsData : []);
         } catch (auctionErr) {
           console.warn('Failed to fetch auctions:', auctionErr);
@@ -7079,10 +7061,8 @@ const MarketplacePage = () => {
           });
           setQuantities(initialQtys);
         }
-        
-        console.log("🎉 MarketplacePage load complete!");
       } catch (err) {
-        console.error('❌ Error loading products:', err);
+        console.error('Error loading products:', err);
         setProducts([]);
       } finally {
         setLoading(false);
