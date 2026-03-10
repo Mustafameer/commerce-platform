@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;700&display=swap" rel="stylesheet" />
@@ -29,6 +32,28 @@
       <div style="margin-top: 10px; font-size: 10px; color: #888;">اضغط هنا لإغلاق</div>
     </div>
     <script>
+      // Force cache busting with timestamp
+      const VERSION = '24.03.10.v2';
+      const versionKey = 'app_version';
+      const savedVersion = localStorage.getItem(versionKey);
+      
+      if (savedVersion !== VERSION) {
+        console.log(`🔄 Version changed: ${savedVersion} → ${VERSION}`);
+        localStorage.setItem(versionKey, VERSION);
+        // Clear old cache
+        if (caches) {
+          caches.keys().then(names => {
+            names.forEach(name => {
+              caches.delete(name);
+              console.log(`🗑️ Cache cleared: ${name}`);
+            });
+          });
+        }
+      }
+      
+      // Update main JS with version parameter
+      document.querySelector('script[type="module"][src*="main"]')?.setAttribute('src', `/src/main.tsx?v=${VERSION}`);
+      
       function updateDebugPanel() {
         const debugContent = document.getElementById('debug-content');
         const width = window.innerWidth;
@@ -45,7 +70,8 @@
           ⚙️ Mode: ${isMobile ? '📱 MOBILE' : '🖥️ DESKTOP'}<br/>
           ⏰ Time: ${new Date().toLocaleTimeString()}<br/>
           🌐 URL: ${window.location.hostname}<br/>
-          📦 React: ${hasContent ? '✅ Loaded' : '⏳ Loading...'}
+          📦 React: ${hasContent ? '✅ Loaded' : '⏳ Loading...'}<br/>
+          📊 Version: ${VERSION}
         `;
       }
       
