@@ -403,8 +403,8 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
 
         {/* Mobile Menu Drawer */}
         <div className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] transform border-r transition-transform",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          "fixed inset-y-0 right-0 z-50 w-72 max-w-[85vw] transform border-l transition-transform",
+          sidebarOpen ? "-translate-x-0" : "translate-x-full",
           isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5"
         )}>
           <div className={cn("p-5 border-b", isDarkMode ? "border-gray-700" : "border-black/5")}>
