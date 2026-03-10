@@ -10051,17 +10051,6 @@ const MerchantTopupDashboard = () => {
                 >
                   <Plus size={18} /> إضافة عميل جديد
                 </button>
-                <button
-                  onClick={() => {
-                    setPaymentForm({ amount: '', payment_method: '', notes: '' });
-                    setIsEditingPayment(null);
-                    setShowPaymentsModal(true);
-                    setSelectedCustomerForPayments(null);
-                  }}
-                  className="px-6 py-3 bg-green-600 text-white font-normal rounded-lg hover:bg-green-700 flex items-center gap-2"
-                >
-                  <Plus size={18} /> إضافة تسديد
-                </button>
               </div>
 
               <Card className={cn("overflow-hidden", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
