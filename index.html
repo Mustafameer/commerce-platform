@@ -10,6 +10,53 @@
   </head>
   <body>
     <div id="root"></div>
+    <div id="debug-panel" style="
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      color: #00ff00;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      max-width: 300px;
+      z-index: 9999;
+      border: 2px solid #00ff00;
+    ">
+      <div style="margin-bottom: 10px; font-weight: bold;">📱 DEBUG PANEL</div>
+      <div id="debug-content">جاري التحميل...</div>
+      <div style="margin-top: 10px; font-size: 10px; color: #888;">اضغط هنا لإغلاق</div>
+    </div>
+    <script>
+      function updateDebugPanel() {
+        const debugContent = document.getElementById('debug-content');
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const isMobile = width < 768;
+        const orientation = width > height ? 'Landscape' : 'Portrait';
+        
+        debugContent.innerHTML = `
+          📱 Size: ${width}x${height}<br/>
+          🔄 Orientation: ${orientation}<br/>
+          ⚙️ Mode: ${isMobile ? '📱 MOBILE' : '🖥️ DESKTOP'}<br/>
+          ⏰ Time: ${new Date().toLocaleTimeString()}<br/>
+          🌐 URL: ${window.location.hostname}
+        `;
+      }
+      
+      updateDebugPanel();
+      window.addEventListener('resize', updateDebugPanel);
+      window.addEventListener('orientationchange', updateDebugPanel);
+      
+      document.getElementById('debug-panel').addEventListener('click', function() {
+        if (this.style.opacity === '0.3') {
+          this.style.opacity = '1';
+        } else {
+          this.style.opacity = '0.3';
+        }
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
