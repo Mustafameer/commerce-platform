@@ -1955,13 +1955,13 @@ const StoreShareModal = ({
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
+        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
         onClick={onClose}
       />
       {/* Modal */}
       <div 
         className={cn(
-          "fixed inset-0 z-50 flex items-center justify-center p-4",
+          "fixed inset-0 z-50 flex items-center justify-center p-4 md:hidden",
         )}
       >
         <div 
