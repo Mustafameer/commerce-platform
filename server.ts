@@ -2206,7 +2206,7 @@ async function startServer() {
               
               return {
                 ...customer,
-                current_debt: debtFromOrders
+                current_debt: parseFloat(customer.starting_balance || 0) + debtFromOrders
               };
             })
           );
@@ -3043,7 +3043,7 @@ async function startServer() {
             
             return {
               ...customer,
-              current_debt: debtFromOrders
+              current_debt: parseFloat(customer.starting_balance || 0) + debtFromOrders
             };
           })
         );
@@ -3216,6 +3216,59 @@ async function startServer() {
           transactions: ordersResult.rows
         });
       } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Topup Payment - Reduce starting_balance or current_debt
+    app.post("/api/topup/payment", async (req, res) => {
+      try {
+        const { customer_id, store_id, amount } = req.body;
+        
+        if (!customer_id || !store_id || !amount || amount <= 0) {
+          return res.status(400).json({ error: "customer_id, store_id, and amount are required" });
+        }
+
+        // Get customer info including starting_balance
+        const customerResult = await pool.query(
+          `SELECT id, customer_id, starting_balance, credit_limit FROM customers WHERE id = $1`,
+          [customer_id]
+        );
+
+        if (customerResult.rows.length === 0) {
+          return res.status(404).json({ error: "Customer not found" });
+        }
+
+        const customer = customerResult.rows[0];
+        const startingBalance = parseFloat(customer.starting_balance || 0);
+        const totalDebt = startingBalance; // For now, we reduce from starting_balance
+        
+        if (amount > totalDebt) {
+          return res.status(400).json({ error: `المبلغ المدخل أكبر من الديون الحالية (${totalDebt} د.ع)` });
+        }
+
+        // Reduce starting_balance
+        const newStartingBalance = Math.max(0, startingBalance - amount);
+        
+        const updateResult = await pool.query(
+          `UPDATE customers SET starting_balance = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
+          [newStartingBalance, customer_id]
+        );
+
+        if (updateResult.rows.length === 0) {
+          return res.status(404).json({ error: "Failed to update payment" });
+        }
+
+        console.log(`💳 [TOPUP PAYMENT] Customer: ${customer_id} - Amount: ${amount} د.ع - New Balance: ${newStartingBalance} د.ع`);
+        
+        res.json({ 
+          success: true, 
+          message: "تم تسديد المبلغ بنجاح",
+          customer: updateResult.rows[0],
+          newDebt: newStartingBalance
+        });
+      } catch (error) {
+        console.error("❌ Payment error:", error);
         res.status(500).json({ error: (error as any).message });
       }
     });
