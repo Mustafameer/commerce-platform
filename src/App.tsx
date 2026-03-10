@@ -3763,7 +3763,8 @@ const MerchantDashboard = () => {
     customer_type: 'cash' as 'cash' | 'reseller',
     credit_limit: '',
     password: '',
-    notes: ''
+    notes: '',
+    starting_balance: ''
   });
   const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
   const [productForm, setProductForm] = useState({
@@ -4347,14 +4348,15 @@ const MerchantDashboard = () => {
           customer_type: customerForm.customer_type,
           credit_limit: parseFloat(customerForm.credit_limit) || 0,
           password: customerForm.password,
-          notes: customerForm.notes
+          notes: customerForm.notes,
+          starting_balance: parseFloat(customerForm.starting_balance) || 0
         })
       });
 
       if (res.ok) {
         alert("✅ تمت إضافة العميل بنجاح");
         setShowCustomerModal(false);
-        setCustomerForm({ name: '', phone: '', email: '', customer_type: 'cash', credit_limit: '', password: '', notes: '' });
+        setCustomerForm({ name: '', phone: '', email: '', customer_type: 'cash', credit_limit: '', password: '', notes: '', starting_balance: '' });
         
         // Refresh customers list
         const updated = await fetch(`/api/merchant/customers?storeId=${user.store_id}`).then(r => r.json());
@@ -4392,7 +4394,8 @@ const MerchantDashboard = () => {
           customer_type: customerForm.customer_type,
           credit_limit: parseFloat(customerForm.credit_limit) || 0,
           password: customerForm.password,
-          notes: customerForm.notes
+          notes: customerForm.notes,
+          starting_balance: parseFloat(customerForm.starting_balance) || 0
         })
       });
 
@@ -4400,7 +4403,7 @@ const MerchantDashboard = () => {
         alert("✅ تم تحديث بيانات العميل بنجاح");
         setShowCustomerModal(false);
         setIsEditingCustomer(null);
-        setCustomerForm({ name: '', phone: '', email: '', customer_type: 'cash', credit_limit: '', password: '', notes: '' });
+        setCustomerForm({ name: '', phone: '', email: '', customer_type: 'cash', credit_limit: '', password: '', notes: '', starting_balance: '' });
         
         // Refresh customers list
         const updated = await fetch(`/api/merchant/customers?storeId=${user.store_id}`).then(r => r.json());
@@ -5242,7 +5245,8 @@ const MerchantDashboard = () => {
                               customer_type: cust.customer_type || 'cash',
                               credit_limit: String(cust.credit_limit || 0),
                               password: cust.password || '',
-                              notes: cust.notes || ''
+                              notes: cust.notes || '',
+                              starting_balance: String(cust.starting_balance || 0)
                             });
                             setShowCustomerModal(true);
                           }}
@@ -5386,6 +5390,18 @@ const MerchantDashboard = () => {
                   className={cn("w-full px-4 py-3 rounded-xl border border-black/10 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 font-normal", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 text-gray-900 placeholder-gray-400")}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>💵 الرصيد الابتدائي (اختياري)</label>
+              <input 
+                type="number"
+                value={customerForm.starting_balance}
+                onChange={(e) => setCustomerForm({...customerForm, starting_balance: e.target.value})}
+                placeholder="0"
+                min="0"
+                className={cn("w-full px-4 py-3 rounded-xl border border-black/10 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 font-normal", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 text-gray-900 placeholder-gray-400")}
+              />
             </div>
 
             <div className="space-y-2">
@@ -8988,7 +9004,7 @@ const MerchantTopupDashboard = () => {
   const [companyForm, setCompanyForm] = useState({ name: '', logo_url: '' });
   const [productForm, setProductForm] = useState({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [customerForm, setCustomerForm] = useState({ name: '', phone: '', email: '', password: '', customer_type: 'cash', credit_limit: '0' });
+  const [customerForm, setCustomerForm] = useState({ name: '', phone: '', email: '', password: '', customer_type: 'cash', credit_limit: '0', starting_balance: '' });
   const [storeSettings, setStoreSettings] = useState({ store_name: '', logo_url: '' });
   const [storeLogoBg, setStoreLogoFile] = useState<File | null>(null);
   const [logoUploadLoading, setLogoUploadLoading] = useState(false);
@@ -9433,14 +9449,15 @@ const MerchantTopupDashboard = () => {
           email: customerForm.email || '',
           password: customerForm.password,
           customer_type: customerForm.customer_type,
-          credit_limit: parseInt(customerForm.credit_limit) || 0
+          credit_limit: parseInt(customerForm.credit_limit) || 0,
+          starting_balance: parseInt(customerForm.starting_balance) || 0
         })
       });
 
       if (response.ok) {
         alert(isEditingCustomer ? 'تم التحديث بنجاح' : 'تمت الإضافة بنجاح');
         setShowCustomerModal(false);
-        setCustomerForm({ name: '', phone: '', email: '', password: '', customer_type: 'cash', credit_limit: '0' });
+        setCustomerForm({ name: '', phone: '', email: '', password: '', customer_type: 'cash', credit_limit: '0', starting_balance: '' });
         // Reload customers
         const res = await fetch(`/api/topup/customers/${topupStoreId}`);
         const data = await res.json();
@@ -10064,7 +10081,7 @@ const MerchantTopupDashboard = () => {
                               </button>
                               <button 
                                 onClick={() => {
-                                  setCustomerForm({ name: customer.name, phone: customer.phone, email: customer.email || '', password: customer.password || '', customer_type: customer.customer_type, credit_limit: customer.credit_limit.toString() });
+                                  setCustomerForm({ name: customer.name, phone: customer.phone, email: customer.email || '', password: customer.password || '', customer_type: customer.customer_type, credit_limit: customer.credit_limit.toString(), starting_balance: (customer.starting_balance || 0).toString() });
                                   setIsEditingCustomer(customer.id);
                                   setShowCustomerModal(true);
                                 }}
@@ -10544,6 +10561,16 @@ const MerchantTopupDashboard = () => {
                   type="number"
                   value={customerForm.credit_limit}
                   onChange={(e) => setCustomerForm({ ...customerForm, credit_limit: e.target.value })}
+                  placeholder="0"
+                  className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                />
+              </div>
+              <div>
+                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>💵 الرصيد الابتدائي (اختياري)</label>
+                <input
+                  type="number"
+                  value={customerForm.starting_balance}
+                  onChange={(e) => setCustomerForm({ ...customerForm, starting_balance: e.target.value })}
                   placeholder="0"
                   className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
                 />
