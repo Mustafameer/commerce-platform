@@ -8,6 +8,27 @@ html, body {
   direction: rtl;
 }
 
+/* Dashboard Desktop/Mobile Layout Media Queries */
+[data-dashboard-layout="desktop"] {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  [data-dashboard-layout="desktop"] {
+    display: flex !important;
+  }
+}
+
+@media (max-width: 767px) {
+  [data-dashboard-layout="mobile"] {
+    display: flex !important;
+  }
+}
+
+[data-dashboard-layout="mobile"] {
+  display: none;
+}
+
 /* RTL-friendly utilities */
 [dir="rtl"] {
   direction: rtl;

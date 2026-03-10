@@ -235,7 +235,10 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
   return (
       <>
       {/* Desktop Layout */}
-      <div className={cn("hidden md:flex h-screen w-screen overflow-hidden flex-row", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} dir="rtl">
+      <div className={cn("h-screen w-screen overflow-hidden flex-row", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} 
+        data-dashboard-layout="desktop"
+        dir="rtl"
+      >
 
 
         {/* Sidebar */}
@@ -353,7 +356,10 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
       </>
       
       {/* Mobile Layout */}
-      <div className={cn("md:hidden flex flex-col h-screen w-screen overflow-hidden", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} dir="rtl">
+      <div className={cn("flex flex-col h-screen w-screen overflow-hidden", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} 
+        data-dashboard-layout="mobile"
+        dir="rtl"
+      >
         {/* Mobile Header */}
         <div className={cn("border-b px-4 py-3 sticky top-0 z-30 backdrop-blur-sm", isDarkMode ? "bg-gray-800/95 border-gray-700" : "bg-white/95 border-black/5")}>
           <div className="flex items-center gap-3">
