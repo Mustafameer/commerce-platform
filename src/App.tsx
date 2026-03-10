@@ -1716,7 +1716,7 @@ const MobileFooterNav = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className={cn("fixed bottom-0 inset-x-0 z-50 border-t px-2 py-2 flex lg:hidden", isDarkMode ? "bg-gray-800/95 border-gray-700 backdrop-blur-sm" : "bg-white/95 border-black/5 backdrop-blur-sm")}>
+    <div className={cn("fixed bottom-0 inset-x-0 z-50 border-t px-2 py-2 md:hidden flex", isDarkMode ? "bg-gray-800/95 border-gray-700 backdrop-blur-sm" : "bg-white/95 border-black/5 backdrop-blur-sm")}>
       <div className="w-full flex items-stretch gap-2 overflow-x-auto pb-1">
         {navItems.map((item) => (
           <Link
