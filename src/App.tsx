@@ -11873,6 +11873,7 @@ const TopupStorefront = () => {
           </div>
         </div>
       </div>
+      <StorePageMobileFooter storeSlug={storeId} />
     </div>
   );
 };
