@@ -10666,6 +10666,9 @@ const TopupStorefront = () => {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [customer, setCustomer] = useState<any>(null);
   const [showAccountStatement, setShowAccountStatement] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   
   // Purchase form state
   const [showPurchaseForm, setShowPurchaseForm] = useState(false);
@@ -11111,6 +11114,51 @@ const TopupStorefront = () => {
       alert('حدث خطأ في تسجيل الدخول');
     } finally {
       setIsAuthenticating(false);
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+      alert('يرجى إدخال مبلغ صحيح');
+      return;
+    }
+
+    const amount = parseFloat(paymentAmount);
+    if (amount > Number(customer?.current_debt || 0)) {
+      alert(`المبلغ المدخل أكبر من الديون الحالية (${Math.round(Number(customer?.current_debt || 0))?.toLocaleString('en-US')} د.ع)`);
+      return;
+    }
+
+    setIsPaymentProcessing(true);
+    try {
+      const response = await fetch('/api/topup/payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_id: customer.customer_id,
+          store_id: actualStoreId,
+          amount: amount
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert('✅ تم تسديد المبلغ بنجاح!');
+        // تحديث بيانات العميل بعد الدفع
+        setCustomer({
+          ...customer,
+          current_debt: Math.max(0, (Number(customer.current_debt) || 0) - amount)
+        });
+        setPaymentAmount('');
+        setShowPaymentForm(false);
+      } else {
+        alert(data.error || 'فشل تسديد المبلغ');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('حدث خطأ في عملية الدفع');
+    } finally {
+      setIsPaymentProcessing(false);
     }
   };
 
@@ -11584,20 +11632,60 @@ const TopupStorefront = () => {
                   </div>
 
                   {/* Buttons */}
-                  <div className="grid grid-cols-2 gap-3 mt-6">
+                  <div className="grid grid-cols-3 gap-3 mt-6">
+                    <button
+                      onClick={() => setShowPaymentForm(true)}
+                      className={cn("py-2 px-3 rounded text-sm font-normal text-white transition-colors", isDarkMode ? "bg-green-900 hover:bg-green-800" : "bg-green-600 hover:bg-green-700")}
+                      disabled={Number(customer?.current_debt || 0) <= 0}
+                    >
+                      💳 تسديد
+                    </button>
                     <button
                       onClick={handleLogout}
                       className={cn("py-2 px-3 rounded text-sm font-normal", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
                     >
-                      تسجيل خروج
+                      خروج
                     </button>
                     <button
                       onClick={() => setShowAccountStatement(false)}
-                      className={cn("py-2 px-3 rounded text-sm font-normal text-white", isDarkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-400 hover:bg-gray-500")}
+                      className={cn("py-2 px-3 rounded text-sm font-normal text-white transition-colors", isDarkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-400 hover:bg-gray-500")}
                     >
                       إغلاق
                     </button>
                   </div>
+
+                  {/* Payment Form */}
+                  {showPaymentForm && (
+                    <div className={cn("mt-6 p-4 rounded-lg border-2", isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300")}>
+                      <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-green-400" : "text-green-700")}>أدخل المبلغ (د.ع)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          value={paymentAmount}
+                          onChange={(e) => setPaymentAmount(e.target.value)}
+                          placeholder="0"
+                          max={Number(customer?.current_debt || 0)}
+                          className={cn("flex-1 px-3 py-2 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
+                        />
+                        <button
+                          onClick={handlePayment}
+                          disabled={isPaymentProcessing}
+                          className={cn("px-4 py-2 rounded-lg text-white font-normal text-sm transition-colors", isPaymentProcessing ? "opacity-50" : "", isDarkMode ? "bg-green-600 hover:bg-green-700" : "bg-green-600 hover:bg-green-700")}
+                        >
+                          {isPaymentProcessing ? 'جاري...' : 'تأكيد'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowPaymentForm(false);
+                            setPaymentAmount('');
+                          }}
+                          className={cn("px-4 py-2 rounded-lg text-white font-normal text-sm transition-colors", isDarkMode ? "bg-gray-600 hover:bg-gray-700" : "bg-gray-400 hover:bg-gray-500")}
+                        >
+                          إلغاء
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </Card>
             </div>
