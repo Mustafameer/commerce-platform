@@ -8480,11 +8480,6 @@ const StoresPage = () => {
   const [stores, setStores] = useState<any[]>([]);
   const [storesWithLogos, setStoresWithLogos] = useState<Map<number, any>>(new Map());
   const [loading, setLoading] = useState(true);
-  const [selectedTopupStore, setSelectedTopupStore] = useState<any>(null);
-  const [topupAuthName, setTopupAuthName] = useState('');
-  const [topupAuthPhone, setTopupAuthPhone] = useState('');
-  const [topupAuthError, setTopupAuthError] = useState('');
-  const [topupAuthLoading, setTopupAuthLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const navigate = useNavigate();
   const { appName, primaryColor } = useSettingsStore();
@@ -8556,14 +8551,7 @@ const StoresPage = () => {
       }, [stores]);
 
   const handleStoreClick = (store: any) => {
-    if (store.store_type === 'topup') {
-      setSelectedTopupStore(store);
-      setTopupAuthName('');
-      setTopupAuthPhone('');
-      setTopupAuthError('');
-    } else {
-      navigate(`/store/${store.slug}`);
-    }
+    navigate(`/store/${store.slug}`);
   };
 
   // Helper function to normalize phone numbers for comparison
@@ -8578,68 +8566,6 @@ const StoresPage = () => {
       normalized = '0' + normalized.substring(3);
     }
     return normalized.trim();
-  };
-
-  const handleTopupStoreVerification = async () => {
-    if (!topupAuthName.trim() || !topupAuthPhone.trim()) {
-      setTopupAuthError('يرجى إدخال الاسم ورقم الهاتف');
-      return;
-    }
-
-    setTopupAuthLoading(true);
-    try {
-      const res = await fetch(`/api/merchant/customers?storeId=${selectedTopupStore.id}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const customersData = await res.json();
-      
-      // Normalize input phone number
-      const normalizedInputPhone = normalizePhone(topupAuthPhone);
-      
-      // Filter customers for the topup store
-      const registeredCustomers = Array.isArray(customersData) ? customersData.filter((c: any) => {
-        const normalizedDbPhone = normalizePhone(c.phone);
-        return (
-          c.name.toLowerCase().trim() === topupAuthName.toLowerCase().trim() &&
-          normalizedDbPhone === normalizedInputPhone
-        );
-      }) : [];
-
-      if (registeredCustomers.length > 0) {
-        // Customer verified - save data to localStorage
-        const customer = registeredCustomers[0];
-        const customerData = {
-          id: customer.id,
-          name: customer.name,
-          phone: customer.phone,
-          email: customer.email,
-          customer_type: customer.customer_type,
-          credit_limit: customer.credit_limit,
-          current_debt: customer.current_debt
-        };
-        console.log('✅ Customer verified, saving:', customerData);
-        // حذف البيانات القديمة أولاً
-        localStorage.removeItem('customerData');
-        localStorage.removeItem('topupCustomer');
-        // حفظ البيانات الجديدة فقط في topupCustomer
-        localStorage.setItem('topupCustomer', JSON.stringify(customerData));
-        
-        // Navigate to topup store
-        navigate(`/topup/${selectedTopupStore.id}`);
-        setSelectedTopupStore(null);
-        setTopupAuthName('');
-        setTopupAuthPhone('');
-        setTopupAuthError('');
-      } else {
-        setTopupAuthError('❌ لم يتم العثور على بيانات مطابقة. تأكد من اسم العميل ورقم الهاتف الصحيح');
-      }
-    } catch (error) {
-      console.error('Verification error:', error);
-      setTopupAuthError('حدث خطأ في التحقق. يرجى المحاولة لاحقاً');
-    } finally {
-      setTopupAuthLoading(false);
-    }
   };
 
   if (loading) {
@@ -8746,85 +8672,6 @@ const StoresPage = () => {
         )}
       </main>
 
-      {/* Topup Store Verification Modal */}
-      {selectedTopupStore && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4" dir="rtl">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className={cn("rounded-2xl w-full max-w-md shadow-2xl p-4 sm:p-6", isDarkMode ? "bg-gray-800" : "bg-white")}
-          >
-            <div className="mb-6">
-              <h2 className={cn("text-2xl font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>
-                🔐 تحقق من بيانات
-              </h2>
-              <p className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                يرجى إدخال بيانات العميل للدخول إلى {selectedTopupStore.store_name}
-              </p>
-            </div>
-
-            {topupAuthError && (
-              <div className={cn("mb-4 p-3 rounded-lg text-sm", isDarkMode ? "bg-red-900/30 text-red-300" : "bg-red-50 text-red-600")}>
-                {topupAuthError}
-              </div>
-            )}
-
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className={cn("text-sm font-normal block mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                  📝 اسم العميل
-                </label>
-                <input
-                  type="text"
-                  value={topupAuthName}
-                  onChange={(e) => {
-                    setTopupAuthName(e.target.value);
-                    setTopupAuthError('');
-                  }}
-                  placeholder="أدخل الاسم"
-                  className={cn("w-full px-4 py-2 rounded-lg border outline-none transition-all", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-500" : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500")}
-                />
-              </div>
-
-              <div>
-                <label className={cn("text-sm font-normal block mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                  📱 رقم الهاتف
-                </label>
-                <input
-                  type="tel"
-                  value={topupAuthPhone}
-                  onChange={(e) => {
-                    setTopupAuthPhone(e.target.value);
-                    setTopupAuthError('');
-                  }}
-                  placeholder="07800000000"
-                  className={cn("w-full px-4 py-2 rounded-lg border outline-none transition-all", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-500" : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500")}
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={handleTopupStoreVerification}
-                disabled={topupAuthLoading}
-                className={cn("flex-1 py-2 px-4 rounded-lg font-normal text-white transition-all", topupAuthLoading ? "opacity-50 cursor-not-allowed" : "hover:opacity-90")}
-                style={{ backgroundColor: primaryColor }}
-              >
-                {topupAuthLoading ? 'جاري التحقق...' : 'تحقق الآن'}
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedTopupStore(null);
-                  setTopupAuthError('');
-                }}
-                className={cn("flex-1 py-2 px-4 rounded-lg font-normal transition-all", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-200 hover:bg-gray-300 text-gray-900")}
-              >
-                إلغاء
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
       <MobileFooterNav />
     </div>
   );
