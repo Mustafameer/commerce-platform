@@ -1764,7 +1764,7 @@ const MobileFooterNav = () => {
     { icon: Home, label: 'الرئيسية', path: '/' },
     { icon: StoreIcon, label: 'المتاجر', path: '/stores' },
     { icon: FileText, label: 'المساعدة', path: '/help' },
-    { icon: user ? UserIcon : LogOut, label: user ? 'حسابي' : 'تسجيل', path: user ? '/merchant' : '/login' },
+    { icon: user ? LayoutDashboard : LogOut, label: user ? 'داشبورد' : 'تسجيل', path: user ? '/merchant' : '/login' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
