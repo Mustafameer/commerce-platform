@@ -7037,15 +7037,27 @@ const MarketplacePage = () => {
         
         // Fetch only regular products (not topup products)
         console.log("📊 Fetching /api/products...");
-        const productsRes = await fetch('/api/products');
-        console.log("📊 Products Response Status:", productsRes.status);
         
-        const productsData = await productsRes.json();
-        console.log("📊 Products Data:", Array.isArray(productsData) ? `${productsData.length} products` : 'not array', productsData?.length);
+        // Add 10 second timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         
-        const regularProducts = Array.isArray(productsData) ? productsData : [];
-        setProducts(regularProducts);
-        console.log("✅ Products loaded:", regularProducts.length);
+        try {
+          const productsRes = await fetch('/api/products', { signal: controller.signal });
+          clearTimeout(timeoutId);
+          console.log("📊 Products Response Status:", productsRes.status);
+          
+          const productsData = await productsRes.json();
+          console.log("📊 Products Data:", Array.isArray(productsData) ? `${productsData.length} products` : 'not array', productsData?.length);
+          
+          const regularProducts = Array.isArray(productsData) ? productsData : [];
+          setProducts(regularProducts);
+          console.log("✅ Products loaded:", regularProducts.length);
+        } catch (fetchErr) {
+          clearTimeout(timeoutId);
+          console.error("❌ Fetch error:", fetchErr);
+          setProducts([]);
+        }
         
         // Fetch active auctions
         try {
