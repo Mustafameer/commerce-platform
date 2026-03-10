@@ -450,37 +450,8 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
           </div>
         </div>
 
-        {/* Mobile Footer Navigation */}
-        <div className={cn("fixed bottom-0 inset-x-0 z-50 border-t px-2 py-2 flex lg:hidden", isDarkMode ? "bg-gray-800/95 border-gray-700 backdrop-blur-sm" : "bg-white/95 border-black/5 backdrop-blur-sm")}>
-          <div className="w-full flex items-stretch gap-2 overflow-x-auto pb-1">
-            {navItems.map((item) => (
-              <Link
-                key={`mobile-${item.path}`}
-                to={item.path}
-                onClick={() => {
-                  setDashboardQuery('');
-                  setSidebarOpen(false);
-                }}
-                className={cn(
-                  "relative min-w-[72px] flex-1 rounded-2xl px-2 py-2 text-center transition-colors",
-                  isNavItemActive(item.path)
-                    ? (isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-indigo-50 text-indigo-600")
-                    : (isDarkMode ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100")
-                )}
-              >
-                <div className="flex flex-col items-center gap-1">
-                  {item.icon && <item.icon size={18} className="flex-shrink-0" />}
-                  <span className="text-[10px] leading-tight line-clamp-2">{item.label}</span>
-                </div>
-                {item.count !== undefined && item.count > 0 && (
-                  <span className={cn("absolute top-1 right-1 min-w-5 h-5 px-1 rounded-full text-[10px] leading-5", isDarkMode ? "bg-blue-600 text-white" : "bg-indigo-600 text-white")}>
-                    {item.count > 99 ? '99+' : item.count}
-                  </span>
-                )}
-              </Link>
-            ))}
-          </div>
-        </div>
+        {/* Mobile Footer Navigation - using the shared component */}
+        <MobileFooterNav />
       </div>
   );
 };
