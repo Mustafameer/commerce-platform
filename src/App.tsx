@@ -233,7 +233,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
   };
 
   return (
-      <div className={cn("flex h-screen w-screen overflow-hidden flex-col md:flex-row", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
+      <div className={cn("flex h-screen w-screen overflow-hidden flex-col md:flex-row", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} dir="rtl">
         {/* Mobile Header */}
         <div className={cn("md:hidden border-b px-4 py-3 sticky top-0 z-30 backdrop-blur-sm", isDarkMode ? "bg-gray-800/95 border-gray-700" : "bg-white/95 border-black/5")}>
           <div className="flex items-center gap-3">
