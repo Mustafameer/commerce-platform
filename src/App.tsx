@@ -174,15 +174,8 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
   // Handle window resize to detect mobile/desktop
   useEffect(() => {
     const handleResize = () => {
-      const width = window.innerWidth;
-      const isMob = width < 768;
-      console.log(`🔄 DashboardLayout resize: ${width}px → ${isMob ? '📱 MOBILE' : '🖥️ DESKTOP'}`);
-      setIsMobile(isMob);
+      setIsMobile(window.innerWidth < 768);
     };
-    
-    // Initial check
-    const initialWidth = window.innerWidth;
-    console.log(`📱 DashboardLayout initial width: ${initialWidth}px → ${initialWidth < 768 ? '📱 MOBILE' : '🖥️ DESKTOP'}`);
     
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleResize);
@@ -256,7 +249,6 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
   };
 
   if (isMobile) {
-    console.log("✅ DashboardLayout rendering: MOBILE");
     // Mobile Layout
     return (
       <div className={cn("flex flex-col h-screen w-screen overflow-hidden", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} 
@@ -397,7 +389,6 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
   }
 
   // Desktop Layout
-  console.log("✅ DashboardLayout rendering: DESKTOP");
   return (
     <div className={cn("h-screen w-screen overflow-hidden flex-row", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} 
       data-dashboard-layout="desktop"
