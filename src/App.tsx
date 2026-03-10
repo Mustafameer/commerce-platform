@@ -1754,6 +1754,72 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 };
 
 // Dashboard Menu Modal - shows dashboard sections
+// Login Required Modal - shows when user tries to access dashboard without login
+const LoginRequiredModal = ({ isOpen, onClose, onLogin }: { isOpen: boolean; onClose: () => void; onLogin: () => void }) => {
+  const { isDarkMode } = useTheme();
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
+        onClick={onClose}
+      />
+      {/* Modal */}
+      <div 
+        className={cn(
+          "fixed bottom-20 left-0 right-0 z-50 mx-auto w-96 max-w-sm p-6 rounded-t-3xl border-t border-l border-r md:hidden",
+          isDarkMode 
+            ? "bg-gray-800 border-gray-700 shadow-xl" 
+            : "bg-white border-gray-200 shadow-xl"
+        )}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className={cn("text-lg font-semibold", isDarkMode ? "text-white" : "text-gray-900")}>
+            تسجيل الدخول مطلوب
+          </h3>
+          <button
+            onClick={onClose}
+            className={cn(
+              "p-1 rounded-lg transition-colors",
+              isDarkMode ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-100 text-gray-500"
+            )}
+          >
+            <X size={20} />
+          </button>
+        </div>
+        
+        <p className={cn("mb-6 text-sm leading-relaxed", isDarkMode ? "text-gray-300" : "text-gray-600")}>
+          لغرض عرض الداشبورد يجب تسجيل الدخول، وبعد تسجيل الدخول يمكن للأيقونة عرض داشبورد المتجر المفتوح
+        </p>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className={cn(
+              "flex-1 px-4 py-2 rounded-xl font-medium transition-colors",
+              isDarkMode
+                ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                : "bg-gray-100 hover:bg-gray-200 text-gray-900"
+            )}
+          >
+            إغلاق
+          </button>
+          <button
+            onClick={onLogin}
+            className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors"
+          >
+            تسجيل الدخول
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// Dashboard Menu Modal
 const DashboardMenuModal = ({ isOpen, onClose, onSelectSection }: { isOpen: boolean; onClose: () => void; onSelectSection: (section: string) => void }) => {
   const { isDarkMode } = useTheme();
   
@@ -1832,6 +1898,7 @@ const MobileFooterNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showDashboardMenu, setShowDashboardMenu] = useState(false);
+  const [showLoginMessage, setShowLoginMessage] = useState(false);
   
   const navItems = [
     { icon: Home, label: 'الرئيسية', path: '/' },
@@ -1840,12 +1907,25 @@ const MobileFooterNav = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  const handleDashboardClick = () => {
+    if (user) {
+      setShowDashboardMenu(true);
+    } else {
+      setShowLoginMessage(true);
+    }
+  };
+
   const handleDashboardSelect = (section: string) => {
     if (user) {
       navigate(`/merchant/${section}`);
     } else {
       navigate('/login');
     }
+  };
+
+  const handleLoginFromModal = () => {
+    setShowLoginMessage(false);
+    navigate('/login');
   };
 
   return (
@@ -1870,9 +1950,9 @@ const MobileFooterNav = () => {
             </Link>
           ))}
           
-          {/* Dashboard Button - opens menu if logged in, shows login if not */}
+          {/* Dashboard Button */}
           <button
-            onClick={() => user ? setShowDashboardMenu(true) : navigate('/login')}
+            onClick={handleDashboardClick}
             className={cn(
               "relative min-w-[72px] flex-1 rounded-2xl px-2 py-2 text-center transition-colors",
               (isDarkMode ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100")
@@ -1896,6 +1976,13 @@ const MobileFooterNav = () => {
           onSelectSection={handleDashboardSelect}
         />
       )}
+
+      {/* Login Required Modal */}
+      <LoginRequiredModal
+        isOpen={showLoginMessage}
+        onClose={() => setShowLoginMessage(false)}
+        onLogin={handleLoginFromModal}
+      />
     </>
   );
 };
