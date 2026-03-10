@@ -7032,19 +7032,27 @@ const MarketplacePage = () => {
   useEffect(() => {
     const load = async () => {
       try {
+        console.log("📊 MarketplacePage: Starting product load...");
         setLoading(true);
         
         // Fetch only regular products (not topup products)
+        console.log("📊 Fetching /api/products...");
         const productsRes = await fetch('/api/products');
-        const productsData = await productsRes.json();
-        const regularProducts = Array.isArray(productsData) ? productsData : [];
+        console.log("📊 Products Response Status:", productsRes.status);
         
+        const productsData = await productsRes.json();
+        console.log("📊 Products Data:", Array.isArray(productsData) ? `${productsData.length} products` : 'not array', productsData?.length);
+        
+        const regularProducts = Array.isArray(productsData) ? productsData : [];
         setProducts(regularProducts);
+        console.log("✅ Products loaded:", regularProducts.length);
         
         // Fetch active auctions
         try {
+          console.log("🎯 Fetching /api/auctions/active...");
           const auctionsRes = await fetch('/api/auctions/active');
           const auctionsData = await auctionsRes.json();
+          console.log("✅ Auctions loaded:", Array.isArray(auctionsData) ? auctionsData.length : 0);
           setAuctions(Array.isArray(auctionsData) ? auctionsData : []);
         } catch (auctionErr) {
           console.warn('Failed to fetch auctions:', auctionErr);
@@ -7059,8 +7067,10 @@ const MarketplacePage = () => {
           });
           setQuantities(initialQtys);
         }
+        
+        console.log("🎉 MarketplacePage load complete!");
       } catch (err) {
-        console.error('Error loading products:', err);
+        console.error('❌ Error loading products:', err);
         setProducts([]);
       } finally {
         setLoading(false);
