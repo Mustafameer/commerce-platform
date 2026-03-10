@@ -8998,10 +8998,14 @@ const MerchantTopupDashboard = () => {
   const [showCodeUploadModal, setShowCodeUploadModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showCustomerStatement, setShowCustomerStatement] = useState(false);
-  const [isEditingCompany, setIsEditingCompany] = useState<number | null>(null);
+  const [showPaymentsModal, setShowPaymentsModal] = useState(false);
+  const [selectedCustomerForPayments, setSelectedCustomerForPayments] = useState<any>(null);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [paymentForm, setPaymentForm] = useState({ amount: '', payment_method: '', notes: '' });
+  const [isEditingPayment, setIsEditingPayment] = useState<number | null>(null);
+  const [isEditingCustomer, setIsEditingCustomer] = useState<number | null>(null);
   const [isEditingProduct, setIsEditingProduct] = useState<number | null>(null);
   const [selectedProductForCodes, setSelectedProductForCodes] = useState<number | null>(null);
-  const [isEditingCustomer, setIsEditingCustomer] = useState<number | null>(null);
   const [selectedCustomerStatement, setSelectedCustomerStatement] = useState<any>(null);
 
   // Form states
@@ -10036,16 +10040,29 @@ const MerchantTopupDashboard = () => {
           {/* Customers Section */}
           {currentSection === 'customers' && (
             <div className="space-y-6">
-              <button
-                onClick={() => {
-                  setCustomerForm({ name: '', phone: '', email: '', password: '', customer_type: 'cash', credit_limit: '0' });
-                  setIsEditingCustomer(null);
-                  setShowCustomerModal(true);
-                }}
-                className="px-6 py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700 flex items-center gap-2"
-              >
-                <Plus size={18} /> إضافة عميل جديد
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setCustomerForm({ name: '', phone: '', email: '', password: '', customer_type: 'cash', credit_limit: '0', starting_balance: '' });
+                    setIsEditingCustomer(null);
+                    setShowCustomerModal(true);
+                  }}
+                  className="px-6 py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+                >
+                  <Plus size={18} /> إضافة عميل جديد
+                </button>
+                <button
+                  onClick={() => {
+                    setPaymentForm({ amount: '', payment_method: '', notes: '' });
+                    setIsEditingPayment(null);
+                    setShowPaymentsModal(true);
+                    setSelectedCustomerForPayments(null);
+                  }}
+                  className="px-6 py-3 bg-green-600 text-white font-normal rounded-lg hover:bg-green-700 flex items-center gap-2"
+                >
+                  <Plus size={18} /> إضافة تسديد
+                </button>
+              </div>
 
               <Card className={cn("overflow-hidden", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
                 <table className="w-full">
@@ -10076,6 +10093,20 @@ const MerchantTopupDashboard = () => {
                           <td className={cn("px-6 py-4 font-semibold", customer.current_debt > customer.credit_limit ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-400" : "text-yellow-600"))}>{Math.round(customer.current_debt)?.toLocaleString('en-US')} د.ع</td>
                           <td className="px-6 py-4">
                             <div className="flex gap-2">
+                              <button 
+                                onClick={() => {
+                                  setSelectedCustomerForPayments(customer);
+                                  setShowPaymentsModal(true);
+                                  // Fetch payments for this customer
+                                  fetch(`/api/customer-payments/${user?.store_id}/${customer.id}`)
+                                    .then(r => r.json())
+                                    .then(data => setPayments(Array.isArray(data) ? data : []));
+                                }}
+                                className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-purple-900/30 text-purple-400 hover:bg-purple-900/60" : "text-purple-600 hover:bg-purple-50")}
+                                title="التسديدات"
+                              >
+                                <CreditCard size={16} />
+                              </button>
                               <button 
                                 onClick={() => {
                                   setSelectedCustomerStatement(customer);
@@ -10583,6 +10614,239 @@ const MerchantTopupDashboard = () => {
               </div>
               <button onClick={saveCustomer} className="w-full py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700">
                 {isEditingCustomer ? 'تحديث' : 'إضافة'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Payments Management Modal */}
+      {showPaymentsModal && selectedCustomerForPayments && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" dir="rtl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={cn("rounded-2xl w-full max-w-4xl shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
+          >
+            <div className={cn("p-6 border-b flex justify-between items-center sticky top-0", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
+              <div>
+                <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>إدارة التسديدات</h3>
+                <p className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>{selectedCustomerForPayments.name}</p>
+              </div>
+              <button onClick={() => setShowPaymentsModal(false)}>
+                <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Customer Info Summary */}
+              <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
+                <div>
+                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>الاسم</p>
+                  <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>{selectedCustomerForPayments.name}</p>
+                </div>
+                <div>
+                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>الهاتف</p>
+                  <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>{selectedCustomerForPayments.phone}</p>
+                </div>
+                <div>
+                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>البريد الإلكتروني</p>
+                  <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>{selectedCustomerForPayments.email || '-'}</p>
+                </div>
+                <div>
+                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>النوع</p>
+                  <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>
+                    {selectedCustomerForPayments.customer_type === 'reseller' ? '🏪 جملة' : '👤 مفرد'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Payments Table */}
+              <div className={cn("border rounded-lg overflow-hidden", isDarkMode ? "border-gray-700" : "border-gray-200")}>
+                <table className="w-full">
+                  <thead>
+                    <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
+                      <th className={cn("px-4 py-3 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>المبلغ</th>
+                      <th className={cn("px-4 py-3 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>طريقة الدفع</th>
+                      <th className={cn("px-4 py-3 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>الملاحظات</th>
+                      <th className={cn("px-4 py-3 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>التاريخ</th>
+                      <th className={cn("px-4 py-3 text-center font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className={cn("px-4 py-8 text-center", isDarkMode ? "text-gray-400 bg-gray-800" : "text-gray-500 bg-gray-50")}>
+                          لا توجد تسديدات مسجلة
+                        </td>
+                      </tr>
+                    ) : (
+                      payments.map((payment: any, index: number) => (
+                        <tr key={payment.id} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
+                          <td className={cn("px-4 py-3 font-normal", isDarkMode ? "text-white" : "text-gray-900")}>
+                            {Math.round(payment.amount)?.toLocaleString('en-US')} د.ع
+                          </td>
+                          <td className={cn("px-4 py-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>
+                            {payment.payment_method || '-'}
+                          </td>
+                          <td className={cn("px-4 py-3 font-normal text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                            {payment.notes || '-'}
+                          </td>
+                          <td className={cn("px-4 py-3 font-normal text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                            {new Date(payment.created_at).toLocaleDateString('ar-IQ')}
+                          </td>
+                          <td className="px-4 py-3 flex gap-2 justify-center">
+                            <button
+                              onClick={() => {
+                                setPaymentForm({
+                                  amount: payment.amount.toString(),
+                                  payment_method: payment.payment_method || '',
+                                  notes: payment.notes || ''
+                                });
+                                setIsEditingPayment(payment.id);
+                              }}
+                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm('هل تأكد من حذف هذا التسديد؟')) {
+                                  fetch(`/api/customer-payments/${payment.id}`, { method: 'DELETE' })
+                                    .then(r => r.json())
+                                    .then(() => {
+                                      setPayments(payments.filter((p: any) => p.id !== payment.id));
+                                    })
+                                    .catch(err => alert('خطأ في الحذف: ' + err.message));
+                                }
+                              }}
+                              className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Payment Form */}
+              <div className={cn("p-4 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
+                <h4 className={cn("font-normal text-sm mb-4", isDarkMode ? "text-white" : "text-gray-900")}>
+                  {isEditingPayment ? '✏️ تعديل التسديد' : '➕ إضافة تسديد جديد'}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>المبلغ (د.ع)</label>
+                    <input
+                      type="number"
+                      value={paymentForm.amount}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                      placeholder="0"
+                      className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-600 border-gray-500 text-white placeholder-gray-400" : "bg-white border-gray-300 text-gray-900")}
+                    />
+                  </div>
+                  <div>
+                    <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>طريقة الدفع</label>
+                    <input
+                      type="text"
+                      value={paymentForm.payment_method}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
+                      placeholder="تحويل / نقد / شيك..."
+                      className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-600 border-gray-500 text-white placeholder-gray-400" : "bg-white border-gray-300 text-gray-900")}
+                    />
+                  </div>
+                  <div>
+                    <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>الملاحظات</label>
+                    <input
+                      type="text"
+                      value={paymentForm.notes}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                      placeholder="ملاحظات اختيارية..."
+                      className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-600 border-gray-500 text-white placeholder-gray-400" : "bg-white border-gray-300 text-gray-900")}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={async () => {
+                      if (!paymentForm.amount || parseFloat(paymentForm.amount) <= 0) {
+                        alert('يرجى إدخال مبلغ صحيح');
+                        return;
+                      }
+
+                      try {
+                        if (isEditingPayment) {
+                          // Update payment
+                          const response = await fetch(`/api/customer-payments/${isEditingPayment}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              amount: parseFloat(paymentForm.amount),
+                              payment_method: paymentForm.payment_method,
+                              notes: paymentForm.notes
+                            })
+                          });
+                          if (response.ok) {
+                            alert('تم تحديث التسديد بنجاح');
+                            // Refetch payments
+                            const paymentsResponse = await fetch(`/api/customer-payments/${user?.store_id}/${selectedCustomerForPayments.id}`);
+                            const paymentsData = await paymentsResponse.json();
+                            setPayments(Array.isArray(paymentsData) ? paymentsData : []);
+                            setPaymentForm({ amount: '', payment_method: '', notes: '' });
+                            setIsEditingPayment(null);
+                          }
+                        } else {
+                          // Add new payment
+                          const response = await fetch('/api/customer-payments', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              customer_id: selectedCustomerForPayments.id,
+                              store_id: user?.store_id,
+                              amount: parseFloat(paymentForm.amount),
+                              payment_method: paymentForm.payment_method,
+                              notes: paymentForm.notes
+                            })
+                          });
+                          if (response.ok) {
+                            alert('تم إضافة التسديد بنجاح');
+                            // Refetch payments
+                            const paymentsResponse = await fetch(`/api/customer-payments/${user?.store_id}/${selectedCustomerForPayments.id}`);
+                            const paymentsData = await paymentsResponse.json();
+                            setPayments(Array.isArray(paymentsData) ? paymentsData : []);
+                            setPaymentForm({ amount: '', payment_method: '', notes: '' });
+                          }
+                        }
+                      } catch (error) {
+                        alert('خطأ: ' + (error as any).message);
+                      }
+                    }}
+                    className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-normal transition-all"
+                  >
+                    {isEditingPayment ? '💾 حفظ التعديلات' : '➕ إضافة التسديد'}
+                  </button>
+                  {isEditingPayment && (
+                    <button
+                      onClick={() => {
+                        setPaymentForm({ amount: '', payment_method: '', notes: '' });
+                        setIsEditingPayment(null);
+                      }}
+                      className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-normal transition-all"
+                    >
+                      ❌ إلغاء
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowPaymentsModal(false)}
+                className={cn("w-full py-3 rounded-lg font-normal transition-all", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-200 hover:bg-gray-300")}
+              >
+                إغلاق
               </button>
             </div>
           </motion.div>

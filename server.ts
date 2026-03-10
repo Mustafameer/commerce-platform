@@ -204,6 +204,17 @@ async function initDb() {
         description TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS customer_payments (
+        id SERIAL PRIMARY KEY,
+        customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+        store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+        amount DECIMAL(10, 2) NOT NULL,
+        payment_method VARCHAR(50),
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
       
       CREATE TABLE IF NOT EXISTS app_settings (
         id SERIAL PRIMARY KEY,
@@ -4577,6 +4588,98 @@ async function startServer() {
       extensions: ['html', 'js', 'css', 'json', 'svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'woff', 'woff2'],
       index: false // Disable automatic index.html handling
     }));
+
+    // Customer Payments APIs
+    // Get all payments for a customer
+    app.get("/api/customer-payments/:storeId/:customerId", async (req, res) => {
+      try {
+        const { storeId, customerId } = req.params;
+        
+        const result = await pool.query(
+          `SELECT id, customer_id, store_id, amount, payment_method, notes, created_at, updated_at
+           FROM customer_payments
+           WHERE store_id = $1 AND customer_id = $2
+           ORDER BY created_at DESC`,
+          [parseInt(storeId), parseInt(customerId)]
+        );
+        
+        res.json(result.rows);
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Add payment
+    app.post("/api/customer-payments", async (req, res) => {
+      try {
+        const { customer_id, store_id, amount, payment_method, notes } = req.body;
+        
+        if (!customer_id || !store_id || !amount || amount <= 0) {
+          return res.status(400).json({ error: "customer_id, store_id, and amount are required" });
+        }
+
+        const result = await pool.query(
+          `INSERT INTO customer_payments (customer_id, store_id, amount, payment_method, notes)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING *`,
+          [customer_id, store_id, amount, payment_method || null, notes || null]
+        );
+
+        console.log(`💳 [PAYMENT ADDED] Customer: ${customer_id} - Amount: ${amount}`);
+        res.json(result.rows[0]);
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Update payment
+    app.put("/api/customer-payments/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { amount, payment_method, notes } = req.body;
+
+        const result = await pool.query(
+          `UPDATE customer_payments 
+           SET amount = COALESCE($1, amount),
+               payment_method = COALESCE($2, payment_method),
+               notes = COALESCE($3, notes),
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $4
+           RETURNING *`,
+          [amount || null, payment_method || null, notes || null, parseInt(id)]
+        );
+
+        if (result.rows.length === 0) {
+          return res.status(404).json({ error: "Payment not found" });
+        }
+
+        console.log(`✏️ [PAYMENT UPDATED] ID: ${id}`);
+        res.json(result.rows[0]);
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Delete payment
+    app.delete("/api/customer-payments/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        const result = await pool.query(
+          `DELETE FROM customer_payments WHERE id = $1 RETURNING id`,
+          [parseInt(id)]
+        );
+
+        if (result.rows.length === 0) {
+          return res.status(404).json({ error: "Payment not found" });
+        }
+
+        console.log(`🗑️ [PAYMENT DELETED] ID: ${id}`);
+        res.json({ success: true, message: "تم حذف التسديد بنجاح" });
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
 
     // Catch-all route - serve index.html for all non-API, non-file requests (SPA routing)
     app.use("*", (req, res) => {
