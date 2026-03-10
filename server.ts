@@ -187,6 +187,7 @@ async function initDb() {
         customer_type VARCHAR(50) DEFAULT 'cash',
         credit_limit DECIMAL(10, 2) DEFAULT 0,
         current_debt DECIMAL(10, 2) DEFAULT 0,
+        starting_balance DECIMAL(10, 2) DEFAULT 0,
         notes TEXT,
         is_active BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -488,6 +489,13 @@ async function runMigrations() {
       ADD COLUMN IF NOT EXISTS password VARCHAR(255);
     `);
     console.log("✅ Migration: password column added to customers");
+
+    // Add starting_balance column to customers table
+    await pool.query(`
+      ALTER TABLE customers
+      ADD COLUMN IF NOT EXISTS starting_balance DECIMAL(10, 2) DEFAULT 0;
+    `);
+    console.log("✅ Migration: starting_balance column added to customers");
 
     // Add codes column to topup_products table
     await pool.query(`
@@ -2159,6 +2167,7 @@ async function startServer() {
               customer_type,
               credit_limit,
               current_debt,
+              starting_balance,
               password,
               notes,
               is_active,
@@ -2687,7 +2696,7 @@ async function startServer() {
     // Create a new customer
     app.post("/api/customers", async (req, res) => {
       try {
-        const { store_id, name, phone, email, customer_type, credit_limit, password, notes } = req.body;
+        const { store_id, name, phone, email, customer_type, credit_limit, password, notes, starting_balance } = req.body;
         
         if (!store_id || !name || !phone) {
           return res.status(400).json({ error: "store_id, name, and phone are required" });
@@ -2700,10 +2709,10 @@ async function startServer() {
         }
 
         const result = await pool.query(
-          `INSERT INTO customers (store_id, name, phone, email, customer_type, credit_limit, password, notes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          `INSERT INTO customers (store_id, name, phone, email, customer_type, credit_limit, password, notes, starting_balance)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            RETURNING *`,
-          [store_id, name, phone, email || null, customer_type || 'cash', credit_limit || 0, password || null, notes || null]
+          [store_id, name, phone, email || null, customer_type || 'cash', credit_limit || 0, password || null, notes || null, starting_balance || 0]
         );
         
         console.log(`✅ Customer created: ${name}`);
@@ -2722,7 +2731,7 @@ async function startServer() {
     app.put("/api/customers/:id", async (req, res) => {
       try {
         const { id } = req.params;
-        const { name, email, customer_type, credit_limit, password, notes, is_active } = req.body;
+        const { name, email, customer_type, credit_limit, password, notes, is_active, starting_balance } = req.body;
 
         // Get the customer first to get store_id
         const customerRes = await pool.query("SELECT store_id FROM customers WHERE id = $1", [parseInt(id)]);
@@ -2769,6 +2778,10 @@ async function startServer() {
         if (is_active !== undefined) {
           updates.push(`is_active = $${paramCount++}`);
           values.push(is_active);
+        }
+        if (starting_balance !== undefined) {
+          updates.push(`starting_balance = $${paramCount++}`);
+          values.push(starting_balance);
         }
 
         updates.push(`updated_at = CURRENT_TIMESTAMP`);
@@ -2998,7 +3011,7 @@ async function startServer() {
         const { storeId } = req.params;
         
         const result = await pool.query(
-          `SELECT id, store_id, name, phone, email, customer_type, credit_limit, is_active, created_at
+          `SELECT id, store_id, name, phone, email, customer_type, credit_limit, starting_balance, is_active, created_at
            FROM customers 
            WHERE store_id = $1 AND is_active = true 
            ORDER BY created_at DESC`,
@@ -3044,7 +3057,7 @@ async function startServer() {
     // Create topup customer
     app.post("/api/topup/customers", async (req, res) => {
       try {
-        const { store_id, name, phone, email, password, customer_type, credit_limit } = req.body;
+        const { store_id, name, phone, email, password, customer_type, credit_limit, starting_balance } = req.body;
         
         if (!store_id || !name || !phone || !password) {
           return res.status(400).json({ error: "store_id, name, phone, and password are required" });
@@ -3061,10 +3074,10 @@ async function startServer() {
         }
         
         const result = await pool.query(
-          `INSERT INTO customers (store_id, name, phone, email, password, customer_type, credit_limit, current_debt, is_active)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, 0, true)
-           RETURNING id, store_id, name, phone, email, customer_type, credit_limit, current_debt`,
-          [store_id, name, phone, email || '', password, customer_type || 'cash', credit_limit || 0]
+          `INSERT INTO customers (store_id, name, phone, email, password, customer_type, credit_limit, current_debt, starting_balance, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, true)
+           RETURNING id, store_id, name, phone, email, customer_type, credit_limit, current_debt, starting_balance`,
+          [store_id, name, phone, email || '', password, customer_type || 'cash', credit_limit || 0, starting_balance || 0]
         );
         
         res.status(201).json(result.rows[0]);
@@ -3077,7 +3090,7 @@ async function startServer() {
     app.put("/api/topup/customers/:id", async (req, res) => {
       try {
         const { id } = req.params;
-        const { name, email, password, customer_type, credit_limit } = req.body;
+        const { name, email, password, customer_type, credit_limit, starting_balance } = req.body;
         
         const updates = [];
         const values = [];
@@ -3103,12 +3116,16 @@ async function startServer() {
           updates.push(`credit_limit = $${paramCount++}`);
           values.push(credit_limit);
         }
+        if (starting_balance !== undefined) {
+          updates.push(`starting_balance = $${paramCount++}`);
+          values.push(starting_balance);
+        }
         
         updates.push(`updated_at = NOW()`);
         values.push(id);
         
         const result = await pool.query(
-          `UPDATE customers SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, name, phone, email, customer_type, credit_limit, current_debt`,
+          `UPDATE customers SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, name, phone, email, customer_type, credit_limit, current_debt, starting_balance`,
           values
         );
         
