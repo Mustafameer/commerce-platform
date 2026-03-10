@@ -2851,7 +2851,7 @@ const AdminDashboard = () => {
     };
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-8">
         {[
           { label: 'إجمالي المبيعات', value: formatCurrency(safeStats.totalRevenue), icon: CreditCard, color: 'bg-indigo-600', textColor: 'text-indigo-600' },
           { label: 'عمولة الآدمن', value: formatCurrency(safeStats.adminCommission), icon: TrendingUp, color: 'bg-emerald-600', textColor: 'text-emerald-600', subtext: `${safeStats.adminCommissionPercentage}%` },
