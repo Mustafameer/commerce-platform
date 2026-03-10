@@ -1753,44 +1753,150 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
   );
 };
 
+// Dashboard Menu Modal - shows dashboard sections
+const DashboardMenuModal = ({ isOpen, onClose, onSelectSection }: { isOpen: boolean; onClose: () => void; onSelectSection: (section: string) => void }) => {
+  const { isDarkMode } = useTheme();
+  
+  const dashboardSections = [
+    { icon: BarChart3, label: 'الإحصائيات', section: 'stats' },
+    { icon: Package, label: 'المنتجات', section: 'products' },
+    { icon: ShoppingCart, label: 'الطلبات', section: 'orders' },
+    { icon: Users, label: 'العملاء', section: 'customers' },
+    { icon: Ticket, label: 'الكوبونات', section: 'coupons' },
+    { icon: Gift, label: 'المزادات', section: 'auctions' },
+    { icon: Settings, label: 'الإعدادات', section: 'settings' },
+  ];
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
+        onClick={onClose}
+      />
+      {/* Modal */}
+      <div 
+        className={cn(
+          "fixed bottom-20 left-0 right-0 z-50 mx-auto w-96 max-w-sm p-4 rounded-t-3xl border-t border-l border-r md:hidden",
+          isDarkMode 
+            ? "bg-gray-800 border-gray-700 shadow-xl" 
+            : "bg-white border-gray-200 shadow-xl"
+        )}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className={cn("text-lg font-semibold", isDarkMode ? "text-white" : "text-gray-900")}>
+            لوحة التحكم
+          </h3>
+          <button
+            onClick={onClose}
+            className={cn(
+              "p-1 rounded-lg transition-colors",
+              isDarkMode ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-100 text-gray-500"
+            )}
+          >
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto">
+          {dashboardSections.map((section) => (
+            <button
+              key={section.section}
+              onClick={() => {
+                onSelectSection(section.section);
+                onClose();
+              }}
+              className={cn(
+                "flex flex-col items-center gap-2 p-3 rounded-xl transition-colors",
+                isDarkMode
+                  ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                  : "bg-gray-50 hover:bg-gray-100 text-gray-900"
+              )}
+            >
+              <section.icon size={24} />
+              <span className="text-xs font-medium text-center">{section.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+};
+
 // Mobile Footer Navigation Component
 const MobileFooterNav = () => {
   const { isDarkMode } = useTheme();
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [showDashboardMenu, setShowDashboardMenu] = useState(false);
   
   const navItems = [
     { icon: Home, label: 'الرئيسية', path: '/' },
     { icon: StoreIcon, label: 'المتاجر', path: '/stores' },
-    { icon: FileText, label: 'المساعدة', path: '/help' },
-    { icon: user ? LayoutDashboard : LogOut, label: user ? 'داشبورد' : 'تسجيل', path: user ? '/merchant' : '/login' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
 
+  const handleDashboardSelect = (section: string) => {
+    if (user) {
+      navigate(`/merchant/${section}`);
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
-    <div className={cn("fixed bottom-0 inset-x-0 z-50 border-t px-2 py-2 md:hidden flex", isDarkMode ? "bg-gray-800/95 border-gray-700 backdrop-blur-sm" : "bg-white/95 border-black/5 backdrop-blur-sm")}>
-      <div className="w-full flex items-stretch gap-2 overflow-x-auto pb-1">
-        {navItems.map((item) => (
-          <Link
-            key={`mobile-nav-${item.path}`}
-            to={item.path}
+    <>
+      <div className={cn("fixed bottom-0 inset-x-0 z-50 border-t px-2 py-2 md:hidden flex", isDarkMode ? "bg-gray-800/95 border-gray-700 backdrop-blur-sm" : "bg-white/95 border-black/5 backdrop-blur-sm")}>
+        <div className="w-full flex items-stretch gap-2 overflow-x-auto pb-1">
+          {navItems.map((item) => (
+            <Link
+              key={`mobile-nav-${item.path}`}
+              to={item.path}
+              className={cn(
+                "relative min-w-[72px] flex-1 rounded-2xl px-2 py-2 text-center transition-colors",
+                isActive(item.path)
+                  ? (isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-indigo-50 text-indigo-600")
+                  : (isDarkMode ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100")
+              )}
+            >
+              <div className="flex flex-col items-center gap-1">
+                {item.icon && <item.icon size={18} className="flex-shrink-0" />}
+                <span className="text-[10px] leading-tight line-clamp-2">{item.label}</span>
+              </div>
+            </Link>
+          ))}
+          
+          {/* Dashboard Button - opens menu if logged in, shows login if not */}
+          <button
+            onClick={() => user ? setShowDashboardMenu(true) : navigate('/login')}
             className={cn(
               "relative min-w-[72px] flex-1 rounded-2xl px-2 py-2 text-center transition-colors",
-              isActive(item.path)
-                ? (isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-indigo-50 text-indigo-600")
-                : (isDarkMode ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100")
+              (isDarkMode ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100")
             )}
           >
             <div className="flex flex-col items-center gap-1">
-              {item.icon && <item.icon size={18} className="flex-shrink-0" />}
-              <span className="text-[10px] leading-tight line-clamp-2">{item.label}</span>
+              <LayoutDashboard size={18} className="flex-shrink-0" />
+              <span className="text-[10px] leading-tight line-clamp-2">
+                {user ? 'داشبورد' : 'تسجيل'}
+              </span>
             </div>
-          </Link>
-        ))}
+          </button>
+        </div>
       </div>
-    </div>
+      
+      {/* Dashboard Menu Modal */}
+      {user && (
+        <DashboardMenuModal
+          isOpen={showDashboardMenu}
+          onClose={() => setShowDashboardMenu(false)}
+          onSelectSection={handleDashboardSelect}
+        />
+      )}
+    </>
   );
 };
 
