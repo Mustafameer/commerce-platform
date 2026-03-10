@@ -11496,12 +11496,64 @@ const TopupStorefront = () => {
                     </div>
                   )}
 
-                  <button
-                    onClick={() => setShowAccountStatement(true)}
-                    className={cn("w-full py-2 px-3 rounded text-xs font-normal", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
-                  >
-                    📋 كشف الحساب
-                  </button>
+                  {/* Buttons */}
+                  <div className="grid grid-cols-3 gap-2 mt-3">
+                    <button
+                      onClick={() => setShowPaymentForm(!showPaymentForm)}
+                      className={cn("py-2 px-3 rounded text-xs font-normal text-white transition-colors", isDarkMode ? "bg-green-900 hover:bg-green-800" : "bg-green-600 hover:bg-green-700")}
+                      disabled={Number(customer?.current_debt || 0) <= 0}
+                      title="تسديد المديونية"
+                    >
+                      💳 دفع
+                    </button>
+                    <button
+                      onClick={() => setShowAccountStatement(true)}
+                      className={cn("py-2 px-3 rounded text-xs font-normal text-white transition-colors", isDarkMode ? "bg-blue-900 hover:bg-blue-800" : "bg-blue-600 hover:bg-blue-700")}
+                      title="عرض تفاصيل الحساب"
+                    >
+                      📋 كشف
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className={cn("py-2 px-3 rounded text-xs font-normal", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
+                      title="تسجيل الخروج"
+                    >
+                      🚪 خروج
+                    </button>
+                  </div>
+
+                  {/* Payment Form */}
+                  {showPaymentForm && (
+                    <div className={cn("mt-4 p-4 rounded-lg border-2", isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300")}>
+                      <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-green-400" : "text-green-700")}>أدخل المبلغ (د.ع)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          value={paymentAmount}
+                          onChange={(e) => setPaymentAmount(e.target.value)}
+                          placeholder="0"
+                          max={Number(customer?.current_debt || 0)}
+                          className={cn("flex-1 px-3 py-2 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
+                        />
+                        <button
+                          onClick={handlePayment}
+                          disabled={isPaymentProcessing}
+                          className={cn("px-4 py-2 rounded-lg text-white font-normal text-sm transition-colors", isPaymentProcessing ? "opacity-50" : "", isDarkMode ? "bg-green-600 hover:bg-green-700" : "bg-green-600 hover:bg-green-700")}
+                        >
+                          {isPaymentProcessing ? 'جاري...' : 'تأكيد'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowPaymentForm(false);
+                            setPaymentAmount('');
+                          }}
+                          className={cn("px-4 py-2 rounded-lg text-white font-normal text-sm transition-colors", isDarkMode ? "bg-gray-600 hover:bg-gray-700" : "bg-gray-400 hover:bg-gray-500")}
+                        >
+                          إلغاء
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
