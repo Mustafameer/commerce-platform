@@ -3590,12 +3590,12 @@ const AdminDashboard = () => {
           
           <div className="p-6">
             <div className="mb-6">
-              <label className={cn("block text-xs font-normal uppercase mb-2", isDarkMode ? "text-gray-400" : "text-gray-400")}>{`معرّف تليجرام (المستقبِل)`}</label>
+              <label className={cn("block text-xs font-normal uppercase mb-2", isDarkMode ? "text-gray-400" : "text-gray-400")}>{`رقم الهاتف WhatsApp`}</label>
               <input 
                 type="text" 
                 value={approveDialog.customPhone}
                 onChange={(e) => setApproveDialog({...approveDialog, customPhone: e.target.value})}
-                placeholder="077XXXXXXXX"
+                placeholder="966xxxxxxxxx"
                 className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all font-normal", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-gray-100 text-gray-900")}
               />
               {!store.owner_phone && (
@@ -3630,21 +3630,25 @@ const AdminDashboard = () => {
               onClick={() => {
                 const encodedMsg = encodeURIComponent(messagePreview);
                 const cleanPhone = approveDialog.customPhone.replace(/[\s\-\(\)]/g, '');
-                // Basic check for Iraqi numbers prefix
+                // Ensure phone number has country code
                 let waPhone = cleanPhone;
-                if (cleanPhone.startsWith('07') && cleanPhone.length === 11) {
+                if (cleanPhone.startsWith('0')) {
+                  // Iraqi number starting with 0 - convert to 964
                   waPhone = '964' + cleanPhone.substring(1);
+                } else if (!cleanPhone.startsWith('966') && !cleanPhone.startsWith('964')) {
+                  // Add default country code if missing
+                  waPhone = '964' + cleanPhone;
                 }
-                // Open Telegram share with message
-                const telegramUrl = `https://t.me/share/url?url=&text=${encodedMsg}`;
-                window.open(telegramUrl, '_blank');
+                // Open WhatsApp share with message
+                const whatsappUrl = `https://wa.me/${waPhone}?text=${encodedMsg}`;
+                window.open(whatsappUrl, '_blank');
                 // Close the dialog
                 setApproveDialog({ store: null, customPhone: '' });
               }}
-              className="w-full bg-emerald-500 text-white py-4 font-normal rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-100"
+              className="w-full bg-green-500 text-white py-4 font-normal rounded-xl flex items-center justify-center gap-2 hover:bg-green-600 transition-colors shadow-lg shadow-green-100"
             >
               <Send size={20} />
-              <span>إرسال الرسالة عبر تليجرام يدوياً</span>
+              <span>إرسال الرسالة عبر واتساب يدوياً</span>
             </Button>
             <p className="text-[10px] text-center text-gray-400 font-medium">خطوة يدوية: اضغط تفعيل أولاً ثم إرسال لضمان تحديث حالة المتجر</p>
           </div>
