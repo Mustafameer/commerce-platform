@@ -2983,31 +2983,69 @@ async function startServer() {
       }
     });
 
-    // Get customer statement (transactions)
+    // Get customer statement (transactions) - Get from customer payments and transactions
     app.get("/api/customers/:id/statement", async (req, res) => {
       try {
         const { id } = req.params;
+        const customerId = parseInt(id);
         
         const customerRes = await pool.query(
           `SELECT * FROM customers WHERE id = $1`,
-          [parseInt(id)]
+          [customerId]
         );
 
         if (customerRes.rows.length === 0) {
           return res.status(404).json({ error: "Customer not found" });
         }
 
-        const transactionsRes = await pool.query(
-          `SELECT * FROM customer_transactions WHERE customer_id = $1 ORDER BY created_at DESC`,
-          [parseInt(id)]
+        const customer = customerRes.rows[0];
+
+        // Get transactions from customer_transactions table
+        const txRes = await pool.query(
+          `SELECT id, customer_id, transaction_type as type, amount, description, created_at
+           FROM customer_transactions WHERE customer_id = $1 ORDER BY created_at DESC`,
+          [customerId]
         );
 
-        const customer = customerRes.rows[0];
+        // Get payments from customer_payments table
+        const payRes = await pool.query(
+          `SELECT id, customer_id, amount, payment_method, notes as description, created_at
+           FROM customer_payments WHERE customer_id = $1 ORDER BY created_at DESC`,
+          [customerId]
+        );
+
+        // Combine both transactions and payments, sorted by date
+        const allTransactions = [
+          ...txRes.rows.map(t => ({
+            ...t,
+            balance: customer.current_debt // This will be calculated from beginning balance
+          })),
+          ...payRes.rows.map(p => ({
+            id: p.id,
+            customer_id: p.customer_id,
+            type: 'credit',
+            amount: p.amount,
+            description: p.description || 'دفعة',
+            created_at: p.created_at
+          }))
+        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
         res.json({
           name: customer.name,
           current_debt: customer.current_debt,
+          credit_limit: customer.credit_limit,
+          starting_balance: customer.starting_balance,
           customer: customer,
-          transactions: transactionsRes.rows
+          transactions: allTransactions.length > 0 ? allTransactions : [
+            {
+              id: 0,
+              type: 'opening',
+              description: 'الرصيد الافتتاحي',
+              amount: customer.starting_balance,
+              created_at: customer.created_at,
+              balance: customer.starting_balance
+            }
+          ]
         });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });

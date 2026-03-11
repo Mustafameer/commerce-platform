@@ -4514,10 +4514,12 @@ const MerchantDashboard = () => {
   const handleLoadStatement = async (customerId: number) => {
     try {
       setIsLoadingCustomerTransactions(true);
+      console.log('🔍 Fetching statement for customer:', customerId);
+      
       const res = await fetch(`/api/customers/${customerId}/statement`);
       if (res.ok) {
         const data = await res.json();
-        console.log("📊 Customer Statement:", data);
+        console.log("📊 Customer Statement Response:", data);
         
         // Handle different response formats
         let transactions = [];
@@ -4527,16 +4529,26 @@ const MerchantDashboard = () => {
           transactions = data.transactions;
         } else if (data.data && Array.isArray(data.data)) {
           transactions = data.data;
+        } else {
+          console.warn('⚠️ Unexpected response format:', data);
+          transactions = [];
         }
         
         setCustomerTransactions(transactions);
         console.log('✅ Transactions loaded:', transactions.length);
+        
+        // If no transactions but customer exists, show default message
+        if (transactions.length === 0) {
+          console.log('💡 No transactions found, showing opening balance');
+        }
       } else {
+        const errData = await res.json().catch(() => ({}));
+        console.error('❌ API Error:', res.status, errData);
         setCustomerTransactions([]);
-        alert("❌ فشل الحصول على كشف الحساب");
+        alert(`❌ فشل الحصول على كشف الحساب: ${errData.error || res.statusText}`);
       }
     } catch (err) {
-      console.error(err);
+      console.error('🔴 Network error:', err);
       setCustomerTransactions([]);
       alert("حدث خطأ في الاتصال بالسيرفر");
     } finally {
