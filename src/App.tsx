@@ -9937,16 +9937,17 @@ const MerchantTopupDashboard = () => {
               </button>
 
               <Card className={cn("overflow-hidden", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
-                <table className="w-full">
-                  <thead>
-                    <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الشركة</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>المبلغ</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>السعر</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>سعر الجملة</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الإجراءات</th>
-                    </tr>
-                  </thead>
+                <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
+                  <table className="w-full">
+                    <thead>
+                      <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الشركة</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>المبلغ</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>السعر</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>سعر الجملة</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الإجراءات</th>
+                      </tr>
+                    </thead>
                   <tbody>
                     {products.map(product => (
                       <tr key={product.id} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
@@ -10001,6 +10002,7 @@ const MerchantTopupDashboard = () => {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </Card>
             </div>
           )}
@@ -10009,15 +10011,16 @@ const MerchantTopupDashboard = () => {
           {currentSection === 'codes' && (
             <div className="space-y-6">
               <Card className={cn("overflow-hidden", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
-                <table className="w-full">
-                  <thead>
-                    <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الشركة</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>المبلغ</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>عدد الأكواد</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الأكواد</th>
-                    </tr>
-                  </thead>
+                <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
+                  <table className="w-full">
+                    <thead>
+                      <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الشركة</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>المبلغ</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>عدد الأكواد</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الأكواد</th>
+                      </tr>
+                    </thead>
                   <tbody>
                     {products.filter(p => p.codes && p.codes.length > 0).length > 0 ? (
                       products.map(product => (
@@ -10052,11 +10055,10 @@ const MerchantTopupDashboard = () => {
                     )}
                   </tbody>
                 </table>
+                </div>
               </Card>
             </div>
           )}
-
-          {/* Customers Section */}
           {currentSection === 'customers' && (
             <div className="space-y-6">
               <div className="flex gap-3">
@@ -10073,18 +10075,19 @@ const MerchantTopupDashboard = () => {
               </div>
 
               <Card className={cn("overflow-hidden", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
-                <table className="w-full">
-                  <thead>
-                    <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الاسم</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الهاتف</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>النوع</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>حد الائتمان</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الرصيد الابتدائي</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الديون الحالية</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الإجراءات</th>
-                    </tr>
-                  </thead>
+                <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
+                  <table className="w-full">
+                    <thead>
+                      <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الاسم</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الهاتف</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>النوع</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>حد الائتمان</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الرصيد الابتدائي</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الديون الحالية</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الإجراءات</th>
+                      </tr>
+                    </thead>
                   <tbody>
                     {customers.length > 0 ? (
                       customers.map(customer => (
@@ -10170,6 +10173,7 @@ const MerchantTopupDashboard = () => {
                     )}
                   </tbody>
                 </table>
+                </div>
               </Card>
             </div>
           )}
@@ -10181,17 +10185,18 @@ const MerchantTopupDashboard = () => {
                 <div className={cn("p-6 border-b font-normal", isDarkMode ? "border-gray-700 text-white" : "border-gray-200 text-gray-900")}>
                   طلبات البيع
                 </div>
-                <table className="w-full">
-                  <thead>
-                    <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>رقم الطلب</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>العميل</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>المنتج</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>المبلغ</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الحالة</th>
-                      <th className={cn("px-6 py-3 text-center text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الإجراءات</th>
-                    </tr>
-                  </thead>
+                <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
+                  <table className="w-full">
+                    <thead>
+                      <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>رقم الطلب</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>العميل</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>المنتج</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>المبلغ</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الحالة</th>
+                        <th className={cn("px-6 py-3 text-center text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الإجراءات</th>
+                      </tr>
+                    </thead>
                   <tbody>
                     {orders && orders.length > 0 ? (
                       orders.map((order: any) => (
@@ -10246,11 +10251,10 @@ const MerchantTopupDashboard = () => {
                     )}
                   </tbody>
                 </table>
+                </div>
               </Card>
             </div>
           )}
-
-          {/* Settings Section */}
           {currentSection === 'settings' && (
             <div className="space-y-6">
               {/* Store Information Card */}
