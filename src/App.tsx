@@ -9787,8 +9787,8 @@ const MerchantTopupDashboard = () => {
                 {[
                   { label: '📊 إجمالي الطلبات', value: stats.totalOrders.toString(), color: 'indigo' },
                   { label: '💰 الإيرادات', value: `${Math.round(typeof stats.totalRevenue === 'number' ? stats.totalRevenue : parseFloat(String(stats.totalRevenue) || '0')).toLocaleString('en-US')} د.ع`, color: 'green' },
-                  { label: '📦 الأكواد المتاحة', value: stats.activeCodes.toString(), color: 'blue' },
-                  { label: '✅ الأكواد المستخدمة', value: (stats.totalCodes - stats.activeCodes).toString(), color: 'purple' },
+                  { label: '📦 الأكواد المتاحة', value: stats.totalCodes.toString(), color: 'blue' },
+                  { label: '✅ الأكواد المستخدمة', value: ((stats.totalCodes || 0) - (stats.activeCodes || 0)).toString(), color: 'purple' },
                 ].map((stat, i) => (
                   <Card key={i} className={cn("p-6 border-none", isDarkMode ? "bg-gray-800" : "bg-white")}>
                     <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>{stat.label}</p>
@@ -10031,21 +10031,25 @@ const MerchantTopupDashboard = () => {
                       </tr>
                     </thead>
                   <tbody>
-                    {products.filter(p => p.codes && p.codes.length > 0).length > 0 ? (
-                      products.map(product => (
-                        product.codes && product.codes.length > 0 && (
+                    {products.filter(p => {
+                      const codesCount = typeof p.available_codes === 'number' ? p.available_codes : (p.codes && p.codes.length > 0 ? p.codes.length : 0);
+                      return codesCount > 0;
+                    }).length > 0 ? (
+                      products.map(product => {
+                        const codesCount = typeof product.available_codes === 'number' ? product.available_codes : (product.codes && product.codes.length > 0 ? product.codes.length : 0);
+                        return codesCount > 0 && (
                           <tr key={product.id} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{product.company_name}</td>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{product.amount?.toLocaleString('en-US')}</td>
-                            <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-green-400" : "text-green-600")}>{product.codes.length}</td>
+                            <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-green-400" : "text-green-600")}>{codesCount}</td>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-gray-300" : "text-gray-700")}>
                               <div className="flex flex-wrap gap-2">
-                                {product.codes.slice(0, 5).map((code, idx) => (
+                                {product.codes && Array.isArray(product.codes) && product.codes.slice(0, 5).map((code, idx) => (
                                   <span key={idx} className={cn("px-2 py-1 text-xs rounded", isDarkMode ? "bg-gray-700 text-blue-300" : "bg-blue-50 text-blue-700")}>
                                     {code}
                                   </span>
                                 ))}
-                                {product.codes.length > 5 && (
+                                {product.codes && product.codes.length > 5 && (
                                   <span className={cn("px-2 py-1 text-xs rounded", isDarkMode ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-600")}>
                                     +{product.codes.length - 5} أكثر
                                   </span>
@@ -10053,8 +10057,8 @@ const MerchantTopupDashboard = () => {
                               </div>
                             </td>
                           </tr>
-                        )
-                      ))
+                        );
+                      })
                     ) : (
                       <tr className={cn("border-t", isDarkMode ? "border-gray-700" : "border-gray-200")}>
                         <td colSpan={4} className={cn("px-6 py-8 text-center", isDarkMode ? "text-gray-400" : "text-gray-500")}>
