@@ -11680,21 +11680,51 @@ const TopupStorefront = () => {
 
   // Load customer statement with transactions
   const handleLoadStatement = async () => {
-    if (!customer?.customer_id) return;
+    if (!customer?.customer_id) {
+      console.warn('⚠️ No customer_id found');
+      return;
+    }
     
     setIsLoadingStatement(true);
     try {
+      console.log('🔍 Fetching statement for customer:', customer.customer_id);
       const res = await fetch(`/api/customers/${customer.customer_id}/statement`);
       const data = await res.json();
-      console.log('📊 Statement data loaded:', data);
+      console.log('📊 Raw API response:', data);
+      console.log('📊 Response status:', res.status, 'OK:', res.ok);
       
-      if (res.ok && data.transactions) {
-        setStatementTransactions(data.transactions);
+      if (res.ok) {
+        // Handle different response formats
+        let transactions = [];
+        if (Array.isArray(data)) {
+          console.log('✓ Data is array');
+          transactions = data;
+        } else if (data.transactions && Array.isArray(data.transactions)) {
+          console.log('✓ Found data.transactions');
+          transactions = data.transactions;
+        } else if (data.data && Array.isArray(data.data)) {
+          console.log('✓ Found data.data');
+          transactions = data.data;
+        } else if (data.orders && Array.isArray(data.orders)) {
+          console.log('✓ Found data.orders');
+          transactions = data.orders;
+        } else if (data.purchases && Array.isArray(data.purchases)) {
+          console.log('✓ Found data.purchases');
+          transactions = data.purchases;
+        } else {
+          console.warn('⚠️ Unknown response format:', Object.keys(data));
+          transactions = [];
+        }
+        
+        console.log('📊 Final transactions count:', transactions.length);
+        console.log('📊 First transaction sample:', transactions[0]);
+        setStatementTransactions(transactions);
       } else {
+        console.error('❌ API returned error status:', res.status);
         setStatementTransactions([]);
       }
     } catch (error) {
-      console.error('Error loading statement:', error);
+      console.error('❌ Error loading statement:', error);
       setStatementTransactions([]);
     } finally {
       setIsLoadingStatement(false);
@@ -12258,25 +12288,34 @@ const TopupStorefront = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {statementTransactions.map((transaction, idx) => (
-                              <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-100")}>
-                                <td className={cn("px-3 py-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                                  {transaction.date ? new Date(transaction.date).toLocaleDateString('ar-IQ') : '—'}
-                                </td>
-                                <td className={cn("px-3 py-2 font-bold", transaction.type === 'credit' ? "text-green-500" : "text-red-500")}>
-                                  {transaction.type === 'credit' ? '✓ رصيد' : '✕ خصم'}
-                                </td>
-                                <td className={cn("px-3 py-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                                  {transaction.description || transaction.notes || '—'}
-                                </td>
-                                <td className={cn("px-3 py-2 text-center font-bold", transaction.type === 'credit' ? "text-green-500" : "text-red-500")}>
-                                  {transaction.type === 'credit' ? '+' : '-'}{Math.round(Number(transaction.amount) || 0).toLocaleString('en-US')} د.ع
-                                </td>
-                                <td className={cn("px-3 py-2 text-center", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                                  {Math.round(Number(transaction.balance) || 0).toLocaleString('en-US')} د.ع
-                                </td>
-                              </tr>
-                            ))}
+                            {statementTransactions.map((transaction, idx) => {
+                              const txDate = transaction.created_at || transaction.date || transaction.transaction_date;
+                              const txType = transaction.type || transaction.transaction_type || 'unknown';
+                              const txDescription = transaction.description || transaction.notes || transaction.detail || `معاملة #${idx + 1}`;
+                              const txAmount = Math.round(Number(transaction.amount || transaction.value || 0));
+                              const txBalance = Math.round(Number(transaction.balance || transaction.current_balance || 0));
+                              const isCredit = txType === 'credit' || txType === 'رصيد' || txType === 'إيداع';
+                              
+                              return (
+                                <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-100")}>
+                                  <td className={cn("px-3 py-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                                    {txDate ? new Date(txDate).toLocaleDateString('ar-IQ') : '—'}
+                                  </td>
+                                  <td className={cn("px-3 py-2 font-bold", isCredit ? "text-green-500" : "text-red-500")}>
+                                    {isCredit ? '✓ رصيد' : '✕ خصم'}
+                                  </td>
+                                  <td className={cn("px-3 py-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                                    {txDescription}
+                                  </td>
+                                  <td className={cn("px-3 py-2 text-center font-bold", isCredit ? "text-green-500" : "text-red-500")}>
+                                    {isCredit ? '+' : '-'}{txAmount.toLocaleString('en-US')} د.ع
+                                  </td>
+                                  <td className={cn("px-3 py-2 text-center", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                                    {txBalance.toLocaleString('en-US')} د.ع
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       ) : (
