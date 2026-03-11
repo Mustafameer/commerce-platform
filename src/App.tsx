@@ -12174,11 +12174,13 @@ const TopupStorefront = () => {
                   {/* Account Stats */}
                   <div className="space-y-3">
                     <div className={cn("p-4 rounded-lg border-2", isDarkMode ? "bg-blue-900/20 border-blue-600" : "bg-blue-50 border-blue-300")}>
-                      <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-blue-400" : "text-blue-600")}>حد الائتمان</p>
-                      <p className={cn("text-2xl font-bold", isDarkMode ? "text-blue-300" : "text-blue-600")}>
-                        {Math.round(Number(customer.credit_limit) || 0)?.toLocaleString('en-US')}
-                      </p>
-                      <p className={cn("text-xs mt-1", isDarkMode ? "text-blue-400" : "text-blue-600")}>د.ع</p>
+                      <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-blue-400" : "text-blue-600")}>حد الائتمان</p>
+                      <div className="flex items-baseline gap-1">
+                        <p className={cn("text-2xl font-bold", isDarkMode ? "text-blue-300" : "text-blue-600")}>
+                          {Math.round(Number(customer.credit_limit) || 0)?.toLocaleString('en-US')}
+                        </p>
+                        <p className={cn("text-sm font-normal", isDarkMode ? "text-blue-400" : "text-blue-600")}>د.ع</p>
+                      </div>
                     </div>
 
                     <div className={cn("p-4 rounded-lg border-2", isDarkMode ? "bg-purple-900/20 border-purple-600" : "bg-purple-50 border-purple-300")}>
@@ -12192,26 +12194,32 @@ const TopupStorefront = () => {
                           ✎️
                         </button>
                       </div>
-                      <p className={cn("text-2xl font-bold", isDarkMode ? "text-purple-300" : "text-purple-600")}>
-                        {Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')}
-                      </p>
-                      <p className={cn("text-xs mt-1", isDarkMode ? "text-purple-400" : "text-purple-600")}>د.ع</p>
+                      <div className="flex items-baseline gap-1">
+                        <p className={cn("text-2xl font-bold", isDarkMode ? "text-purple-300" : "text-purple-600")}>
+                          {Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')}
+                        </p>
+                        <p className={cn("text-sm font-normal", isDarkMode ? "text-purple-400" : "text-purple-600")}>د.ع</p>
+                      </div>
                     </div>
 
                     <div className={cn("p-4 rounded-lg border-2", Number(customer.current_debt || 0) > Number(customer.credit_limit || 0) ? (isDarkMode ? "bg-red-900/20 border-red-600" : "bg-red-50 border-red-300") : (isDarkMode ? "bg-yellow-900/20 border-yellow-600" : "bg-yellow-50 border-yellow-300"))}>
-                      <p className={cn("text-xs font-normal mb-1", Number(customer.current_debt || 0) > Number(customer.credit_limit || 0) ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-400" : "text-yellow-600"))}>الديون الحالية</p>
-                      <p className={cn("text-2xl font-bold", Number(customer.current_debt || 0) > Number(customer.credit_limit || 0) ? (isDarkMode ? "text-red-300" : "text-red-600") : (isDarkMode ? "text-yellow-300" : "text-yellow-600"))}>
-                        {Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')}
-                      </p>
-                      <p className={cn("text-xs mt-1", Number(customer.current_debt || 0) > Number(customer.credit_limit || 0) ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-400" : "text-yellow-600"))}>د.ع</p>
+                      <p className={cn("text-xs font-normal mb-2", Number(customer.current_debt || 0) > Number(customer.credit_limit || 0) ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-400" : "text-yellow-600"))}>الديون الحالية</p>
+                      <div className="flex items-baseline gap-1">
+                        <p className={cn("text-2xl font-bold", Number(customer.current_debt || 0) > Number(customer.credit_limit || 0) ? (isDarkMode ? "text-red-300" : "text-red-600") : (isDarkMode ? "text-yellow-300" : "text-yellow-600"))}>
+                          {Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')}
+                        </p>
+                        <p className={cn("text-sm font-normal", Number(customer.current_debt || 0) > Number(customer.credit_limit || 0) ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-400" : "text-yellow-600"))}>د.ع</p>
+                      </div>
                     </div>
 
                     <div className={cn("p-4 rounded-lg border-2", (Number(customer.credit_limit || 0) - Number(customer.current_debt || 0)) <= 0 ? (isDarkMode ? "bg-red-900/20 border-red-600" : "bg-red-50 border-red-300") : (isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300"))}>
-                      <p className={cn("text-xs font-normal mb-1", (Number(customer.credit_limit || 0) - Number(customer.current_debt || 0)) <= 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-green-400" : "text-green-600"))}>الرصيد المتاح</p>
-                      <p className={cn("text-2xl font-bold", (Number(customer.credit_limit || 0) - Number(customer.current_debt || 0)) <= 0 ? (isDarkMode ? "text-red-300" : "text-red-600") : (isDarkMode ? "text-green-300" : "text-green-600"))}>
-                        {Math.round(Math.max(0, Number(customer.credit_limit || 0) - Number(customer.current_debt || 0))).toLocaleString('en-US')}
-                      </p>
-                      <p className={cn("text-xs mt-1", (Number(customer.credit_limit || 0) - Number(customer.current_debt || 0)) <= 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-green-400" : "text-green-600"))}>د.ع</p>
+                      <p className={cn("text-xs font-normal mb-2", (Number(customer.credit_limit || 0) - Number(customer.current_debt || 0)) <= 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-green-400" : "text-green-600"))}>الرصيد المتاح</p>
+                      <div className="flex items-baseline gap-1">
+                        <p className={cn("text-2xl font-bold", (Number(customer.credit_limit || 0) - Number(customer.current_debt || 0)) <= 0 ? (isDarkMode ? "text-red-300" : "text-red-600") : (isDarkMode ? "text-green-300" : "text-green-600"))}>
+                          {Math.round(Math.max(0, Number(customer.credit_limit || 0) - Number(customer.current_debt || 0))).toLocaleString('en-US')}
+                        </p>
+                        <p className={cn("text-sm font-normal", (Number(customer.credit_limit || 0) - Number(customer.current_debt || 0)) <= 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-green-400" : "text-green-600"))}>د.ع</p>
+                      </div>
                     </div>
                   </div>
 
