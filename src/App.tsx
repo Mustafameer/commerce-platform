@@ -4563,20 +4563,34 @@ const MerchantDashboard = () => {
       return;
     }
 
+    // Get store_id from current user (merchant's store)
+    const storeId = user?.store_id || (selectedCustomerStatement as any)?.store_id;
+    if (!storeId) {
+      alert('⚠️ لم يتم العثور على معرف المتجر');
+      return;
+    }
+
     setIsProcessingMerchantPayment(true);
     try {
-      const res = await fetch('/api/customers/payment', {
+      const paymentData = {
+        customer_id: selectedCustomerStatement.customer_id,
+        store_id: storeId,
+        amount: parseFloat(merchantPaymentAmount),
+        payment_method: 'manual',
+        notes: 'تسديد يدوي من قبل التاجر'
+      };
+
+      console.log('💳 Sending payment:', paymentData);
+
+      const res = await fetch('/api/customer-payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer_id: selectedCustomerStatement.customer_id,
-          amount: parseFloat(merchantPaymentAmount),
-          payment_method: 'manual',
-          description: 'تسديد يدوي من قبل التاجر'
-        })
+        body: JSON.stringify(paymentData)
       });
 
       const data = await res.json();
+      console.log('Response:', data);
+
       if (res.ok) {
         alert('✅ تم تسجيل الدفعة بنجاح');
         setMerchantPaymentAmount('');
