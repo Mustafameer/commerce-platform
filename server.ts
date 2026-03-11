@@ -3048,8 +3048,44 @@ async function startServer() {
         ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
         // Calculate running balance for each transaction
-        // Start from starting_balance: debit transactions ADD to debt, credit transactions SUBTRACT from debt
-        let runningBalance = customer.starting_balance || 0;
+        // We need to determine starting point: either use starting_balance OR calculate from transactions
+        // If no transactions, balance equals current_debt; if transactions exist, recalculate from them
+        let initialDebt = customer.starting_balance || 0;
+        
+        console.log(`📊 BALANCE CALCULATION START:`);
+        console.log(`   Customer: ${customer.name}`);
+        console.log(`   current_debt (DB): ${customer.current_debt}`);
+        console.log(`   starting_balance: ${customer.starting_balance}`);
+        console.log(`   Total transactions: ${allTransactions.length}`);
+        
+        // If there are transactions, calculate what the initial debt should have been before all transactions
+        if (allTransactions.length > 0) {
+          let totalDebits = 0;
+          let totalCredits = 0;
+          
+          allTransactions.forEach((t: any) => {
+            if (t.is_payment) {
+              totalCredits += t.amount;
+            } else {
+              totalDebits += t.amount;
+            }
+          });
+          
+          // Initial debt = current_debt + payments - debits
+          // i.e., debt before any transactions = current_debt - effect of transactions
+          initialDebt = (customer.current_debt || 0) + totalCredits - totalDebits;
+          console.log(`   totalDebits: ${totalDebits}`);
+          console.log(`   totalCredits (payments): ${totalCredits}`);
+          console.log(`   Calculated initialDebt = ${customer.current_debt} + ${totalCredits} - ${totalDebits} = ${initialDebt}`);
+        } else {
+          initialDebt = customer.current_debt || 0;
+          console.log(`   No transactions, initialDebt = current_debt = ${initialDebt}`);
+        }
+        
+        console.log(`   STARTING FROM: ${initialDebt}`);
+        
+        // Now calculate running balance from transactions
+        let runningBalance = initialDebt;
         
         // Add all transactions with calculated balance (without opening balance yet)
         const transactionsWithBalance = allTransactions.map((t: any) => {
@@ -3072,24 +3108,35 @@ async function startServer() {
         const allTransactionsFinal = transactionsWithBalance.reverse();
 
         // Now add opening balance at the beginning if it exists
-        if (customer.starting_balance && customer.starting_balance > 0) {
+        // Opening balance shows the debt before all transactions
+        if (initialDebt && initialDebt > 0) {
           const openingBalance = {
             id: 0,
             type: 'opening',
-            description: 'الرصيد الافتتاحي',
-            amount: customer.starting_balance,
+            description: customer.starting_balance ? 'الرصيد الافتتاحي' : 'الرصيد الأولي',
+            amount: initialDebt,
             created_at: customer.created_at,
-            balance: customer.starting_balance,
+            balance: initialDebt,
             is_payment: false
           };
           allTransactionsFinal.unshift(openingBalance);
-          console.log(`✅ Opening balance added at index 0: ${customer.starting_balance}`);
+          console.log(`✅ Opening balance added at index 0: ${initialDebt}`);
         }
 
         console.log(`📊 Final: ${allTransactionsFinal.length} items`);
         allTransactionsFinal.forEach((t, i) => {
           console.log(`  [${i}] Type: ${t.type} | Desc: ${t.description} | Amount: ${t.amount} | Balance: ${t.balance}`);
         });
+        
+        // Verify final balance matches current_debt
+        // Last non-opening transaction should have balance = current_debt
+        const lastNonOpeningIndex = allTransactionsFinal.findIndex((t, i) => i > 0 && t.type !== 'opening');
+        if (lastNonOpeningIndex >= 0) {
+          const lastNonOpening = allTransactionsFinal[lastNonOpeningIndex];
+          console.log(`✅ Last non-opening transaction balance: ${lastNonOpening.balance} | Current debt from DB: ${customer.current_debt}`);
+        } else if (allTransactionsFinal.length > 0 && allTransactionsFinal[0].type === 'opening') {
+          console.log(`✅ Only opening balance: ${allTransactionsFinal[0].balance} | Current debt from DB: ${customer.current_debt}`);
+        }
 
         const responseData = {
           name: customer.name,
