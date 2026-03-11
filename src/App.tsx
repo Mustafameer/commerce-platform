@@ -5358,9 +5358,19 @@ const MerchantDashboard = () => {
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <button 
-                          onClick={() => handleLoadStatement(cust.id)}
+                          onClick={() => {
+                            // Ensure customer object has customer_id field
+                            const customerWithId = {
+                              ...cust,
+                              customer_id: cust.customer_id || cust.id
+                            };
+                            setSelectedCustomerStatement(customerWithId);
+                            setShowCustomerStatement(true);
+                            // Load transactions when opening statement modal
+                            setTimeout(() => handleLoadStatement(customerWithId.customer_id), 100);
+                          }}
                           title="كشف الحساب"
-                          className={cn("p-2.5 rounded-lg transition-all shadow-sm hover:scale-110", isDarkMode ? "bg-blue-900/30 text-blue-400 hover:bg-blue-600 hover:text-white" : "bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white")}
+                          className={cn("p-2.5 rounded-lg transition-all shadow-sm hover:scale-110", isDarkMode ? "bg-green-900/30 text-green-400 hover:bg-green-600 hover:text-white" : "bg-green-50 text-green-600 hover:bg-green-600 hover:text-white")}
                         >
                           <FileText size={14} />
                         </button>
@@ -6779,6 +6789,147 @@ const MerchantDashboard = () => {
         {renderCategoryModal()}
         {renderCouponModal()}
         {renderCustomerModal()}
+
+        {/* Customer Statement Modal */}
+        {showCustomerStatement && selectedCustomerStatement && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto font-sans" dir="rtl">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={cn("rounded-[2rem] w-full max-w-4xl shadow-2xl border overflow-hidden", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-white/20")}
+            >
+              {/* Header */}
+              <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50/50 border-black/5")}>
+                <div>
+                  <h3 className={cn("text-2xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>كشف الحساب</h3>
+                  <p className={cn("text-sm font-medium mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>
+                    {selectedCustomerStatement.name} - {selectedCustomerStatement.phone}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowCustomerStatement(false)}
+                  className={cn("p-2 rounded-lg transition-colors", isDarkMode ? "hover:bg-gray-600 text-gray-400" : "hover:bg-black/5 text-gray-400")}
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Customer Credit Info */}
+              <div className={cn("p-6 grid grid-cols-3 gap-4 border-b", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
+                <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-blue-900/30" : "bg-blue-50")}>
+                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-blue-300" : "text-blue-600")}>حد الائتمان</p>
+                  <p className={cn("text-lg font-bold", isDarkMode ? "text-blue-400" : "text-blue-700")}>
+                    {formatCurrency(selectedCustomerStatement.credit_limit || 0)}
+                  </p>
+                </div>
+                <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-red-900/30" : "bg-red-50")}>
+                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
+                  <p className={cn("text-lg font-bold", isDarkMode ? "text-red-400" : "text-red-700")}>
+                    {formatCurrency(selectedCustomerStatement.current_debt || 0)}
+                  </p>
+                </div>
+                <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-green-900/30" : "bg-green-50")}>
+                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-green-300" : "text-green-600")}>الرصيد المتاح</p>
+                  <p className={cn("text-lg font-bold", isDarkMode ? "text-green-400" : "text-green-700")}>
+                    {formatCurrency((selectedCustomerStatement.credit_limit || 0) - (selectedCustomerStatement.current_debt || 0))}
+                  </p>
+                </div>
+              </div>
+
+              {/* Transactions Table */}
+              <div className="p-6 max-h-96 overflow-y-auto">
+                {isLoadingCustomerTransactions ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: `${primaryColor}` }}></div>
+                    <span className={cn("ml-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>جاري تحميل المعاملات...</span>
+                  </div>
+                ) : customerTransactions.length === 0 ? (
+                  <div className={cn("p-8 text-center rounded-lg", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
+                    <p className={cn("font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>لا توجد معاملات</p>
+                  </div>
+                ) : (
+                  <table className="w-full text-right text-sm">
+                    <thead>
+                      <tr className={cn("border-b", isDarkMode ? "border-gray-600" : "border-gray-200")}>
+                        <th className={cn("px-4 py-2 font-normal text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>التاريخ</th>
+                        <th className={cn("px-4 py-2 font-normal text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>النوع</th>
+                        <th className={cn("px-4 py-2 font-normal text-xs text-left", isDarkMode ? "text-gray-400" : "text-gray-600")}>المبلغ</th>
+                        <th className={cn("px-4 py-2 font-normal text-xs text-left", isDarkMode ? "text-gray-400" : "text-gray-600")}>الرصيد</th>
+                      </tr>
+                    </thead>
+                    <tbody className={cn(isDarkMode ? "divide-gray-700" : "divide-gray-100")}>
+                      {customerTransactions.map((transaction: any, idx: number) => (
+                        <tr key={idx} className={cn("border-b", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-100 hover:bg-gray-50")}>
+                          <td className={cn("px-4 py-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                            {new Date(transaction.created_at || transaction.date).toLocaleDateString('ar-IQ')}
+                          </td>
+                          <td className={cn("px-4 py-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                            {transaction.type || transaction.transaction_type || 'معاملة'}
+                          </td>
+                          <td className={cn("px-4 py-3 font-bold text-left", 
+                            (transaction.amount || 0) > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-red-400" : "text-red-600")
+                          )}>
+                            {formatCurrency(Math.abs(transaction.amount || 0))}
+                          </td>
+                          <td className={cn("px-4 py-3 font-normal text-left", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                            {formatCurrency(transaction.balance || 0)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* Payment Input Section */}
+              <div className={cn("p-6 border-t", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
+                <h4 className={cn("font-normal text-sm mb-4", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                  💳 تسجيل دفعة يدوية من التاجر
+                </h4>
+                <div className="flex gap-3">
+                  <div className="flex-1 relative">
+                    <input
+                      type="number"
+                      value={merchantPaymentAmount}
+                      onChange={(e) => setMerchantPaymentAmount(e.target.value)}
+                      placeholder="أدخل مبلغ الدفعة"
+                      className={cn("w-full px-4 py-3 border rounded-lg focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-normal outline-none pl-12", isDarkMode ? "bg-gray-600 border-gray-500 text-gray-100 placeholder-gray-400" : "bg-white border-black/5 placeholder-gray-400")}
+                    />
+                    <span className={cn("absolute left-3 top-1/2 -translate-y-1/2 font-normal text-sm", isDarkMode ? "text-gray-400" : "text-gray-500")}>د.أ</span>
+                  </div>
+                  <button
+                    onClick={handleAddMerchantPayment}
+                    disabled={isProcessingMerchantPayment || !merchantPaymentAmount}
+                    className={cn("px-6 py-3 rounded-lg font-normal text-white transition-all flex items-center gap-2", isProcessingMerchantPayment ? "opacity-50 cursor-not-allowed" : "hover:scale-105 active:scale-95")}
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    {isProcessingMerchantPayment ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        جاري...
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={18} />
+                        إضافة الدفعة
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <div className={cn("p-4 border-t flex justify-end", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
+                <button
+                  onClick={() => setShowCustomerStatement(false)}
+                  className={cn("px-6 py-2 rounded-lg font-normal transition-all", isDarkMode ? "bg-gray-600 hover:bg-gray-500 text-gray-100" : "bg-gray-200 hover:bg-gray-300 text-gray-700")}
+                >
+                  إغلاق
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
 
         {/* Invoice Modal */}
         {invoiceModal && (
