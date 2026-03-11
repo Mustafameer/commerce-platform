@@ -2989,36 +2989,52 @@ async function startServer() {
         const { id } = req.params;
         const customerId = parseInt(id);
         
+        console.log(`📋 Fetching statement for customer: ${customerId}`);
+
         const customerRes = await pool.query(
           `SELECT * FROM customers WHERE id = $1`,
           [customerId]
         );
 
         if (customerRes.rows.length === 0) {
+          console.warn(`⚠️ Customer not found: ${customerId}`);
           return res.status(404).json({ error: "Customer not found" });
         }
 
         const customer = customerRes.rows[0];
+        console.log(`✅ Found customer: ${customer.name}`);
 
         // Get transactions from customer_transactions table
-        const txRes = await pool.query(
-          `SELECT id, customer_id, transaction_type as type, amount, description, created_at
-           FROM customer_transactions WHERE customer_id = $1 ORDER BY created_at DESC`,
-          [customerId]
-        );
+        let txRes = { rows: [] };
+        try {
+          txRes = await pool.query(
+            `SELECT id, customer_id, transaction_type as type, amount, description, created_at
+             FROM customer_transactions WHERE customer_id = $1 ORDER BY created_at DESC`,
+            [customerId]
+          );
+          console.log(`📝 Found ${txRes.rows.length} transactions`);
+        } catch (txErr) {
+          console.warn(`⚠️ Error fetching transactions:`, (txErr as any).message);
+        }
 
         // Get payments from customer_payments table
-        const payRes = await pool.query(
-          `SELECT id, customer_id, amount, payment_method, notes as description, created_at
-           FROM customer_payments WHERE customer_id = $1 ORDER BY created_at DESC`,
-          [customerId]
-        );
+        let payRes = { rows: [] };
+        try {
+          payRes = await pool.query(
+            `SELECT id, customer_id, amount, payment_method, notes as description, created_at
+             FROM customer_payments WHERE customer_id = $1 ORDER BY created_at DESC`,
+            [customerId]
+          );
+          console.log(`💳 Found ${payRes.rows.length} payments`);
+        } catch (payErr) {
+          console.warn(`⚠️ Error fetching payments:`, (payErr as any).message);
+        }
 
         // Combine both transactions and payments, sorted by date
         const allTransactions = [
           ...txRes.rows.map(t => ({
             ...t,
-            balance: customer.current_debt // This will be calculated from beginning balance
+            balance: customer.current_debt
           })),
           ...payRes.rows.map(p => ({
             id: p.id,
@@ -3030,7 +3046,7 @@ async function startServer() {
           }))
         ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-        res.json({
+        const responseData = {
           name: customer.name,
           current_debt: customer.current_debt,
           credit_limit: customer.credit_limit,
@@ -3046,8 +3062,12 @@ async function startServer() {
               balance: customer.starting_balance
             }
           ]
-        });
+        };
+
+        console.log(`📊 Returning statement with ${responseData.transactions.length} transactions`);
+        res.json(responseData);
       } catch (error) {
+        console.error(`❌ Error in statement endpoint:`, (error as any).message);
         res.status(500).json({ error: (error as any).message });
       }
     });

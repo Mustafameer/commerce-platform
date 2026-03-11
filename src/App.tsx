@@ -4517,40 +4517,40 @@ const MerchantDashboard = () => {
       console.log('🔍 Fetching statement for customer:', customerId);
       
       const res = await fetch(`/api/customers/${customerId}/statement`);
-      if (res.ok) {
-        const data = await res.json();
-        console.log("📊 Customer Statement Response:", data);
-        
-        // Handle different response formats
-        let transactions = [];
-        if (Array.isArray(data)) {
-          transactions = data;
-        } else if (data.transactions && Array.isArray(data.transactions)) {
-          transactions = data.transactions;
-        } else if (data.data && Array.isArray(data.data)) {
-          transactions = data.data;
-        } else {
-          console.warn('⚠️ Unexpected response format:', data);
-          transactions = [];
-        }
-        
-        setCustomerTransactions(transactions);
-        console.log('✅ Transactions loaded:', transactions.length);
-        
-        // If no transactions but customer exists, show default message
-        if (transactions.length === 0) {
-          console.log('💡 No transactions found, showing opening balance');
-        }
+      console.log('📡 Response status:', res.status);
+      
+      const data = await res.json();
+      console.log("📊 API Response:", data);
+      
+      if (!res.ok) {
+        console.error('❌ API Error:', data);
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      
+      // Handle different response formats
+      let transactions = [];
+      if (Array.isArray(data)) {
+        transactions = data;
+      } else if (data.transactions && Array.isArray(data.transactions)) {
+        transactions = data.transactions;
+      } else if (data.data && Array.isArray(data.data)) {
+        transactions = data.data;
       } else {
-        const errData = await res.json().catch(() => ({}));
-        console.error('❌ API Error:', res.status, errData);
-        setCustomerTransactions([]);
-        alert(`❌ فشل الحصول على كشف الحساب: ${errData.error || res.statusText}`);
+        console.warn('⚠️ Unexpected response format:', data);
+        transactions = [];
+      }
+      
+      setCustomerTransactions(transactions);
+      console.log('✅ Transactions loaded:', transactions.length);
+      
+      if (transactions.length === 0) {
+        console.log('💡 No transactions found, showing opening balance or empty state');
       }
     } catch (err) {
-      console.error('🔴 Network error:', err);
+      console.error('🔴 Error loading statement:', err);
       setCustomerTransactions([]);
-      alert("حدث خطأ في الاتصال بالسيرفر");
+      const errorMsg = err instanceof Error ? err.message : 'حدث خطأ غير متوقع';
+      alert(`❌ فشل تحميل كشف الحساب\n${errorMsg}`);
     } finally {
       setIsLoadingCustomerTransactions(false);
     }
