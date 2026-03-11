@@ -4558,10 +4558,25 @@ const MerchantDashboard = () => {
       console.log('✅ Transactions loaded:', transactions.length);
       if (transactions.length > 0) {
         console.log('🔍 First transaction structure:', transactions[0]);
+        console.log('📋 All transactions:');
+        transactions.forEach((t, i) => {
+          console.log(`  ${i+1}. Type: ${t.type} | Amount: ${t.amount} | Is Payment: ${t.is_payment}`);
+        });
       }
       
       if (transactions.length === 0) {
         console.log('💡 No transactions found, showing opening balance or empty state');
+      }
+      
+      // Update the header info with latest data from API
+      if (data.current_debt !== undefined || data.credit_limit !== undefined) {
+        setSelectedCustomerStatement(prev => ({
+          ...prev,
+          current_debt: data.current_debt || prev?.current_debt || 0,
+          credit_limit: data.credit_limit || prev?.credit_limit || 0,
+          starting_balance: data.starting_balance || prev?.starting_balance || 0
+        }));
+        console.log('🔄 Updated statement header with latest values');
       }
     } catch (err) {
       console.error('🔴 Error loading statement:', err);
@@ -4634,10 +4649,13 @@ const MerchantDashboard = () => {
         
         setMerchantPaymentAmount('');
         
-        // Then reload full statement data
-        if (selectedCustomerStatement?.customer_id) {
-          await handleLoadStatement(selectedCustomerStatement.customer_id);
-        }
+        // Wait a bit then reload full statement data to ensure accurate calculations
+        setTimeout(async () => {
+          if (selectedCustomerStatement?.customer_id) {
+            console.log('🔄 Reloading statement after payment...');
+            await handleLoadStatement(selectedCustomerStatement.customer_id);
+          }
+        }, 500);
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
         console.error('❌ Server error:', errorMsg);
