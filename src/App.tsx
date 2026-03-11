@@ -4570,13 +4570,15 @@ const MerchantDashboard = () => {
       
       // Update the header info with latest data from API
       if (data.current_debt !== undefined || data.credit_limit !== undefined) {
-        setSelectedCustomerStatement(prev => ({
-          ...prev,
-          current_debt: data.current_debt || prev?.current_debt || 0,
-          credit_limit: data.credit_limit || prev?.credit_limit || 0,
-          starting_balance: data.starting_balance || prev?.starting_balance || 0
-        }));
-        console.log('🔄 Updated statement header with latest values');
+        console.log('📝 Updating header - Old debt:', selectedCustomerStatement?.current_debt, 'New debt:', data.current_debt);
+        setSelectedCustomerStatement({
+          ...selectedCustomerStatement,
+          current_debt: data.current_debt,
+          credit_limit: data.credit_limit,
+          starting_balance: data.starting_balance,
+          name: data.name
+        });
+        console.log('🔄 Updated statement header with latest values - New state set');
       }
     } catch (err) {
       console.error('🔴 Error loading statement:', err);
@@ -4635,29 +4637,15 @@ const MerchantDashboard = () => {
         alert('✅ تم تسجيل الدفعة بنجاح');
         setMerchantPaymentAmount('');
         
-        // Close statement modal to return to customer list
-        const customerId = selectedCustomerStatement.customer_id;
-        setSelectedCustomerStatement(null);
-        
-        // Reopen statement to show updated data with longer delay to ensure DB is updated
-        setTimeout(async () => {
-          try {
-            if (customerId) {
-              console.log('🔄 Reopening statement to show updated data after payment...');
-              const customerRes = await fetch(`/api/customers/${customerId}`);
-              if (!customerRes.ok) {
-                console.error('❌ Failed to fetch customer');
-                return;
-              }
-              const customer = await customerRes.json();
-              console.log('📏 Customer data fetched:', customer);
-              setSelectedCustomerStatement(customer);
-              await handleLoadStatement(customerId);
-            }
-          } catch (err) {
-            console.error('❌ Error reopening statement:', err);
-          }
-        }, 800);
+        // Capture customerId before setTimeout to avoid closure issues
+        const customerId = selectedCustomerStatement?.customer_id;
+        if (customerId) {
+          console.log('📋 Payment saved, customerId:', customerId);
+          setTimeout(async () => {
+            console.log('🔄 Reloading statement after payment for customer:', customerId);
+            await handleLoadStatement(customerId);
+          }, 1000);
+        }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
         console.error('❌ Server error:', errorMsg);
@@ -4710,29 +4698,15 @@ const MerchantDashboard = () => {
         setEditingTransactionId(null);
         setEditingTransactionAmount('');
         
-        // Close statement modal to return to customer list
+        // Capture customerId before setTimeout to avoid closure issues
         const customerId = selectedCustomerStatement?.customer_id;
-        setSelectedCustomerStatement(null);
-        
-        // Reopen statement to show updated data
-        setTimeout(async () => {
-          try {
-            if (customerId) {
-              console.log('🔄 Reopening statement to show updated data after edit...');
-              const customerRes = await fetch(`/api/customers/${customerId}`);
-              if (!customerRes.ok) {
-                console.error('❌ Failed to fetch customer');
-                return;
-              }
-              const customer = await customerRes.json();
-              console.log('📏 Customer data fetched:', customer);
-              setSelectedCustomerStatement(customer);
-              await handleLoadStatement(customerId);
-            }
-          } catch (err) {
-            console.error('❌ Error reopening statement:', err);
-          }
-        }, 800);
+        if (customerId) {
+          console.log('💳 Edit saved, customerId:', customerId);
+          setTimeout(async () => {
+            console.log('🔄 Reloading statement after edit for customer:', customerId);
+            await handleLoadStatement(customerId);
+          }, 1000);
+        }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
         console.error('❌ Server error:', errorMsg);
@@ -4768,29 +4742,15 @@ const MerchantDashboard = () => {
       if (res.ok) {
         alert('✅ تم حذف المعاملة بنجاح');
         
-        // Close statement modal to return to customer list
+        // Capture customerId before setTimeout to avoid closure issues
         const customerId = selectedCustomerStatement?.customer_id;
-        setSelectedCustomerStatement(null);
-        
-        // Reopen statement to show updated data
-        setTimeout(async () => {
-          try {
-            if (customerId) {
-              console.log('🔄 Reopening statement to show updated data after delete...');
-              const customerRes = await fetch(`/api/customers/${customerId}`);
-              if (!customerRes.ok) {
-                console.error('❌ Failed to fetch customer');
-                return;
-              }
-              const customer = await customerRes.json();
-              console.log('📏 Customer data fetched:', customer);
-              setSelectedCustomerStatement(customer);
-              await handleLoadStatement(customerId);
-            }
-          } catch (err) {
-            console.error('❌ Error reopening statement:', err);
-          }
-        }, 800);
+        if (customerId) {
+          console.log('💳 Delete saved, customerId:', customerId);
+          setTimeout(async () => {
+            console.log('🔄 Reloading statement after delete for customer:', customerId);
+            await handleLoadStatement(customerId);
+          }, 1000);
+        }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
         console.error('❌ Server error:', errorMsg);
