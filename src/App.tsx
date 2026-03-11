@@ -1988,11 +1988,14 @@ const MobileFooterNav = () => {
 };
 
 // Mobile Footer Nav for Store Pages (with back button and cart)
-const StorePageMobileFooter = ({ storeSlug, cartCount }: { storeSlug?: string; cartCount?: number }) => {
+const StorePageMobileFooter = ({ storeSlug, cartCount, isTopup = false }: { storeSlug?: string; cartCount?: number; isTopup?: boolean }) => {
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const { items } = useRegularCartStore();
-  const itemsCount = cartCount || items.length;
+  const { items: topupItems } = useTopupCartStore();
+  // Use topup items if available (for TopupStorefront), else use regular items
+  const itemsCount = cartCount || (isTopup ? topupItems.length : items.length);
+  const cartPath = isTopup ? '/topup-cart' : '/cart';
 
   return (
     <div className={cn("fixed bottom-0 inset-x-0 z-50 border-t px-2 py-2 md:hidden flex", isDarkMode ? "bg-gray-800/95 border-gray-700 backdrop-blur-sm" : "bg-white/95 border-black/5 backdrop-blur-sm")}>
@@ -2027,7 +2030,7 @@ const StorePageMobileFooter = ({ storeSlug, cartCount }: { storeSlug?: string; c
 
         {/* Cart Button */}
         <button
-          onClick={() => navigate('/cart')}
+          onClick={() => navigate(cartPath)}
           className={cn(
             "min-w-[72px] flex-1 relative rounded-2xl px-2 py-2 text-center transition-colors",
             isDarkMode ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100"
@@ -12373,7 +12376,7 @@ const TopupStorefront = () => {
           </div>
         </div>
       </div>
-      <StorePageMobileFooter storeSlug={storeId} />
+      <StorePageMobileFooter storeSlug={storeId} isTopup={true} />
     </div>
   );
 };
