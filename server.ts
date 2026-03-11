@@ -3053,8 +3053,10 @@ async function startServer() {
         
         // Always show opening balance first if it exists and is > 0
         const allTransactionsWithBalance = [];
+        console.log(`🔍 Customer starting_balance: ${customer.starting_balance}`);
+        
         if (customer.starting_balance && customer.starting_balance > 0) {
-          allTransactionsWithBalance.push({
+          const openingObj = {
             id: 0,
             type: 'opening',
             description: 'الرصيد الافتتاحي',
@@ -3062,7 +3064,9 @@ async function startServer() {
             created_at: customer.created_at,
             balance: customer.starting_balance,
             is_payment: false
-          });
+          };
+          allTransactionsWithBalance.push(openingObj);
+          console.log(`✅ Added opening balance at index 0:`, openingObj);
         }
 
         // Add all other transactions with calculated balance
@@ -3080,37 +3084,34 @@ async function startServer() {
           });
         });
 
+        console.log(`📊 Before reverse: ${allTransactionsWithBalance.length} items`);
+        allTransactionsWithBalance.forEach((t, i) => {
+          console.log(`  [${i}] Type: ${t.type} | ID: ${t.id}`);
+        });
+
         // Reverse to show newest first, but keep opening balance at top if it exists
         let allTransactionsFinal = allTransactionsWithBalance.reverse();
         
-        console.log(`📌 Before sorting: ${allTransactionsWithBalance.length} items`);
-        console.log(`📌 After reverse: ${allTransactionsFinal.length} items`);
+        console.log(`📊 After reverse: ${allTransactionsFinal.length} items`);
+        allTransactionsFinal.forEach((t, i) => {
+          console.log(`  [${i}] Type: ${t.type} | ID: ${t.id}`);
+        });
         
         // If opening balance exists, move it back to the top
         if (customer.starting_balance && customer.starting_balance > 0) {
           const openingBalance = allTransactionsFinal.find(t => t.type === 'opening');
-          console.log(`🔍 Looking for opening balance... Found:`, openingBalance ? 'YES' : 'NO');
+          console.log(`🔍 Looking for opening balance... Found:`, openingBalance ? 'YES ✅' : 'NO ❌');
           if (openingBalance) {
             allTransactionsFinal = allTransactionsFinal.filter(t => t.type !== 'opening');
             allTransactionsFinal.unshift(openingBalance);
             console.log(`✅ Opening balance moved to top`);
           }
         }
-
-        const responseData = {
-          name: customer.name,
-          current_debt: customer.current_debt,
-          credit_limit: customer.credit_limit,
-          starting_balance: customer.starting_balance,
-          customer: customer,
-          transactions: allTransactionsFinal.length > 0 ? allTransactionsFinal : []
-        };
-
-        console.log(`📊 Returning statement with ${responseData.transactions.length} transactions`);
-        responseData.transactions.forEach((t: any, i: number) => {
-          console.log(`  ${i+1}. Type: ${t.type} | Desc: ${t.description} | Amount: ${t.amount} | Is Payment: ${t.is_payment}`);
+        
+        console.log(`📊 Final: ${allTransactionsFinal.length} items`);
+        allTransactionsFinal.forEach((t, i) => {
+          console.log(`  [${i}] Type: ${t.type} | Desc: ${t.description} | Amount: ${t.amount} | ID: ${t.id}`);
         });
-        res.json(responseData);
       } catch (error) {
         console.error(`❌ Error in statement endpoint:`, (error as any).message);
         res.status(500).json({ error: (error as any).message });
