@@ -3030,11 +3030,10 @@ async function startServer() {
           console.warn(`⚠️ Error fetching payments:`, (payErr as any).message);
         }
 
-        // Combine both transactions and payments, sorted by date
+        // Combine both transactions and payments, sorted by date (oldest first for balance calculation)
         const allTransactions = [
           ...txRes.rows.map(t => ({
             ...t,
-            balance: customer.current_debt,
             is_payment: false
           })),
           ...payRes.rows.map(p => ({
@@ -3044,10 +3043,29 @@ async function startServer() {
             amount: p.amount,
             description: p.description || 'دفعة',
             created_at: p.created_at,
-            balance: customer.current_debt,
             is_payment: true
           }))
-        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+        // Calculate running balance for each transaction
+        // Start from starting_balance: debit transactions ADD to debt, credit transactions SUBTRACT from debt
+        let runningBalance = customer.starting_balance || 0;
+        const allTransactionsWithBalance = allTransactions.map((t: any) => {
+          if (t.is_payment) {
+            // Payment (credit): deducts from debt
+            runningBalance -= t.amount;
+          } else {
+            // Debit transaction: adds to debt
+            runningBalance += t.amount;
+          }
+          return {
+            ...t,
+            balance: runningBalance
+          };
+        });
+
+        // Reverse to show newest first
+        const allTransactionsFinal = allTransactionsWithBalance.reverse();
 
         const responseData = {
           name: customer.name,
@@ -3055,7 +3073,7 @@ async function startServer() {
           credit_limit: customer.credit_limit,
           starting_balance: customer.starting_balance,
           customer: customer,
-          transactions: allTransactions.length > 0 ? allTransactions : (customer.starting_balance && customer.starting_balance > 0 ? [
+          transactions: allTransactionsFinal.length > 0 ? allTransactionsFinal : (customer.starting_balance && customer.starting_balance > 0 ? [
             {
               id: 0,
               type: 'opening',
