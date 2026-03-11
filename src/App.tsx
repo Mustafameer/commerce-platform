@@ -12007,15 +12007,7 @@ const TopupStorefront = () => {
                   )}
 
                   {/* Buttons */}
-                  <div className="grid grid-cols-3 gap-2 mt-3">
-                    <button
-                      onClick={() => setShowPaymentForm(!showPaymentForm)}
-                      className={cn("py-2 px-3 rounded text-xs font-normal text-white transition-colors", isDarkMode ? "bg-green-900 hover:bg-green-800" : "bg-green-600 hover:bg-green-700")}
-                      disabled={Number(customer?.current_debt || 0) <= 0}
-                      title="تسديد المديونية"
-                    >
-                      💳 دفع
-                    </button>
+                  <div className="grid grid-cols-2 gap-2 mt-3">
                     <button
                       onClick={() => setShowAccountStatement(true)}
                       className={cn("py-2 px-3 rounded text-xs font-normal text-white transition-colors", isDarkMode ? "bg-blue-900 hover:bg-blue-800" : "bg-blue-600 hover:bg-blue-700")}
