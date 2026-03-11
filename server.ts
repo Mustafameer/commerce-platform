@@ -4847,7 +4847,13 @@ async function startServer() {
           return res.status(400).json({ error: "amount must be a valid number greater than 0" });
         }
 
-        // Add payment record (current_debt will be recalculated in GET endpoints)
+        // Decrease current_debt by payment amount (payment reduces what customer owes)
+        await pool.query(
+          `UPDATE customers SET current_debt = current_debt - $1 WHERE id = $2`,
+          [amount, customer_id]
+        );
+
+        // Add payment record
         const paymentResult = await pool.query(
           `INSERT INTO customer_payments (customer_id, store_id, amount, payment_method, notes)
            VALUES ($1, $2, $3, $4, $5)
@@ -4855,7 +4861,7 @@ async function startServer() {
           [customer_id, store_id, amount, payment_method || null, notes || null]
         );
 
-        console.log(`✅ [PAYMENT ADDED] Customer: ${customer_id} - Store: ${store_id} - Amount: ${amount} ✓`);
+        console.log(`✅ [PAYMENT ADDED] Customer: ${customer_id} - Store: ${store_id} - Amount: ${amount} | Debt decreased by ${amount} ✓`);
         res.json(paymentResult.rows[0]);
       } catch (error) {
         const errorMsg = (error as any).message || 'Unknown error';
