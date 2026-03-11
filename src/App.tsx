@@ -11816,9 +11816,9 @@ const TopupStorefront = () => {
   );
 
   return (
-    <div className={cn("min-h-screen pb-28 md:pb-0 flex flex-col overflow-hidden", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900")} dir="rtl">
+    <div className={cn("h-screen flex flex-col overflow-hidden", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900")} dir="rtl">
       {/* Header with Auth */}
-      <div className={cn("border-b flex-shrink-0 overflow-visible", isDarkMode ? "border-gray-700" : "border-gray-200")}>
+      <div className={cn("border-b flex-shrink-0", isDarkMode ? "border-gray-700" : "border-gray-200")}>
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-3">
@@ -12187,8 +12187,8 @@ const TopupStorefront = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8 flex-1 overflow-y-auto">
-        <div className="grid grid-cols-1 gap-8">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8">
           {/* Filters and Purchase Details - Completely Hidden */}
           <div className="hidden space-y-6">
             <Card className={cn(isDarkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50")}> 
@@ -12322,7 +12322,7 @@ const TopupStorefront = () => {
           </div>
 
           {/* Products Grid - Full Width */}
-          <div className="col-span-1">
+          <div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4" key={`products-${products.length}-${Date.now()}`}>
               {filteredProducts.map((product, idx) => {
                 // العملاء المفردون (cash): wholesale_price
@@ -12471,7 +12471,9 @@ const TopupStorefront = () => {
           </div>
         </div>
       </div>
-      <StorePageMobileFooter storeSlug={storeId} isTopup={true} />
+      <div className="flex-shrink-0">
+        <StorePageMobileFooter storeSlug={storeId} isTopup={true} />
+      </div>
     </div>
   );
 };
