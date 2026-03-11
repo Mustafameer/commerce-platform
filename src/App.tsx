@@ -3721,6 +3721,7 @@ const MerchantDashboard = () => {
   const { isDarkMode } = useTheme();
   const { user, setUser } = useAuthStore();
   const { dashboardQuery } = useSearchStore();
+  const { primaryColor } = useSettingsStore();
   const [products, setProducts] = useState<(Product & { category_name?: string })[]>([]);
   const [categories, setCategories] = useState<{ id: number; name: string; image_url?: string }[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
