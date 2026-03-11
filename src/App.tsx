@@ -4556,12 +4556,12 @@ const MerchantDashboard = () => {
       
       setCustomerTransactions(transactions);
       console.log('✅ Transactions loaded:', transactions.length);
+      console.log('📋 Full transactions data returned from API:');
+      transactions.forEach((t, i) => {
+        console.log(`  ${i+1}. Type: ${t.type} | Amount: ${t.amount} | Is Payment: ${t.is_payment} | Balance: ${t.balance}`);
+      });
       if (transactions.length > 0) {
-        console.log('🔍 First transaction structure:', transactions[0]);
-        console.log('📋 All transactions:');
-        transactions.forEach((t, i) => {
-          console.log(`  ${i+1}. Type: ${t.type} | Amount: ${t.amount} | Is Payment: ${t.is_payment}`);
-        });
+        console.log('🔍 First transaction:', JSON.stringify(transactions[0], null, 2));
       }
       
       if (transactions.length === 0) {

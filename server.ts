@@ -3083,12 +3083,17 @@ async function startServer() {
         // Reverse to show newest first, but keep opening balance at top if it exists
         let allTransactionsFinal = allTransactionsWithBalance.reverse();
         
+        console.log(`📌 Before sorting: ${allTransactionsWithBalance.length} items`);
+        console.log(`📌 After reverse: ${allTransactionsFinal.length} items`);
+        
         // If opening balance exists, move it back to the top
         if (customer.starting_balance && customer.starting_balance > 0) {
           const openingBalance = allTransactionsFinal.find(t => t.type === 'opening');
+          console.log(`🔍 Looking for opening balance... Found:`, openingBalance ? 'YES' : 'NO');
           if (openingBalance) {
             allTransactionsFinal = allTransactionsFinal.filter(t => t.type !== 'opening');
             allTransactionsFinal.unshift(openingBalance);
+            console.log(`✅ Opening balance moved to top`);
           }
         }
 
@@ -3102,9 +3107,9 @@ async function startServer() {
         };
 
         console.log(`📊 Returning statement with ${responseData.transactions.length} transactions`);
-        if (responseData.transactions.length > 0) {
-          console.log(`🏷️  Sample transaction:`, JSON.stringify(responseData.transactions[0], null, 2));
-        }
+        responseData.transactions.forEach((t: any, i: number) => {
+          console.log(`  ${i+1}. Type: ${t.type} | Desc: ${t.description} | Amount: ${t.amount} | Is Payment: ${t.is_payment}`);
+        });
         res.json(responseData);
       } catch (error) {
         console.error(`❌ Error in statement endpoint:`, (error as any).message);
