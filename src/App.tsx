@@ -8927,7 +8927,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 // --- Main App ---
 
 function App() {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { setSettings } = useSettingsStore();
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('isDarkMode');
@@ -8939,6 +8939,27 @@ function App() {
   useEffect(() => {
     localStorage.setItem('isDarkMode', JSON.stringify(isDarkMode));
   }, [isDarkMode]);
+
+  // Validate user session on mount and when location changes
+  useEffect(() => {
+    // Check if saved user is still valid from server
+    if (user?.id) {
+      fetch('/api/verify-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, role: user.role })
+      })
+        .then(res => {
+          if (!res.ok) {
+            // User session is invalid, logout
+            logout();
+          }
+        })
+        .catch(() => {
+          // Network error, but keep user logged in
+        });
+    }
+  }, [user?.id, logout]);
 
   // Load admin settings on app mount
   useEffect(() => {

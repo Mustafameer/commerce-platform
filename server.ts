@@ -1058,6 +1058,59 @@ async function startServer() {
       }
     });
 
+    // Verify user session endpoint
+    app.post("/api/verify-session", async (req, res) => {
+      try {
+        const { userId, role } = req.body;
+
+        if (!userId || !role) {
+          return res.status(400).json({ error: "Missing userId or role" });
+        }
+
+        if (role === 'admin') {
+          // Check if admin user still exists
+          const result = await pool.query(
+            "SELECT id, name, phone, email, role FROM users WHERE id = $1 AND role = $2",
+            [userId, role]
+          );
+          
+          if (result.rows.length === 0) {
+            return res.status(401).json({ error: "User session invalid" });
+          }
+          
+          return res.json({ valid: true, user: result.rows[0] });
+        } else if (role === 'merchant') {
+          // Check if merchant user still exists
+          const result = await pool.query(
+            "SELECT id, name, phone, email, role, store_id FROM users WHERE id = $1 AND role = $2",
+            [userId, role]
+          );
+          
+          if (result.rows.length === 0) {
+            return res.status(401).json({ error: "User session invalid" });
+          }
+          
+          return res.json({ valid: true, user: result.rows[0] });
+        } else if (role === 'customer') {
+          // Check if customer still exists
+          const result = await pool.query(
+            "SELECT id, name, phone, email FROM customers WHERE id = $1",
+            [userId]
+          );
+          
+          if (result.rows.length === 0) {
+            return res.status(401).json({ error: "User session invalid" });
+          }
+          
+          return res.json({ valid: true, user: result.rows[0] });
+        }
+
+        return res.status(400).json({ error: "Invalid role" });
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
     // Register merchant endpoint
     app.post("/api/register-merchant", async (req, res) => {
       try {
