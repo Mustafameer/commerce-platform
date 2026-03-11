@@ -3051,12 +3051,29 @@ async function startServer() {
         // Start from starting_balance: debit transactions ADD to debt, credit transactions SUBTRACT from debt
         let runningBalance = customer.starting_balance || 0;
         
-        // Always show opening balance first if it exists and is > 0
-        const allTransactionsWithBalance = [];
-        console.log(`🔍 Customer starting_balance: ${customer.starting_balance}`);
-        
+        // Add all transactions with calculated balance (without opening balance yet)
+        const transactionsWithBalance = allTransactions.map((t: any) => {
+          if (t.is_payment) {
+            // Payment (credit): deducts from debt
+            runningBalance -= t.amount;
+          } else {
+            // Debit transaction: adds to debt
+            runningBalance += t.amount;
+          }
+          return {
+            ...t,
+            balance: runningBalance
+          };
+        });
+
+        console.log(`✅ Calculated balance for ${transactionsWithBalance.length} transactions`);
+
+        // Reverse to show newest first
+        const allTransactionsFinal = transactionsWithBalance.reverse();
+
+        // Now add opening balance at the beginning if it exists
         if (customer.starting_balance && customer.starting_balance > 0) {
-          const openingObj = {
+          const openingBalance = {
             id: 0,
             type: 'opening',
             description: 'الرصيد الافتتاحي',
@@ -3065,53 +3082,26 @@ async function startServer() {
             balance: customer.starting_balance,
             is_payment: false
           };
-          allTransactionsWithBalance.push(openingObj);
-          console.log(`✅ Added opening balance at index 0:`, openingObj);
+          allTransactionsFinal.unshift(openingBalance);
+          console.log(`✅ Opening balance added at index 0: ${customer.starting_balance}`);
         }
 
-        // Add all other transactions with calculated balance
-        allTransactions.forEach((t: any) => {
-          if (t.is_payment) {
-            // Payment (credit): deducts from debt
-            runningBalance -= t.amount;
-          } else {
-            // Debit transaction: adds to debt
-            runningBalance += t.amount;
-          }
-          allTransactionsWithBalance.push({
-            ...t,
-            balance: runningBalance
-          });
-        });
-
-        console.log(`📊 Before reverse: ${allTransactionsWithBalance.length} items`);
-        allTransactionsWithBalance.forEach((t, i) => {
-          console.log(`  [${i}] Type: ${t.type} | ID: ${t.id}`);
-        });
-
-        // Reverse to show newest first, but keep opening balance at top if it exists
-        let allTransactionsFinal = allTransactionsWithBalance.reverse();
-        
-        console.log(`📊 After reverse: ${allTransactionsFinal.length} items`);
-        allTransactionsFinal.forEach((t, i) => {
-          console.log(`  [${i}] Type: ${t.type} | ID: ${t.id}`);
-        });
-        
-        // If opening balance exists, move it back to the top
-        if (customer.starting_balance && customer.starting_balance > 0) {
-          const openingBalance = allTransactionsFinal.find(t => t.type === 'opening');
-          console.log(`🔍 Looking for opening balance... Found:`, openingBalance ? 'YES ✅' : 'NO ❌');
-          if (openingBalance) {
-            allTransactionsFinal = allTransactionsFinal.filter(t => t.type !== 'opening');
-            allTransactionsFinal.unshift(openingBalance);
-            console.log(`✅ Opening balance moved to top`);
-          }
-        }
-        
         console.log(`📊 Final: ${allTransactionsFinal.length} items`);
         allTransactionsFinal.forEach((t, i) => {
-          console.log(`  [${i}] Type: ${t.type} | Desc: ${t.description} | Amount: ${t.amount} | ID: ${t.id}`);
+          console.log(`  [${i}] Type: ${t.type} | Desc: ${t.description} | Amount: ${t.amount} | Balance: ${t.balance}`);
         });
+
+        const responseData = {
+          name: customer.name,
+          current_debt: customer.current_debt,
+          credit_limit: customer.credit_limit,
+          starting_balance: customer.starting_balance,
+          customer: customer,
+          transactions: allTransactionsFinal
+        };
+
+        console.log(`📊 Returning statement with ${responseData.transactions.length} transactions`);
+        res.json(responseData);
       } catch (error) {
         console.error(`❌ Error in statement endpoint:`, (error as any).message);
         res.status(500).json({ error: (error as any).message });
