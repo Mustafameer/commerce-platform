@@ -4579,12 +4579,12 @@ const MerchantDashboard = () => {
       
       setSelectedCustomerStatement({
         name: data.name || selectedCustomerStatement?.name,
-        customer_id: selectedCustomerStatement?.customer_id,
+        customer_id: customerId,
         current_debt: data.current_debt,
         credit_limit: data.credit_limit,
         starting_balance: data.starting_balance
       });
-      console.log('🔄 Updated statement header with new values from API');
+      console.log('🔄 Updated statement header with new values from API - current_debt:', data.current_debt);
     } catch (err) {
       console.error('🔴 Error loading statement:', err);
       setCustomerTransactions([]);
@@ -4654,27 +4654,37 @@ const MerchantDashboard = () => {
             try {
               console.log('🔄 [PAYMENT] Starting reopen process...');
               
-              // Fetch fresh customer data
-              const customerRes = await fetch(`/api/customers/${customerId}`);
-              if (!customerRes.ok) {
-                console.error('❌ Failed to fetch customer');
+              // Fetch statement data (includes transactions and updated customer info)
+              const statementRes = await fetch(`/api/customers/${customerId}/statement`);
+              if (!statementRes.ok) {
+                console.error('❌ Failed to fetch statement');
                 return;
               }
-              const customer = await customerRes.json();
-              console.log('✅ [PAYMENT] Got fresh customer data:', { 
-                name: customer.name, 
-                current_debt: customer.current_debt,
-                credit_limit: customer.credit_limit,
-                starting_balance: customer.starting_balance
+              const statementData = await statementRes.json();
+              console.log('✅ [PAYMENT] Got statement data:', { 
+                name: statementData.name, 
+                current_debt: statementData.current_debt,
+                credit_limit: statementData.credit_limit,
+                starting_balance: statementData.starting_balance
               });
               
-              // Update state with fresh customer data
-              console.log('📝 [PAYMENT] Setting selectedCustomerStatement...');
-              setSelectedCustomerStatement(customer);
+              // Update statement header with fresh data
+              console.log('📝 [PAYMENT] Updating statement header...');
+              setSelectedCustomerStatement({
+                name: statementData.name,
+                customer_id: customerId,
+                current_debt: statementData.current_debt,
+                credit_limit: statementData.credit_limit,
+                starting_balance: statementData.starting_balance
+              });
               
-              // Load fresh transactions in parallel
-              console.log('📝 [PAYMENT] Calling handleLoadStatement...');
-              await handleLoadStatement(customerId);
+              // Update transactions 
+              let transactions = [];
+              if (Array.isArray(statementData.transactions)) {
+                transactions = statementData.transactions;
+              }
+              console.log('📝 [PAYMENT] Setting transactions:', transactions.length);
+              setCustomerTransactions(transactions);
               
               // Refresh customers list in background
               if (user?.store_id) {
@@ -4755,22 +4765,32 @@ const MerchantDashboard = () => {
             try {
               console.log('🔄 [EDIT] Starting reopen process...');
               
-              // Fetch fresh customer data
-              const customerRes = await fetch(`/api/customers/${customerId}`);
-              if (!customerRes.ok) {
-                console.error('❌ Failed to fetch customer');
+              // Fetch statement data (includes transactions and updated customer info)
+              const statementRes = await fetch(`/api/customers/${customerId}/statement`);
+              if (!statementRes.ok) {
+                console.error('❌ Failed to fetch statement');
                 return;
               }
-              const customer = await customerRes.json();
-              console.log('✅ [EDIT] Got fresh customer data');
+              const statementData = await statementRes.json();
+              console.log('✅ [EDIT] Got statement data');
               
-              // Update state with fresh customer data
-              console.log('📝 [EDIT] Setting selectedCustomerStatement...');
-              setSelectedCustomerStatement(customer);
+              // Update statement header with fresh data
+              console.log('📝 [EDIT] Updating statement header...');
+              setSelectedCustomerStatement({
+                name: statementData.name,
+                customer_id: customerId,
+                current_debt: statementData.current_debt,
+                credit_limit: statementData.credit_limit,
+                starting_balance: statementData.starting_balance
+              });
               
-              // Load fresh transactions
-              console.log('📝 [EDIT] Calling handleLoadStatement...');
-              await handleLoadStatement(customerId);
+              // Update transactions 
+              let transactions = [];
+              if (Array.isArray(statementData.transactions)) {
+                transactions = statementData.transactions;
+              }
+              console.log('📝 [EDIT] Setting transactions:', transactions.length);
+              setCustomerTransactions(transactions);
               
               // Refresh customers list in background
               if (user?.store_id) {
@@ -4834,22 +4854,32 @@ const MerchantDashboard = () => {
             try {
               console.log('🔄 [DELETE] Starting reopen process...');
               
-              // Fetch fresh customer data
-              const customerRes = await fetch(`/api/customers/${customerId}`);
-              if (!customerRes.ok) {
-                console.error('❌ Failed to fetch customer');
+              // Fetch statement data (includes transactions and updated customer info)
+              const statementRes = await fetch(`/api/customers/${customerId}/statement`);
+              if (!statementRes.ok) {
+                console.error('❌ Failed to fetch statement');
                 return;
               }
-              const customer = await customerRes.json();
-              console.log('✅ [DELETE] Got fresh customer data');
+              const statementData = await statementRes.json();
+              console.log('✅ [DELETE] Got statement data');
               
-              // Update state with fresh customer data
-              console.log('📝 [DELETE] Setting selectedCustomerStatement...');
-              setSelectedCustomerStatement(customer);
+              // Update statement header with fresh data
+              console.log('📝 [DELETE] Updating statement header...');
+              setSelectedCustomerStatement({
+                name: statementData.name,
+                customer_id: customerId,
+                current_debt: statementData.current_debt,
+                credit_limit: statementData.credit_limit,
+                starting_balance: statementData.starting_balance
+              });
               
-              // Load fresh transactions
-              console.log('📝 [DELETE] Calling handleLoadStatement...');
-              await handleLoadStatement(customerId);
+              // Update transactions 
+              let transactions = [];
+              if (Array.isArray(statementData.transactions)) {
+                transactions = statementData.transactions;
+              }
+              console.log('📝 [DELETE] Setting transactions:', transactions.length);
+              setCustomerTransactions(transactions);
               
               // Refresh customers list in background
               if (user?.store_id) {
