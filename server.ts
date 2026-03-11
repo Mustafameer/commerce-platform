@@ -4870,7 +4870,32 @@ async function startServer() {
         const { id } = req.params;
         const { amount, payment_method, notes } = req.body;
 
-        // Update the payment record (current_debt will be recalculated in GET endpoints)
+        // Get the current payment details to calculate the difference
+        const currentPaymentRes = await pool.query(
+          `SELECT id, customer_id, amount FROM customer_payments WHERE id = $1`,
+          [parseInt(id)]
+        );
+
+        if (currentPaymentRes.rows.length === 0) {
+          return res.status(404).json({ error: "Payment not found" });
+        }
+
+        const currentPayment = currentPaymentRes.rows[0];
+        const oldAmount = currentPayment.amount;
+        const newAmount = amount || oldAmount;
+        const amountDifference = oldAmount - newAmount;
+
+        // Update current_debt based on the difference
+        // If newAmount > oldAmount: customer paid more → debt decreases more (subtract difference)
+        // If newAmount < oldAmount: customer paid less → debt increases (add difference)
+        if (amountDifference !== 0) {
+          await pool.query(
+            `UPDATE customers SET current_debt = current_debt + $1 WHERE id = $2`,
+            [amountDifference, currentPayment.customer_id]
+          );
+        }
+
+        // Update the payment record
         const result = await pool.query(
           `UPDATE customer_payments 
            SET amount = COALESCE($1, amount),
@@ -4882,11 +4907,7 @@ async function startServer() {
           [amount || null, payment_method || null, notes || null, parseInt(id)]
         );
 
-        if (result.rows.length === 0) {
-          return res.status(404).json({ error: "Payment not found" });
-        }
-
-        console.log(`✏️ [PAYMENT UPDATED] ID: ${id} - Debt will be recalculated ✓`);
+        console.log(`✏️ [PAYMENT UPDATED] ID: ${id} | Old: ${oldAmount} → New: ${newAmount} | Debt adjusted by: ${amountDifference} ✓`);
         res.json(result.rows[0]);
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
