@@ -4618,9 +4618,26 @@ const MerchantDashboard = () => {
 
       if (res.ok) {
         alert('✅ تم تسجيل الدفعة بنجاح');
+        
+        // Add new payment to transactions list immediately
+        const newPayment = {
+          id: data.id || Date.now(),
+          customer_id: selectedCustomerStatement.customer_id,
+          type: 'credit',
+          amount: amount,
+          description: 'دفعة',
+          created_at: new Date().toISOString(),
+          balance: 0,
+          is_payment: true
+        };
+        setCustomerTransactions(prev => [newPayment, ...prev]);
+        
         setMerchantPaymentAmount('');
-        // Reload transactions
-        await handleLoadStatement(selectedCustomerStatement.customer_id);
+        
+        // Then reload full statement data
+        if (selectedCustomerStatement?.customer_id) {
+          await handleLoadStatement(selectedCustomerStatement.customer_id);
+        }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
         console.error('❌ Server error:', errorMsg);
@@ -4670,10 +4687,21 @@ const MerchantDashboard = () => {
 
       if (res.ok) {
         alert('✅ تم تحديث المعاملة بنجاح');
+        
+        // Update transaction in state immediately
+        setCustomerTransactions(prev => 
+          prev.map(t => 
+            t.id === editingTransactionId ? {...t, amount} : t
+          )
+        );
+        
         setEditingTransactionId(null);
         setEditingTransactionAmount('');
-        // Reload transactions
-        await handleLoadStatement(selectedCustomerStatement.customer_id);
+        
+        // Then reload full statement data
+        if (selectedCustomerStatement?.customer_id) {
+          await handleLoadStatement(selectedCustomerStatement.customer_id);
+        }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
         console.error('❌ Server error:', errorMsg);
@@ -4708,8 +4736,14 @@ const MerchantDashboard = () => {
 
       if (res.ok) {
         alert('✅ تم حذف المعاملة بنجاح');
-        // Reload transactions
-        await handleLoadStatement(selectedCustomerStatement.customer_id);
+        
+        // Remove transaction from state immediately
+        setCustomerTransactions(prev => prev.filter(t => t.id !== transactionId));
+        
+        // Then reload full statement data
+        if (selectedCustomerStatement?.customer_id) {
+          await handleLoadStatement(selectedCustomerStatement.customer_id);
+        }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
         console.error('❌ Server error:', errorMsg);
