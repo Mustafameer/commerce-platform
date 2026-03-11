@@ -12175,15 +12175,6 @@ const TopupStorefront = () => {
                         <p className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>{customer.name}</p>
                         <p className={cn("text-xs mt-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>{customer.phone}</p>
                       </div>
-                      {Number(customer?.current_debt || 0) > 0 && (
-                        <button
-                          onClick={() => setShowPaymentForm(true)}
-                          className={cn("ml-2 p-2 hover:scale-110 transition-transform", isDarkMode ? "text-green-400 hover:text-green-300" : "text-green-600 hover:text-green-700")}
-                          title="تسديد مبلغ"
-                        >
-                          <span className="text-2xl">💳</span>
-                        </button>
-                      )}
                     </div>
                   </div>
 
@@ -12202,13 +12193,6 @@ const TopupStorefront = () => {
                     <div className={cn("p-4 rounded-lg border-2", isDarkMode ? "bg-purple-900/20 border-purple-600" : "bg-purple-50 border-purple-300")}>
                       <div className="flex justify-between items-center mb-2">
                         <p className={cn("text-xs font-normal", isDarkMode ? "text-purple-400" : "text-purple-600")}>الرصيد الأولي</p>
-                        <button
-                          onClick={() => setShowPaymentForm(true)}
-                          className={cn("text-xl transition-colors", isDarkMode ? "text-purple-400 hover:text-purple-300" : "text-purple-600 hover:text-purple-700")}
-                          title="إضافة/تعديل الرصيد الأولي"
-                        >
-                          ✎️
-                        </button>
                       </div>
                       <div className="flex items-baseline gap-1">
                         <p className={cn("text-2xl font-bold", isDarkMode ? "text-purple-300" : "text-purple-600")}>
@@ -12240,14 +12224,7 @@ const TopupStorefront = () => {
                   </div>
 
                   {/* Buttons */}
-                  <div className="grid grid-cols-3 gap-3 mt-6">
-                    <button
-                      onClick={() => setShowPaymentForm(true)}
-                      className={cn("py-2 px-3 rounded text-sm font-normal text-white transition-colors", isDarkMode ? "bg-green-900 hover:bg-green-800" : "bg-green-600 hover:bg-green-700")}
-                      disabled={Number(customer?.current_debt || 0) <= 0}
-                    >
-                      💳 تسديد
-                    </button>
+                  <div className="grid grid-cols-2 gap-3 mt-6">
                     <button
                       onClick={handleLogout}
                       className={cn("py-2 px-3 rounded text-sm font-normal", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
@@ -12261,39 +12238,6 @@ const TopupStorefront = () => {
                       إغلاق
                     </button>
                   </div>
-
-                  {/* Payment Form */}
-                  {showPaymentForm && (
-                    <div className={cn("mt-6 p-4 rounded-lg border-2", isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300")}>
-                      <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-green-400" : "text-green-700")}>أدخل المبلغ (د.ع)</label>
-                      <div className="flex gap-2">
-                        <input
-                          type="number"
-                          value={paymentAmount}
-                          onChange={(e) => setPaymentAmount(e.target.value)}
-                          placeholder="0"
-                          max={Number(customer?.current_debt || 0)}
-                          className={cn("flex-1 px-3 py-2 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
-                        />
-                        <button
-                          onClick={handlePayment}
-                          disabled={isPaymentProcessing}
-                          className={cn("px-4 py-2 rounded-lg text-white font-normal text-sm transition-colors", isPaymentProcessing ? "opacity-50" : "", isDarkMode ? "bg-green-600 hover:bg-green-700" : "bg-green-600 hover:bg-green-700")}
-                        >
-                          {isPaymentProcessing ? 'جاري...' : 'تأكيد'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowPaymentForm(false);
-                            setPaymentAmount('');
-                          }}
-                          className={cn("px-4 py-2 rounded-lg text-white font-normal text-sm transition-colors", isDarkMode ? "bg-gray-600 hover:bg-gray-700" : "bg-gray-400 hover:bg-gray-500")}
-                        >
-                          إلغاء
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </Card>
             </div>
