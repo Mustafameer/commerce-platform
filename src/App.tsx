@@ -3843,6 +3843,12 @@ const MerchantDashboard = () => {
   const [isLoadingCustomerTransactions, setIsLoadingCustomerTransactions] = useState(false);
   const [merchantPaymentAmount, setMerchantPaymentAmount] = useState('');
   const [isProcessingMerchantPayment, setIsProcessingMerchantPayment] = useState(false);
+  
+  // Edit transaction state
+  const [editingTransactionId, setEditingTransactionId] = useState<number | null>(null);
+  const [editingTransactionAmount, setEditingTransactionAmount] = useState('');
+  const [isEditingTransaction, setIsEditingTransaction] = useState(false);
+  const [isDeletingTransactionId, setIsDeletingTransactionId] = useState<number | null>(null);
 
   useEffect(() => {
     // Fallback: If user has role merchant but missing store_id, try to fetch it
@@ -4623,6 +4629,95 @@ const MerchantDashboard = () => {
       alert(`❌ حدث خطأ في تسجيل الدفعة:\n${errorMessage}`);
     } finally {
       setIsProcessingMerchantPayment(false);
+    }
+  };
+
+  // Handle Edit Transaction
+  const handleEditTransaction = (transaction: any) => {
+    setEditingTransactionId(transaction.id);
+    setEditingTransactionAmount(transaction.amount.toString());
+    setIsEditingTransaction(true);
+  };
+
+  // Handle Save Edit Transaction
+  const handleSaveEditTransaction = async () => {
+    if (!editingTransactionId || !editingTransactionAmount) {
+      alert('⚠️ يرجى إدخال المبلغ');
+      return;
+    }
+
+    const amount = parseFloat(editingTransactionAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert('⚠️ يرجى إدخال مبلغ صحيح');
+      return;
+    }
+
+    setIsEditingTransaction(true);
+    try {
+      console.log('📝 Updating transaction:', { id: editingTransactionId, amount });
+
+      const res = await fetch(`/api/customer-payments/${editingTransactionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount })
+      });
+
+      const data = await res.json();
+      console.log('📬 Update Response:', { status: res.status, ok: res.ok, data });
+
+      if (res.ok) {
+        alert('✅ تم تحديث المعاملة بنجاح');
+        setEditingTransactionId(null);
+        setEditingTransactionAmount('');
+        // Reload transactions
+        await handleLoadStatement(selectedCustomerStatement.customer_id);
+      } else {
+        const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
+        console.error('❌ Server error:', errorMsg);
+        alert(`❌ ${errorMsg}`);
+      }
+    } catch (err) {
+      console.error('❌ Edit error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير معروف';
+      alert(`❌ حدث خطأ في تحديث المعاملة:\n${errorMessage}`);
+    } finally {
+      setIsEditingTransaction(false);
+    }
+  };
+
+  // Handle Delete Transaction
+  const handleDeleteTransaction = async (transactionId: number) => {
+    if (!confirm('⚠️ هل أنت متأكد من حذف هذه المعاملة؟ لا يمكن استرجاع البيانات بعد ذلك')) {
+      return;
+    }
+
+    setIsDeletingTransactionId(transactionId);
+    try {
+      console.log('🗑️ Deleting transaction:', transactionId);
+
+      const res = await fetch(`/api/customer-payments/${transactionId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const data = await res.json();
+      console.log('📬 Delete Response:', { status: res.status, ok: res.ok, data });
+
+      if (res.ok) {
+        alert('✅ تم حذف المعاملة بنجاح');
+        // Reload transactions
+        await handleLoadStatement(selectedCustomerStatement.customer_id);
+      } else {
+        const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
+        console.error('❌ Server error:', errorMsg);
+        alert(`❌ ${errorMsg}`);
+      }
+    } catch (err) {
+      console.error('❌ Delete error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير معروف';
+      alert(`❌ حدث خطأ في حذف المعاملة:\n${errorMessage}`);
+    } finally {
+      setIsDeletingTransactionId(null);
     }
   };
 
@@ -6891,16 +6986,24 @@ const MerchantDashboard = () => {
                             <td className={cn("px-2 md:px-4 py-2 md:py-3 text-center")}>
                               <div className="flex items-center justify-center gap-1">
                                 <button
+                                  onClick={() => handleEditTransaction(transaction)}
+                                  disabled={isDeletingTransactionId === transaction.id}
                                   title="تعديل"
-                                  className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-blue-900/30 text-blue-400" : "hover:bg-blue-50 text-blue-600")}
+                                  className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-blue-900/30 text-blue-400" : "hover:bg-blue-50 text-blue-600", isDeletingTransactionId === transaction.id && "opacity-50 cursor-not-allowed")}
                                 >
                                   <Edit2 size={14} />
                                 </button>
                                 <button
+                                  onClick={() => handleDeleteTransaction(transaction.id)}
+                                  disabled={isDeletingTransactionId === transaction.id}
                                   title="حذف"
-                                  className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-red-900/30 text-red-400" : "hover:bg-red-50 text-red-600")}
+                                  className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-red-900/30 text-red-400" : "hover:bg-red-50 text-red-600", isDeletingTransactionId === transaction.id && "opacity-50 cursor-not-allowed")}
                                 >
-                                  <Trash2 size={14} />
+                                  {isDeletingTransactionId === transaction.id ? (
+                                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                  ) : (
+                                    <Trash2 size={14} />
+                                  )}
                                 </button>
                               </div>
                             </td>
@@ -6911,6 +7014,50 @@ const MerchantDashboard = () => {
                   </div>
                 )}
               </div>
+
+              {/* Edit Transaction Modal */}
+              {isEditingTransaction && editingTransactionId && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4" dir="rtl">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className={cn("rounded-2xl w-full max-w-sm shadow-2xl p-6 border", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-white/20")}
+                  >
+                    <h3 className={cn("text-xl font-normal mb-4", isDarkMode ? "text-gray-100" : "text-gray-900")}>تعديل المعاملة</h3>
+                    
+                    <div className="space-y-4">
+                      <div className="relative">
+                        <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>المبلغ</label>
+                        <input
+                          type="number"
+                          value={editingTransactionAmount}
+                          onChange={(e) => setEditingTransactionAmount(e.target.value)}
+                          className={cn("w-full px-4 py-3 border rounded-lg focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-normal outline-none pl-12", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
+                        />
+                        <span className={cn("absolute left-3 bottom-3 font-normal text-sm", isDarkMode ? "text-gray-400" : "text-gray-500")}>د.أ</span>
+                      </div>
+
+                      <div className="flex gap-3 mt-6">
+                        <button
+                          onClick={handleSaveEditTransaction}
+                          className="flex-1 px-4 py-2 rounded-lg font-normal text-white bg-indigo-600 hover:bg-indigo-700 transition-all"
+                        >
+                          حفظ التعديل
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingTransactionId(null);
+                            setEditingTransactionAmount('');
+                          }}
+                          className={cn("flex-1 px-4 py-2 rounded-lg font-normal transition-all border", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600" : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200")}
+                        >
+                          إلغاء
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
 
               {/* Payment Input Section */}
               <div className={cn("p-4 md:p-6 border-t", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
