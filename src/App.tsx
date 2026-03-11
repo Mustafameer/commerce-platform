@@ -8481,6 +8481,12 @@ const StoresPage = () => {
   const [storesWithLogos, setStoresWithLogos] = useState<Map<number, any>>(new Map());
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showTopupAuthModal, setShowTopupAuthModal] = useState(false);
+  const [selectedTopupStore, setSelectedTopupStore] = useState<any>(null);
+  const [topupAuthName, setTopupAuthName] = useState('');
+  const [topupAuthPhone, setTopupAuthPhone] = useState('');
+  const [topupAuthError, setTopupAuthError] = useState('');
+  const [topupAuthLoading, setTopupAuthLoading] = useState(false);
   const navigate = useNavigate();
   const { appName, primaryColor } = useSettingsStore();
   const { isDarkMode } = useTheme();
@@ -8551,7 +8557,16 @@ const StoresPage = () => {
       }, [stores]);
 
   const handleStoreClick = (store: any) => {
-    navigate(`/store/${store.slug}`);
+    // If topup store, show auth modal instead of navigating directly
+    if (store.store_type === 'topup') {
+      setSelectedTopupStore(store);
+      setTopupAuthName('');
+      setTopupAuthPhone('');
+      setTopupAuthError('');
+      setShowTopupAuthModal(true);
+    } else {
+      navigate(`/store/${store.slug}`);
+    }
   };
 
   // Helper function to normalize phone numbers for comparison
@@ -8566,6 +8581,68 @@ const StoresPage = () => {
       normalized = '0' + normalized.substring(3);
     }
     return normalized.trim();
+  };
+
+  const handleTopupStoreVerification = async () => {
+    if (!topupAuthName.trim() || !topupAuthPhone.trim()) {
+      setTopupAuthError('يرجى إدخال الاسم ورقم الهاتف');
+      return;
+    }
+
+    setTopupAuthLoading(true);
+    try {
+      const res = await fetch(`/api/merchant/customers?storeId=${selectedTopupStore.id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const customersData = await res.json();
+      
+      // Normalize input phone number
+      const normalizedInputPhone = normalizePhone(topupAuthPhone);
+      
+      // Filter customers for the topup store
+      const registeredCustomers = Array.isArray(customersData) ? customersData.filter((c: any) => {
+        const normalizedDbPhone = normalizePhone(c.phone);
+        return (
+          c.name.toLowerCase().trim() === topupAuthName.toLowerCase().trim() &&
+          normalizedDbPhone === normalizedInputPhone
+        );
+      }) : [];
+
+      if (registeredCustomers.length > 0) {
+        // Customer verified - save data to localStorage
+        const customer = registeredCustomers[0];
+        const customerData = {
+          id: customer.id,
+          name: customer.name,
+          phone: customer.phone,
+          email: customer.email,
+          customer_type: customer.customer_type,
+          credit_limit: customer.credit_limit,
+          current_debt: customer.current_debt
+        };
+        console.log('✅ Customer verified, saving:', customerData);
+        // Save to localStorage
+        localStorage.setItem('topupCustomer', JSON.stringify(customerData));
+        
+        // Close modal and navigate
+        setShowTopupAuthModal(false);
+        setSelectedTopupStore(null);
+        setTopupAuthName('');
+        setTopupAuthPhone('');
+        setTopupAuthError('');
+        
+        // Navigate to topup store (without sidebar, full-width mobile layout)
+        navigate(`/topup/${selectedTopupStore.slug}`);
+      } else {
+        setTopupAuthError('❌ لم يتم العثور على بيانات مطابقة. تأكد من اسم العميل ورقم الهاتف الصحيح');
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      setTopupAuthError('حدث خطأ في التحقق. يرجى المحاولة لاحقاً');
+    } finally {
+      setTopupAuthLoading(false);
+    }
   };
 
   if (loading) {
@@ -8597,6 +8674,99 @@ const StoresPage = () => {
       </div>
 
       {/* Stores Grid */}
+      {/* Topup Store Auth Modal */}
+      {showTopupAuthModal && selectedTopupStore && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" dir="rtl">
+          <Card className={cn("w-full max-w-md", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className={cn("text-xl font-normal", isDarkMode ? "text-white" : "text-gray-900")}>دخول متجر البطاقات</h2>
+                <button
+                  onClick={() => {
+                    setShowTopupAuthModal(false);
+                    setSelectedTopupStore(null);
+                    setTopupAuthName('');
+                    setTopupAuthPhone('');
+                    setTopupAuthError('');
+                  }}
+                  className={cn("p-1 rounded hover:bg-gray-100", isDarkMode ? "hover:bg-gray-700" : "")}
+                >
+                  <X size={20} className={isDarkMode ? "text-gray-400" : "text-gray-600"} />
+                </button>
+              </div>
+
+              <p className={cn("text-sm mb-4", isDarkMode ? "text-gray-400" : "text-gray-600")}>أدخل بيانات الحساب للتحقق</p>
+
+              {topupAuthError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 items-start">
+                  <AlertCircle size={16} className="text-red-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-red-700 font-normal">{topupAuthError}</p>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>الاسم</label>
+                  <input
+                    type="text"
+                    value={topupAuthName}
+                    onChange={(e) => {
+                      setTopupAuthName(e.target.value);
+                      setTopupAuthError('');
+                    }}
+                    placeholder="أدخل الاسم"
+                    className={cn("w-full px-4 py-2 rounded-lg font-normal text-sm border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-300 text-gray-900")}
+                  />
+                </div>
+
+                <div>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>رقم الهاتف</label>
+                  <input
+                    type="tel"
+                    value={topupAuthPhone}
+                    onChange={(e) => {
+                      setTopupAuthPhone(e.target.value);
+                      setTopupAuthError('');
+                    }}
+                    placeholder="أدخل رقم الهاتف"
+                    className={cn("w-full px-4 py-2 rounded-lg font-normal text-sm border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-300 text-gray-900")}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowTopupAuthModal(false);
+                    setSelectedTopupStore(null);
+                    setTopupAuthName('');
+                    setTopupAuthPhone('');
+                    setTopupAuthError('');
+                  }}
+                  className={cn("flex-1 px-4 py-2 rounded-lg font-normal text-sm transition-colors", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-gray-200" : "bg-gray-100 hover:bg-gray-200 text-gray-800")}
+                >
+                  إلغاء
+                </button>
+                <button
+                  onClick={handleTopupStoreVerification}
+                  disabled={topupAuthLoading}
+                  className="flex-1 px-4 py-2 rounded-lg font-normal text-sm text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  {topupAuthLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      جاري التحقق...
+                    </>
+                  ) : (
+                    <>التحقق ودخول المتجر</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
       <main className="flex-1 max-w-7xl mx-auto px-4 py-6 sm:py-12">
         {stores.length === 0 ? (
           <div className="text-center py-20">
