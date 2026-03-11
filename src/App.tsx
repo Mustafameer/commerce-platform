@@ -4571,6 +4571,13 @@ const MerchantDashboard = () => {
       return;
     }
 
+    // Validate amount is a valid number
+    const amount = parseFloat(merchantPaymentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert('⚠️ يرجى إدخال مبلغ صحيح أكبر من الصفر');
+      return;
+    }
+
     // Get store_id from current user (merchant's store)
     const storeId = user?.store_id || (selectedCustomerStatement as any)?.store_id;
     if (!storeId) {
@@ -4583,12 +4590,13 @@ const MerchantDashboard = () => {
       const paymentData = {
         customer_id: selectedCustomerStatement.customer_id,
         store_id: storeId,
-        amount: parseFloat(merchantPaymentAmount),
+        amount: amount,
         payment_method: 'manual',
         notes: 'تسديد يدوي من قبل التاجر'
       };
 
       console.log('💳 Sending payment:', paymentData);
+      console.log('📊 Payment validation - customer_id:', selectedCustomerStatement.customer_id, 'store_id:', storeId, 'amount:', amount);
 
       const res = await fetch('/api/customer-payments', {
         method: 'POST',
@@ -4597,7 +4605,7 @@ const MerchantDashboard = () => {
       });
 
       const data = await res.json();
-      console.log('Response:', data);
+      console.log('📬 Server Response:', { status: res.status, ok: res.ok, data });
 
       if (res.ok) {
         alert('✅ تم تسجيل الدفعة بنجاح');
@@ -4605,11 +4613,14 @@ const MerchantDashboard = () => {
         // Reload transactions
         await handleLoadStatement(selectedCustomerStatement.customer_id);
       } else {
-        alert(`❌ ${data.error || 'فشل تسجيل الدفعة'}`);
+        const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
+        console.error('❌ Server error:', errorMsg);
+        alert(`❌ ${errorMsg}`);
       }
     } catch (err) {
-      console.error('Payment error:', err);
-      alert('❌ حدث خطأ في تسجيل الدفعة');
+      console.error('❌ Payment error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير معروف';
+      alert(`❌ حدث خطأ في تسجيل الدفعة:\n${errorMessage}`);
     } finally {
       setIsProcessingMerchantPayment(false);
     }

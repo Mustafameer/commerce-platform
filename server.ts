@@ -4806,8 +4806,20 @@ async function startServer() {
       try {
         const { customer_id, store_id, amount, payment_method, notes } = req.body;
         
-        if (!customer_id || !store_id || !amount || amount <= 0) {
-          return res.status(400).json({ error: "customer_id, store_id, and amount are required" });
+        console.log('📝 Payment request received:', { customer_id, store_id, amount, payment_method, notes });
+        
+        // Detailed validation
+        if (!customer_id) {
+          console.warn('❌ Validation failed: customer_id is required');
+          return res.status(400).json({ error: "customer_id is required" });
+        }
+        if (!store_id) {
+          console.warn('❌ Validation failed: store_id is required');
+          return res.status(400).json({ error: "store_id is required" });
+        }
+        if (!amount || isNaN(amount) || amount <= 0) {
+          console.warn('❌ Validation failed: amount must be a valid number > 0, received:', amount);
+          return res.status(400).json({ error: "amount must be a valid number greater than 0" });
         }
 
         // Add payment record (current_debt will be recalculated in GET endpoints)
@@ -4818,10 +4830,12 @@ async function startServer() {
           [customer_id, store_id, amount, payment_method || null, notes || null]
         );
 
-        console.log(`💳 [PAYMENT ADDED] Customer: ${customer_id} - Amount: ${amount} - Debt will be recalculated ✓`);
+        console.log(`✅ [PAYMENT ADDED] Customer: ${customer_id} - Store: ${store_id} - Amount: ${amount} ✓`);
         res.json(paymentResult.rows[0]);
       } catch (error) {
-        res.status(500).json({ error: (error as any).message });
+        const errorMsg = (error as any).message || 'Unknown error';
+        console.error('❌ [PAYMENT ERROR]', errorMsg, (error as any));
+        res.status(500).json({ error: `Database error: ${errorMsg}` });
       }
     });
 
