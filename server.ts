@@ -944,9 +944,9 @@ async function startServer() {
           storeSlug = `${storeSlug}-${Date.now()}`;
         }
         
-        // 4. Create store with owner_id
+        // 4. Create store with owner_id (pending approval)
         const result = await pool.query(
-          "INSERT INTO stores (owner_id, store_name, owner_name, owner_phone, slug, is_active) VALUES ($1, $2, $3, $4, $5, true) RETURNING *",
+          "INSERT INTO stores (owner_id, store_name, owner_name, owner_phone, slug, is_active, status) VALUES ($1, $2, $3, $4, $5, false, 'pending') RETURNING *",
           [userId, store_name, owner_name, owner_phone, storeSlug]
         );
         
@@ -1090,7 +1090,7 @@ async function startServer() {
         }
         
         const storeResult = await pool.query(
-          "INSERT INTO stores (owner_id, store_name, owner_name, owner_phone, slug, category, store_type, is_active) VALUES ($1, $2, $3, $4, $5, $6, $7, true) RETURNING *",
+          "INSERT INTO stores (owner_id, store_name, owner_name, owner_phone, slug, category, store_type, is_active, status) VALUES ($1, $2, $3, $4, $5, $6, $7, false, 'pending') RETURNING *",
           [userId, store_name, name, phone, storeSlug, category || 'عام', storeType || 'regular']
         );
 
