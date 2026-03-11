@@ -12090,8 +12090,8 @@ const TopupStorefront = () => {
 
       <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Filters and Purchase Details */}
-          <div className="md:col-span-1 space-y-6">
+          {/* Filters and Purchase Details - Hidden on Mobile */}
+          <div className="hidden md:block md:col-span-1 space-y-6">
             <Card className={cn(isDarkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50")}> 
               <div className={cn("p-4 border-b", isDarkMode ? "border-gray-700" : "border-gray-200")}> 
                 <h3 className="font-normal">الفلاتر</h3>
@@ -12222,8 +12222,8 @@ const TopupStorefront = () => {
           )}
           </div>
 
-          {/* Products Grid */}
-          <div className="md:col-span-2">
+          {/* Products Grid - Full Width on Mobile */}
+          <div className="col-span-1 md:col-span-2">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4" key={`products-${products.length}-${Date.now()}`}>
               {filteredProducts.map((product, idx) => {
                 // العملاء المفردون (cash): wholesale_price
