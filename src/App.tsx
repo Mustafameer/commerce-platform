@@ -1288,11 +1288,17 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                 clearCart();
                 setOrderConfirmation(null);
                 localStorage.removeItem('orderConfirmation');
-                navigate('/');
+                // For topup orders, navigate back to the store; otherwise go to home
+                const topupStoreSlug = localStorage.getItem('topupStoreSlug');
+                if (isTopupCart && topupStoreSlug) {
+                  navigate(`/topup/${topupStoreSlug}`);
+                } else {
+                  navigate('/');
+                }
               }}
               className={cn("px-8 py-3 rounded-lg font-normal transition-all", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-gray-100" : "bg-gray-300 hover:bg-gray-400 text-gray-900")}
             >
-              ← العودة للرئيسية
+              ← العودة {isTopupCart ? 'للمتجر' : 'للرئيسية'}
             </button>
           </div>
         </div>
@@ -11938,6 +11944,9 @@ const TopupStorefront = () => {
                       console.log('✅ Saving purchaseForm to topupCustomer:', purchaseForm);
                       localStorage.setItem('topupCustomer', JSON.stringify(purchaseForm));
                     }
+                    // Store the topup store slug for navigation back after checkout
+                    localStorage.setItem('topupStoreSlug', storeId);
+                    console.log('✅ Saved topupStoreSlug:', storeId);
                     navigate('/topup-cart');
                   }}
                   className="relative rounded-lg font-normal text-white transition-all hover:scale-105 flex items-center gap-2 shadow group"
