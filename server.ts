@@ -3069,6 +3069,9 @@ async function startServer() {
         };
 
         console.log(`📊 Returning statement with ${responseData.transactions.length} transactions`);
+        if (responseData.transactions.length > 0) {
+          console.log(`🏷️  Sample transaction:`, JSON.stringify(responseData.transactions[0], null, 2));
+        }
         res.json(responseData);
       } catch (error) {
         console.error(`❌ Error in statement endpoint:`, (error as any).message);

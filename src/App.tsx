@@ -4556,6 +4556,9 @@ const MerchantDashboard = () => {
       
       setCustomerTransactions(transactions);
       console.log('✅ Transactions loaded:', transactions.length);
+      if (transactions.length > 0) {
+        console.log('🔍 First transaction structure:', transactions[0]);
+      }
       
       if (transactions.length === 0) {
         console.log('💡 No transactions found, showing opening balance or empty state');
