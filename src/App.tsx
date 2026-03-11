@@ -9665,7 +9665,7 @@ const MerchantTopupDashboard = () => {
         initial={{ x: -300 }}
         animate={{ x: 0 }}
         className={cn(
-          "w-64 fixed md:relative h-screen overflow-y-auto border-l",
+          "w-64 hidden md:block md:relative h-screen overflow-y-auto border-l",
           isDarkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200",
           "z-40"
         )}
