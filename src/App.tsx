@@ -12361,8 +12361,8 @@ const TopupStorefront = () => {
             </Card>
           )}
 
-          {/* Products Grid - Full Width */}
-          <div>
+          {/* Products Grid - 80% Width */}
+          <div className="max-w-[80%] mx-auto">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4" key={`products-${products.length}-${Date.now()}`}>
               {filteredProducts.map((product, idx) => {
                 // العملاء المفردون (cash): wholesale_price
