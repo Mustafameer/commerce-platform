@@ -4104,13 +4104,13 @@ async function startServer() {
             const remainingCodes = codesArray.slice(quantity);
             console.log(`🗑️  Removed ${quantity} codes. Remaining: ${remainingCodes.length}`);
             
-            // Update product with remaining codes
+            // Update product with remaining codes AND update available_codes count
             await pool.query(
-              `UPDATE topup_products SET codes = $1 WHERE id = $2`,
-              [remainingCodes, topup_product_id]
+              `UPDATE topup_products SET codes = $1, available_codes = $2 WHERE id = $3`,
+              [remainingCodes, remainingCodes.length, topup_product_id]
             );
             
-            console.log(`✅ Topup product codes updated`);
+            console.log(`✅ Topup product codes updated - available_codes: ${remainingCodes.length}`);
           } else {
             console.log(`⚠️  Warning: No codes available to assign!`);
           }

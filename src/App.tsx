@@ -9122,9 +9122,18 @@ const MerchantTopupDashboard = () => {
 
     // Calculate codes statistics from products
     prod.forEach(p => {
-      if (p.codes && Array.isArray(p.codes)) {
-        totalCodes += p.codes.length;
+      let codeCount = 0;
+      
+      // First priority: use available_codes if it's a valid number > 0
+      if (typeof p.available_codes === 'number' && p.available_codes > 0) {
+        codeCount = p.available_codes;
+      } 
+      // Fallback: count actual codes array
+      else if (p.codes && Array.isArray(p.codes) && p.codes.length > 0) {
+        codeCount = p.codes.length;
       }
+      
+      totalCodes += codeCount;
     });
 
     // Calculate used codes from orders (each order = one code used)
