@@ -4639,18 +4639,25 @@ const MerchantDashboard = () => {
         const customerId = selectedCustomerStatement.customer_id;
         setSelectedCustomerStatement(null);
         
-        // Reopen statement to show updated data
+        // Reopen statement to show updated data with longer delay to ensure DB is updated
         setTimeout(async () => {
-          if (customerId) {
-            console.log('🔄 Reopening statement to show updated data after payment...');
-            const customerRes = await fetch(`/api/customers/${customerId}`);
-            const customer = await customerRes.json();
-            if (customerRes.ok) {
+          try {
+            if (customerId) {
+              console.log('🔄 Reopening statement to show updated data after payment...');
+              const customerRes = await fetch(`/api/customers/${customerId}`);
+              if (!customerRes.ok) {
+                console.error('❌ Failed to fetch customer');
+                return;
+              }
+              const customer = await customerRes.json();
+              console.log('📏 Customer data fetched:', customer);
               setSelectedCustomerStatement(customer);
               await handleLoadStatement(customerId);
             }
+          } catch (err) {
+            console.error('❌ Error reopening statement:', err);
           }
-        }, 300);
+        }, 800);
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
         console.error('❌ Server error:', errorMsg);
@@ -4709,16 +4716,23 @@ const MerchantDashboard = () => {
         
         // Reopen statement to show updated data
         setTimeout(async () => {
-          if (customerId) {
-            console.log('🔄 Reopening statement to show updated data after edit...');
-            const customerRes = await fetch(`/api/customers/${customerId}`);
-            const customer = await customerRes.json();
-            if (customerRes.ok) {
+          try {
+            if (customerId) {
+              console.log('🔄 Reopening statement to show updated data after edit...');
+              const customerRes = await fetch(`/api/customers/${customerId}`);
+              if (!customerRes.ok) {
+                console.error('❌ Failed to fetch customer');
+                return;
+              }
+              const customer = await customerRes.json();
+              console.log('📏 Customer data fetched:', customer);
               setSelectedCustomerStatement(customer);
               await handleLoadStatement(customerId);
             }
+          } catch (err) {
+            console.error('❌ Error reopening statement:', err);
           }
-        }, 300);
+        }, 800);
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
         console.error('❌ Server error:', errorMsg);
@@ -4760,16 +4774,23 @@ const MerchantDashboard = () => {
         
         // Reopen statement to show updated data
         setTimeout(async () => {
-          if (customerId) {
-            console.log('🔄 Reopening statement to show updated data after delete...');
-            const customerRes = await fetch(`/api/customers/${customerId}`);
-            const customer = await customerRes.json();
-            if (customerRes.ok) {
+          try {
+            if (customerId) {
+              console.log('🔄 Reopening statement to show updated data after delete...');
+              const customerRes = await fetch(`/api/customers/${customerId}`);
+              if (!customerRes.ok) {
+                console.error('❌ Failed to fetch customer');
+                return;
+              }
+              const customer = await customerRes.json();
+              console.log('📏 Customer data fetched:', customer);
               setSelectedCustomerStatement(customer);
               await handleLoadStatement(customerId);
             }
+          } catch (err) {
+            console.error('❌ Error reopening statement:', err);
           }
-        }, 300);
+        }, 800);
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
         console.error('❌ Server error:', errorMsg);

@@ -3050,7 +3050,23 @@ async function startServer() {
         // Calculate running balance for each transaction
         // Start from starting_balance: debit transactions ADD to debt, credit transactions SUBTRACT from debt
         let runningBalance = customer.starting_balance || 0;
-        const allTransactionsWithBalance = allTransactions.map((t: any) => {
+        
+        // Always show opening balance first if it exists and is > 0
+        const allTransactionsWithBalance = [];
+        if (customer.starting_balance && customer.starting_balance > 0) {
+          allTransactionsWithBalance.push({
+            id: 0,
+            type: 'opening',
+            description: 'الرصيد الافتتاحي',
+            amount: customer.starting_balance,
+            created_at: customer.created_at,
+            balance: customer.starting_balance,
+            is_payment: false
+          });
+        }
+
+        // Add all other transactions with calculated balance
+        allTransactions.forEach((t: any) => {
           if (t.is_payment) {
             // Payment (credit): deducts from debt
             runningBalance -= t.amount;
@@ -3058,14 +3074,23 @@ async function startServer() {
             // Debit transaction: adds to debt
             runningBalance += t.amount;
           }
-          return {
+          allTransactionsWithBalance.push({
             ...t,
             balance: runningBalance
-          };
+          });
         });
 
-        // Reverse to show newest first
-        const allTransactionsFinal = allTransactionsWithBalance.reverse();
+        // Reverse to show newest first, but keep opening balance at top if it exists
+        let allTransactionsFinal = allTransactionsWithBalance.reverse();
+        
+        // If opening balance exists, move it back to the top
+        if (customer.starting_balance && customer.starting_balance > 0) {
+          const openingBalance = allTransactionsFinal.find(t => t.type === 'opening');
+          if (openingBalance) {
+            allTransactionsFinal = allTransactionsFinal.filter(t => t.type !== 'opening');
+            allTransactionsFinal.unshift(openingBalance);
+          }
+        }
 
         const responseData = {
           name: customer.name,
@@ -3073,17 +3098,7 @@ async function startServer() {
           credit_limit: customer.credit_limit,
           starting_balance: customer.starting_balance,
           customer: customer,
-          transactions: allTransactionsFinal.length > 0 ? allTransactionsFinal : (customer.starting_balance && customer.starting_balance > 0 ? [
-            {
-              id: 0,
-              type: 'opening',
-              description: 'الرصيد الافتتاحي',
-              amount: customer.starting_balance,
-              created_at: customer.created_at,
-              balance: customer.starting_balance,
-              is_payment: false
-            }
-          ] : [])
+          transactions: allTransactionsFinal.length > 0 ? allTransactionsFinal : []
         };
 
         console.log(`📊 Returning statement with ${responseData.transactions.length} transactions`);
