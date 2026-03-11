@@ -4528,13 +4528,13 @@ const MerchantDashboard = () => {
   const handleLoadStatement = async (customerId: number) => {
     try {
       setIsLoadingCustomerTransactions(true);
-      console.log('🔍 Fetching statement for customer:', customerId);
+      console.log('🔍 STARTING handleLoadStatement for customer:', customerId);
       
       const res = await fetch(`/api/customers/${customerId}/statement`);
       console.log('📡 Response status:', res.status);
       
       const data = await res.json();
-      console.log("📊 API Response:", data);
+      console.log("📊 API Response full data:", data);
       
       if (!res.ok) {
         console.error('❌ API Error:', data);
@@ -4554,6 +4554,7 @@ const MerchantDashboard = () => {
         transactions = [];
       }
       
+      console.log('📌 Setting transactions state with:', transactions.length, 'items');
       setCustomerTransactions(transactions);
       console.log('✅ Transactions loaded:', transactions.length);
       console.log('📋 Full transactions data returned from API:');
@@ -4641,18 +4642,22 @@ const MerchantDashboard = () => {
         alert('✅ تم تسجيل الدفعة بنجاح');
         setMerchantPaymentAmount('');
         
-        // Capture customerId before setTimeout to avoid closure issues
+        // Close and reopen statement to refresh
         const customerId = selectedCustomerStatement?.customer_id;
+        console.log('📌 Closing statement, customerId:', customerId);
+        setSelectedCustomerStatement(null);
+        
         if (customerId) {
-          console.log('📋 Payment saved, customerId:', customerId);
-          console.log('⏳ Setting timeout to reload statement in 1500ms...');
           setTimeout(async () => {
-            console.log('🔄 TIMER FIRED - Reloading statement after payment for customer:', customerId);
-            await handleLoadStatement(customerId);
-            console.log('✅ Statement reload finished');
-          }, 1500);
-        } else {
-          console.error('❌ No customerId found!');
+            console.log('🔄 Reopening statement...');
+            const res = await fetch(`/api/customers/${customerId}`);
+            const customer = await res.json();
+            if (res.ok) {
+              setSelectedCustomerStatement(customer);
+              await handleLoadStatement(customerId);
+              console.log('✅ Statement reopened with fresh data');
+            }
+          }, 500);
         }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
@@ -4706,18 +4711,22 @@ const MerchantDashboard = () => {
         setEditingTransactionId(null);
         setEditingTransactionAmount('');
         
-        // Capture customerId before setTimeout to avoid closure issues
+        // Close and reopen statement to refresh
         const customerId = selectedCustomerStatement?.customer_id;
+        console.log('📋 Closing statement, customerId:', customerId);
+        setSelectedCustomerStatement(null);
+        
         if (customerId) {
-          console.log('💳 Edit saved, customerId:', customerId);
-          console.log('⏳ Setting timeout to reload statement in 1500ms...');
           setTimeout(async () => {
-            console.log('🔄 TIMER FIRED - Reloading statement after edit for customer:', customerId);
-            await handleLoadStatement(customerId);
-            console.log('✅ Statement reload finished');
-          }, 1500);
-        } else {
-          console.error('❌ No customerId found!');
+            console.log('🔄 Reopening statement...');
+            const res = await fetch(`/api/customers/${customerId}`);
+            const customer = await res.json();
+            if (res.ok) {
+              setSelectedCustomerStatement(customer);
+              await handleLoadStatement(customerId);
+              console.log('✅ Statement reopened with fresh data');
+            }
+          }, 500);
         }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
@@ -4754,18 +4763,22 @@ const MerchantDashboard = () => {
       if (res.ok) {
         alert('✅ تم حذف المعاملة بنجاح');
         
-        // Capture customerId before setTimeout to avoid closure issues
+        // Close and reopen statement to refresh
         const customerId = selectedCustomerStatement?.customer_id;
+        console.log('📋 Closing statement, customerId:', customerId);
+        setSelectedCustomerStatement(null);
+        
         if (customerId) {
-          console.log('💳 Delete saved, customerId:', customerId);
-          console.log('⏳ Setting timeout to reload statement in 1500ms...');
           setTimeout(async () => {
-            console.log('🔄 TIMER FIRED - Reloading statement after delete for customer:', customerId);
-            await handleLoadStatement(customerId);
-            console.log('✅ Statement reload finished');
-          }, 1500);
-        } else {
-          console.error('❌ No customerId found!');
+            console.log('🔄 Reopening statement...');
+            const res = await fetch(`/api/customers/${customerId}`);
+            const customer = await res.json();
+            if (res.ok) {
+              setSelectedCustomerStatement(customer);
+              await handleLoadStatement(customerId);
+              console.log('✅ Statement reopened with fresh data');
+            }
+          }, 500);
         }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
