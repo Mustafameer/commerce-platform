@@ -42,7 +42,9 @@ import {
   Edit,
   Home,
   ArrowRight,
-  Zap
+  Zap,
+  Power,
+  PowerOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuthStore, useRegularCartStore, useSettingsStore, useSearchStore, useRefreshStore, useTopupCartStore } from './store';
@@ -2770,6 +2772,26 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleToggleStore = async (store: any) => {
+    try {
+      const res = await fetch(`/api/admin/toggle-store/${store.id}`, { method: 'POST' });
+      const data = await res.json();
+      
+      if (res.ok) {
+        const action = data.is_active ? 'تفعيل' : 'إيقاف';
+        alert(`تم ${action} المتجر بنجاح`);
+        fetch('/api/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
+        fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Stats refresh error:', err));
+      } else {
+        alert("فشل تغيير حالة المتجر: " + (data.error || "خطأ غير معروف"));
+        console.error('Toggle error:', data);
+      }
+    } catch (error) {
+      alert("خطأ في الاتصال: " + (error instanceof Error ? error.message : "خطأ غير معروف"));
+      console.error('Connection error:', error);
+    }
+  };
+
   const handleDeleteStore = async (id: number) => {
     if (!confirm("هل أنت متأكد من حذف هذا المتجر نهائياً؟")) return;
     
@@ -3045,6 +3067,18 @@ const AdminDashboard = () => {
                           تفعيل
                         </button>
                       )}
+                      <button 
+                        onClick={() => handleToggleStore(store)}
+                        className={cn(
+                          "p-2 rounded-lg transition-all",
+                          store.is_active 
+                            ? "text-green-400 hover:text-green-600 hover:bg-green-50" 
+                            : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                        )}
+                        title={store.is_active ? "إيقاف المتجر" : "تفعيل المتجر"}
+                      >
+                        {store.is_active ? <Power size={16} /> : <PowerOff size={16} />}
+                      </button>
                       <button 
                         onClick={() => handleEditStore(store)}
                         className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"

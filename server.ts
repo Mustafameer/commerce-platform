@@ -2548,6 +2548,38 @@ async function startServer() {
       }
     });
 
+    // Toggle store active/inactive status
+    app.post("/api/admin/toggle-store/:id", async (req, res) => {
+      try {
+        const storeId = parseInt(req.params.id);
+        if (isNaN(storeId) || storeId <= 0) {
+          return res.status(400).json({ error: "Invalid store ID" });
+        }
+        
+        // Get current store status
+        const currentStore = await pool.query("SELECT is_active, status FROM stores WHERE id = $1", [storeId]);
+        
+        if (currentStore.rows.length === 0) {
+          return res.status(404).json({ error: "Store not found" });
+        }
+        
+        const newIsActive = !currentStore.rows[0].is_active;
+        const newStatus = newIsActive ? 'approved' : 'suspended';
+        
+        const result = await pool.query(
+          "UPDATE stores SET is_active = $1, status = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING *",
+          [newIsActive, newStatus, storeId]
+        );
+        
+        console.log(`🔄 Store ${storeId} toggled: is_active changed from ${!newIsActive} to ${newIsActive}`);
+        
+        res.json({ success: true, store: result.rows[0], is_active: newIsActive });
+      } catch (error) {
+        console.error("Toggle store error:", error);
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
     // Toggle subscription paid status endpoint
     app.put("/api/admin/stores/:id/toggle-subscription-paid", async (req, res) => {
       try {
