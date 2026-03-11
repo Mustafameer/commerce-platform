@@ -4513,19 +4513,71 @@ const MerchantDashboard = () => {
   // Handle Load Customer Statement
   const handleLoadStatement = async (customerId: number) => {
     try {
+      setIsLoadingCustomerTransactions(true);
       const res = await fetch(`/api/customers/${customerId}/statement`);
       if (res.ok) {
         const data = await res.json();
         console.log("📊 Customer Statement:", data);
-        setCustomerTransactions(data.transactions || []);
-        // TODO: Show statement modal with this data
-        alert(`📊 كشف الحساب للعميل: ${data.name}\nالرصيد الحالي: ${data.current_debt}`);
+        
+        // Handle different response formats
+        let transactions = [];
+        if (Array.isArray(data)) {
+          transactions = data;
+        } else if (data.transactions && Array.isArray(data.transactions)) {
+          transactions = data.transactions;
+        } else if (data.data && Array.isArray(data.data)) {
+          transactions = data.data;
+        }
+        
+        setCustomerTransactions(transactions);
+        console.log('✅ Transactions loaded:', transactions.length);
       } else {
+        setCustomerTransactions([]);
         alert("❌ فشل الحصول على كشف الحساب");
       }
     } catch (err) {
       console.error(err);
+      setCustomerTransactions([]);
       alert("حدث خطأ في الاتصال بالسيرفر");
+    } finally {
+      setIsLoadingCustomerTransactions(false);
+    }
+  };
+
+  // Handle merchant adding payment for customer
+  const handleAddMerchantPayment = async () => {
+    if (!selectedCustomerStatement?.customer_id || !merchantPaymentAmount) {
+      alert('⚠️ يرجى إدخال المبلغ');
+      return;
+    }
+
+    setIsProcessingMerchantPayment(true);
+    try {
+      const res = await fetch('/api/customers/payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_id: selectedCustomerStatement.customer_id,
+          amount: parseFloat(merchantPaymentAmount),
+          payment_method: 'manual',
+          description: 'تسديد يدوي من قبل التاجر'
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert('✅ تم تسجيل الدفعة بنجاح');
+        setMerchantPaymentAmount('');
+        // Reload transactions
+        await handleLoadStatement(selectedCustomerStatement.customer_id);
+      } else {
+        alert(`❌ ${data.error || 'فشل تسجيل الدفعة'}`);
+      }
+    } catch (err) {
+      console.error('Payment error:', err);
+      alert('❌ حدث خطأ في تسجيل الدفعة');
+    } finally {
+      setIsProcessingMerchantPayment(false);
     }
   };
 
@@ -9087,6 +9139,10 @@ const MerchantTopupDashboard = () => {
   const [isEditingProduct, setIsEditingProduct] = useState<number | null>(null);
   const [selectedProductForCodes, setSelectedProductForCodes] = useState<number | null>(null);
   const [selectedCustomerStatement, setSelectedCustomerStatement] = useState<any>(null);
+  const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
+  const [isLoadingCustomerTransactions, setIsLoadingCustomerTransactions] = useState(false);
+  const [merchantPaymentAmount, setMerchantPaymentAmount] = useState('');
+  const [isProcessingMerchantPayment, setIsProcessingMerchantPayment] = useState(false);
 
   // Form states
   const [companyForm, setCompanyForm] = useState({ name: '', logo_url: '' });
@@ -10212,6 +10268,8 @@ const MerchantTopupDashboard = () => {
                                 onClick={() => {
                                   setSelectedCustomerStatement(customer);
                                   setShowCustomerStatement(true);
+                                  // Load transactions when opening statement modal
+                                  setTimeout(() => handleLoadStatement(customer.customer_id || customer.id), 100);
                                 }}
                                 className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-green-900/30 text-green-400 hover:bg-green-900/60" : "text-green-600 hover:bg-green-50")}
                                 title="كشف الحساب"
@@ -11030,11 +11088,85 @@ const MerchantTopupDashboard = () => {
               </div>
 
               {/* Transactions Info */}
-              <div className={cn("p-4 rounded-lg border-2 border-dashed", isDarkMode ? "border-gray-600" : "border-gray-300")}>
-                <p className={cn("text-sm font-normal text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                  📋 سيتم عرض سجل العمليات هنا<br/>
-                  <span className="text-xs">(الطلبات والدفعات والتسديدات)</span>
-                </p>
+              <div>
+                <h4 className={cn("text-sm font-bold mb-3", isDarkMode ? "text-white" : "text-gray-900")}>
+                  📊 سجل العمليات
+                </h4>
+                <div className={cn("border rounded-lg overflow-x-auto", isDarkMode ? "border-gray-700 bg-gray-900/30" : "border-gray-200 bg-gray-50")}>
+                  {isLoadingCustomerTransactions ? (
+                    <div className="p-6 text-center">
+                      <p className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>جاري تحميل العمليات...</p>
+                    </div>
+                  ) : customerTransactions && customerTransactions.length > 0 ? (
+                    <table className="w-full text-xs">
+                      <thead className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
+                        <tr>
+                          <th className={cn("px-3 py-2 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>التاريخ</th>
+                          <th className={cn("px-3 py-2 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>النوع</th>
+                          <th className={cn("px-3 py-2 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>الوصف</th>
+                          <th className={cn("px-3 py-2 text-center font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>المبلغ</th>
+                          <th className={cn("px-3 py-2 text-center font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>الرصيد</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {customerTransactions.map((transaction, idx) => {
+                          const txDate = transaction.created_at || transaction.date || transaction.transaction_date;
+                          const txType = transaction.type || transaction.transaction_type || 'unknown';
+                          const txDescription = transaction.description || transaction.notes || transaction.detail || `عملية #${idx + 1}`;
+                          const txAmount = Math.round(Number(transaction.amount || transaction.value || 0));
+                          const txBalance = Math.round(Number(transaction.balance || transaction.current_balance || 0));
+                          const isCredit = txType === 'credit' || txType === 'رصيد' || txType === 'إيداع';
+                          
+                          return (
+                            <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-100")}>
+                              <td className={cn("px-3 py-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                                {txDate ? new Date(txDate).toLocaleDateString('ar-IQ') : '—'}
+                              </td>
+                              <td className={cn("px-3 py-2 font-bold", isCredit ? "text-green-500" : "text-red-500")}>
+                                {isCredit ? '✓ رصيد' : '✕ خصم'}
+                              </td>
+                              <td className={cn("px-3 py-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                                {txDescription}
+                              </td>
+                              <td className={cn("px-3 py-2 text-center font-bold", isCredit ? "text-green-500" : "text-red-500")}>
+                                {isCredit ? '+' : '-'}{txAmount.toLocaleString('en-US')} د.ع
+                              </td>
+                              <td className={cn("px-3 py-2 text-center", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                                {txBalance.toLocaleString('en-US')} د.ع
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className={cn("p-6 text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                      <p className="text-sm">لا توجد عمليات بعد</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Add Payment Section for Merchant */}
+              <div className={cn("p-4 rounded-lg border-2", isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300")}>
+                <h4 className={cn("text-sm font-bold mb-3", isDarkMode ? "text-green-300" : "text-green-700")}>💳 إضافة تسديد</h4>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={merchantPaymentAmount}
+                    onChange={(e) => setMerchantPaymentAmount(e.target.value)}
+                    placeholder="المبلغ المراد تسديده (د.ع)"
+                    max={Math.max(0, selectedCustomerStatement.current_debt || 0)}
+                    className={cn("flex-1 px-3 py-2 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
+                  />
+                  <button
+                    onClick={handleAddMerchantPayment}
+                    disabled={isProcessingMerchantPayment}
+                    className={cn("px-4 py-2 rounded-lg text-white font-normal text-sm transition-colors", isProcessingMerchantPayment ? "opacity-50 bg-gray-500" : "bg-green-600 hover:bg-green-700")}
+                  >
+                    {isProcessingMerchantPayment ? 'جاري...' : '✓ تسجيل'}
+                  </button>
+                </div>
               </div>
 
               <button
