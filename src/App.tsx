@@ -10292,10 +10292,15 @@ const MerchantTopupDashboard = () => {
                               </button>
                               <button 
                                 onClick={() => {
-                                  setSelectedCustomerStatement(customer);
+                                  // Ensure customer object has customer_id field
+                                  const customerWithId = {
+                                    ...customer,
+                                    customer_id: customer.customer_id || customer.id
+                                  };
+                                  setSelectedCustomerStatement(customerWithId);
                                   setShowCustomerStatement(true);
                                   // Load transactions when opening statement modal
-                                  setTimeout(() => handleLoadStatement(customer.customer_id || customer.id), 100);
+                                  setTimeout(() => handleLoadStatement(customerWithId.customer_id), 100);
                                 }}
                                 className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-green-900/30 text-green-400 hover:bg-green-900/60" : "text-green-600 hover:bg-green-50")}
                                 title="كشف الحساب"
