@@ -2633,6 +2633,37 @@ async function startServer() {
       }
     });
 
+    // Save store logo to database
+    app.post("/api/admin/stores/:id/logo", async (req, res) => {
+      try {
+        const storeId = parseInt(req.params.id);
+        const { logo_url } = req.body;
+
+        if (isNaN(storeId) || storeId <= 0) {
+          return res.status(400).json({ error: "Invalid store ID" });
+        }
+
+        if (!logo_url) {
+          return res.status(400).json({ error: "Logo URL is required" });
+        }
+
+        const result = await pool.query(
+          "UPDATE stores SET logo_url = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *",
+          [logo_url, storeId]
+        );
+
+        if (result.rows.length === 0) {
+          return res.status(404).json({ error: "Store not found" });
+        }
+
+        console.log(`✅ Store ${storeId} logo updated`);
+        res.json({ success: true, store: result.rows[0] });
+      } catch (error) {
+        console.error("Store logo update error:", error);
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
     // Toggle subscription paid status endpoint
     app.put("/api/admin/stores/:id/toggle-subscription-paid", async (req, res) => {
       try {

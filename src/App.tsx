@@ -9402,6 +9402,22 @@ const MerchantTopupDashboard = () => {
             logoEnds: updatedSettings.logo_url?.substring(updatedSettings.logo_url.length - 30)
           });
           
+          // Also save to database
+          try {
+            const dbRes = await fetch(`/api/admin/stores/${topupStoreId}/logo`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ logo_url: base64Data })
+            });
+            if (dbRes.ok) {
+              console.log('✅ Logo saved to database for store', topupStoreId);
+            } else {
+              console.warn('⚠️ Failed to save logo to database:', await dbRes.json());
+            }
+          } catch (err) {
+            console.error('❌ Error saving logo to database:', err);
+          }
+          
           // Dispatch event for menu component
           window.dispatchEvent(new CustomEvent('storeSettingsUpdated', {
             detail: { storeId: topupStoreId, settings: updatedSettings }
