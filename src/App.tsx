@@ -11905,9 +11905,11 @@ const TopupStorefront = () => {
 
   return (
     <div className={cn("h-screen flex flex-col overflow-hidden", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900")} dir="rtl">
-      {/* Header with Auth */}
-      <div className={cn("border-b flex-shrink-0", isDarkMode ? "border-gray-700" : "border-gray-200")}>
-        <div className="max-w-6xl mx-auto px-4 py-6">
+      {/* Main scrollable container for header and content */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Header with Auth */}
+        <div className={cn("border-b", isDarkMode ? "border-gray-700" : "border-gray-200")}>
+          <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-3">
               <button 
@@ -12273,9 +12275,8 @@ const TopupStorefront = () => {
             </div>
           )}
         </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
+        
+        {/* Filters and Products Content */}
         <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8">
           {/* Filters and Purchase Details */}
           <div className="space-y-6">
@@ -12558,6 +12559,8 @@ const TopupStorefront = () => {
             </div>
           </div>
         </div>
+      </div>
+      {/* Closing flex-1 overflow-y-auto div */}
       </div>
       <div className="flex-shrink-0">
         <StorePageMobileFooter storeSlug={storeId} isTopup={true} />
