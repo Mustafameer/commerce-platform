@@ -4898,18 +4898,34 @@ async function startServer() {
       try {
         const { id } = req.params;
 
-        // Delete the payment record (current_debt will be recalculated in GET endpoints)
-        const result = await pool.query(
-          `DELETE FROM customer_payments WHERE id = $1 RETURNING id, amount`,
+        // Get the payment details before deleting
+        const paymentRes = await pool.query(
+          `SELECT id, customer_id, amount FROM customer_payments WHERE id = $1`,
           [parseInt(id)]
         );
 
-        if (result.rows.length === 0) {
+        if (paymentRes.rows.length === 0) {
           return res.status(404).json({ error: "Payment not found" });
         }
 
-        console.log(`🗑️ [PAYMENT DELETED] ID: ${id} - Debt will be recalculated ✓`);
-        res.json({ success: true, message: "تم حذف التسديد بنجاح وستُعاد الديون تلقائياً" });
+        const payment = paymentRes.rows[0];
+        const { customer_id, amount } = payment;
+
+        // When a payment is deleted, add the payment amount back to current_debt
+        // because the customer still owes what they were trying to pay
+        await pool.query(
+          `UPDATE customers SET current_debt = current_debt + $1 WHERE id = $2`,
+          [amount, customer_id]
+        );
+
+        // Delete the payment record
+        await pool.query(
+          `DELETE FROM customer_payments WHERE id = $1`,
+          [parseInt(id)]
+        );
+
+        console.log(`🗑️ [PAYMENT DELETED] ID: ${id} | Amount: ${amount} | Customer: ${customer_id} | Debt increased by ${amount} ✓`);
+        res.json({ success: true, message: "تم حذف التسديد بنجاح وتم استرجاع المبلغ للحساب" });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
       }
