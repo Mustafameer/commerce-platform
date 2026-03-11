@@ -3055,7 +3055,7 @@ async function startServer() {
           credit_limit: customer.credit_limit,
           starting_balance: customer.starting_balance,
           customer: customer,
-          transactions: allTransactions.length > 0 ? allTransactions : [
+          transactions: allTransactions.length > 0 ? allTransactions : (customer.starting_balance && customer.starting_balance > 0 ? [
             {
               id: 0,
               type: 'opening',
@@ -3065,7 +3065,7 @@ async function startServer() {
               balance: customer.starting_balance,
               is_payment: false
             }
-          ]
+          ] : [])
         };
 
         console.log(`📊 Returning statement with ${responseData.transactions.length} transactions`);
