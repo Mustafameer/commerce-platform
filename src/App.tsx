@@ -2718,7 +2718,7 @@ const AdminDashboard = () => {
       
       if (res.ok) {
         alert("تم تحديث حالة المتجر وتفعيله بنجاح");
-        // Keep dialog open so user can send Telegram message manually
+        // Keep dialog open so user can send WhatsApp message manually
         // Refresh
         fetch('/api/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh stores error:', err));
         fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Refresh stats error:', err));
@@ -3669,16 +3669,16 @@ const AdminDashboard = () => {
                 if (cleanPhone.startsWith('07') && cleanPhone.length === 11) {
                   waPhone = '964' + cleanPhone.substring(1);
                 }
-                // Open Telegram share with message
-                const telegramUrl = `https://t.me/share/url?url=&text=${encodedMsg}`;
-                window.open(telegramUrl, '_blank');
+                // Open WhatsApp share with message
+                const whatsappUrl = `https://wa.me/${waPhone}?text=${encodedMsg}`;
+                window.open(whatsappUrl, '_blank');
                 // Close the dialog
                 setApproveDialog({ store: null, customPhone: '' });
               }}
               className="w-full bg-emerald-500 text-white py-4 font-normal rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-100"
             >
               <Send size={20} />
-              <span>إرسال الرسالة عبر تليجرام يدوياً</span>
+              <span>إرسال الرسالة عبر واتساب يدوياً</span>
             </Button>
             <p className="text-[10px] text-center text-gray-400 font-medium">خطوة يدوية: اضغط تفعيل أولاً ثم إرسال لضمان تحديث حالة المتجر</p>
           </div>
