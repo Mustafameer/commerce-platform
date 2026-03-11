@@ -2106,12 +2106,9 @@ const LoginPage = () => {
         setUser(user);
         if (user.role === 'admin') navigate('/admin');
         else if (user.role === 'merchant') {
-          // Check if merchant has a topup store
-          if (user.store_type === 'topup') {
-            navigate('/topup-merchant');
-          } else {
-            navigate('/merchant');
-          }
+          // For merchants, always go to regular merchant dashboard
+          // TopupStorefront is for customers, not merchants
+          navigate('/merchant');
         }
         else navigate('/');
       } else {
