@@ -71,17 +71,7 @@ html, body {
 
 /* Debug indicators */
 [data-dashboard-layout="desktop"]::before {
-  content: '🖥️ DESKTOP LAYOUT (md+)';
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  background: #1e40af;
-  color: white;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  z-index: 9998;
-  font-family: monospace;
+  display: none;
 }
 
 [data-dashboard-layout="mobile"]::before {
