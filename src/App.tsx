@@ -4642,22 +4642,45 @@ const MerchantDashboard = () => {
         alert('✅ تم تسجيل الدفعة بنجاح');
         setMerchantPaymentAmount('');
         
-        // Close and reopen statement to refresh
+        // Close statement first
         const customerId = selectedCustomerStatement?.customer_id;
-        console.log('📌 Closing statement, customerId:', customerId);
+        console.log('📌 [PAYMENT] Closing statement, customerId:', customerId);
         setSelectedCustomerStatement(null);
+        setCustomerTransactions([]);
         
         if (customerId) {
+          // Wait longer to ensure database is updated and state is cleared
           setTimeout(async () => {
-            console.log('🔄 Reopening statement...');
-            const res = await fetch(`/api/customers/${customerId}`);
-            const customer = await res.json();
-            if (res.ok) {
+            try {
+              console.log('🔄 [PAYMENT] Starting reopen process...');
+              
+              // Fetch fresh customer data
+              const customerRes = await fetch(`/api/customers/${customerId}`);
+              if (!customerRes.ok) {
+                console.error('❌ Failed to fetch customer');
+                return;
+              }
+              const customer = await customerRes.json();
+              console.log('✅ [PAYMENT] Got fresh customer data:', { 
+                name: customer.name, 
+                current_debt: customer.current_debt,
+                credit_limit: customer.credit_limit,
+                starting_balance: customer.starting_balance
+              });
+              
+              // Update state with fresh customer data
+              console.log('📝 [PAYMENT] Setting selectedCustomerStatement...');
               setSelectedCustomerStatement(customer);
+              
+              // Load fresh transactions in parallel
+              console.log('📝 [PAYMENT] Calling handleLoadStatement...');
               await handleLoadStatement(customerId);
-              console.log('✅ Statement reopened with fresh data');
+              
+              console.log('✅ [PAYMENT] Statement fully refreshed');
+            } catch (err) {
+              console.error('❌ [PAYMENT] Error during reopen:', err);
             }
-          }, 500);
+          }, 800);
         }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
@@ -4711,22 +4734,40 @@ const MerchantDashboard = () => {
         setEditingTransactionId(null);
         setEditingTransactionAmount('');
         
-        // Close and reopen statement to refresh
+        // Close statement first
         const customerId = selectedCustomerStatement?.customer_id;
-        console.log('📋 Closing statement, customerId:', customerId);
+        console.log('📋 [EDIT] Closing statement, customerId:', customerId);
         setSelectedCustomerStatement(null);
+        setCustomerTransactions([]);
         
         if (customerId) {
+          // Wait longer to ensure database is updated and state is cleared
           setTimeout(async () => {
-            console.log('🔄 Reopening statement...');
-            const res = await fetch(`/api/customers/${customerId}`);
-            const customer = await res.json();
-            if (res.ok) {
+            try {
+              console.log('🔄 [EDIT] Starting reopen process...');
+              
+              // Fetch fresh customer data
+              const customerRes = await fetch(`/api/customers/${customerId}`);
+              if (!customerRes.ok) {
+                console.error('❌ Failed to fetch customer');
+                return;
+              }
+              const customer = await customerRes.json();
+              console.log('✅ [EDIT] Got fresh customer data');
+              
+              // Update state with fresh customer data
+              console.log('📝 [EDIT] Setting selectedCustomerStatement...');
               setSelectedCustomerStatement(customer);
+              
+              // Load fresh transactions
+              console.log('📝 [EDIT] Calling handleLoadStatement...');
               await handleLoadStatement(customerId);
-              console.log('✅ Statement reopened with fresh data');
+              
+              console.log('✅ [EDIT] Statement fully refreshed');
+            } catch (err) {
+              console.error('❌ [EDIT] Error during reopen:', err);
             }
-          }, 500);
+          }, 800);
         }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
@@ -4763,22 +4804,40 @@ const MerchantDashboard = () => {
       if (res.ok) {
         alert('✅ تم حذف المعاملة بنجاح');
         
-        // Close and reopen statement to refresh
+        // Close statement first
         const customerId = selectedCustomerStatement?.customer_id;
-        console.log('📋 Closing statement, customerId:', customerId);
+        console.log('📋 [DELETE] Closing statement, customerId:', customerId);
         setSelectedCustomerStatement(null);
+        setCustomerTransactions([]);
         
         if (customerId) {
+          // Wait longer to ensure database is updated and state is cleared
           setTimeout(async () => {
-            console.log('🔄 Reopening statement...');
-            const res = await fetch(`/api/customers/${customerId}`);
-            const customer = await res.json();
-            if (res.ok) {
+            try {
+              console.log('🔄 [DELETE] Starting reopen process...');
+              
+              // Fetch fresh customer data
+              const customerRes = await fetch(`/api/customers/${customerId}`);
+              if (!customerRes.ok) {
+                console.error('❌ Failed to fetch customer');
+                return;
+              }
+              const customer = await customerRes.json();
+              console.log('✅ [DELETE] Got fresh customer data');
+              
+              // Update state with fresh customer data
+              console.log('📝 [DELETE] Setting selectedCustomerStatement...');
               setSelectedCustomerStatement(customer);
+              
+              // Load fresh transactions
+              console.log('📝 [DELETE] Calling handleLoadStatement...');
               await handleLoadStatement(customerId);
-              console.log('✅ Statement reopened with fresh data');
+              
+              console.log('✅ [DELETE] Statement fully refreshed');
+            } catch (err) {
+              console.error('❌ [DELETE] Error during reopen:', err);
             }
-          }, 500);
+          }, 800);
         }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
