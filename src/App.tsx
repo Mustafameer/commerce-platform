@@ -8995,6 +8995,7 @@ const MerchantTopupDashboard = () => {
   const { section } = useParams();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
   
   // Auth state
   const [showLogin, setShowLogin] = useState(!user || user.role !== 'merchant');
@@ -9762,7 +9763,7 @@ const MerchantTopupDashboard = () => {
               </h1>
             </div>
             <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
+              onClick={() => setShowMobileDrawer(true)}
               className={cn("md:hidden p-2 rounded-lg", isDarkMode ? "bg-gray-800 text-gray-100" : "bg-gray-100 text-gray-900")}
             >
               <Menu size={24} />
@@ -10948,6 +10949,103 @@ const MerchantTopupDashboard = () => {
               >
                 إغلاق
               </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Mobile Navigation Drawer */}
+      {showMobileDrawer && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowMobileDrawer(false)}
+          />
+          
+          {/* Drawer */}
+          <motion.div
+            initial={{ x: -300 }}
+            animate={{ x: 0 }}
+            exit={{ x: -300 }}
+            transition={{ duration: 0.3 }}
+            className={cn(
+              "relative w-64 h-screen overflow-y-auto border-l",
+              isDarkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200",
+              "z-50"
+            )}
+            dir="rtl"
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white">
+                    <CreditCard size={20} />
+                  </div>
+                  <div>
+                    <h2 className={cn("font-normal text-sm", isDarkMode ? "text-gray-100" : "text-gray-900")}>الإدارة</h2>
+                    <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>متجر البطاقات</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowMobileDrawer(false)}
+                  className={cn("p-1 rounded-lg", isDarkMode ? "hover:bg-gray-800" : "hover:bg-gray-100")}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <nav className="space-y-2">
+                {[
+                  { id: 'overview', label: 'ملخص المبيعات', icon: BarChart3, badge: null },
+                  { id: 'companies', label: 'الشركات', icon: StoreIcon, badge: companies.length },
+                  { id: 'products', label: 'المنتجات', icon: CreditCard, badge: products.length },
+                  { id: 'codes', label: 'الأكواد', icon: Ticket, badge: products.reduce((sum: number, p: any) => sum + (p.codes?.length || 0), 0) },
+                  { id: 'customers', label: 'العملاء', icon: Users, badge: customers.length },
+                  { id: 'orders', label: 'الطلبات', icon: ShoppingCart, badge: orders.filter((o: any) => o.status !== 'returned').length },
+                  { id: 'settings', label: 'الإعدادات', icon: Settings, badge: null },
+                ].map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      navigate(`/topup-merchant/${item.id}`);
+                      setShowMobileDrawer(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all font-normal text-right",
+                      currentSection === item.id
+                        ? "bg-indigo-600 text-white shadow-lg"
+                        : isDarkMode ? "text-gray-400 hover:bg-gray-800 hover:text-gray-100" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon size={18} />
+                      {item.label}
+                    </div>
+                    {item.badge !== null && item.badge > 0 && (
+                      <span className={cn("text-xs font-semibold px-2 py-1 rounded-full", currentSection === item.id ? "bg-white/20" : isDarkMode ? "bg-gray-700 text-indigo-400" : "bg-indigo-100 text-indigo-700")}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </nav>
+
+              <div className={cn("mt-8 pt-8 border-t", isDarkMode ? "border-gray-800" : "border-gray-200")}>
+                <div className={cn("p-4 rounded-lg mb-4", isDarkMode ? "bg-gray-800" : "bg-gray-100")}>
+                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>أنت مسجل بصفة</p>
+                  <p className={cn("font-normal text-sm", isDarkMode ? "text-gray-100" : "text-gray-900")}>{user?.name || 'تاجر'}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setShowMobileDrawer(false);
+                  }}
+                  className={cn("w-full px-4 py-3 rounded-lg font-normal flex items-center justify-center gap-2 transition-all", isDarkMode ? "bg-red-900/20 text-red-400 hover:bg-red-900/40" : "bg-red-50 text-red-600 hover:bg-red-100")}
+                >
+                  <LogOut size={16} /> تسجيل خروج
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>
