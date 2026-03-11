@@ -12277,8 +12277,8 @@ const TopupStorefront = () => {
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8">
-          {/* Filters and Purchase Details - Completely Hidden */}
-          <div className="hidden space-y-6">
+          {/* Filters and Purchase Details */}
+          <div className="space-y-6">
             <Card className={cn(isDarkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50")}> 
               <div className={cn("p-4 border-b", isDarkMode ? "border-gray-700" : "border-gray-200")}> 
                 <h3 className="font-normal">الفلاتر</h3>
