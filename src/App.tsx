@@ -9829,7 +9829,7 @@ const MerchantTopupDashboard = () => {
                               <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{i + 1}. {p.company_name}</p>
                               <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>المبلغ: {p.amount?.toLocaleString('en-US')}</p>
                             </div>
-                            <span className={cn("text-sm font-normal font-mono", isDarkMode ? "text-green-400" : "text-green-600")}>{p.codes ? p.codes.length : 0} أكواد</span>
+                            <span className={cn("text-sm font-normal font-mono", isDarkMode ? "text-green-400" : "text-green-600")}>{typeof p.available_codes === 'number' ? p.available_codes : (p.codes ? p.codes.length : 0)} أكواد</span>
                           </div>
                         ))}
                       </div>
