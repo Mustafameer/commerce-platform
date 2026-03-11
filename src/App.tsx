@@ -4568,18 +4568,22 @@ const MerchantDashboard = () => {
         console.log('💡 No transactions found, showing opening balance or empty state');
       }
       
-      // Update the header info with latest data from API
-      if (data.current_debt !== undefined || data.credit_limit !== undefined) {
-        console.log('📝 Updating header - Old debt:', selectedCustomerStatement?.current_debt, 'New debt:', data.current_debt);
-        setSelectedCustomerStatement({
-          ...selectedCustomerStatement,
-          current_debt: data.current_debt,
-          credit_limit: data.credit_limit,
-          starting_balance: data.starting_balance,
-          name: data.name
-        });
-        console.log('🔄 Updated statement header with latest values - New state set');
-      }
+      // Update the header info with latest data from API  
+      console.log('📝 API Response data:', { 
+        current_debt: data.current_debt, 
+        credit_limit: data.credit_limit, 
+        starting_balance: data.starting_balance,
+        name: data.name
+      });
+      
+      setSelectedCustomerStatement({
+        name: data.name || selectedCustomerStatement?.name,
+        customer_id: selectedCustomerStatement?.customer_id,
+        current_debt: data.current_debt,
+        credit_limit: data.credit_limit,
+        starting_balance: data.starting_balance
+      });
+      console.log('🔄 Updated statement header with new values from API');
     } catch (err) {
       console.error('🔴 Error loading statement:', err);
       setCustomerTransactions([]);
@@ -4641,10 +4645,14 @@ const MerchantDashboard = () => {
         const customerId = selectedCustomerStatement?.customer_id;
         if (customerId) {
           console.log('📋 Payment saved, customerId:', customerId);
+          console.log('⏳ Setting timeout to reload statement in 1500ms...');
           setTimeout(async () => {
-            console.log('🔄 Reloading statement after payment for customer:', customerId);
+            console.log('🔄 TIMER FIRED - Reloading statement after payment for customer:', customerId);
             await handleLoadStatement(customerId);
-          }, 1000);
+            console.log('✅ Statement reload finished');
+          }, 1500);
+        } else {
+          console.error('❌ No customerId found!');
         }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
@@ -4702,10 +4710,14 @@ const MerchantDashboard = () => {
         const customerId = selectedCustomerStatement?.customer_id;
         if (customerId) {
           console.log('💳 Edit saved, customerId:', customerId);
+          console.log('⏳ Setting timeout to reload statement in 1500ms...');
           setTimeout(async () => {
-            console.log('🔄 Reloading statement after edit for customer:', customerId);
+            console.log('🔄 TIMER FIRED - Reloading statement after edit for customer:', customerId);
             await handleLoadStatement(customerId);
-          }, 1000);
+            console.log('✅ Statement reload finished');
+          }, 1500);
+        } else {
+          console.error('❌ No customerId found!');
         }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
@@ -4746,10 +4758,14 @@ const MerchantDashboard = () => {
         const customerId = selectedCustomerStatement?.customer_id;
         if (customerId) {
           console.log('💳 Delete saved, customerId:', customerId);
+          console.log('⏳ Setting timeout to reload statement in 1500ms...');
           setTimeout(async () => {
-            console.log('🔄 Reloading statement after delete for customer:', customerId);
+            console.log('🔄 TIMER FIRED - Reloading statement after delete for customer:', customerId);
             await handleLoadStatement(customerId);
-          }, 1000);
+            console.log('✅ Statement reload finished');
+          }, 1500);
+        } else {
+          console.error('❌ No customerId found!');
         }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
@@ -7012,7 +7028,7 @@ const MerchantDashboard = () => {
                       </thead>
                       <tbody className={cn(isDarkMode ? "divide-gray-700" : "divide-gray-100")}>
                         {customerTransactions.map((transaction: any, idx: number) => (
-                          <tr key={idx} className={cn("border-b transition-colors", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-100 hover:bg-gray-50")}>
+                          <tr key={`${transaction.id}-${transaction.type}-${transaction.amount}`} className={cn("border-b transition-colors", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-100 hover:bg-gray-50")}>
                             <td className={cn("px-2 md:px-4 py-2 md:py-3 font-normal whitespace-nowrap", isDarkMode ? "text-gray-300" : "text-gray-700")}>
                               {new Date(transaction.created_at || transaction.date).toLocaleDateString('ar-IQ')}
                             </td>
