@@ -11919,39 +11919,54 @@ const TopupStorefront = () => {
                 <ChevronRight size={20} />
                 العودة
               </button>
-              {/* Shopping Cart Button */}
-              <button
-                onClick={() => {
-                  // حفظ البيانات من customer أو purchaseForm إلى localStorage قبل الانتقال للعربة
-                  console.log('🛒 Cart button clicked - current customer:', customer);
-                  // حذف البيانات القديمة أولاً
-                  localStorage.removeItem('customerData');
-                  localStorage.removeItem('topupCustomer');
-                  
-                  if (customer) {
-                    // إذا كان هناك customer مسجل، اخزن بياناته
-                    console.log('✅ Saving customer to topupCustomer:', customer);
-                    localStorage.setItem('topupCustomer', JSON.stringify(customer));
-                  } else if (purchaseForm.name || purchaseForm.phone) {
-                    // وإلا، احفظ purchaseForm
-                    console.log('✅ Saving purchaseForm to topupCustomer:', purchaseForm);
-                    localStorage.setItem('topupCustomer', JSON.stringify(purchaseForm));
-                  }
-                  navigate('/topup-cart');
-                }}
-                className="relative rounded-lg font-normal text-white transition-all hover:scale-105 flex items-center gap-2 shadow group"
-                style={{ backgroundColor: primaryColor }}
-                title="عرض سلة المشتريات"
-              >
-                <div className="p-3 relative">
-                  <ShoppingCart size={36} className="group-hover:scale-110 transition-transform" />
-                  {cartItems.length > 0 && (
-                    <div className={cn("absolute top-0 right-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg", isDarkMode ? "bg-red-600" : "bg-red-500")}>
-                      {cartItems.length}
-                    </div>
-                  )}
-                </div>
-              </button>
+              {/* Shopping Cart Button with Filters */}
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => {
+                    // حفظ البيانات من customer أو purchaseForm إلى localStorage قبل الانتقال للعربة
+                    console.log('🛒 Cart button clicked - current customer:', customer);
+                    // حذف البيانات القديمة أولاً
+                    localStorage.removeItem('customerData');
+                    localStorage.removeItem('topupCustomer');
+                    
+                    if (customer) {
+                      // إذا كان هناك customer مسجل، اخزن بياناته
+                      console.log('✅ Saving customer to topupCustomer:', customer);
+                      localStorage.setItem('topupCustomer', JSON.stringify(customer));
+                    } else if (purchaseForm.name || purchaseForm.phone) {
+                      // وإلا، احفظ purchaseForm
+                      console.log('✅ Saving purchaseForm to topupCustomer:', purchaseForm);
+                      localStorage.setItem('topupCustomer', JSON.stringify(purchaseForm));
+                    }
+                    navigate('/topup-cart');
+                  }}
+                  className="relative rounded-lg font-normal text-white transition-all hover:scale-105 flex items-center gap-2 shadow group"
+                  style={{ backgroundColor: primaryColor }}
+                  title="عرض سلة المشتريات"
+                >
+                  <div className="p-3 relative">
+                    <ShoppingCart size={36} className="group-hover:scale-110 transition-transform" />
+                    {cartItems.length > 0 && (
+                      <div className={cn("absolute top-0 right-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg", isDarkMode ? "bg-red-600" : "bg-red-500")}>
+                        {cartItems.length}
+                      </div>
+                    )}
+                  </div>
+                </button>
+                {/* Filters Dropdown */}
+                <select
+                  value={selectedCompany}
+                  onChange={(e) => {
+                    setSelectedCompany(e.target.value);
+                    setSelectedCategory('');
+                    setSelectedProduct(null);
+                  }}
+                  className={cn("w-full px-3 py-2 rounded-lg border text-sm font-normal", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
+                >
+                  <option value="">جميع الشركات</option>
+                  {companiesWithProducts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               {storeLogo && storeLogo.length > 100 && (
@@ -12277,11 +12292,78 @@ const TopupStorefront = () => {
         </div>
         
         {/* Filters and Products Content */}
-        <div className="max-w-full mx-auto px-4 py-4 sm:py-8">
-          <div className="flex gap-4">
-            {/* Products Grid - 75% width on the left */}
-            <div className="w-3/4">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4" key={`products-${products.length}-${Date.now()}`}>
+        <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8">
+          {/* Products Grid */}
+          {showPurchaseForm && selectedProduct && !customer && (
+            <Card className={cn("mt-6 border-2", isDarkMode ? "bg-gray-800 border-indigo-700" : "bg-indigo-50 border-indigo-200")}> 
+              <div className="p-6 space-y-4">
+                <div>
+                  <h3 className={cn("text-lg font-normal mb-4", isDarkMode ? "text-white" : "text-gray-900")}>📝 بيانات الشراء</h3>
+                </div>
+
+                <div>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>👤 الاسم</label>
+                  <input 
+                    type="text"
+                    value={purchaseForm.name}
+                    onChange={(e) => setPurchaseForm({...purchaseForm, name: e.target.value})}
+                    placeholder="أدخل اسمك"
+                    className={cn("w-full px-3 py-2 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
+                  />
+                </div>
+
+                <div>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>📱 رقم الهاتف</label>
+                  <input 
+                    type="tel"
+                    value={purchaseForm.phone}
+                    onChange={(e) => setPurchaseForm({...purchaseForm, phone: e.target.value})}
+                    placeholder="07xxxxxxxxx"
+                    className={cn("w-full px-3 py-2 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
+                  />
+                </div>
+
+                <div>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>🏪 نوع العميل</label>
+                  <select 
+                    value={purchaseForm.customer_type}
+                    onChange={(e) => setPurchaseForm({...purchaseForm, customer_type: e.target.value as 'cash' | 'reseller'})}
+                    className={cn("w-full px-3 py-2 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
+                  >
+                    <option value="cash">👤 عميل نقدي (مفرد)</option>
+                    <option value="reseller">🏪 نقطة بيع (جملة)</option>
+                  </select>
+                  <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                    السعر: {formatCurrency(getDisplayPrice())} د.ع / بطاقة
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <button
+                    onClick={handlePurchase}
+                    disabled={isProcessing}
+                    className={cn("py-2 rounded-lg text-white font-normal text-sm transition-all hover:scale-[1.02] active:scale-95", isProcessing ? "opacity-50" : "")}
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    {isProcessing ? 'جاري...' : '✓ شراء'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowPurchaseForm(false);
+                      setPurchaseForm({ name: '', phone: '', customer_type: 'cash' });
+                    }}
+                    className={cn("py-2 rounded-lg text-white font-normal text-sm transition-all hover:scale-[1.02] active:scale-95", isDarkMode ? "bg-gray-700" : "bg-gray-400")}
+                  >
+                    ✕ إلغاء
+                  </button>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Products Grid - Full Width */}
+          <div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4" key={`products-${products.length}-${Date.now()}`}>
               {filteredProducts.map((product, idx) => {
                 // العملاء المفردون (cash): wholesale_price
                 // العملاء الجملة (reseller): retail_price
@@ -12426,133 +12508,9 @@ const TopupStorefront = () => {
                 );
               })}
             </div>
-            </div>
-            </div>
-
-            {/* Filters - 20% width on the right */}
-            <div className="w-1/5">
-              <Card className={cn(isDarkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50")}>
-                <div className={cn("p-4 border-b", isDarkMode ? "border-gray-700" : "border-gray-200")}>
-                  <h3 className="font-normal">الفلاتر</h3>
-                </div>
-                <div className="p-4 space-y-4">
-                  <div>
-                    <label className="block text-sm font-normal mb-2">الشركة</label>
-                    <select
-                      value={selectedCompany}
-                      onChange={(e) => {
-                        setSelectedCompany(e.target.value);
-                        setSelectedCategory('');
-                        setSelectedProduct(null);
-                      }}
-                      className={cn("w-full px-3 py-2 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
-                    >
-                      <option value="">جميع الشركات</option>
-                      {companiesWithProducts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                  </div>
-
-                  {selectedCompany && (
-                    <div className={cn("p-3 rounded-lg text-sm", isDarkMode ? "bg-indigo-900 text-indigo-100" : "bg-indigo-50 text-indigo-700")}>
-                      ✅ تم اختيار الشركة - عرض جميع المنتجات
-                    </div>
-                  )}
-
-                  {selectedProduct && (
-                    <div className={cn("p-4 rounded-lg border-2 text-center", isDarkMode ? "bg-emerald-900/30 border-emerald-700" : "bg-emerald-50 border-emerald-300")}>
-                      <p className={cn("text-2xs font-normal mb-1", isDarkMode ? "text-emerald-400" : "text-emerald-600")}>
-                        📦 الكمية المتاحة
-                      </p>
-                      <p className={cn("text-3xl font-bold", isDarkMode ? "text-emerald-300" : "text-emerald-700")}>
-                        {(() => {
-                          const latestProduct = products.find(p => p.id === selectedProduct.id);
-                          let codesCount = 0;
-                          if (latestProduct?.codes && Array.isArray(latestProduct.codes)) {
-                            codesCount = latestProduct.codes.length;
-                          } else if (latestProduct?.available_codes !== undefined && latestProduct?.available_codes !== null) {
-                            codesCount = latestProduct.available_codes;
-                          }
-                          return codesCount;
-                        })()}
-                      </p>
-                      <p className={cn("text-xs mt-1", isDarkMode ? "text-emerald-400" : "text-emerald-600")}>
-                        بطاقة
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            </div>
           </div>
-
-          {/* Purchase Form Modal */}
-          {showPurchaseForm && selectedProduct && !customer && (
-            <Card className={cn("mt-6 border-2", isDarkMode ? "bg-gray-800 border-indigo-700" : "bg-indigo-50 border-indigo-200")}>
-              <div className="p-6 space-y-4">
-                <div>
-                  <h3 className={cn("text-lg font-normal mb-4", isDarkMode ? "text-white" : "text-gray-900")}>📝 بيانات الشراء</h3>
-                </div>
-
-                <div>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>👤 الاسم</label>
-                  <input
-                    type="text"
-                    value={purchaseForm.name}
-                    onChange={(e) => setPurchaseForm({...purchaseForm, name: e.target.value})}
-                    placeholder="أدخل اسمك"
-                    className={cn("w-full px-3 py-2 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
-                  />
-                </div>
-
-                <div>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>📱 رقم الهاتف</label>
-                  <input
-                    type="tel"
-                    value={purchaseForm.phone}
-                    onChange={(e) => setPurchaseForm({...purchaseForm, phone: e.target.value})}
-                    placeholder="07xxxxxxxxx"
-                    className={cn("w-full px-3 py-2 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
-                  />
-                </div>
-
-                <div>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>🏪 نوع العميل</label>
-                  <select
-                    value={purchaseForm.customer_type}
-                    onChange={(e) => setPurchaseForm({...purchaseForm, customer_type: e.target.value as 'cash' | 'reseller'})}
-                    className={cn("w-full px-3 py-2 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
-                  >
-                    <option value="cash">👤 عميل نقدي (مفرد)</option>
-                    <option value="reseller">🏪 نقطة بيع (جملة)</option>
-                  </select>
-                  <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                    السعر: {formatCurrency(getDisplayPrice())} د.ع / بطاقة
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <button
-                    onClick={handlePurchase}
-                    disabled={isProcessing}
-                    className={cn("py-2 rounded-lg text-white font-normal text-sm transition-all hover:scale-[1.02] active:scale-95", isProcessing ? "opacity-50" : "")}
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    {isProcessing ? 'جاري...' : '✓ شراء'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowPurchaseForm(false);
-                      setPurchaseForm({ name: '', phone: '', customer_type: 'cash' });
-                    }}
-                    className={cn("py-2 rounded-lg text-white font-normal text-sm transition-all hover:scale-[1.02] active:scale-95", isDarkMode ? "bg-gray-700" : "bg-gray-400")}
-                  >
-                    ✕ إلغاء
-                  </button>
-                </div>
-              </div>
-            </Card>
-          )}
         </div>
+      </div>
       {/* Closing flex-1 overflow-y-auto div */}
       </div>
       <div className="flex-shrink-0">
