@@ -3806,7 +3806,6 @@ const MerchantDashboard = () => {
     notes: '',
     starting_balance: ''
   });
-  const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
   const [productForm, setProductForm] = useState({
     name: '',
     description: '',
@@ -3835,6 +3834,14 @@ const MerchantDashboard = () => {
     expiry_date: '',
     usage_limit: ''
   });
+
+  // Customer Statement Modal States
+  const [showCustomerStatement, setShowCustomerStatement] = useState(false);
+  const [selectedCustomerStatement, setSelectedCustomerStatement] = useState<any>(null);
+  const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
+  const [isLoadingCustomerTransactions, setIsLoadingCustomerTransactions] = useState(false);
+  const [merchantPaymentAmount, setMerchantPaymentAmount] = useState('');
+  const [isProcessingMerchantPayment, setIsProcessingMerchantPayment] = useState(false);
 
   useEffect(() => {
     // Fallback: If user has role merchant but missing store_id, try to fetch it
