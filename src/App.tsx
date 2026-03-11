@@ -11913,7 +11913,7 @@ const TopupStorefront = () => {
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-3">
               <button 
-                onClick={() => navigate('/stores')}
+                onClick={() => window.location.reload()}
                 className={cn("flex items-center gap-2 font-normal transition-colors", isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-600 hover:text-gray-900")}
               >
                 <ChevronRight size={20} />
