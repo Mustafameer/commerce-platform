@@ -6990,26 +6990,24 @@ const MerchantDashboard = () => {
                               <div className="flex items-center justify-center gap-1">
                                 <button
                                   onClick={() => handleEditTransaction(transaction)}
-                                  disabled={isDeletingTransactionId === transaction.id}
+                                  disabled={isDeletingTransactionId === transaction.id || isEditingTransaction}
                                   title="تعديل"
-                                  className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-blue-900/30 text-blue-400" : "hover:bg-blue-50 text-blue-600", isDeletingTransactionId === transaction.id && "opacity-50 cursor-not-allowed")}
+                                  className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-blue-900/30 text-blue-400" : "hover:bg-blue-50 text-blue-600", (isDeletingTransactionId === transaction.id || isEditingTransaction) && "opacity-50 cursor-not-allowed")}
                                 >
                                   <Edit2 size={14} />
                                 </button>
-                                {transaction.is_payment && (
-                                  <button
-                                    onClick={() => handleDeleteTransaction(transaction.id)}
-                                    disabled={isDeletingTransactionId === transaction.id}
-                                    title="حذف"
-                                    className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-red-900/30 text-red-400" : "hover:bg-red-50 text-red-600", isDeletingTransactionId === transaction.id && "opacity-50 cursor-not-allowed")}
-                                  >
-                                    {isDeletingTransactionId === transaction.id ? (
-                                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                                    ) : (
-                                      <Trash2 size={14} />
-                                    )}
-                                  </button>
-                                )}
+                                <button
+                                  onClick={() => handleDeleteTransaction(transaction.id)}
+                                  disabled={isDeletingTransactionId === transaction.id || isEditingTransaction}
+                                  title="حذف"
+                                  className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-red-900/30 text-red-400" : "hover:bg-red-50 text-red-600", (isDeletingTransactionId === transaction.id || isEditingTransaction) && "opacity-50 cursor-not-allowed")}
+                                >
+                                  {isDeletingTransactionId === transaction.id ? (
+                                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                  ) : (
+                                    <Trash2 size={14} />
+                                  )}
+                                </button>
                               </div>
                             </td>
                           </tr>
