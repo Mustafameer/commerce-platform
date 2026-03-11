@@ -8632,8 +8632,9 @@ const StoresPage = () => {
         setTopupAuthPhone('');
         setTopupAuthError('');
         
-        // Navigate to topup store (without sidebar, full-width mobile layout)
-        navigate(`/topup/${selectedTopupStore.slug}`);
+        // Navigate to topup store (without sidebar, full-width mobile layout) - use ID as fallback
+        const storeSlug = selectedTopupStore.slug || selectedTopupStore.id;
+        navigate(`/topup/${storeSlug}`);
       } else {
         setTopupAuthError('❌ لم يتم العثور على بيانات مطابقة. تأكد من اسم العميل ورقم الهاتف الصحيح');
       }
