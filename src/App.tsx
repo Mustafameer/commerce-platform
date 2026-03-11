@@ -4676,6 +4676,15 @@ const MerchantDashboard = () => {
               console.log('📝 [PAYMENT] Calling handleLoadStatement...');
               await handleLoadStatement(customerId);
               
+              // Refresh customers list in background
+              if (user?.store_id) {
+                console.log('🔄 [PAYMENT] Refreshing customers list...');
+                const customersRes = await fetch(`/api/merchant/customers?storeId=${user.store_id}`);
+                const updatedCustomers = await customersRes.json();
+                setCustomers(Array.isArray(updatedCustomers) ? updatedCustomers : []);
+                console.log('✅ [PAYMENT] Customers list updated');
+              }
+              
               console.log('✅ [PAYMENT] Statement fully refreshed');
             } catch (err) {
               console.error('❌ [PAYMENT] Error during reopen:', err);
@@ -4763,6 +4772,15 @@ const MerchantDashboard = () => {
               console.log('📝 [EDIT] Calling handleLoadStatement...');
               await handleLoadStatement(customerId);
               
+              // Refresh customers list in background
+              if (user?.store_id) {
+                console.log('🔄 [EDIT] Refreshing customers list...');
+                const customersRes = await fetch(`/api/merchant/customers?storeId=${user.store_id}`);
+                const updatedCustomers = await customersRes.json();
+                setCustomers(Array.isArray(updatedCustomers) ? updatedCustomers : []);
+                console.log('✅ [EDIT] Customers list updated');
+              }
+              
               console.log('✅ [EDIT] Statement fully refreshed');
             } catch (err) {
               console.error('❌ [EDIT] Error during reopen:', err);
@@ -4832,6 +4850,15 @@ const MerchantDashboard = () => {
               // Load fresh transactions
               console.log('📝 [DELETE] Calling handleLoadStatement...');
               await handleLoadStatement(customerId);
+              
+              // Refresh customers list in background
+              if (user?.store_id) {
+                console.log('🔄 [DELETE] Refreshing customers list...');
+                const customersRes = await fetch(`/api/merchant/customers?storeId=${user.store_id}`);
+                const updatedCustomers = await customersRes.json();
+                setCustomers(Array.isArray(updatedCustomers) ? updatedCustomers : []);
+                console.log('✅ [DELETE] Customers list updated');
+              }
               
               console.log('✅ [DELETE] Statement fully refreshed');
             } catch (err) {
