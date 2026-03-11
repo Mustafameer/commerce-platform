@@ -6804,11 +6804,11 @@ const MerchantDashboard = () => {
 
         {/* Customer Statement Modal */}
         {showCustomerStatement && selectedCustomerStatement && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto font-sans" dir="rtl">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-3 overflow-y-auto font-sans" dir="rtl">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={cn("rounded-[2rem] w-full max-w-4xl shadow-2xl border overflow-hidden", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-white/20")}
+              className={cn("rounded-[2rem] w-11/12 md:w-10/12 lg:max-w-2xl xl:max-w-3xl shadow-2xl border overflow-hidden max-h-[90vh] flex flex-col", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-white/20")}
             >
               {/* Header */}
               <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50/50 border-black/5")}>
@@ -6849,7 +6849,7 @@ const MerchantDashboard = () => {
               </div>
 
               {/* Transactions Table */}
-              <div className="p-6 max-h-96 overflow-y-auto">
+              <div className="p-4 md:p-6 flex-1 overflow-y-auto min-h-0">
                 {isLoadingCustomerTransactions ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: `${primaryColor}` }}></div>
@@ -6860,45 +6860,64 @@ const MerchantDashboard = () => {
                     <p className={cn("font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>لا توجد معاملات</p>
                   </div>
                 ) : (
-                  <table className="w-full text-right text-sm">
-                    <thead>
-                      <tr className={cn("border-b", isDarkMode ? "border-gray-600" : "border-gray-200")}>
-                        <th className={cn("px-4 py-2 font-normal text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>التاريخ</th>
-                        <th className={cn("px-4 py-2 font-normal text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>النوع</th>
-                        <th className={cn("px-4 py-2 font-normal text-xs text-left", isDarkMode ? "text-gray-400" : "text-gray-600")}>المبلغ</th>
-                        <th className={cn("px-4 py-2 font-normal text-xs text-left", isDarkMode ? "text-gray-400" : "text-gray-600")}>الرصيد</th>
-                      </tr>
-                    </thead>
-                    <tbody className={cn(isDarkMode ? "divide-gray-700" : "divide-gray-100")}>
-                      {customerTransactions.map((transaction: any, idx: number) => (
-                        <tr key={idx} className={cn("border-b", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-100 hover:bg-gray-50")}>
-                          <td className={cn("px-4 py-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                            {new Date(transaction.created_at || transaction.date).toLocaleDateString('ar-IQ')}
-                          </td>
-                          <td className={cn("px-4 py-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                            {transaction.type || transaction.transaction_type || 'معاملة'}
-                          </td>
-                          <td className={cn("px-4 py-3 font-bold text-left", 
-                            (transaction.amount || 0) > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-red-400" : "text-red-600")
-                          )}>
-                            {formatCurrency(Math.abs(transaction.amount || 0))}
-                          </td>
-                          <td className={cn("px-4 py-3 font-normal text-left", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                            {formatCurrency(transaction.balance || 0)}
-                          </td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-right text-xs md:text-sm">
+                      <thead>
+                        <tr className={cn("border-b sticky top-0", isDarkMode ? "border-gray-600 bg-gray-700" : "border-gray-200 bg-gray-50")}>
+                          <th className={cn("px-2 md:px-4 py-2 font-normal text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>التاريخ</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-normal text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>النوع</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-normal text-xs text-left", isDarkMode ? "text-gray-400" : "text-gray-600")}>المبلغ</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-normal text-xs text-left", isDarkMode ? "text-gray-400" : "text-gray-600")}>الرصيد</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-normal text-xs text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>إجراءات</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className={cn(isDarkMode ? "divide-gray-700" : "divide-gray-100")}>
+                        {customerTransactions.map((transaction: any, idx: number) => (
+                          <tr key={idx} className={cn("border-b transition-colors", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-100 hover:bg-gray-50")}>
+                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-normal whitespace-nowrap", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                              {new Date(transaction.created_at || transaction.date).toLocaleDateString('ar-IQ')}
+                            </td>
+                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                              {transaction.type || transaction.transaction_type || 'معاملة'}
+                            </td>
+                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-bold text-left whitespace-nowrap", 
+                              (transaction.amount || 0) > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-red-400" : "text-red-600")
+                            )}>
+                              {formatCurrency(Math.abs(transaction.amount || 0))}
+                            </td>
+                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-normal text-left whitespace-nowrap", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                              {formatCurrency(transaction.balance || 0)}
+                            </td>
+                            <td className={cn("px-2 md:px-4 py-2 md:py-3 text-center")}>
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  title="تعديل"
+                                  className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-blue-900/30 text-blue-400" : "hover:bg-blue-50 text-blue-600")}
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button
+                                  title="حذف"
+                                  className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-red-900/30 text-red-400" : "hover:bg-red-50 text-red-600")}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
 
               {/* Payment Input Section */}
-              <div className={cn("p-6 border-t", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
+              <div className={cn("p-4 md:p-6 border-t", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
                 <h4 className={cn("font-normal text-sm mb-4", isDarkMode ? "text-gray-300" : "text-gray-700")}>
                   💳 تسجيل دفعة يدوية من التاجر
                 </h4>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <div className="flex-1 relative">
                     <input
                       type="number"
@@ -6931,7 +6950,7 @@ const MerchantDashboard = () => {
               </div>
 
               {/* Close Button */}
-              <div className={cn("p-4 border-t flex justify-end", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
+              <div className={cn("p-4 border-t flex justify-end gap-3", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
                 <button
                   onClick={() => setShowCustomerStatement(false)}
                   className={cn("px-6 py-2 rounded-lg font-normal transition-all", isDarkMode ? "bg-gray-600 hover:bg-gray-500 text-gray-100" : "bg-gray-200 hover:bg-gray-300 text-gray-700")}
