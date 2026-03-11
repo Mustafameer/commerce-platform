@@ -3543,7 +3543,7 @@ const AdminDashboard = () => {
   };
 
   const sidebarCounts = {
-    stores: stores.length,
+    stores: stats.totalStores || 0,
     approvals: stores.filter(isStorePending).length,
     users: adminUsers.length
   };
