@@ -4692,11 +4692,22 @@ const MerchantDashboard = () => {
         setEditingTransactionId(null);
         setEditingTransactionAmount('');
         
-        // Reload statement immediately (payment updated in database)
-        if (selectedCustomerStatement?.customer_id) {
-          console.log('🔄 Reloading statement immediately after edit...');
-          await handleLoadStatement(selectedCustomerStatement.customer_id);
-        }
+        // Close statement modal to return to customer list
+        const customerId = selectedCustomerStatement?.customer_id;
+        setSelectedCustomerStatement(null);
+        
+        // Reopen statement to show updated data
+        setTimeout(async () => {
+          if (customerId) {
+            console.log('🔄 Reopening statement to show updated data after edit...');
+            const customerRes = await fetch(`/api/customers/${customerId}`);
+            const customer = await customerRes.json();
+            if (customerRes.ok) {
+              setSelectedCustomerStatement(customer);
+              await handleLoadStatement(customerId);
+            }
+          }
+        }, 300);
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
         console.error('❌ Server error:', errorMsg);
@@ -4732,11 +4743,22 @@ const MerchantDashboard = () => {
       if (res.ok) {
         alert('✅ تم حذف المعاملة بنجاح');
         
-        // Reload statement immediately (payment deleted from database)
-        if (selectedCustomerStatement?.customer_id) {
-          console.log('🔄 Reloading statement immediately after delete...');
-          await handleLoadStatement(selectedCustomerStatement.customer_id);
-        }
+        // Close statement modal to return to customer list
+        const customerId = selectedCustomerStatement?.customer_id;
+        setSelectedCustomerStatement(null);
+        
+        // Reopen statement to show updated data
+        setTimeout(async () => {
+          if (customerId) {
+            console.log('🔄 Reopening statement to show updated data after delete...');
+            const customerRes = await fetch(`/api/customers/${customerId}`);
+            const customer = await customerRes.json();
+            if (customerRes.ok) {
+              setSelectedCustomerStatement(customer);
+              await handleLoadStatement(customerId);
+            }
+          }
+        }, 300);
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
         console.error('❌ Server error:', errorMsg);
