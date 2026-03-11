@@ -12089,6 +12089,8 @@ const TopupStorefront = () => {
                   <div className="grid grid-cols-2 gap-2 mt-3">
                     <button
                       onClick={() => {
+                        console.log('🔘 Statement button clicked - customer:', customer);
+                        console.log('🔘 Customer ID:', customer?.customer_id);
                         handleLoadStatement();
                         setShowAccountStatement(true);
                       }}
@@ -12271,6 +12273,7 @@ const TopupStorefront = () => {
                       📊 المعاملات {isLoadingStatement && <span className="text-xs font-normal">(جاري التحميل...)</span>}
                     </h4>
                     <div className={cn("border rounded-lg overflow-x-auto", isDarkMode ? "border-gray-700 bg-gray-900/30" : "border-gray-200 bg-gray-50")}>
+                      {console.log('📋 Modal rendering:', { isLoadingStatement, transactionCount: statementTransactions?.length })}
                       {isLoadingStatement ? (
                         <div className="p-8 text-center">
                           <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2" style={{borderColor: primaryColor}}></div>
