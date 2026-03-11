@@ -3034,7 +3034,8 @@ async function startServer() {
         const allTransactions = [
           ...txRes.rows.map(t => ({
             ...t,
-            balance: customer.current_debt
+            balance: customer.current_debt,
+            is_payment: false
           })),
           ...payRes.rows.map(p => ({
             id: p.id,
@@ -3042,7 +3043,9 @@ async function startServer() {
             type: 'credit',
             amount: p.amount,
             description: p.description || 'دفعة',
-            created_at: p.created_at
+            created_at: p.created_at,
+            balance: customer.current_debt,
+            is_payment: true
           }))
         ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -3059,7 +3062,8 @@ async function startServer() {
               description: 'الرصيد الافتتاحي',
               amount: customer.starting_balance,
               created_at: customer.created_at,
-              balance: customer.starting_balance
+              balance: customer.starting_balance,
+              is_payment: false
             }
           ]
         };
