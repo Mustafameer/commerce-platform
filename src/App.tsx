@@ -4633,29 +4633,13 @@ const MerchantDashboard = () => {
 
       if (res.ok) {
         alert('✅ تم تسجيل الدفعة بنجاح');
-        
-        // Add new payment to transactions list immediately
-        const newPayment = {
-          id: data.id || Date.now(),
-          customer_id: selectedCustomerStatement.customer_id,
-          type: 'credit',
-          amount: amount,
-          description: 'دفعة',
-          created_at: new Date().toISOString(),
-          balance: 0,
-          is_payment: true
-        };
-        setCustomerTransactions(prev => [newPayment, ...prev]);
-        
         setMerchantPaymentAmount('');
         
-        // Wait a bit then reload full statement data to ensure accurate calculations
-        setTimeout(async () => {
-          if (selectedCustomerStatement?.customer_id) {
-            console.log('🔄 Reloading statement after payment...');
-            await handleLoadStatement(selectedCustomerStatement.customer_id);
-          }
-        }, 500);
+        // Reload statement immediately (payment already updated in database)
+        if (selectedCustomerStatement?.customer_id) {
+          console.log('🔄 Reloading statement immediately after payment...');
+          await handleLoadStatement(selectedCustomerStatement.customer_id);
+        }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
         console.error('❌ Server error:', errorMsg);
@@ -4705,19 +4689,12 @@ const MerchantDashboard = () => {
 
       if (res.ok) {
         alert('✅ تم تحديث المعاملة بنجاح');
-        
-        // Update transaction in state immediately
-        setCustomerTransactions(prev => 
-          prev.map(t => 
-            t.id === editingTransactionId ? {...t, amount} : t
-          )
-        );
-        
         setEditingTransactionId(null);
         setEditingTransactionAmount('');
         
-        // Then reload full statement data
+        // Reload statement immediately (payment updated in database)
         if (selectedCustomerStatement?.customer_id) {
+          console.log('🔄 Reloading statement immediately after edit...');
           await handleLoadStatement(selectedCustomerStatement.customer_id);
         }
       } else {
@@ -4755,11 +4732,9 @@ const MerchantDashboard = () => {
       if (res.ok) {
         alert('✅ تم حذف المعاملة بنجاح');
         
-        // Remove transaction from state immediately
-        setCustomerTransactions(prev => prev.filter(t => t.id !== transactionId));
-        
-        // Then reload full statement data
+        // Reload statement immediately (payment deleted from database)
         if (selectedCustomerStatement?.customer_id) {
+          console.log('🔄 Reloading statement immediately after delete...');
           await handleLoadStatement(selectedCustomerStatement.customer_id);
         }
       } else {
