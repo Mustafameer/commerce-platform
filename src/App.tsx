@@ -4635,11 +4635,22 @@ const MerchantDashboard = () => {
         alert('✅ تم تسجيل الدفعة بنجاح');
         setMerchantPaymentAmount('');
         
-        // Reload statement immediately (payment already updated in database)
-        if (selectedCustomerStatement?.customer_id) {
-          console.log('🔄 Reloading statement immediately after payment...');
-          await handleLoadStatement(selectedCustomerStatement.customer_id);
-        }
+        // Close statement modal to return to customer list
+        const customerId = selectedCustomerStatement.customer_id;
+        setSelectedCustomerStatement(null);
+        
+        // Reopen statement to show updated data
+        setTimeout(async () => {
+          if (customerId) {
+            console.log('🔄 Reopening statement to show updated data after payment...');
+            const customerRes = await fetch(`/api/customers/${customerId}`);
+            const customer = await customerRes.json();
+            if (customerRes.ok) {
+              setSelectedCustomerStatement(customer);
+              await handleLoadStatement(customerId);
+            }
+          }
+        }, 300);
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
         console.error('❌ Server error:', errorMsg);
