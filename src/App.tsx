@@ -4524,6 +4524,83 @@ const MerchantDashboard = () => {
     }
   };
 
+  // Helper function to refresh customer statement data without closing modal
+  const refreshCustomerStatement = async (customerId: number) => {
+    try {
+      console.log('🔄 [REFRESH] Starting for customer:', customerId);
+      
+      // Small delay to ensure database is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const statementRes = await fetch(`/api/customers/${customerId}/statement?t=${Date.now()}`);
+      
+      if (!statementRes.ok) {
+        console.error('❌ [REFRESH] Failed to fetch:', statementRes.status);
+        return false;
+      }
+      
+      const statementData = await statementRes.json();
+      console.log('📊 [REFRESH] Data received:', {
+        name: statementData.name,
+        currentDebt: statementData.current_debt,
+        txCount: statementData.transactions?.length,
+      });
+      
+      if (statementData.transactions && statementData.transactions.length > 0) {
+        console.log('📋 [REFRESH] Transaction details:');
+        statementData.transactions.forEach((t: any, i: number) => {
+          console.log(`  [${i}] type=${t.type}, amount=${t.amount}, balance=${t.balance}`);
+        });
+      }
+      
+      // Update statement header with fresh data
+      setSelectedCustomerStatement(prev => {
+        const updated = {
+          ...prev,
+          name: statementData.name,
+          phone: statementData.phone,
+          customer_id: customerId,
+          current_debt: statementData.current_debt,
+          credit_limit: statementData.credit_limit,
+          starting_balance: statementData.starting_balance
+        };
+        console.log('✅ [REFRESH] Updated statement header:', {
+          debt: updated.current_debt,
+          available: (updated.credit_limit - updated.current_debt)
+        });
+        return updated;
+      });
+      
+      // Update transactions
+      let transactions = [];
+      if (Array.isArray(statementData.transactions)) {
+        transactions = statementData.transactions;
+        console.log('✅ [REFRESH] Setting', transactions.length, 'transactions');
+      }
+      setCustomerTransactions(transactions);
+      
+      // Refresh customers list in background
+      if (user?.store_id) {
+        try {
+          const customersRes = await fetch(`/api/merchant/customers?storeId=${user.store_id}&t=${Date.now()}`);
+          if (customersRes.ok) {
+            const updatedCustomers = await customersRes.json();
+            setCustomers(Array.isArray(updatedCustomers) ? updatedCustomers : []);
+            console.log('🔄 [REFRESH] Customers list updated');
+          }
+        } catch (err) {
+          console.warn('⚠️ [REFRESH] Could not refresh customers list:', err);
+        }
+      }
+      
+      console.log('✅ [REFRESH] Complete!');
+      return true;
+    } catch (err) {
+      console.error('❌ [REFRESH] Error:', err);
+      return false;
+    }
+  };
+
   // Handle Load Customer Statement
   const handleLoadStatement = async (customerId: number) => {
     try {
@@ -4639,67 +4716,16 @@ const MerchantDashboard = () => {
       console.log('📬 Server Response:', { status: res.status, ok: res.ok, data });
 
       if (res.ok) {
-        alert('✅ تم تسجيل الدفعة بنجاح');
+        console.log('✅ Payment created successfully');
         setMerchantPaymentAmount('');
         
-        // Close statement first
+        // Immediately refresh statement without closing modal
         const customerId = selectedCustomerStatement?.customer_id;
-        console.log('📌 [PAYMENT] Closing statement, customerId:', customerId);
-        setSelectedCustomerStatement(null);
-        setCustomerTransactions([]);
+        console.log('🔄 Starting refresh for customer:', customerId);
         
         if (customerId) {
-          // Wait longer to ensure database is updated and state is cleared
-          setTimeout(async () => {
-            try {
-              console.log('🔄 [PAYMENT] Starting reopen process...');
-              
-              // Fetch statement data (includes transactions and updated customer info)
-              const statementRes = await fetch(`/api/customers/${customerId}/statement`);
-              if (!statementRes.ok) {
-                console.error('❌ Failed to fetch statement');
-                return;
-              }
-              const statementData = await statementRes.json();
-              console.log('✅ [PAYMENT] Got statement data:', { 
-                name: statementData.name, 
-                current_debt: statementData.current_debt,
-                credit_limit: statementData.credit_limit,
-                starting_balance: statementData.starting_balance
-              });
-              
-              // Update statement header with fresh data
-              console.log('📝 [PAYMENT] Updating statement header...');
-              setSelectedCustomerStatement({
-                name: statementData.name,
-                customer_id: customerId,
-                current_debt: statementData.current_debt,
-                credit_limit: statementData.credit_limit,
-                starting_balance: statementData.starting_balance
-              });
-              
-              // Update transactions 
-              let transactions = [];
-              if (Array.isArray(statementData.transactions)) {
-                transactions = statementData.transactions;
-              }
-              console.log('📝 [PAYMENT] Setting transactions:', transactions.length);
-              setCustomerTransactions(transactions);
-              
-              // Refresh customers list in background
-              if (user?.store_id) {
-                console.log('🔄 [PAYMENT] Refreshing customers list...');
-                const customersRes = await fetch(`/api/merchant/customers?storeId=${user.store_id}`);
-                const updatedCustomers = await customersRes.json();
-                setCustomers(Array.isArray(updatedCustomers) ? updatedCustomers : []);
-                console.log('✅ [PAYMENT] Customers list updated');
-              }
-              
-              console.log('✅ [PAYMENT] Statement fully refreshed');
-            } catch (err) {
-              console.error('❌ [PAYMENT] Error during reopen:', err);
-            }
-          }, 800);
+          const refreshed = await refreshCustomerStatement(customerId);
+          console.log('🎯 Refresh result:', refreshed ? '✅ Success' : '❌ Failed');
         }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
@@ -4753,59 +4779,10 @@ const MerchantDashboard = () => {
         setEditingTransactionId(null);
         setEditingTransactionAmount('');
         
-        // Close statement first
+        // Immediately refresh statement without closing modal
         const customerId = selectedCustomerStatement?.customer_id;
-        console.log('📋 [EDIT] Closing statement, customerId:', customerId);
-        setSelectedCustomerStatement(null);
-        setCustomerTransactions([]);
-        
         if (customerId) {
-          // Wait longer to ensure database is updated and state is cleared
-          setTimeout(async () => {
-            try {
-              console.log('🔄 [EDIT] Starting reopen process...');
-              
-              // Fetch statement data (includes transactions and updated customer info)
-              const statementRes = await fetch(`/api/customers/${customerId}/statement`);
-              if (!statementRes.ok) {
-                console.error('❌ Failed to fetch statement');
-                return;
-              }
-              const statementData = await statementRes.json();
-              console.log('✅ [EDIT] Got statement data');
-              
-              // Update statement header with fresh data
-              console.log('📝 [EDIT] Updating statement header...');
-              setSelectedCustomerStatement({
-                name: statementData.name,
-                customer_id: customerId,
-                current_debt: statementData.current_debt,
-                credit_limit: statementData.credit_limit,
-                starting_balance: statementData.starting_balance
-              });
-              
-              // Update transactions 
-              let transactions = [];
-              if (Array.isArray(statementData.transactions)) {
-                transactions = statementData.transactions;
-              }
-              console.log('📝 [EDIT] Setting transactions:', transactions.length);
-              setCustomerTransactions(transactions);
-              
-              // Refresh customers list in background
-              if (user?.store_id) {
-                console.log('🔄 [EDIT] Refreshing customers list...');
-                const customersRes = await fetch(`/api/merchant/customers?storeId=${user.store_id}`);
-                const updatedCustomers = await customersRes.json();
-                setCustomers(Array.isArray(updatedCustomers) ? updatedCustomers : []);
-                console.log('✅ [EDIT] Customers list updated');
-              }
-              
-              console.log('✅ [EDIT] Statement fully refreshed');
-            } catch (err) {
-              console.error('❌ [EDIT] Error during reopen:', err);
-            }
-          }, 800);
+          await refreshCustomerStatement(customerId);
         }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
@@ -4842,59 +4819,10 @@ const MerchantDashboard = () => {
       if (res.ok) {
         alert('✅ تم حذف المعاملة بنجاح');
         
-        // Close statement first
+        // Immediately refresh statement without closing modal
         const customerId = selectedCustomerStatement?.customer_id;
-        console.log('📋 [DELETE] Closing statement, customerId:', customerId);
-        setSelectedCustomerStatement(null);
-        setCustomerTransactions([]);
-        
         if (customerId) {
-          // Wait longer to ensure database is updated and state is cleared
-          setTimeout(async () => {
-            try {
-              console.log('🔄 [DELETE] Starting reopen process...');
-              
-              // Fetch statement data (includes transactions and updated customer info)
-              const statementRes = await fetch(`/api/customers/${customerId}/statement`);
-              if (!statementRes.ok) {
-                console.error('❌ Failed to fetch statement');
-                return;
-              }
-              const statementData = await statementRes.json();
-              console.log('✅ [DELETE] Got statement data');
-              
-              // Update statement header with fresh data
-              console.log('📝 [DELETE] Updating statement header...');
-              setSelectedCustomerStatement({
-                name: statementData.name,
-                customer_id: customerId,
-                current_debt: statementData.current_debt,
-                credit_limit: statementData.credit_limit,
-                starting_balance: statementData.starting_balance
-              });
-              
-              // Update transactions 
-              let transactions = [];
-              if (Array.isArray(statementData.transactions)) {
-                transactions = statementData.transactions;
-              }
-              console.log('📝 [DELETE] Setting transactions:', transactions.length);
-              setCustomerTransactions(transactions);
-              
-              // Refresh customers list in background
-              if (user?.store_id) {
-                console.log('🔄 [DELETE] Refreshing customers list...');
-                const customersRes = await fetch(`/api/merchant/customers?storeId=${user.store_id}`);
-                const updatedCustomers = await customersRes.json();
-                setCustomers(Array.isArray(updatedCustomers) ? updatedCustomers : []);
-                console.log('✅ [DELETE] Customers list updated');
-              }
-              
-              console.log('✅ [DELETE] Statement fully refreshed');
-            } catch (err) {
-              console.error('❌ [DELETE] Error during reopen:', err);
-            }
-          }, 800);
+          await refreshCustomerStatement(customerId);
         }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
@@ -7156,21 +7084,40 @@ const MerchantDashboard = () => {
                         </tr>
                       </thead>
                       <tbody className={cn(isDarkMode ? "divide-gray-700" : "divide-gray-100")}>
-                        {customerTransactions.map((transaction: any, idx: number) => (
-                          <tr key={`${transaction.id}-${transaction.type}-${transaction.amount}`} className={cn("border-b transition-colors", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-100 hover:bg-gray-50")}>
+                        {customerTransactions.map((transaction: any, idx: number) => {
+                          // Format transaction type display
+                          let displayType = 'معاملة';
+                          if (transaction.type === 'opening') {
+                            displayType = transaction.description || 'الرصيد الافتتاحي';
+                          } else if (transaction.is_payment) {
+                            displayType = '✓ دفعة';
+                          } else {
+                            displayType = transaction.type || 'معاملة';
+                          }
+                          
+                          // Ensure balance is a number
+                          const balanceValue = Number(transaction.balance) || 0;
+                          const amountValue = Number(transaction.amount) || 0;
+                          
+                          console.log(`Frontend [${idx}] ${transaction.type}: amount=${amountValue}, balance=${balanceValue}`);
+                          
+                          return (
+                          <tr key={`${transaction.id}-${transaction.type}-${idx}`} className={cn("border-b transition-colors", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-100 hover:bg-gray-50")}>
                             <td className={cn("px-2 md:px-4 py-2 md:py-3 font-normal whitespace-nowrap", isDarkMode ? "text-gray-300" : "text-gray-700")}>
                               {new Date(transaction.created_at || transaction.date).toLocaleDateString('ar-IQ')}
                             </td>
                             <td className={cn("px-2 md:px-4 py-2 md:py-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                              {transaction.type || transaction.transaction_type || 'معاملة'}
+                              {displayType}
                             </td>
                             <td className={cn("px-2 md:px-4 py-2 md:py-3 font-bold text-left whitespace-nowrap", 
-                              (transaction.amount || 0) > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-red-400" : "text-red-600")
+                              amountValue > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-red-400" : "text-red-600")
                             )}>
-                              {formatCurrency(Math.abs(transaction.amount || 0))}
+                              {formatCurrency(Math.abs(amountValue))}
                             </td>
-                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-normal text-left whitespace-nowrap", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                              {formatCurrency(transaction.balance || 0)}
+                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-bold text-left whitespace-nowrap", 
+                              balanceValue && balanceValue > 0 ? (isDarkMode ? "text-blue-400" : "text-blue-600") : (isDarkMode ? "text-gray-400" : "text-gray-600")
+                            )}>
+                              {formatCurrency(balanceValue)}
                             </td>
                             <td className={cn("px-2 md:px-4 py-2 md:py-3 text-center")}>
                               <div className="flex items-center justify-center gap-1">
@@ -7201,7 +7148,8 @@ const MerchantDashboard = () => {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

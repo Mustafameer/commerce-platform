@@ -2983,174 +2983,105 @@ async function startServer() {
       }
     });
 
-    // Get customer statement (transactions) - Get from customer payments and transactions
+    // Get customer statement - كشف الحساب (REBUILT FROM SCRATCH)
     app.get("/api/customers/:id/statement", async (req, res) => {
       try {
-        const { id } = req.params;
-        const customerId = parseInt(id);
+        const customerId = parseInt(req.params.id);
         
-        console.log(`📋 Fetching statement for customer: ${customerId}`);
-
+        // Step 1: Fetch customer
         const customerRes = await pool.query(
-          `SELECT * FROM customers WHERE id = $1`,
+          `SELECT id, name, phone, current_debt, credit_limit, starting_balance, created_at 
+           FROM customers WHERE id = $1`,
           [customerId]
         );
 
         if (customerRes.rows.length === 0) {
-          console.warn(`⚠️ Customer not found: ${customerId}`);
           return res.status(404).json({ error: "Customer not found" });
         }
 
         const customer = customerRes.rows[0];
-        console.log(`✅ Found customer: ${customer.name}`);
 
-        // Get transactions from customer_transactions table
-        let txRes = { rows: [] };
-        try {
-          txRes = await pool.query(
-            `SELECT id, customer_id, transaction_type as type, amount, description, created_at
-             FROM customer_transactions WHERE customer_id = $1 ORDER BY created_at DESC`,
-            [customerId]
-          );
-          console.log(`📝 Found ${txRes.rows.length} transactions`);
-        } catch (txErr) {
-          console.warn(`⚠️ Error fetching transactions:`, (txErr as any).message);
-        }
+        // Step 2: Fetch all transactions (purchases/debits)
+        const txRes = await pool.query(
+          `SELECT id, customer_id, transaction_type as type, amount, description, created_at
+           FROM customer_transactions WHERE customer_id = $1 ORDER BY created_at ASC`,
+          [customerId]
+        );
 
-        // Get payments from customer_payments table
-        let payRes = { rows: [] };
-        try {
-          payRes = await pool.query(
-            `SELECT id, customer_id, amount, payment_method, notes as description, created_at
-             FROM customer_payments WHERE customer_id = $1 ORDER BY created_at DESC`,
-            [customerId]
-          );
-          console.log(`💳 Found ${payRes.rows.length} payments`);
-        } catch (payErr) {
-          console.warn(`⚠️ Error fetching payments:`, (payErr as any).message);
-        }
+        // Step 3: Fetch all payments (credits)
+        const payRes = await pool.query(
+          `SELECT id, customer_id, amount, payment_method, notes as description, created_at
+           FROM customer_payments WHERE customer_id = $1 ORDER BY created_at ASC`,
+          [customerId]
+        );
 
-        // Combine both transactions and payments, sorted by date (oldest first for balance calculation)
-        const allTransactions = [
+        // Step 4: Combine all items and sort by date (oldest first)
+        const allItems = [
           ...txRes.rows.map(t => ({
-            ...t,
-            is_payment: false
+            id: t.id,
+            type: t.type || 'purchase',
+            description: t.description || 'عملية',
+            amount: Number(t.amount),
+            is_payment: false,
+            created_at: t.created_at
           })),
           ...payRes.rows.map(p => ({
             id: p.id,
-            customer_id: p.customer_id,
-            type: 'credit',
-            amount: p.amount,
+            type: 'payment',
             description: p.description || 'دفعة',
-            created_at: p.created_at,
-            is_payment: true
+            amount: Number(p.amount),
+            is_payment: true,
+            created_at: p.created_at
           }))
         ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-        // Calculate running balance for each transaction
-        // We need to determine starting point: either use starting_balance OR calculate from transactions
-        // If no transactions, balance equals current_debt; if transactions exist, recalculate from them
-        let initialDebt = customer.starting_balance || 0;
-        
-        console.log(`📊 BALANCE CALCULATION START:`);
-        console.log(`   Customer: ${customer.name}`);
-        console.log(`   current_debt (DB): ${customer.current_debt}`);
-        console.log(`   starting_balance: ${customer.starting_balance}`);
-        console.log(`   Total transactions: ${allTransactions.length}`);
-        
-        // If there are transactions, calculate what the initial debt should have been before all transactions
-        if (allTransactions.length > 0) {
-          let totalDebits = 0;
-          let totalCredits = 0;
-          
-          allTransactions.forEach((t: any) => {
-            if (t.is_payment) {
-              totalCredits += t.amount;
-            } else {
-              totalDebits += t.amount;
-            }
-          });
-          
-          // Initial debt = current_debt + payments - debits
-          // i.e., debt before any transactions = current_debt - effect of transactions
-          initialDebt = (customer.current_debt || 0) + totalCredits - totalDebits;
-          console.log(`   totalDebits: ${totalDebits}`);
-          console.log(`   totalCredits (payments): ${totalCredits}`);
-          console.log(`   Calculated initialDebt = ${customer.current_debt} + ${totalCredits} - ${totalDebits} = ${initialDebt}`);
-        } else {
-          initialDebt = customer.current_debt || 0;
-          console.log(`   No transactions, initialDebt = current_debt = ${initialDebt}`);
-        }
-        
-        console.log(`   STARTING FROM: ${initialDebt}`);
-        
-        // Now calculate running balance from transactions
-        let runningBalance = initialDebt;
-        
-        // Add all transactions with calculated balance (without opening balance yet)
-        const transactionsWithBalance = allTransactions.map((t: any) => {
-          if (t.is_payment) {
-            // Payment (credit): deducts from debt
-            runningBalance -= t.amount;
-          } else {
-            // Debit transaction: adds to debt
-            runningBalance += t.amount;
-          }
-          return {
-            ...t,
-            balance: runningBalance
-          };
+        // Step 5: Calculate opening balance
+        let sumPayments = 0, sumDebits = 0;
+        allItems.forEach(item => {
+          if (item.is_payment) sumPayments += item.amount;
+          else sumDebits += item.amount;
         });
 
-        console.log(`✅ Calculated balance for ${transactionsWithBalance.length} transactions`);
+        const openingBalance = Number(customer.current_debt) + sumPayments - sumDebits;
 
-        // Reverse to show newest first
-        const allTransactionsFinal = transactionsWithBalance.reverse();
+        // Step 6: Calculate running balance (oldest to newest)
+        let runningBalance = openingBalance;
+        const itemsWithBalance = allItems.map(item => {
+          if (item.is_payment) {
+            runningBalance -= item.amount;
+          } else {
+            runningBalance += item.amount;
+          }
+          return { ...item, balance: runningBalance };
+        });
 
-        // Now add opening balance at the beginning if it exists
-        // Opening balance shows the debt before all transactions
-        if (initialDebt && initialDebt > 0) {
-          const openingBalance = {
+        // Step 7: Build final array (opening balance + all items in reverse order - newest first)
+        const transactions = [
+          {
             id: 0,
             type: 'opening',
-            description: customer.starting_balance ? 'الرصيد الافتتاحي' : 'الرصيد الأولي',
-            amount: initialDebt,
-            created_at: customer.created_at,
-            balance: initialDebt,
-            is_payment: false
-          };
-          allTransactionsFinal.unshift(openingBalance);
-          console.log(`✅ Opening balance added at index 0: ${initialDebt}`);
+            description: 'الرصيد الافتتاحي',
+            amount: openingBalance,
+            balance: openingBalance,
+            is_payment: false,
+            created_at: customer.created_at
+          }
+        ];
+
+        // Add all items in reverse order (newest first)
+        for (let i = itemsWithBalance.length - 1; i >= 0; i--) {
+          transactions.push(itemsWithBalance[i]);
         }
 
-        console.log(`📊 Final: ${allTransactionsFinal.length} items`);
-        allTransactionsFinal.forEach((t, i) => {
-          console.log(`  [${i}] Type: ${t.type} | Desc: ${t.description} | Amount: ${t.amount} | Balance: ${t.balance}`);
-        });
-        
-        // Verify final balance matches current_debt
-        // Last non-opening transaction should have balance = current_debt
-        const lastNonOpeningIndex = allTransactionsFinal.findIndex((t, i) => i > 0 && t.type !== 'opening');
-        if (lastNonOpeningIndex >= 0) {
-          const lastNonOpening = allTransactionsFinal[lastNonOpeningIndex];
-          console.log(`✅ Last non-opening transaction balance: ${lastNonOpening.balance} | Current debt from DB: ${customer.current_debt}`);
-        } else if (allTransactionsFinal.length > 0 && allTransactionsFinal[0].type === 'opening') {
-          console.log(`✅ Only opening balance: ${allTransactionsFinal[0].balance} | Current debt from DB: ${customer.current_debt}`);
-        }
-
-        const responseData = {
+        res.json({
           name: customer.name,
-          current_debt: customer.current_debt,
-          credit_limit: customer.credit_limit,
-          starting_balance: customer.starting_balance,
-          customer: customer,
-          transactions: allTransactionsFinal
-        };
-
-        console.log(`📊 Returning statement with ${responseData.transactions.length} transactions`);
-        res.json(responseData);
+          phone: customer.phone,
+          current_debt: Number(customer.current_debt),
+          credit_limit: Number(customer.credit_limit),
+          starting_balance: Number(customer.starting_balance),
+          transactions
+        });
       } catch (error) {
-        console.error(`❌ Error in statement endpoint:`, (error as any).message);
         res.status(500).json({ error: (error as any).message });
       }
     });
