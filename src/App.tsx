@@ -7069,14 +7069,15 @@ const MerchantDashboard = () => {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-right text-xs md:text-sm">
+                    <table className="w-full text-right text-xs md:text-sm border-collapse">
                       <thead>
                         <tr className={cn("border-b sticky top-0", isDarkMode ? "border-gray-600 bg-gray-700" : "border-gray-200 bg-gray-50")}>
-                          <th className={cn("px-2 md:px-4 py-2 font-normal text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>التاريخ</th>
-                          <th className={cn("px-2 md:px-4 py-2 font-normal text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>النوع</th>
-                          <th className={cn("px-2 md:px-4 py-2 font-normal text-xs text-left", isDarkMode ? "text-gray-400" : "text-gray-600")}>المبلغ</th>
-                          <th className={cn("px-2 md:px-4 py-2 font-normal text-xs text-left", isDarkMode ? "text-gray-400" : "text-gray-600")}>الرصيد</th>
-                          <th className={cn("px-2 md:px-4 py-2 font-normal text-xs text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>إجراءات</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>مدين (Debit)</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>دائن (Credit)</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الرصيد</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>إجراءات</th>
                         </tr>
                       </thead>
                       <tbody className={cn(isDarkMode ? "divide-gray-700" : "divide-gray-100")}>
@@ -7095,23 +7096,35 @@ const MerchantDashboard = () => {
                           const balanceValue = Number(transaction.balance) || 0;
                           const amountValue = Number(transaction.amount) || 0;
                           
+                          // Determine if debit or credit
+                          const isDebit = amountValue < 0 || transaction.type === 'debit' || transaction.type === 'payment' || transaction.is_payment;
+                          const isCredit = amountValue > 0 || transaction.type === 'credit' || transaction.type === 'opening';
+                          
+                          const debitAmount = isDebit ? Math.abs(amountValue) : 0;
+                          const creditAmount = isCredit ? Math.abs(amountValue) : 0;
+                          
                           console.log(`Frontend [${idx}] ${transaction.type}: amount=${amountValue}, balance=${balanceValue}`);
                           
                           return (
                           <tr key={`${transaction.id}-${transaction.type}-${idx}`} className={cn("border-b transition-colors", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-100 hover:bg-gray-50")}>
-                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-normal whitespace-nowrap", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-normal whitespace-nowrap border", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
                               {new Date(transaction.created_at || transaction.date).toLocaleDateString('ar-IQ')}
                             </td>
-                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-normal border", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
                               {displayType}
                             </td>
-                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-bold text-left whitespace-nowrap", 
-                              amountValue > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-red-400" : "text-red-600")
+                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-bold text-center whitespace-nowrap border", 
+                              debitAmount > 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"), isDarkMode ? "border-gray-700" : "border-gray-200"
                             )}>
-                              {formatCurrency(Math.abs(amountValue))}
+                              {debitAmount > 0 ? formatCurrency(debitAmount) : '—'}
                             </td>
-                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-bold text-left whitespace-nowrap", 
-                              balanceValue && balanceValue > 0 ? (isDarkMode ? "text-blue-400" : "text-blue-600") : (isDarkMode ? "text-gray-400" : "text-gray-600")
+                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-bold text-center whitespace-nowrap border", 
+                              creditAmount > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"), isDarkMode ? "border-gray-700" : "border-gray-200"
+                            )}>
+                              {creditAmount > 0 ? formatCurrency(creditAmount) : '—'}
+                            </td>
+                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-bold text-center whitespace-nowrap border", 
+                              balanceValue && balanceValue > 0 ? (isDarkMode ? "text-blue-400" : "text-blue-600") : (isDarkMode ? "text-gray-400" : "text-gray-600"), isDarkMode ? "border-gray-700" : "border-gray-200"
                             )}>
                               {formatCurrency(balanceValue)}
                             </td>
