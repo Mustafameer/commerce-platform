@@ -12681,7 +12681,7 @@ const TopupStorefront = () => {
                 <span className="hidden sm:inline">العودة</span>
               </button>
               {/* Shopping Cart Button with Filters */}
-              <div className="flex flex-col gap-2 ml-auto lg:ml-0">
+              <div className="flex flex-row gap-2 ml-auto lg:ml-0 items-center sm:flex-col sm:gap-2">
                 <button
                   onClick={() => {
                     // حفظ البيانات من customer أو purchaseForm إلى localStorage قبل الانتقال للعربة
@@ -13054,7 +13054,7 @@ const TopupStorefront = () => {
         </div>
         
         {/* Filters and Products Content */}
-        <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8">
+        <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8 overflow-y-auto">
           {/* Products Grid */}
           {showPurchaseForm && selectedProduct && !customer && (
             <Card className={cn("mt-6 border-2", isDarkMode ? "bg-gray-800 border-indigo-700" : "bg-indigo-50 border-indigo-200")}> 
