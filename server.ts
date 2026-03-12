@@ -4952,22 +4952,13 @@ async function startServer() {
         const resultOrders = await pool.query('DELETE FROM orders WHERE customer_id IS NULL AND topup_customer_id IS NOT NULL');
         console.log(`✓ تم حذف ${resultOrders.rowCount} طلب توب أب من orders`);
 
-        // Reset customers' debt to 0 (only update current_debt if it exists)
-        const resultCustomers = await pool.query(`
-          UPDATE customers 
-          SET current_debt = 0
-          WHERE current_debt > 0
-        `);
-        console.log(`✓ تم تحديث ${resultCustomers.rowCount} عميل (إعادة تعيين الديون إلى صفر)`);
-
         res.json({ 
           success: true, 
           message: "✅ تم مسح جميع البيانات بنجاح",
           cleared: {
             transactions: resultTransactions.rowCount,
             payments: resultPayments.rowCount,
-            topupOrders: resultOrders.rowCount,
-            customersReset: resultCustomers.rowCount
+            topupOrders: resultOrders.rowCount
           }
         });
         
