@@ -12763,10 +12763,6 @@ const TopupStorefront = () => {
                       <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
                       <p className={cn("text-3xl font-bold", Number(customer.current_debt || 0) > Number(customer.credit_limit || 0) ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-300" : "text-yellow-700"))}>{Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')} <span className="text-lg">د.ع</span></p>
                     </div>
-                    <div className="text-[11px] space-y-1">
-                      <p className={isDarkMode ? "text-red-300/80" : "text-red-600/80"}>حد الائتمان: <span className="font-bold">{Math.round(Number(customer.credit_limit) || 0)?.toLocaleString('en-US')} د.ع</span></p>
-                      <p className={isDarkMode ? "text-red-300/80" : "text-red-600/80"}>الرصيد المتاح: <span className={cn("font-bold", (Number(customer.credit_limit || 0) - Number(customer.current_debt || 0)) <= 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-green-400" : "text-green-600"))}>{Math.round(Math.max(0, Number(customer.credit_limit || 0) - Number(customer.current_debt || 0))).toLocaleString('en-US')} د.ع</span></p>
-                    </div>
 
                     {/* Buttons */}
                     <div className="grid grid-cols-2 gap-2 mt-2">
