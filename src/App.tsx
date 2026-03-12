@@ -7091,7 +7091,7 @@ const MerchantDashboard = () => {
                           } else if (transaction.type === 'debit') {
                             displayType = 'خصم';
                           } else if (transaction.type === 'topup') {
-                            displayType = transaction.description || 'شراء';
+                            displayType = 'بطاقة شحن';
                           } else {
                             displayType = transaction.description || transaction.type || 'معاملة';
                           }
@@ -7103,10 +7103,10 @@ const MerchantDashboard = () => {
                           // Determine if debit or credit
                           // Payments (دفعات) are CREDIT (دائن) - they reduce debt
                           // Opening balance (ديون سابقة) are DEBIT - they are previous debts
-                          // Debits are charges - they increase debt
+                          // Topup orders and Debits are charges - they increase debt
                           const isPayment = transaction.is_payment === true;
                           const isCredit = isPayment || amountValue > 0 || transaction.type === 'credit';
-                          const isDebit = !isPayment && (amountValue < 0 || transaction.type === 'debit' || transaction.type === 'opening');
+                          const isDebit = !isPayment && (amountValue < 0 || transaction.type === 'debit' || transaction.type === 'opening' || transaction.type === 'topup');
                           
                           // Only show ONE value per row: either debit OR credit, not both
                           let debitAmount = 0;
@@ -13027,7 +13027,7 @@ const TopupStorefront = () => {
                               } else if (txType === 'debit') {
                                 txDescription = 'خصم';
                               } else if (txType === 'topup') {
-                                txDescription = 'شحن توب أب';
+                                txDescription = 'بطاقة شحن';
                               } else if (txType === 'payment') {
                                 txDescription = '✓ دفعة';
                               }
