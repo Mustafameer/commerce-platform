@@ -3058,7 +3058,7 @@ async function startServer() {
           ? itemsWithBalance[itemsWithBalance.length - 1].balance 
           : openingBalance;
 
-        // Step 9: Build final array (opening balance + all items in reverse order - newest first)
+        // Step 9: Build final array (opening balance + all items in ascending order - oldest first)
         const transactions = [
           {
             id: 0,
@@ -3071,8 +3071,8 @@ async function startServer() {
           }
         ];
 
-        // Add all items in reverse order (newest first)
-        for (let i = itemsWithBalance.length - 1; i >= 0; i--) {
+        // Add all items in ascending order (oldest first)
+        for (let i = 0; i < itemsWithBalance.length; i++) {
           transactions.push(itemsWithBalance[i]);
         }
 
