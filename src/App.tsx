@@ -7085,7 +7085,7 @@ const MerchantDashboard = () => {
                           // Format transaction type display
                           let displayType = 'معاملة';
                           if (transaction.type === 'opening') {
-                            displayType = transaction.description || 'الرصيد الافتتاحي';
+                            displayType = transaction.description || 'ديون سابقة';
                           } else if (transaction.is_payment) {
                             displayType = '✓ دفعة';
                           } else if (transaction.type === 'debit') {
@@ -7102,10 +7102,11 @@ const MerchantDashboard = () => {
                           
                           // Determine if debit or credit
                           // Payments (دفعات) are CREDIT (دائن) - they reduce debt
+                          // Opening balance (ديون سابقة) are DEBIT - they are previous debts
                           // Debits are charges - they increase debt
                           const isPayment = transaction.is_payment === true;
-                          const isCredit = isPayment || amountValue > 0 || transaction.type === 'credit' || transaction.type === 'opening';
-                          const isDebit = !isPayment && (amountValue < 0 || transaction.type === 'debit');
+                          const isCredit = isPayment || amountValue > 0 || transaction.type === 'credit';
+                          const isDebit = !isPayment && (amountValue < 0 || transaction.type === 'debit' || transaction.type === 'opening');
                           
                           const debitAmount = isDebit ? Math.abs(amountValue) : 0;
                           const creditAmount = isCredit ? Math.abs(amountValue) : 0;
@@ -12932,7 +12933,7 @@ const TopupStorefront = () => {
                               
                               // Translate transaction types to Arabic
                               if (txType === 'opening') {
-                                txDescription = transaction.description || 'الرصيد الافتتاحي';
+                                txDescription = transaction.description || 'ديون سابقة';
                               } else if (txType === 'debit') {
                                 txDescription = 'خصم';
                               } else if (txType === 'topup') {
@@ -12944,8 +12945,9 @@ const TopupStorefront = () => {
                               const txAmount = Math.round(Number(transaction.amount || transaction.value || 0));
                               const txBalance = Math.round(Number(transaction.balance || transaction.current_balance || 0));
                               // Payments (دفعات) are CREDIT (دائن) - they reduce debt
+                              // Opening balance (ديون سابقة) are DEBIT - they are previous debts
                               const isPayment = txType === 'payment' || txType === 'payment_received';
-                              const isDebit = (txType === 'debit' || txType === 'مدين' || txType === 'خصم') && !isPayment;
+                              const isDebit = (txType === 'debit' || txType === 'مدين' || txType === 'خصم' || txType === 'opening') && !isPayment;
                               const isCredit = isPayment || txType === 'credit' || txType === 'رصيد' || txType === 'دائن' || txType === 'إيداع';
                               
                               const debitAmount = isDebit ? txAmount : 0;
