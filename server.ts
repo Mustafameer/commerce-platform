@@ -159,6 +159,7 @@ async function initDb() {
       CREATE TABLE IF NOT EXISTS orders (
         id SERIAL PRIMARY KEY,
         customer_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        topup_customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
         store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
         total_amount DECIMAL(10, 2),
         discount_amount DECIMAL(10, 2) DEFAULT 0,
@@ -569,6 +570,17 @@ async function runMigrations() {
       UPDATE users SET can_access_admin = true WHERE role = 'admin' AND can_access_admin = false;
     `);
     console.log("✅ Migration: Admin users updated with can_access_admin = true");
+
+    // Add topup_customer_id column to orders for topup store customers (credit system)
+    try {
+      await pool.query(`
+        ALTER TABLE orders
+        ADD COLUMN topup_customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL;
+      `);
+      console.log("✅ Migration: topup_customer_id column added to orders table");
+    } catch (e) {
+      // Column already exists, ignore
+    }
 
   } catch (error) {
     // Ignore column already exists errors
@@ -1402,6 +1414,7 @@ async function startServer() {
           query = `SELECT 
                       o.id,
                       o.customer_id,
+                      o.topup_customer_id,
                       o.store_id,
                       o.total_amount,
                       o.discount_amount,
@@ -1427,6 +1440,7 @@ async function startServer() {
           query = `SELECT 
                       o.id,
                       o.customer_id,
+                      o.topup_customer_id,
                       o.store_id,
                       o.total_amount,
                       o.discount_amount,
@@ -1465,22 +1479,25 @@ async function startServer() {
     app.post("/api/orders", async (req, res) => {
       try {
         const { customer_id, store_id, total_amount, phone, address, is_topup, items, discount_amount } = req.body;
-        const normalizedCustomerId = is_topup ? customer_id : null;
         
-        // Insert the order
+        // For topup orders: use topup_customer_id; for regular orders: use customer_id
+        const topupCustomerId = is_topup ? customer_id : null;
+        const regularCustomerId = !is_topup ? customer_id : null;
+        
+        // Insert the order with proper foreign keys
         const orderResult = await pool.query(
-          "INSERT INTO orders (customer_id, store_id, total_amount, discount_amount, phone, address, is_topup_order) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
-          [normalizedCustomerId, store_id, total_amount, discount_amount || 0, phone, address, is_topup || false]
+          "INSERT INTO orders (customer_id, topup_customer_id, store_id, total_amount, discount_amount, phone, address, is_topup_order) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
+          [regularCustomerId, topupCustomerId, store_id, total_amount, discount_amount || 0, phone, address, is_topup || false]
         );
         
         const order = orderResult.rows[0];
         
         // Update customer debt ONLY for topup store orders
-        if (normalizedCustomerId && is_topup) {
+        if (topupCustomerId && is_topup) {
           try {
             const customerCheck = await pool.query(
               `SELECT id, customer_type, credit_limit, current_debt FROM customers WHERE id = $1`,
-              [normalizedCustomerId]
+              [topupCustomerId]
             );
 
             if (customerCheck.rows.length > 0) {
@@ -1490,19 +1507,19 @@ async function startServer() {
               // Update customer debt for credit customers
               const debtUpdateRes = await pool.query(
                 `UPDATE customers SET current_debt = current_debt + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING current_debt`,
-                [finalAmount, normalizedCustomerId]
+                [finalAmount, topupCustomerId]
               );
 
-              console.log(`💳 [TOPUP ORDER] Debt updated for customer ${normalizedCustomerId}: +${finalAmount}, Total debt: ${debtUpdateRes.rows[0]?.current_debt}`);
+              console.log(`💳 [TOPUP ORDER] Debt updated for customer ${topupCustomerId}: +${finalAmount}, Total debt: ${debtUpdateRes.rows[0]?.current_debt}`);
 
               // Record transaction
               await pool.query(
                 `INSERT INTO customer_transactions (customer_id, order_id, transaction_type, amount, description)
                  VALUES ($1, $2, 'debit', $3, $4)`,
-                [normalizedCustomerId, order.id, finalAmount, `طلب كارتات رقم ${order.id}`]
+                [topupCustomerId, order.id, finalAmount, `طلب كارتات رقم ${order.id}`]
               );
 
-              console.log(`📝 Transaction recorded for customer ${normalizedCustomerId}, Order #${order.id}`);
+              console.log(`📝 Transaction recorded for customer ${topupCustomerId}, Order #${order.id}`);
             }
           } catch (debtError) {
             console.error(`⚠️  Error updating customer debt for order ${order.id}:`, debtError);
@@ -3610,7 +3627,8 @@ async function startServer() {
             `SELECT DISTINCT ON (o.id)
               o.id, 
               o.store_id, 
-              o.customer_id, 
+              o.customer_id,
+              o.topup_customer_id,
               o.total_amount,
               o.status, 
               o.created_at, 
@@ -3633,7 +3651,8 @@ async function startServer() {
             `SELECT DISTINCT ON (o.id)
               o.id, 
               o.store_id, 
-              o.customer_id, 
+              o.customer_id,
+              o.topup_customer_id,
               o.total_amount,
               o.status, 
               o.created_at, 
