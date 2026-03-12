@@ -3063,7 +3063,7 @@ async function startServer() {
           {
             id: 0,
             type: 'opening',
-            description: 'الرصيد الافتتاحي',
+            description: 'ديون سابقة',
             amount: openingBalance,
             balance: openingBalance,
             is_payment: false,
