@@ -7067,10 +7067,6 @@ const MerchantDashboard = () => {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: `${primaryColor}` }}></div>
                     <span className={cn("ml-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>جاري تحميل المعاملات...</span>
                   </div>
-                ) : customerTransactions.length === 0 ? (
-                  <div className={cn("p-8 text-center rounded-lg", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                    <p className={cn("font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>لا توجد معاملات</p>
-                  </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-right text-xs md:text-sm">
@@ -12897,7 +12893,7 @@ const TopupStorefront = () => {
                           <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2" style={{borderColor: primaryColor}}></div>
                           <p className={cn("mt-2 text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>جاري تحميل البيانات...</p>
                         </div>
-                      ) : statementTransactions && statementTransactions.length > 0 ? (
+                      ) : (
                         <table className="w-full text-xs">
                           <thead className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
                             <tr>
@@ -12909,7 +12905,7 @@ const TopupStorefront = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {statementTransactions.map((transaction, idx) => {
+                            {statementTransactions && statementTransactions.map((transaction, idx) => {
                               const txDate = transaction.created_at || transaction.date || transaction.transaction_date;
                               const txType = transaction.type || transaction.transaction_type || 'unknown';
                               const txDescription = transaction.description || transaction.notes || transaction.detail || `معاملة #${idx + 1}`;
@@ -12939,10 +12935,6 @@ const TopupStorefront = () => {
                             })}
                           </tbody>
                         </table>
-                      ) : (
-                        <div className={cn("p-6 text-center", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                          <p className="text-sm">لا توجد معاملات بعد</p>
-                        </div>
                       )}
                     </div>
                   </div>
