@@ -7834,7 +7834,7 @@ const CustomerStorefront = () => {
       </header>
 
       {/* Product Grid */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:pb-0 pb-24">
 
         <div className="space-y-12 sm:space-y-20 pb-10">
           {sortedCategories.map((category) => (
@@ -13054,7 +13054,7 @@ const TopupStorefront = () => {
         </div>
         
         {/* Filters and Products Content */}
-        <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8 overflow-y-auto">
+        <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8 overflow-y-auto md:pb-0 pb-24">
           {/* Products Grid */}
           {showPurchaseForm && selectedProduct && !customer && (
             <Card className={cn("mt-6 border-2", isDarkMode ? "bg-gray-800 border-indigo-700" : "bg-indigo-50 border-indigo-200")}> 
