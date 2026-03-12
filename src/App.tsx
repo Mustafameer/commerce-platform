@@ -7100,22 +7100,66 @@ const MerchantDashboard = () => {
                           const balanceValue = Number(transaction.balance) || 0;
                           const amountValue = Number(transaction.amount) || 0;
                           
-                          // Determine if debit or credit based on type
-                          // Topup, Debit, Opening are DEBITS (increase debt/charges)
+                          // Determine if debit or credit based on type and is_payment field
+                          // Topup, Debit, Opening are DEBITS (increase debt/charges) - when NOT a payment
                           // Payments are CREDITS (reduce debt/payments)
                           const isPayment = transaction.is_payment === true;
                           const isDebit = !isPayment && (transaction.type === 'topup' || transaction.type === 'debit' || transaction.type === 'opening');
                           const isCredit = isPayment;
                           
+                          // Debug topup transactions
+                          if (transaction.type === 'topup') {
+                            console.log(`📊 [MerchantDashboard Compact] Topup TX #${idx}:`, {
+                              type: transaction.type,
+                              amount: transaction.amount,
+                              amountValue: amountValue,
+                              is_payment: transaction.is_payment,
+                              isPayment: isPayment,
+                              isDebit: isDebit
+                            });
+                          }
+                          
                           // Only show ONE value per row: either debit OR credit, not both
                           let debitAmount = 0;
                           let creditAmount = 0;
-                          if (isDebit && amountValue !== 0) {
+                          
+                          // Debug detailed output
+                          if (transaction.type === 'topup') {
+                            console.log(`🔍 [TX ${idx}] CALCULATING AMOUNTS:`, {
+                              type: transaction.type,
+                              rawAmount: transaction.amount,
+                              amountValue: amountValue,
+                              amountNotZero: amountValue !== 0,
+                              isDebit: isDebit,
+                              isCredit: isCredit,
+                              isPayment: isPayment,
+                              willShowDebit: isDebit && amountValue !== 0,
+                              willShowCredit: isCredit && amountValue !== 0
+                            });
+                          }
+                          
+                          // CRITICAL FIX: For topup transactions, ALWAYS show debit amount regardless
+                          if (transaction.type === 'topup') {
+                            // Topup orders should ALWAYS display their amount as debit
+                            debitAmount = Math.abs(amountValue);
+                            creditAmount = 0;
+                            console.log(`🔥 [TOPUP FIX] TX #${idx}: amount=${amountValue} → debitAmount=${debitAmount}`);
+                          } else if (isDebit && amountValue !== 0) {
                             debitAmount = Math.abs(amountValue);
                             creditAmount = 0;
                           } else if (isCredit && amountValue !== 0) {
                             debitAmount = 0;
                             creditAmount = Math.abs(amountValue);
+                          }
+                          
+                          if (transaction.type === 'topup') {
+                            console.log(`✅ [TX ${idx}] FINAL RESULT:`, {
+                              type: transaction.type,
+                              rawAmount: transaction.amount,
+                              debitAmount: debitAmount,
+                              creditAmount: creditAmount,
+                              willShow: debitAmount > 0 ? `Debit: ${debitAmount}` : creditAmount > 0 ? `Credit: ${creditAmount}` : 'DASHES'
+                            });
                           }
                           
                           console.log(`Frontend [${idx}] ${transaction.type}: amount=${amountValue}, balance=${balanceValue}, isPayment=${isPayment}`);
@@ -9678,6 +9722,7 @@ const MerchantTopupDashboard = () => {
   // Form states
   const [companyForm, setCompanyForm] = useState({ name: '', logo_url: '' });
   const [productForm, setProductForm] = useState({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
+  const [productImages, setProductImages] = useState<File[]>([]);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [customerForm, setCustomerForm] = useState({ name: '', phone: '', email: '', password: '', customer_type: 'cash', credit_limit: '0', starting_balance: '' });
   const [storeSettings, setStoreSettings] = useState({ store_name: '', logo_url: '' });
@@ -10212,9 +10257,44 @@ const MerchantTopupDashboard = () => {
       console.log('📥 Product response:', responseData);
 
       if (response.ok) {
+        const productId = isEditingProduct ? isEditingProduct : responseData.product?.id;
+        
+        // Upload images if any are selected
+        if (productImages.length > 0 && productId) {
+          console.log('📸 Uploading', productImages.length, 'images...');
+          
+          for (const imageFile of productImages) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+              try {
+                const imageData = e.target?.result as string;
+                
+                const imageResponse = await fetch('/api/topup/upload-images', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    store_id: topupStoreId,
+                    topup_product_id: productId,
+                    images: [imageData]
+                  })
+                });
+
+                if (!imageResponse.ok) {
+                  const imgError = await imageResponse.json();
+                  console.warn('⚠️ Error uploading image:', imgError);
+                }
+              } catch (err) {
+                console.error('❌ Error processing image:', err);
+              }
+            };
+            reader.readAsDataURL(imageFile);
+          }
+        }
+
         alert(isEditingProduct ? 'تم التحديث بنجاح' : 'تمت الإضافة بنجاح');
         setShowProductModal(false);
         setProductForm({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
+        setProductImages([]);
         const res = await fetch(`/api/topup/products/${topupStoreId}`);
         const data = await res.json();
         setProducts(Array.isArray(data) ? data : []);
@@ -10231,7 +10311,7 @@ const MerchantTopupDashboard = () => {
 
   const handleUploadCodes = async () => {
     if (!uploadedFile) {
-      alert('يرجى اختيار ملف');
+      alert('يرجى اختيار صورة');
       return;
     }
 
@@ -10241,41 +10321,39 @@ const MerchantTopupDashboard = () => {
     }
 
     try {
-      const text = await uploadedFile.text();
-      const codes = text.split('\n').filter(code => code.trim());
+      // Handle image upload only
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const imageData = e.target?.result as string;
+        
+        const response = await fetch('/api/topup/upload-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            store_id: topupStoreId,
+            topup_product_id: selectedProductForCodes,
+            images: [imageData]
+          })
+        });
 
-      if (codes.length === 0) {
-        alert('الملف لا يحتوي على أي أكواد');
-        return;
-      }
+        const responseData = await response.json();
 
-      const response = await fetch('/api/topup/upload-codes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          store_id: topupStoreId,
-          topup_product_id: selectedProductForCodes,
-          codes: codes
-        })
-      });
-
-      const responseData = await response.json();
-
-      if (response.ok) {
-        alert(responseData.message || `تم تحميل ${codes.length} أكواد بنجاح!`);
-        setShowCodeUploadModal(false);
-        setUploadedFile(null);
-        setSelectedProductForCodes(null);
-        // Refresh products list
-        const updatedRes = await fetch(`/api/topup/products/${topupStoreId}`);
-        const data = await updatedRes.json();
-        setProducts(Array.isArray(data) ? data : []);
-      } else {
-        alert(`خطأ: ${responseData.error || 'فشل تحميل الأكواد'}`);
-      }
+        if (response.ok) {
+          alert(responseData.message || 'تم تحميل الصورة بنجاح!');
+          setShowCodeUploadModal(false);
+          setUploadedFile(null);
+          setSelectedProductForCodes(null);
+          const updatedRes = await fetch(`/api/topup/products/${topupStoreId}`);
+          const data = await updatedRes.json();
+          setProducts(Array.isArray(data) ? data : []);
+        } else {
+          alert(`خطأ: ${responseData.error || 'فشل تحميل الصورة'}`);
+        }
+      };
+      reader.readAsDataURL(uploadedFile);
     } catch (error) {
-      console.error('Error uploading codes:', error);
-      alert('خطأ: فشلت معالجة الملف');
+      console.error('❌ Error uploading image:', error);
+      alert('حدث خطأ: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
     }
   };
 
@@ -10601,6 +10679,7 @@ const MerchantTopupDashboard = () => {
               <button
                 onClick={() => {
                   setProductForm({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
+                  setProductImages([]);
                   setIsEditingProduct(null);
                   setShowProductModal(true);
                 }}
@@ -10633,6 +10712,7 @@ const MerchantTopupDashboard = () => {
                             <button 
                               onClick={() => {
                                 setProductForm({ company_id: product.company_id.toString(), amount: product.amount.toString(), price: product.price.toString(), bulk_price: product.bulk_price?.toString() || '', category_id: '', quantity_type: product.quantity_type || 'unit' });
+                                setProductImages([]);
                                 setIsEditingProduct(product.id);
                                 setShowProductModal(true);
                               }}
@@ -11155,6 +11235,46 @@ const MerchantTopupDashboard = () => {
                   className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
                 />
               </div>
+
+              {/* Images Upload Section - MOVED HERE */}
+              <div>
+                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>🖼️ صور البطاقات (اختياري)</label>
+                <label className={cn("border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all", productImages.length > 0 ? "border-blue-500 bg-blue-50/10" : isDarkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-200 hover:border-gray-300")}>
+                  <input
+                    type="file"
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setProductImages(files);
+                    }}
+                    className="hidden"
+                    accept="image/*"
+                  />
+                  {productImages.length > 0 ? (
+                    <div>
+                      <p className={cn("text-sm font-normal", isDarkMode ? "text-blue-400" : "text-blue-600")}>
+                        ✓ {productImages.length} صورة
+                      </p>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setProductImages([]);
+                        }}
+                        className={cn("mt-2 text-xs px-3 py-1 rounded", isDarkMode ? "bg-red-900 text-red-200 hover:bg-red-800" : "bg-red-100 text-red-600 hover:bg-red-200")}
+                      >
+                        حذف
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>🖼️ اختر صور</p>
+                      <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>اسحب أو انقر</p>
+                    </div>
+                  )}
+                </label>
+              </div>
+
               <div>
                 <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>السعر</label>
                 <input
@@ -11175,6 +11295,7 @@ const MerchantTopupDashboard = () => {
                   className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
                 />
               </div>
+
               <button onClick={saveProduct} className="w-full py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700">
                 {isEditingProduct ? 'تحديث' : 'إضافة'}
               </button>
@@ -11183,7 +11304,7 @@ const MerchantTopupDashboard = () => {
         </div>
       )}
 
-      {/* Code Upload Modal */}
+      {/* Images Upload Modal */}
       {showCodeUploadModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" dir="rtl">
           <motion.div
@@ -11192,33 +11313,33 @@ const MerchantTopupDashboard = () => {
             className={cn("rounded-2xl w-full max-w-md shadow-2xl", isDarkMode ? "bg-gray-800" : "bg-white")}
           >
             <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
-              <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>رفع الأكواد</h3>
+              <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>🖼️ رفع صور البطاقات</h3>
               <button onClick={() => setShowCodeUploadModal(false)}>
                 <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <p className={cn("text-sm", isDarkMode ? "text-white" : "text-gray-600")}>
-                رفع ملف نصي يحتوي على الأكواد (code per line)
+                رفع صور بطاقات الشحن (الكود والسيريال مطبوع على الصورة)
               </p>
               <label className={cn("border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all", uploadedFile ? "border-green-500 bg-green-50/10" : isDarkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-200 hover:border-gray-300")}>
                 <input
                   type="file"
                   onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
                   className="hidden"
-                  accept=".txt,.csv"
+                  accept="image/*"
                 />
                 {uploadedFile ? (
                   <div className={cn("font-normal", isDarkMode ? "text-green-400" : "text-green-600")}>{uploadedFile.name}</div>
                 ) : (
                   <div>
-                    <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>اختر ملف أو اسحبه هنا</p>
-                    <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>TXT أو CSV</p>
+                    <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>اختر صورة أو اسحبها هنا</p>
+                    <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>JPG أو PNG أو WebP...</p>
                   </div>
                 )}
               </label>
               <button onClick={handleUploadCodes} className="w-full py-3 bg-green-600 text-white font-normal rounded-lg hover:bg-green-700">
-                رفع الأكواد
+                رفع الصورة
               </button>
             </div>
           </motion.div>
@@ -12359,13 +12480,41 @@ const TopupStorefront = () => {
       const data = await response.json();
       if (response.ok) {
         alert('✅ تم تسديد المبلغ بنجاح!');
-        // تحديث بيانات العميل بعد الدفع
-        setCustomer({
-          ...customer,
-          current_debt: Math.max(0, (Number(customer.current_debt) || 0) - amount)
-        });
+        
+        // 🔄 IMMEDIATE Update: Add payment transaction to statement INSTANTLY
+        console.log('⚡ IMMEDIATE UPDATE: Adding payment transaction to statement');
+        
+        const newPaymentTransaction = {
+          id: Math.random(),
+          type: 'payment',
+          description: 'دفعة',
+          amount: amount,
+          is_payment: true,
+          balance: Math.max(0, (Number(customer.current_debt) || 0) - amount),
+          created_at: new Date().toISOString(),
+          source: 'payment'
+        };
+        
+        // Update statement transactions IMMEDIATELY
+        setStatementTransactions(prev => [newPaymentTransaction, ...prev].slice(0, 50));
+        
+        // Update customer debt IMMEDIATELY
+        const newDebt = Math.max(0, (Number(customer.current_debt) || 0) - amount);
+        setCustomer(prevCustomer => ({
+          ...prevCustomer,
+          current_debt: newDebt
+        }));
+        
+        console.log('✅ Payment transaction added to statement immediately');
+        
         setPaymentAmount('');
         setShowPaymentForm(false);
+        
+        // Then refresh from server in background (async)
+        setTimeout(async () => {
+          console.log('🔄 Refreshing full statement from server');
+          await handleLoadStatement();
+        }, 300);
       } else {
         alert(data.error || 'فشل تسديد المبلغ');
       }
@@ -12418,6 +12567,15 @@ const TopupStorefront = () => {
         console.log('📊 Final transactions count:', transactions.length);
         console.log('📊 First transaction sample:', transactions[0]);
         setStatementTransactions(transactions);
+        
+        // 🔄 ALSO UPDATE customer state with latest debt from API
+        if (data.current_debt !== undefined) {
+          console.log('💰 Updating customer debt from API:', data.current_debt);
+          setCustomer(prevCustomer => ({
+            ...prevCustomer,
+            current_debt: data.current_debt
+          }));
+        }
       } else {
         console.error('❌ API returned error status:', res.status);
         setStatementTransactions([]);
@@ -12683,9 +12841,39 @@ const TopupStorefront = () => {
         setShowPurchaseForm(false);
         setPurchaseForm({ name: '', phone: '', customer_type: 'cash' });
         
-        // Refresh customer debt after successful purchase
+        // 🔄 IMMEDIATE Update: Add new transaction to statement INSTANTLY
         if (customer?.customer_id) {
-          await refreshCustomerDebt(customer.customer_id);
+          console.log('⚡ IMMEDIATE UPDATE: Adding new topup transaction to statement');
+          
+          // Create new transaction object for immediate display
+          const newTransaction = {
+            id: data.order_id || Math.random(),
+            type: 'topup',
+            description: 'شراء',
+            amount: displayPrice * quantity,
+            is_payment: false,
+            balance: (Number(customer.current_debt) || 0) + (displayPrice * quantity),
+            created_at: new Date().toISOString(),
+            source: 'topup_order'
+          };
+          
+          // Update statement transactions IMMEDIATELY
+          setStatementTransactions(prev => [newTransaction, ...prev].slice(0, 50));
+          
+          // Update customer debt IMMEDIATELY
+          const newDebt = (Number(customer.current_debt) || 0) + (displayPrice * quantity);
+          setCustomer(prevCustomer => ({
+            ...prevCustomer,
+            current_debt: newDebt
+          }));
+          
+          console.log('✅ Transaction added to statement immediately');
+          
+          // Then refresh from server in background (async)
+          setTimeout(async () => {
+            await refreshCustomerDebt(customer.customer_id);
+            await handleLoadStatement();
+          }, 300);
         }
         
         navigate(`/topup/${storeId}/order/${data.order_id}`);
@@ -13035,14 +13223,32 @@ const TopupStorefront = () => {
                               const txBalance = Math.round(Number(transaction.balance || transaction.current_balance || 0));
                               // Payments (دفعات) are CREDIT (دائن) - they reduce debt
                               // Opening balance (ديون سابقة) and Topup are DEBIT - they increase debt
-                              const isPayment = txType === 'payment' || txType === 'payment_received';
-                              const isDebit = (txType === 'debit' || txType === 'topup' || txType === 'مدين' || txType === 'خصم' || txType === 'opening') && !isPayment;
+                              const isPayment = transaction.is_payment === true || txType === 'payment' || txType === 'payment_received';
+                              const isDebit = !isPayment && (transaction.type === 'topup' || txType === 'debit' || txType === 'مدين' || txType === 'خصم' || txType === 'opening');
                               const isCredit = isPayment || txType === 'credit' || txType === 'رصيد' || txType === 'دائن' || txType === 'إيداع';
+                              
+                              // Debug logging for topup transactions
+                              if (txType === 'topup') {
+                                console.log(`📊 [MerchantDashboard Statement] Topup TX #${idx}:`, {
+                                  type: txType,
+                                  amount: transaction.amount,
+                                  txAmount: txAmount,
+                                  is_payment: transaction.is_payment,
+                                  isPayment: isPayment,
+                                  isDebit: isDebit,
+                                  isCredit: isCredit
+                                });
+                              }
                               
                               // Only show ONE value per row: either debit OR credit, not both
                               let debitAmount = 0;
                               let creditAmount = 0;
-                              if (isDebit && txAmount !== 0) {
+                              
+                              // CRITICAL FIX: For topup transactions, ALWAYS show debit amount
+                              if (txType === 'topup') {
+                                debitAmount = Math.abs(txAmount);
+                                creditAmount = 0;
+                              } else if (isDebit && txAmount !== 0) {
                                 debitAmount = Math.abs(txAmount);
                                 creditAmount = 0;
                               } else if (isCredit && txAmount !== 0) {

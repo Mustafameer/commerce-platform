@@ -4006,6 +4006,68 @@ async function startServer() {
       }
     });
 
+    // Upload images to topup product (card images with codes printed on them)
+    app.post("/api/topup/upload-images", async (req, res) => {
+      try {
+        const { store_id, topup_product_id, images } = req.body;
+
+        if (!store_id || !topup_product_id || !images || !Array.isArray(images)) {
+          return res.status(400).json({ error: "Missing required fields or invalid images format" });
+        }
+
+        // Filter out empty images
+        const validImages = images.filter((img: string) => img && img.trim()).map((img: string) => img.trim());
+
+        if (validImages.length === 0) {
+          return res.status(400).json({ error: "No valid images provided" });
+        }
+
+        // Get existing images
+        const existingResult = await pool.query(
+          `SELECT images FROM topup_products WHERE id = $1 AND store_id = $2`,
+          [topup_product_id, store_id]
+        );
+
+        if (existingResult.rows.length === 0) {
+          return res.status(404).json({ error: "Product not found" });
+        }
+
+        const existingImages = existingResult.rows[0].images || [];
+        
+        // Create a set of existing images for fast lookup
+        const existingImagesSet = new Set(existingImages);
+        
+        // Filter new images to only include those that don't already exist
+        const newUniqueImages = validImages.filter((img: string) => !existingImagesSet.has(img));
+        
+        // Count duplicates
+        const duplicateCount = validImages.length - newUniqueImages.length;
+
+        // Merge old and new unique images only
+        const allImages = [...existingImages, ...newUniqueImages];
+
+        // Update product with new images
+        const result = await pool.query(
+          `UPDATE topup_products 
+           SET images = $1, available_codes = $2 
+           WHERE id = $3 AND store_id = $4 
+           RETURNING id, available_codes`,
+          [allImages, allImages.length, topup_product_id, store_id]
+        );
+
+        let message = `تم تحميل ${newUniqueImages.length} صورة جديدة بنجاح`;
+        if (duplicateCount > 0) {
+          message += ` (تم تخطي ${duplicateCount} صور مكررة)`;
+        }
+
+        console.log('✅ Images uploaded:', { product_id: topup_product_id, new_count: newUniqueImages.length, duplicate_count: duplicateCount });
+        res.json({ success: true, message, product: result.rows[0] });
+      } catch (error) {
+        console.error('❌ Error uploading images:', error);
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
     // Upload codes to topup product
     app.post("/api/topup/upload-codes", async (req, res) => {
       try {
@@ -4267,15 +4329,16 @@ async function startServer() {
 
         console.log(`✅ Order item added for topup product ${topup_product_id}`);
 
-        // Get current product codes and remove used ones
+        // Get current product codes/images and remove used ones
         const productResult = await pool.query(
-          `SELECT codes FROM topup_products WHERE id = $1`,
+          `SELECT codes, images FROM topup_products WHERE id = $1`,
           [topup_product_id]
         );
 
         if (productResult.rows.length > 0) {
           const product = productResult.rows[0];
           let codesArray = product.codes;
+          let imagesArray = product.images || [];
           
           // PostgreSQL TEXT[] returns as array, but handle edge cases
           if (typeof codesArray === 'string') {
@@ -4286,12 +4349,24 @@ async function startServer() {
             }
           }
           
+          if (typeof imagesArray === 'string') {
+            try {
+              imagesArray = JSON.parse(imagesArray);
+            } catch (e) {
+              imagesArray = [];
+            }
+          }
+          
           // Ensure it's an array
           if (!Array.isArray(codesArray)) {
             codesArray = [];
           }
+          if (!Array.isArray(imagesArray)) {
+            imagesArray = [];
+          }
           
           console.log(`🔑 Current codes available: ${codesArray.length}`);
+          console.log(`🖼️  Current images available: ${imagesArray.length}`);
           
           if (codesArray.length > 0) {
             // Remove the first 'quantity' codes from the product
@@ -4307,6 +4382,37 @@ async function startServer() {
             console.log(`✅ Topup product codes updated - available_codes: ${remainingCodes.length}`);
           } else {
             console.log(`⚠️  Warning: No codes available to assign!`);
+          }
+          
+          // Handle images - store them in order_images table
+          if (imagesArray.length > 0) {
+            // Use the first 'quantity' images for this order
+            const usedImages = imagesArray.slice(0, quantity);
+            const remainingImages = imagesArray.slice(quantity);
+            
+            console.log(`🖼️  Assigning ${usedImages.length} images to order. Remaining images: ${remainingImages.length}`);
+            
+            // Store used images in order_images table
+            for (const image of usedImages) {
+              try {
+                await pool.query(
+                  `INSERT INTO order_images (order_id, topup_product_id, image_url)
+                   VALUES ($1, $2, $3)
+                   ON CONFLICT (order_id, topup_product_id, image_url) DO NOTHING`,
+                  [orderId, topup_product_id, image]
+                );
+              } catch (err) {
+                console.error(`⚠️  Error storing image: ${err}`);
+              }
+            }
+            
+            // Update product with remaining images
+            await pool.query(
+              `UPDATE topup_products SET images = $1 WHERE id = $2`,
+              [remainingImages, topup_product_id]
+            );
+            
+            console.log(`✅ Topup product images updated - remaining: ${remainingImages.length}`);
           }
         }
 
@@ -4324,7 +4430,45 @@ async function startServer() {
       }
     });
 
-    // Get order codes after purchase
+    // Get order images (card photos) after purchase
+    app.get("/api/topup/order-images/:orderId", async (req, res) => {
+      try {
+        const { orderId } = req.params;
+
+        // جلب صور الطلب من جدول order_images
+        const imagesResult = await pool.query(
+          `SELECT oi.image_url, oi.image_data, oi.topup_product_id, tp.amount, tp.price
+           FROM order_images oi
+           JOIN topup_products tp ON oi.topup_product_id = tp.id
+           WHERE oi.order_id = $1
+           ORDER BY oi.created_at ASC`,
+          [orderId]
+        );
+
+        if (imagesResult.rows.length === 0) {
+          return res.status(404).json({ error: "No images found for this order", images: [] });
+        }
+
+        const images = imagesResult.rows.map(row => ({
+          image_url: row.image_url,
+          image_data: row.image_data,
+          product_id: row.topup_product_id,
+          amount: row.amount,
+          price: row.price
+        }));
+
+        res.json({
+          order_id: orderId,
+          images: images,
+          count: images.length
+        });
+      } catch (error) {
+        console.error('❌ Error fetching order images:', error);
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Get order codes after purchase (legacy - still supported)
     app.get("/api/topup/order-codes/:orderId", async (req, res) => {
       try {
         const { orderId } = req.params;
