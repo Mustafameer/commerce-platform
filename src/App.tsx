@@ -12894,14 +12894,14 @@ const TopupStorefront = () => {
                           <p className={cn("mt-2 text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>جاري تحميل البيانات...</p>
                         </div>
                       ) : (
-                        <table className="w-full text-xs">
+                        <table className="w-full text-xs border-collapse">
                           <thead className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
                             <tr>
-                              <th className={cn("px-3 py-2 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>التاريخ</th>
-                              <th className={cn("px-3 py-2 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>النوع</th>
-                              <th className={cn("px-3 py-2 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>الوصف</th>
-                              <th className={cn("px-3 py-2 text-center font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>المبلغ</th>
-                              <th className={cn("px-3 py-2 text-center font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>الرصيد</th>
+                              <th className={cn("px-3 py-2 text-right font-bold border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
+                              <th className={cn("px-3 py-2 text-right font-bold border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
+                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>مدين (Debit)</th>
+                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>دائن (Credit)</th>
+                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الرصيد</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -12911,24 +12911,28 @@ const TopupStorefront = () => {
                               const txDescription = transaction.description || transaction.notes || transaction.detail || `معاملة #${idx + 1}`;
                               const txAmount = Math.round(Number(transaction.amount || transaction.value || 0));
                               const txBalance = Math.round(Number(transaction.balance || transaction.current_balance || 0));
-                              const isCredit = txType === 'credit' || txType === 'رصيد' || txType === 'إيداع';
+                              const isDebit = txType === 'debit' || txType === 'مدين' || txType === 'خصم' || txType === 'payment';
+                              const isCredit = txType === 'credit' || txType === 'رصيد' || txType === 'دائن' || txType === 'إيداع' || txType === 'payment_received';
+                              
+                              const debitAmount = isDebit ? txAmount : 0;
+                              const creditAmount = isCredit ? txAmount : 0;
                               
                               return (
                                 <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-100")}>
-                                  <td className={cn("px-3 py-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                                  <td className={cn("px-3 py-2 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
                                     {txDate ? new Date(txDate).toLocaleDateString('ar-IQ') : '—'}
                                   </td>
-                                  <td className={cn("px-3 py-2 font-bold", isCredit ? "text-green-500" : "text-red-500")}>
-                                    {isCredit ? '✓ رصيد' : '✕ خصم'}
-                                  </td>
-                                  <td className={cn("px-3 py-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                                  <td className={cn("px-3 py-2 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
                                     {txDescription}
                                   </td>
-                                  <td className={cn("px-3 py-2 text-center font-bold", isCredit ? "text-green-500" : "text-red-500")}>
-                                    {isCredit ? '+' : '-'}{txAmount.toLocaleString('en-US')} د.ع
+                                  <td className={cn("px-3 py-2 border text-center font-bold", debitAmount > 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"))}>
+                                    {debitAmount > 0 ? debitAmount.toLocaleString('en-US') : '—'}
                                   </td>
-                                  <td className={cn("px-3 py-2 text-center", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                                    {txBalance.toLocaleString('en-US')} د.ع
+                                  <td className={cn("px-3 py-2 border text-center font-bold", creditAmount > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"))}>
+                                    {creditAmount > 0 ? creditAmount.toLocaleString('en-US') : '—'}
+                                  </td>
+                                  <td className={cn("px-3 py-2 border text-center font-bold", isDarkMode ? "text-blue-300" : "text-blue-700")}>
+                                    {txBalance.toLocaleString('en-US')}
                                   </td>
                                 </tr>
                               );
