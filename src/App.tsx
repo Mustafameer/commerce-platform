@@ -9233,6 +9233,7 @@ const StoresPage = () => {
         // Customer verified - save data to localStorage
         const customer = registeredCustomers[0];
         const customerData = {
+          customer_id: customer.id,
           id: customer.id,
           name: customer.name,
           phone: customer.phone,
@@ -9252,9 +9253,12 @@ const StoresPage = () => {
         setTopupAuthPhone('');
         setTopupAuthError('');
         
-        // Navigate to topup store (without sidebar, full-width mobile layout) - use ID as fallback
-        const storeSlug = selectedTopupStore.slug || selectedTopupStore.id;
-        navigate(`/topup/${storeSlug}`);
+        // Wait a bit to ensure localStorage is synced, then navigate
+        setTimeout(() => {
+          const storeSlug = selectedTopupStore.slug || selectedTopupStore.id;
+          console.log('🚀 Navigating to topup store:', storeSlug);
+          navigate(`/topup/${storeSlug}`);
+        }, 100);
       } else {
         setTopupAuthError('❌ لم يتم العثور على بيانات مطابقة. تأكد من اسم العميل ورقم الهاتف الصحيح');
       }
@@ -11838,6 +11842,59 @@ const TopupStorefront = () => {
   const [creditError, setCreditError] = useState<string>('');
   const [canProceedWithPurchase, setCanProceedWithPurchase] = useState(true);
   const [showCreditWarning, setShowCreditWarning] = useState(false);
+
+  // Load customer data from localStorage on component mount - HIGH PRIORITY
+  useEffect(() => {
+    console.log('🔍 TopupStorefront: Loading customer from localStorage on mount');
+    const loadCustomerFromLocalStorage = () => {
+      const topupData = localStorage.getItem('topupCustomer');
+      console.log('📦 topupCustomer in localStorage:', !!topupData);
+      if (topupData) {
+        try {
+          const customerData = JSON.parse(topupData);
+          console.log('✅ TopupStorefront: Loaded customer from localStorage:', customerData);
+          setCustomer(customerData);
+          setPurchaseForm({
+            name: customerData.name || '',
+            phone: customerData.phone || '',
+            customer_type: customerData.customer_type || 'cash'
+          });
+        } catch (err) {
+          console.error('⚠️ TopupStorefront: Error parsing topupCustomer:', err);
+        }
+      } else {
+        console.log('❌ No topupCustomer in localStorage');
+        // Fallback to customerData
+        const fallbackData = localStorage.getItem('customerData');
+        if (fallbackData) {
+          try {
+            const data = JSON.parse(fallbackData);
+            console.log('✅ TopupStorefront: Fallback to customerData:', data);
+            setPurchaseForm({
+              name: data.name || '',
+              phone: data.phone || '',
+              customer_type: data.customer_type || 'cash'
+            });
+          } catch (err) {
+            console.error('⚠️ Error parsing customerData:', err);
+          }
+        }
+      }
+    };
+
+    // Load immediately
+    loadCustomerFromLocalStorage();
+
+    // Also listen for storage changes
+    window.addEventListener('storage', () => {
+      console.log('🔄 Storage changed externally');
+      loadCustomerFromLocalStorage();
+    });
+
+    return () => {
+      window.removeEventListener('storage', loadCustomerFromLocalStorage);
+    };
+  }, []);
 
   // Load and sync store logo from localStorage
   useEffect(() => {
