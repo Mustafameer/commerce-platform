@@ -7088,8 +7088,12 @@ const MerchantDashboard = () => {
                             displayType = transaction.description || 'الرصيد الافتتاحي';
                           } else if (transaction.is_payment) {
                             displayType = '✓ دفعة';
+                          } else if (transaction.type === 'debit') {
+                            displayType = 'خصم';
+                          } else if (transaction.type === 'topup') {
+                            displayType = 'شحن توب أب';
                           } else {
-                            displayType = transaction.type || 'معاملة';
+                            displayType = transaction.description || transaction.type || 'معاملة';
                           }
                           
                           // Ensure balance is a number
@@ -12924,7 +12928,19 @@ const TopupStorefront = () => {
                             {statementTransactions && statementTransactions.map((transaction, idx) => {
                               const txDate = transaction.created_at || transaction.date || transaction.transaction_date;
                               const txType = transaction.type || transaction.transaction_type || 'unknown';
-                              const txDescription = transaction.description || transaction.notes || transaction.detail || `معاملة #${idx + 1}`;
+                              let txDescription = transaction.description || transaction.notes || transaction.detail || `معاملة #${idx + 1}`;
+                              
+                              // Translate transaction types to Arabic
+                              if (txType === 'opening') {
+                                txDescription = transaction.description || 'الرصيد الافتتاحي';
+                              } else if (txType === 'debit') {
+                                txDescription = 'خصم';
+                              } else if (txType === 'topup') {
+                                txDescription = 'شحن توب أب';
+                              } else if (txType === 'payment') {
+                                txDescription = '✓ دفعة';
+                              }
+                              
                               const txAmount = Math.round(Number(transaction.amount || transaction.value || 0));
                               const txBalance = Math.round(Number(transaction.balance || transaction.current_balance || 0));
                               // Payments (دفعات) are CREDIT (دائن) - they reduce debt

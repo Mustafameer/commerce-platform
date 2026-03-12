@@ -4940,6 +4940,48 @@ async function startServer() {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.sendFile(path.join(distPath, "index.html"));
     });
+
+    // Admin: Clear all transaction data (DELETE endpoint)
+    app.delete("/api/admin/clear-transactions", async (req, res) => {
+      try {
+        console.log("🗑️ [ADMIN] Clear transactions endpoint called");
+        
+        // Clear customer transactions
+        const resultTransactions = await pool.query('DELETE FROM customer_transactions');
+        console.log(`✓ تم حذف ${resultTransactions.rowCount} معاملة من customer_transactions`);
+
+        // Clear customer payments
+        const resultPayments = await pool.query('DELETE FROM customer_payments');
+        console.log(`✓ تم حذف ${resultPayments.rowCount} دفعة من customer_payments`);
+
+        // Clear topup orders (orders with topup_customer_id only)
+        const resultOrders = await pool.query('DELETE FROM orders WHERE customer_id IS NULL AND topup_customer_id IS NOT NULL');
+        console.log(`✓ تم حذف ${resultOrders.rowCount} طلب توب أب من orders`);
+
+        // Reset customers' debt to 0
+        const resultCustomers = await pool.query(`
+          UPDATE customers 
+          SET current_debt = 0, payment_status = 'active'
+          WHERE current_debt > 0 OR payment_status != 'active'
+        `);
+        console.log(`✓ تم تحديث ${resultCustomers.rowCount} عميل (إعادة تعيين الديون إلى صفر)`);
+
+        res.json({ 
+          success: true, 
+          message: "✅ تم مسح جميع البيانات بنجاح",
+          cleared: {
+            transactions: resultTransactions.rowCount,
+            payments: resultPayments.rowCount,
+            topupOrders: resultOrders.rowCount,
+            customersReset: resultCustomers.rowCount
+          }
+        });
+        
+      } catch (error) {
+        console.error("❌ Error clearing data:", error);
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
     
     const PORT = Number.parseInt(process.env.PORT || "3000", 10);
     const server = app.listen(PORT, '0.0.0.0', () => {
