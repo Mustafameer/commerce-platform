@@ -3015,7 +3015,10 @@ async function startServer() {
           [customerId]
         );
 
-        // Step 4: Combine all items and sort by date (oldest first)
+        // Step 4: Use SAVED opening balance (starting_balance)
+        const openingBalance = Number(customer.starting_balance) || 0;
+
+        // Step 5: Combine all items and sort by date (oldest first)
         const allItems = [
           ...txRes.rows.map(t => ({
             id: t.id,
@@ -3035,16 +3038,7 @@ async function startServer() {
           }))
         ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-        // Step 5: Calculate opening balance
-        let sumPayments = 0, sumDebits = 0;
-        allItems.forEach(item => {
-          if (item.is_payment) sumPayments += item.amount;
-          else sumDebits += item.amount;
-        });
-
-        const openingBalance = Number(customer.current_debt) + sumPayments - sumDebits;
-
-        // Step 6: Calculate running balance (oldest to newest)
+        // Step 6: Calculate running balance (starting from opening balance)
         let runningBalance = openingBalance;
         const itemsWithBalance = allItems.map(item => {
           if (item.is_payment) {
