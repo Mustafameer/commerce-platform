@@ -3058,23 +3058,24 @@ async function startServer() {
           ? itemsWithBalance[itemsWithBalance.length - 1].balance 
           : openingBalance;
 
-        // Step 9: Build final array (opening balance + all items in reverse order - newest first)
-        const transactions = [
-          {
-            id: 0,
-            type: 'opening',
-            description: 'ديون سابقة',
-            amount: openingBalance,
-            balance: openingBalance,
-            is_payment: false,
-            created_at: customer.created_at
-          }
-        ];
+        // Step 9: Build final array (all items in reverse order - newest first, then opening balance at bottom)
+        const transactions = [];
 
         // Add all items in reverse order (newest first)
         for (let i = itemsWithBalance.length - 1; i >= 0; i--) {
           transactions.push(itemsWithBalance[i]);
         }
+
+        // Add opening balance at the bottom
+        transactions.push({
+          id: 0,
+          type: 'opening',
+          description: 'ديون سابقة',
+          amount: openingBalance,
+          balance: openingBalance,
+          is_payment: false,
+          created_at: customer.created_at
+        });
 
         res.json({
           name: customer.name,
