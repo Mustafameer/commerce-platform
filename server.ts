@@ -4935,12 +4935,6 @@ async function startServer() {
       }
     });
 
-    // Catch-all route - serve index.html for all non-API, non-file requests (SPA routing)
-    app.use("*", (req, res) => {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-
     // Admin: Clear all transaction data (DELETE endpoint)
     app.delete("/api/admin/clear-transactions", async (req, res) => {
       try {
@@ -4981,6 +4975,12 @@ async function startServer() {
         console.error("❌ Error clearing data:", error);
         res.status(500).json({ error: (error as any).message });
       }
+    });
+
+    // Catch-all route - serve index.html for all non-API, non-file requests (SPA routing)
+    app.use("*", (req, res) => {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.sendFile(path.join(distPath, "index.html"));
     });
     
     const PORT = Number.parseInt(process.env.PORT || "3000", 10);
