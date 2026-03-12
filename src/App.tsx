@@ -7100,13 +7100,12 @@ const MerchantDashboard = () => {
                           const balanceValue = Number(transaction.balance) || 0;
                           const amountValue = Number(transaction.amount) || 0;
                           
-                          // Determine if debit or credit
-                          // Payments (دفعات) are CREDIT (دائن) - they reduce debt
-                          // Opening balance (ديون سابقة) are DEBIT - they are previous debts
-                          // Topup orders and Debits are charges - they increase debt
+                          // Determine if debit or credit based on type
+                          // Topup, Debit, Opening are DEBITS (increase debt/charges)
+                          // Payments are CREDITS (reduce debt/payments)
                           const isPayment = transaction.is_payment === true;
-                          const isCredit = isPayment || amountValue > 0 || transaction.type === 'credit';
-                          const isDebit = !isPayment && (amountValue < 0 || transaction.type === 'debit' || transaction.type === 'opening' || transaction.type === 'topup');
+                          const isDebit = !isPayment && (transaction.type === 'topup' || transaction.type === 'debit' || transaction.type === 'opening');
+                          const isCredit = isPayment;
                           
                           // Only show ONE value per row: either debit OR credit, not both
                           let debitAmount = 0;
@@ -13035,9 +13034,9 @@ const TopupStorefront = () => {
                               const txAmount = Math.round(Number(transaction.amount || transaction.value || 0));
                               const txBalance = Math.round(Number(transaction.balance || transaction.current_balance || 0));
                               // Payments (دفعات) are CREDIT (دائن) - they reduce debt
-                              // Opening balance (ديون سابقة) are DEBIT - they are previous debts
+                              // Opening balance (ديون سابقة) and Topup are DEBIT - they increase debt
                               const isPayment = txType === 'payment' || txType === 'payment_received';
-                              const isDebit = (txType === 'debit' || txType === 'مدين' || txType === 'خصم' || txType === 'opening') && !isPayment;
+                              const isDebit = (txType === 'debit' || txType === 'topup' || txType === 'مدين' || txType === 'خصم' || txType === 'opening') && !isPayment;
                               const isCredit = isPayment || txType === 'credit' || txType === 'رصيد' || txType === 'دائن' || txType === 'إيداع';
                               
                               // Only show ONE value per row: either debit OR credit, not both
