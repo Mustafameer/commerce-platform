@@ -7097,13 +7097,16 @@ const MerchantDashboard = () => {
                           const amountValue = Number(transaction.amount) || 0;
                           
                           // Determine if debit or credit
-                          const isDebit = amountValue < 0 || transaction.type === 'debit' || transaction.type === 'payment' || transaction.is_payment;
-                          const isCredit = amountValue > 0 || transaction.type === 'credit' || transaction.type === 'opening';
+                          // Payments (دفعات) are CREDIT (دائن) - they reduce debt
+                          // Debits are charges - they increase debt
+                          const isPayment = transaction.is_payment === true;
+                          const isCredit = isPayment || amountValue > 0 || transaction.type === 'credit' || transaction.type === 'opening';
+                          const isDebit = !isPayment && (amountValue < 0 || transaction.type === 'debit');
                           
                           const debitAmount = isDebit ? Math.abs(amountValue) : 0;
                           const creditAmount = isCredit ? Math.abs(amountValue) : 0;
                           
-                          console.log(`Frontend [${idx}] ${transaction.type}: amount=${amountValue}, balance=${balanceValue}`);
+                          console.log(`Frontend [${idx}] ${transaction.type}: amount=${amountValue}, balance=${balanceValue}, isPayment=${isPayment}`);
                           
                           return (
                           <tr key={`${transaction.id}-${transaction.type}-${idx}`} className={cn("border-b transition-colors", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-100 hover:bg-gray-50")}>
@@ -12924,8 +12927,10 @@ const TopupStorefront = () => {
                               const txDescription = transaction.description || transaction.notes || transaction.detail || `معاملة #${idx + 1}`;
                               const txAmount = Math.round(Number(transaction.amount || transaction.value || 0));
                               const txBalance = Math.round(Number(transaction.balance || transaction.current_balance || 0));
-                              const isDebit = txType === 'debit' || txType === 'مدين' || txType === 'خصم' || txType === 'payment';
-                              const isCredit = txType === 'credit' || txType === 'رصيد' || txType === 'دائن' || txType === 'إيداع' || txType === 'payment_received';
+                              // Payments (دفعات) are CREDIT (دائن) - they reduce debt
+                              const isPayment = txType === 'payment' || txType === 'payment_received';
+                              const isDebit = (txType === 'debit' || txType === 'مدين' || txType === 'خصم') && !isPayment;
+                              const isCredit = isPayment || txType === 'credit' || txType === 'رصيد' || txType === 'دائن' || txType === 'إيداع';
                               
                               const debitAmount = isDebit ? txAmount : 0;
                               const creditAmount = isCredit ? txAmount : 0;
