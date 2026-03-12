@@ -7076,7 +7076,7 @@ const MerchantDashboard = () => {
                           <th className={cn("px-2 md:px-4 py-2 font-bold text-xs border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
                           <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>مدين (Debit)</th>
                           <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>دائن (Credit)</th>
-                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الرصيد</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الديون الجالية</th>
                           <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>إجراءات</th>
                         </tr>
                       </thead>
@@ -7108,8 +7108,16 @@ const MerchantDashboard = () => {
                           const isCredit = isPayment || amountValue > 0 || transaction.type === 'credit';
                           const isDebit = !isPayment && (amountValue < 0 || transaction.type === 'debit' || transaction.type === 'opening');
                           
-                          const debitAmount = isDebit ? Math.abs(amountValue) : 0;
-                          const creditAmount = isCredit ? Math.abs(amountValue) : 0;
+                          // Only show ONE value per row: either debit OR credit, not both
+                          let debitAmount = 0;
+                          let creditAmount = 0;
+                          if (isDebit && amountValue !== 0) {
+                            debitAmount = Math.abs(amountValue);
+                            creditAmount = 0;
+                          } else if (isCredit && amountValue !== 0) {
+                            debitAmount = 0;
+                            creditAmount = Math.abs(amountValue);
+                          }
                           
                           console.log(`Frontend [${idx}] ${transaction.type}: amount=${amountValue}, balance=${balanceValue}, isPayment=${isPayment}`);
                           
@@ -12922,7 +12930,7 @@ const TopupStorefront = () => {
                               <th className={cn("px-3 py-2 text-right font-bold border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
                               <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>مدين (Debit)</th>
                               <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>دائن (Credit)</th>
-                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الرصيد</th>
+                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الديون الجالية</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -12950,8 +12958,16 @@ const TopupStorefront = () => {
                               const isDebit = (txType === 'debit' || txType === 'مدين' || txType === 'خصم' || txType === 'opening') && !isPayment;
                               const isCredit = isPayment || txType === 'credit' || txType === 'رصيد' || txType === 'دائن' || txType === 'إيداع';
                               
-                              const debitAmount = isDebit ? txAmount : 0;
-                              const creditAmount = isCredit ? txAmount : 0;
+                              // Only show ONE value per row: either debit OR credit, not both
+                              let debitAmount = 0;
+                              let creditAmount = 0;
+                              if (isDebit && txAmount !== 0) {
+                                debitAmount = Math.abs(txAmount);
+                                creditAmount = 0;
+                              } else if (isCredit && txAmount !== 0) {
+                                debitAmount = 0;
+                                creditAmount = Math.abs(txAmount);
+                              }
                               
                               return (
                                 <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-100")}>
