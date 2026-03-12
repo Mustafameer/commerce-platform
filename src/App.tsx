@@ -12698,58 +12698,43 @@ const TopupStorefront = () => {
             </div>
             {customer ? (
               <>
-                {console.log('🟢 Rendering customer info window for:', customer.name, customer.customer_id)}
-                <div className={cn("p-4 rounded-lg space-y-3", isDarkMode ? "bg-gray-800" : "bg-blue-50")}>
-                  <div>
-                    <p className="text-sm font-normal mb-1">👤 {customer.name}</p>
-                    <p className={cn("text-xs mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>{customer.phone}</p>
-                    {customer.customer_type && (
-                      <p className={cn("text-xs px-2 py-1 rounded inline-block", customer.customer_type === 'reseller' ? (isDarkMode ? "bg-blue-900/30 text-blue-400" : "bg-blue-100 text-blue-700") : (isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"))}>
-                        {customer.customer_type === 'reseller' ? '🏪 نقطة بيع (جملة)' : '👤 عميل نقدي (مفرد)'}
-                      </p>
-                    )}
-                  </div>
-                  {customer.customer_id && (
-                    <div className={cn("p-3 rounded-lg border", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-white border-blue-100")}>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <div>
-                          <p className={cn("text-[10px] font-normal mb-0.5", isDarkMode ? "text-gray-400" : "text-gray-500")}>حد الائتمان</p>
-                          <p className={cn("text-sm font-bold", isDarkMode ? "text-blue-300" : "text-blue-600")}>{Math.round(Number(customer.credit_limit) || 0)?.toLocaleString('en-US')} د.ع</p>
-                        </div>
-                        <div>
-                          <p className={cn("text-[10px] font-normal mb-0.5", isDarkMode ? "text-gray-400" : "text-gray-500")}>الديون</p>
-                          <p className={cn("text-sm font-bold", Number(customer.current_debt || 0) > Number(customer.credit_limit || 0) ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-400" : "text-yellow-600"))}>{Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')} د.ع</p>
-                        </div>
-                        <div>
-                          <p className={cn("text-[10px] font-normal mb-0.5", isDarkMode ? "text-gray-400" : "text-gray-500")}>الرصيد المتاح</p>
-                          <p className={cn("text-sm font-bold", (Number(customer.credit_limit || 0) - Number(customer.current_debt || 0)) <= 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-green-400" : "text-green-600"))}>{Math.round(Math.max(0, Number(customer.credit_limit || 0) - Number(customer.current_debt || 0))).toLocaleString('en-US')} د.ع</p>
-                        </div>
-                      </div>
+                {console.log('🟢 Rendering customer debt info for:', customer.name, customer.customer_id)}
+                {/* Debt Summary Card */}
+                {customer.customer_id && (
+                  <div className={cn("p-4 rounded-lg border-2 space-y-3", isDarkMode ? "bg-red-900/30 border-red-600" : "bg-red-50 border-red-300")}>
+                    <div>
+                      <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
+                      <p className={cn("text-3xl font-bold", Number(customer.current_debt || 0) > Number(customer.credit_limit || 0) ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-300" : "text-yellow-700"))}>{Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')} <span className="text-lg">د.ع</span></p>
                     </div>
-                  )}
+                    <div className="text-[11px] space-y-1">
+                      <p className={isDarkMode ? "text-red-300/80" : "text-red-600/80"}>حد الائتمان: <span className="font-bold">{Math.round(Number(customer.credit_limit) || 0)?.toLocaleString('en-US')} د.ع</span></p>
+                      <p className={isDarkMode ? "text-red-300/80" : "text-red-600/80"}>الرصيد المتاح: <span className={cn("font-bold", (Number(customer.credit_limit || 0) - Number(customer.current_debt || 0)) <= 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-green-400" : "text-green-600"))}>{Math.round(Math.max(0, Number(customer.credit_limit || 0) - Number(customer.current_debt || 0))).toLocaleString('en-US')} د.ع</span></p>
+                    </div>
 
-                  {/* Buttons */}
-                  <div className="grid grid-cols-2 gap-2 mt-3">
-                    <button
-                      onClick={() => {
-                        console.log('🔘 Statement button clicked - customer:', customer);
-                        console.log('🔘 Customer ID:', customer?.customer_id);
-                        handleLoadStatement();
-                        setShowAccountStatement(true);
-                      }}
-                      className={cn("py-2 px-3 rounded text-xs font-normal text-white transition-colors", isDarkMode ? "bg-blue-900 hover:bg-blue-800" : "bg-blue-600 hover:bg-blue-700")}
-                      title="عرض تفاصيل الحساب"
-                    >
-                      📋 كشف
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      className={cn("py-2 px-3 rounded text-xs font-normal", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
-                      title="تسجيل الخروج"
-                    >
-                      🚪 خروج
-                    </button>
+                    {/* Buttons */}
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <button
+                        onClick={() => {
+                          console.log('🔘 Statement button clicked - customer:', customer);
+                          console.log('🔘 Customer ID:', customer?.customer_id);
+                          handleLoadStatement();
+                          setShowAccountStatement(true);
+                        }}
+                        className={cn("py-2 px-3 rounded text-xs font-normal text-white transition-colors", isDarkMode ? "bg-blue-900 hover:bg-blue-800" : "bg-blue-600 hover:bg-blue-700")}
+                        title="عرض تفاصيل الحساب"
+                      >
+                        📋 كشف
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className={cn("py-2 px-3 rounded text-xs font-normal", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
+                        title="تسجيل الخروج"
+                      >
+                        🚪 خروج
+                      </button>
+                    </div>
                   </div>
+                )}
 
                   {/* Payment Form */}
                   {showPaymentForm && (
@@ -12783,7 +12768,6 @@ const TopupStorefront = () => {
                       </div>
                     </div>
                   )}
-                </div>
               </>
             ) : (
               <div className="space-y-3">
