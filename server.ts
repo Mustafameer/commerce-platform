@@ -4251,10 +4251,10 @@ async function startServer() {
         console.log(`✅ All checks passed - ready to create order`);
         
         const orderResult = await pool.query(
-          `INSERT INTO orders (customer_id, store_id, total_amount, phone, address, status, is_topup_order)
-           VALUES ($1, $2, $3, $4, $5, 'completed', true)
+          `INSERT INTO orders (customer_id, topup_customer_id, store_id, total_amount, phone, address, status, is_topup_order)
+           VALUES ($1, $2, $3, $4, $5, 'Topup Order', 'completed', true)
            RETURNING id`,
-          [foundCustomerId, parsedStoreId, total_amount, phone, 'Topup Order']
+          [null, foundCustomerId, parsedStoreId, total_amount, phone]
         );
 
         if (!orderResult.rows || orderResult.rows.length === 0) {
