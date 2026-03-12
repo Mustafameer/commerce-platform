@@ -12537,6 +12537,45 @@ const TopupStorefront = () => {
     return 0;
   };
 
+  // Refresh customer debt data after purchase
+  const refreshCustomerDebt = async (customerId: number) => {
+    if (!customerId) return;
+    
+    try {
+      console.log('🔄 Refreshing customer debt data after purchase...');
+      // Fetch customer's statement to get current debt
+      const response = await fetch(`/api/customers/${customerId}/statement`);
+      
+      if (response.ok) {
+        const transactions = await response.json();
+        
+        // Calculate final balance from transactions
+        let finalBalance = 0;
+        if (Array.isArray(transactions)) {
+          const lastTransaction = transactions[transactions.length - 1];
+          if (lastTransaction) {
+            finalBalance = Number(lastTransaction.balance) || 0;
+          }
+        }
+        
+        console.log('📊 Updated customer debt from statement:', finalBalance);
+        
+        // Update customer with new debt
+        const updatedCustomer = {
+          ...customer,
+          current_debt: finalBalance
+        };
+        setCustomer(updatedCustomer);
+        
+        // Save updated data to localStorage
+        localStorage.setItem('topupCustomer', JSON.stringify(updatedCustomer));
+        console.log('✅ Customer data refreshed and saved to localStorage');
+      }
+    } catch (err) {
+      console.error('Error refreshing customer debt:', err);
+    }
+  };
+
   const handlePurchase = async () => {
     // If not logged in, require purchase form
     if (!customer && !showPurchaseForm) {
@@ -12644,6 +12683,12 @@ const TopupStorefront = () => {
         playAddToCartSound();
         setShowPurchaseForm(false);
         setPurchaseForm({ name: '', phone: '', customer_type: 'cash' });
+        
+        // Refresh customer debt after successful purchase
+        if (customer?.customer_id) {
+          await refreshCustomerDebt(customer.customer_id);
+        }
+        
         navigate(`/topup/${storeId}/order/${data.order_id}`);
       } else {
         alert(data.error || 'فشل إتمام العملية');
@@ -13291,7 +13336,50 @@ const TopupOrderDetails = () => {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
+  // Refresh customer debt when page loads
+  const refreshCustomerDebt = async () => {
+    try {
+      const topupCustomer = localStorage.getItem('topupCustomer');
+      if (!topupCustomer) return;
+      
+      const customer = JSON.parse(topupCustomer);
+      if (!customer.customer_id) return;
+      
+      console.log('🔄 [TopupOrderDetails] Refreshing customer debt...');
+      const response = await fetch(`/api/customers/${customer.customer_id}/statement`);
+      
+      if (response.ok) {
+        const transactions = await response.json();
+        
+        // Calculate final balance from transactions
+        let finalBalance = 0;
+        if (Array.isArray(transactions)) {
+          const lastTransaction = transactions[transactions.length - 1];
+          if (lastTransaction) {
+            finalBalance = Number(lastTransaction.balance) || 0;
+          }
+        }
+        
+        console.log('📊 [TopupOrderDetails] Updated debt:', finalBalance);
+        
+        // Update customer with new debt
+        const updatedCustomer = {
+          ...customer,
+          current_debt: finalBalance
+        };
+        localStorage.setItem('topupCustomer', JSON.stringify(updatedCustomer));
+        console.log('✅ [TopupOrderDetails] Customer debt saved to localStorage');
+      }
+    } catch (err) {
+      console.error('[TopupOrderDetails] Error refreshing debt:', err);
+    }
+  };
+
   useEffect(() => {
+    // Refresh customer debt when page loads
+    refreshCustomerDebt();
+    
+    // Fetch order codes
     fetch(`/api/topup/order-codes/${orderId}`)
       .then(r => r.json())
       .then(data => {
