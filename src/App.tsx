@@ -12670,18 +12670,18 @@ const TopupStorefront = () => {
       <div className="flex-1 overflow-y-auto">
         {/* Header with Auth */}
         <div className={cn("border-b", isDarkMode ? "border-gray-700" : "border-gray-200")}>
-          <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-3">
+          <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 lg:gap-4 mb-4">
+            <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto order-2 lg:order-1">
               <button 
                 onClick={() => window.location.reload()}
-                className={cn("flex items-center gap-2 font-normal transition-colors", isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-600 hover:text-gray-900")}
+                className={cn("flex items-center gap-1 font-normal transition-colors text-sm sm:text-base", isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-600 hover:text-gray-900")}
               >
-                <ChevronRight size={20} />
-                العودة
+                <ChevronRight size={18} />
+                <span className="hidden sm:inline">العودة</span>
               </button>
               {/* Shopping Cart Button with Filters */}
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 ml-auto lg:ml-0">
                 <button
                   onClick={() => {
                     // حفظ البيانات من customer أو purchaseForm إلى localStorage قبل الانتقال للعربة
@@ -12708,10 +12708,10 @@ const TopupStorefront = () => {
                   style={{ backgroundColor: primaryColor }}
                   title="عرض سلة المشتريات"
                 >
-                  <div className="p-3 relative">
-                    <ShoppingCart size={36} className="group-hover:scale-110 transition-transform" />
+                  <div className="p-2 sm:p-3 relative">
+                    <ShoppingCart size={28} className="sm:w-9 sm:h-9 group-hover:scale-110 transition-transform" />
                     {cartItems.length > 0 && (
-                      <div className={cn("absolute top-0 right-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg", isDarkMode ? "bg-red-600" : "bg-red-500")}>
+                      <div className={cn("absolute top-0 right-0 w-5 h-5 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg", isDarkMode ? "bg-red-600" : "bg-red-500")}>
                         {cartItems.length}
                       </div>
                     )}
@@ -12725,20 +12725,20 @@ const TopupStorefront = () => {
                     setSelectedCategory('');
                     setSelectedProduct(null);
                   }}
-                  className={cn("w-full px-3 py-2 rounded-lg border text-sm font-normal", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
+                  className={cn("px-2 sm:px-3 py-2 rounded-lg border text-xs sm:text-sm font-normal", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
                 >
                   <option value="">جميع الشركات</option>
                   {companiesWithProducts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 w-full lg:w-auto order-1 lg:order-2 justify-center">
               {storeLogo && storeLogo.length > 100 && (
                 <img 
                   key={`topup-logo-${storeLogo.substring(storeLogo.length - 30)}`}
                   src={storeLogo} 
                   alt="Store Logo" 
-                  className="h-16 w-16 object-contain rounded-lg"
+                  className="h-12 w-12 sm:h-16 sm:w-16 object-contain rounded-lg flex-shrink-0"
                   onLoad={() => {
                     console.log('✅ TopupStorefront logo loaded successfully');
                   }}
@@ -12748,9 +12748,9 @@ const TopupStorefront = () => {
                   }}
                 />
               )}
-              <div>
-                <h1 className="text-3xl font-normal">{storeInfo?.store_name || 'متجر بطاقات الشحن'}</h1>
-                <p className={cn("mt-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>{storeInfo?.description || 'اختر شركتك المفضلة وقيمة الشحن'}</p>
+              <div className="flex-1 text-center">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-normal leading-tight">{storeInfo?.store_name || 'متجر بطاقات الشحن'}</h1>
+                <p className={cn("mt-1 text-xs sm:text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>{storeInfo?.description || 'اختر شركتك المفضلة وقيمة الشحن'}</p>
               </div>
             </div>
             {customer ? (
@@ -12758,10 +12758,10 @@ const TopupStorefront = () => {
                 {console.log('🟢 Rendering customer debt info for:', customer.name, customer.customer_id)}
                 {/* Debt Summary Card */}
                 {customer.customer_id && (
-                  <div className={cn("p-4 rounded-lg border-2 space-y-3", isDarkMode ? "bg-red-900/30 border-red-600" : "bg-red-50 border-red-300")}>
+                  <div className={cn("w-full lg:w-auto p-3 sm:p-4 rounded-lg border-2 space-y-2 sm:space-y-3 order-3", isDarkMode ? "bg-red-900/30 border-red-600" : "bg-red-50 border-red-300")}>
                     <div>
-                      <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
-                      <p className={cn("text-3xl font-bold", Number(customer.current_debt || 0) > Number(customer.credit_limit || 0) ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-300" : "text-yellow-700"))}>{Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')} <span className="text-lg">د.ع</span></p>
+                      <p className={cn("text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
+                      <p className={cn("text-2xl sm:text-3xl font-bold", Number(customer.current_debt || 0) > Number(customer.credit_limit || 0) ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-300" : "text-yellow-700"))}>{Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')} <span className="text-base sm:text-lg">د.ع</span></p>
                     </div>
 
                     {/* Buttons */}
@@ -12773,17 +12773,17 @@ const TopupStorefront = () => {
                           handleLoadStatement();
                           setShowAccountStatement(true);
                         }}
-                        className={cn("py-2 px-3 rounded text-xs font-normal text-white transition-colors", isDarkMode ? "bg-blue-900 hover:bg-blue-800" : "bg-blue-600 hover:bg-blue-700")}
+                        className={cn("py-2 px-2 sm:px-3 rounded text-xs font-normal text-white transition-colors", isDarkMode ? "bg-blue-900 hover:bg-blue-800" : "bg-blue-600 hover:bg-blue-700")}
                         title="عرض تفاصيل الحساب"
                       >
-                        📋 كشف
+                        📋 <span className="hidden sm:inline">كشف</span>
                       </button>
                       <button
                         onClick={handleLogout}
-                        className={cn("py-2 px-3 rounded text-xs font-normal", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
+                        className={cn("py-2 px-2 sm:px-3 rounded text-xs font-normal", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
                         title="تسجيل الخروج"
                       >
-                        🚪 خروج
+                        🚪 <span className="hidden sm:inline">خروج</span>
                       </button>
                     </div>
                   </div>
