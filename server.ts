@@ -3034,7 +3034,7 @@ async function startServer() {
           ...topupOrdersRes.rows.map(o => ({
             id: o.id,
             type: 'topup',
-            description: 'طلب شحن',
+            description: 'شراء',
             amount: Number(o.amount),
             is_payment: false,
             created_at: o.created_at,

@@ -7091,7 +7091,7 @@ const MerchantDashboard = () => {
                           } else if (transaction.type === 'debit') {
                             displayType = 'خصم';
                           } else if (transaction.type === 'topup') {
-                            displayType = 'شحن توب أب';
+                            displayType = transaction.description || 'شراء';
                           } else {
                             displayType = transaction.description || transaction.type || 'معاملة';
                           }
