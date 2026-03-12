@@ -1492,40 +1492,9 @@ async function startServer() {
         
         const order = orderResult.rows[0];
         
-        // Update customer debt ONLY for topup store orders
-        if (topupCustomerId && is_topup) {
-          try {
-            const customerCheck = await pool.query(
-              `SELECT id, customer_type, credit_limit, current_debt FROM customers WHERE id = $1`,
-              [topupCustomerId]
-            );
-
-            if (customerCheck.rows.length > 0) {
-              const customer = customerCheck.rows[0];
-              const finalAmount = total_amount - (discount_amount || 0);
-
-              // Update customer debt for credit customers
-              const debtUpdateRes = await pool.query(
-                `UPDATE customers SET current_debt = current_debt + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING current_debt`,
-                [finalAmount, topupCustomerId]
-              );
-
-              console.log(`💳 [TOPUP ORDER] Debt updated for customer ${topupCustomerId}: +${finalAmount}, Total debt: ${debtUpdateRes.rows[0]?.current_debt}`);
-
-              // Record transaction
-              await pool.query(
-                `INSERT INTO customer_transactions (customer_id, order_id, transaction_type, amount, description)
-                 VALUES ($1, $2, 'debit', $3, $4)`,
-                [topupCustomerId, order.id, finalAmount, `طلب كارتات رقم ${order.id}`]
-              );
-
-              console.log(`📝 Transaction recorded for customer ${topupCustomerId}, Order #${order.id}`);
-            }
-          } catch (debtError) {
-            console.error(`⚠️  Error updating customer debt for order ${order.id}:`, debtError);
-            // Continue with order creation even if debt update fails
-          }
-        }
+        // NOTE: Do NOT update current_debt here!
+        // Debt is calculated dynamically from orders table in statement endpoint
+        // This prevents double-counting
         
         const extractedCodes: string[] = [];
         
@@ -3007,7 +2976,7 @@ async function startServer() {
         
         // Step 1: Fetch customer
         const customerRes = await pool.query(
-          `SELECT id, name, phone, current_debt, credit_limit, starting_balance, created_at 
+          `SELECT id, name, phone, credit_limit, starting_balance, created_at 
            FROM customers WHERE id = $1`,
           [customerId]
         );
@@ -3032,10 +3001,17 @@ async function startServer() {
           [customerId]
         );
 
-        // Step 4: Use SAVED opening balance (starting_balance)
+        // Step 4: Fetch topup orders for this customer (new source of debt)
+        const topupOrdersRes = await pool.query(
+          `SELECT id, total_amount - COALESCE(discount_amount, 0) as amount, created_at
+           FROM orders WHERE topup_customer_id = $1 ORDER BY created_at ASC`,
+          [customerId]
+        );
+
+        // Step 5: Use SAVED opening balance (starting_balance)
         const openingBalance = Number(customer.starting_balance) || 0;
 
-        // Step 5: Combine all items and sort by date (oldest first)
+        // Step 6: Combine all items and sort by date (oldest first)
         const allItems = [
           ...txRes.rows.map(t => ({
             id: t.id,
@@ -3043,7 +3019,8 @@ async function startServer() {
             description: t.description || 'عملية',
             amount: Number(t.amount),
             is_payment: false,
-            created_at: t.created_at
+            created_at: t.created_at,
+            source: 'transaction'
           })),
           ...payRes.rows.map(p => ({
             id: p.id,
@@ -3051,11 +3028,21 @@ async function startServer() {
             description: p.description || 'دفعة',
             amount: Number(p.amount),
             is_payment: true,
-            created_at: p.created_at
+            created_at: p.created_at,
+            source: 'payment'
+          })),
+          ...topupOrdersRes.rows.map(o => ({
+            id: o.id,
+            type: 'topup',
+            description: 'طلب شحن',
+            amount: Number(o.amount),
+            is_payment: false,
+            created_at: o.created_at,
+            source: 'topup_order'
           }))
         ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-        // Step 6: Calculate running balance (starting from opening balance)
+        // Step 7: Calculate running balance (starting from opening balance)
         let runningBalance = openingBalance;
         const itemsWithBalance = allItems.map(item => {
           if (item.is_payment) {
@@ -3066,7 +3053,12 @@ async function startServer() {
           return { ...item, balance: runningBalance };
         });
 
-        // Step 7: Build final array (opening balance + all items in reverse order - newest first)
+        // Step 8: Calculate final current_debt from last item balance
+        const finalBalance = itemsWithBalance.length > 0 
+          ? itemsWithBalance[itemsWithBalance.length - 1].balance 
+          : openingBalance;
+
+        // Step 9: Build final array (opening balance + all items in reverse order - newest first)
         const transactions = [
           {
             id: 0,
@@ -3087,7 +3079,7 @@ async function startServer() {
         res.json({
           name: customer.name,
           phone: customer.phone,
-          current_debt: Number(customer.current_debt),
+          current_debt: finalBalance,
           credit_limit: Number(customer.credit_limit),
           starting_balance: Number(customer.starting_balance),
           transactions
@@ -4317,26 +4309,9 @@ async function startServer() {
           }
         }
 
-        // ✅ NOW UPDATE CUSTOMER DEBT ONLY AFTER EVERYTHING SUCCEEDS
-        console.log(`\n📝 Finalizing customer debt...`);
-        
-        await pool.query(
-          `UPDATE customers SET current_debt = current_debt + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
-          [total_amount, foundCustomerId]
-        );
-
-        console.log(`💳 Customer debt updated: +${total_amount} for customer ${foundCustomerId}`);
-
-        // Record transaction
-        try {
-          await pool.query(
-            `INSERT INTO customer_transactions (customer_id, order_id, transaction_type, amount, description)
-             VALUES ($1, $2, 'debit', $3, $4)`,
-            [foundCustomerId, orderId, total_amount, `شراء بطاقة شحن #${orderId} - ${quantity} وحدة`]
-          );
-        } catch (txErr) {
-          console.log(`⚠️  Transaction record warning (not critical):`, (txErr as any).message);
-        }
+        // NOTE: Do NOT update current_debt or record transaction here!
+        // Debt is calculated dynamically from orders table in statement endpoint
+        // This prevents double-counting
 
         console.log(`\n✅ ========== TOPUP PURCHASE COMPLETED SUCCESSFULLY ==========\n`);
         res.json({ success: true, order_id: orderId, message: "✓ تم إتمام الشراء بنجاح" });
