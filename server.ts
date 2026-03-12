@@ -4203,7 +4203,7 @@ async function startServer() {
         const debtRes = await pool.query(
           `SELECT COALESCE(SUM(total_amount - COALESCE(discount_amount, 0)), 0) as total_debt
            FROM orders
-           WHERE customer_id = $1`,
+           WHERE topup_customer_id = $1`,
           [foundCustomerId]
         );
         
