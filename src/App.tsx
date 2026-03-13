@@ -11410,95 +11410,131 @@ const MerchantTopupDashboard = () => {
             {console.log('📋 Customer Statement Modal - Customer:', selectedCustomerStatement?.name, 'Transactions:', customerTransactions?.length)}
             <div className={cn("p-4 border-b flex justify-between items-center sticky top-0 z-50", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
               <div>
-                <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>📋 كشف حساب العميل</h3>
-                <p className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>{selectedCustomerStatement.name} • {selectedCustomerStatement.phone}</p>
+                <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>📋 كشف الحساب الكامل</h3>
+                <p className={cn("text-sm font-semibold", isDarkMode ? "text-gray-300" : "text-gray-700")}>{selectedCustomerStatement.name}</p>
+                <p className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>{selectedCustomerStatement.phone}</p>
               </div>
               <button onClick={() => setShowCustomerStatement(false)} className="p-1 hover:bg-gray-300/20 rounded">
                 <X size={20} className={isDarkMode ? "text-white" : "text-gray-900"} />
               </button>
             </div>
             <div className="p-4 space-y-4">
-              {/* Customer Info - Compact */}
-              <div className="grid grid-cols-4 gap-2 text-xs">
-                <div className={cn("p-2 rounded", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                  <p className={isDarkMode ? "text-gray-400" : "text-gray-500"}>النوع</p>
-                  <p className={cn("font-bold mt-1", isDarkMode ? "text-white" : "text-gray-900")}>{selectedCustomerStatement.customer_type === 'reseller' ? '🏪 جملة' : '👤 مفرد'}</p>
+              {/* Customer Info - 4 Boxes matching mobile design */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                {/* Box 1: الرصيد المتاح (Purple) */}
+                <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-purple-900/20 border-purple-600" : "bg-purple-50 border-purple-300")}>
+                  <p className={isDarkMode ? "text-purple-400 text-xs" : "text-purple-600 text-xs"}>الرصيد المتاح</p>
+                  <p className={cn("font-bold mt-2 text-lg", isDarkMode ? "text-purple-300" : "text-purple-600")}>{Math.round(Math.max(0, selectedCustomerStatement.credit_limit - selectedCustomerStatement.current_debt)).toLocaleString('en-US')}</p>
+                  <p className={cn("text-xs", isDarkMode ? "text-purple-400" : "text-purple-500")}>د.ع</p>
                 </div>
-                <div className={cn("p-2 rounded border-2", isDarkMode ? "bg-blue-900/20 border-blue-600" : "bg-blue-50 border-blue-300")}>
-                  <p className={isDarkMode ? "text-blue-400" : "text-blue-600"}>حد الائتمان</p>
-                  <p className={cn("font-bold mt-1", isDarkMode ? "text-blue-300" : "text-blue-600")}>{Math.round(selectedCustomerStatement.credit_limit)?.toLocaleString('en-US')} د.ع</p>
+
+                {/* Box 2: حد الاشتمان (Blue) */}
+                <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-blue-900/20 border-blue-600" : "bg-blue-50 border-blue-300")}>
+                  <p className={isDarkMode ? "text-blue-400 text-xs" : "text-blue-600 text-xs"}>حد الاشتمان</p>
+                  <p className={cn("font-bold mt-2 text-lg", isDarkMode ? "text-blue-300" : "text-blue-600")}>{Math.round(selectedCustomerStatement.credit_limit).toLocaleString('en-US')}</p>
+                  <p className={cn("text-xs", isDarkMode ? "text-blue-400" : "text-blue-500")}>د.ع</p>
                 </div>
-                <div className={cn("p-2 rounded border-2", isDarkMode ? "bg-yellow-900/20 border-yellow-600" : "bg-yellow-50 border-yellow-300")}>
-                  <p className={isDarkMode ? "text-yellow-400" : "text-yellow-600"}>الديون</p>
-                  <p className={cn("font-bold mt-1", isDarkMode ? "text-yellow-300" : "text-yellow-600")}>{Math.round(selectedCustomerStatement.current_debt)?.toLocaleString('en-US')} د.ع</p>
+
+                {/* Box 3: الرصيد المتاح (Green) - Shows available balance */}
+                <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300")}>
+                  <p className={isDarkMode ? "text-green-400 text-xs" : "text-green-600 text-xs"}>الرصيد المتاح</p>
+                  <p className={cn("font-bold mt-2 text-lg", isDarkMode ? "text-green-300" : "text-green-600")}>{Math.round(Math.max(0, selectedCustomerStatement.credit_limit - selectedCustomerStatement.current_debt)).toLocaleString('en-US')}</p>
+                  <p className={cn("text-xs", isDarkMode ? "text-green-400" : "text-green-500")}>د.ع</p>
                 </div>
-                <div className={cn("p-2 rounded border-2", (selectedCustomerStatement.credit_limit - selectedCustomerStatement.current_debt) > 0 ? (isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300") : (isDarkMode ? "bg-red-900/20 border-red-600" : "bg-red-50 border-red-300"))}>
-                  <p className={(selectedCustomerStatement.credit_limit - selectedCustomerStatement.current_debt) > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-red-400" : "text-red-600")}>الرصيد المتاح</p>
-                  <p className={cn("font-bold mt-1", (selectedCustomerStatement.credit_limit - selectedCustomerStatement.current_debt) > 0 ? (isDarkMode ? "text-green-300" : "text-green-600") : (isDarkMode ? "text-red-300" : "text-red-600"))}>{Math.round(Math.max(0, selectedCustomerStatement.credit_limit - selectedCustomerStatement.current_debt)).toLocaleString('en-US')} د.ع</p>
+
+                {/* Box 4: الديون الحالية (Orange/Yellow) */}
+                <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-amber-900/20 border-amber-600" : "bg-amber-50 border-amber-300")}>
+                  <p className={isDarkMode ? "text-amber-400 text-xs" : "text-amber-600 text-xs"}>الديون الحالية</p>
+                  <p className={cn("font-bold mt-2 text-lg", isDarkMode ? "text-amber-300" : "text-amber-600")}>{Math.round(selectedCustomerStatement.current_debt).toLocaleString('en-US')}</p>
+                  <p className={cn("text-xs", isDarkMode ? "text-amber-400" : "text-amber-500")}>د.ع</p>
                 </div>
               </div>
 
-              {/* Transactions Table - Scrollable */}
-              <div className="border rounded-lg overflow-auto max-h-[35vh]" style={{borderColor: isDarkMode ? '#374151' : '#e5e7eb'}}>
-                {isLoadingCustomerTransactions ? (
-                  <div className="p-8 text-center">
-                    <p className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>⏳ جاري تحميل العمليات...</p>
-                  </div>
-                ) : customerTransactions && customerTransactions.length > 0 ? (
-                  <table className="w-full text-xs">
-                    <thead className={cn("sticky top-0", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
-                      <tr>
-                        <th className={cn("px-2 py-2 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>التاريخ</th>
-                        <th className={cn("px-2 py-2 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>النوع</th>
-                        <th className={cn("px-2 py-2 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>الوصف</th>
-                        <th className={cn("px-2 py-2 text-center font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>المبلغ</th>
-                        <th className={cn("px-2 py-2 text-center font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>الرصيد</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {customerTransactions.map((transaction, idx) => {
-                        const txDate = transaction.created_at || transaction.date || transaction.transaction_date;
-                        const txType = transaction.type || transaction.transaction_type || 'unknown';
-                        const txDescription = transaction.description || transaction.notes || transaction.detail || `عملية #${idx + 1}`;
-                        const txAmount = Math.round(Number(transaction.amount || transaction.value || 0));
-                        const txBalance = Math.round(Number(transaction.balance || transaction.current_balance || 0));
-                        const isCredit = txType === 'credit' || txType === 'رصيد' || txType === 'إيداع';
-                        
-                        return (
-                          <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
-                            <td className={cn("px-2 py-1 text-xs", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                              {txDate ? new Date(txDate).toLocaleDateString('ar-IQ') : '—'}
-                            </td>
-                            <td className={cn("px-2 py-1 font-bold text-xs", isCredit ? "text-green-500" : "text-red-500")}>
-                              {isCredit ? '✓' : '✕'}
-                            </td>
-                            <td className={cn("px-2 py-1 text-xs", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                              {txDescription.substring(0, 20)}...
-                            </td>
-                            <td className={cn("px-2 py-1 text-center font-bold text-xs", isCredit ? "text-green-500" : "text-red-500")}>
-                              {isCredit ? '+' : '-'}{txAmount.toLocaleString('en-US')}
-                            </td>
-                            <td className={cn("px-2 py-1 text-center text-xs", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                              {txBalance.toLocaleString('en-US')}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div className={cn("p-6 text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                    <p className="text-sm">لا توجد عمليات</p>
-                  </div>
-                )}
+              {/* Transactions Table - جدول المعاملات */}
+              <div className="space-y-2">
+                <h4 className={cn("text-sm font-semibold flex items-center gap-2", isDarkMode ? "text-white" : "text-gray-900")}>
+                  📊 المعاملات
+                </h4>
+                <div className="border rounded-lg overflow-auto max-h-[35vh]" style={{borderColor: isDarkMode ? '#374151' : '#e5e7eb'}}>
+                  {isLoadingCustomerTransactions ? (
+                    <div className="p-8 text-center">
+                      <p className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>⏳ جاري تحميل العمليات...</p>
+                    </div>
+                  ) : customerTransactions && customerTransactions.length > 0 ? (
+                    <table className="w-full text-xs">
+                      <thead className={cn("sticky top-0", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
+                        <tr>
+                          <th className={cn("px-2 py-2 text-right font-semibold text-xs", isDarkMode ? "text-gray-300" : "text-gray-600")}>التاريخ</th>
+                          <th className={cn("px-2 py-2 text-right font-semibold text-xs", isDarkMode ? "text-gray-300" : "text-gray-600")}>البيان</th>
+                          <th className={cn("px-2 py-2 text-center font-semibold text-xs", isDarkMode ? "text-red-400" : "text-red-600")}>
+                            <div>مدين</div>
+                            <div className="text-xs">(Debit)</div>
+                          </th>
+                          <th className={cn("px-2 py-2 text-center font-semibold text-xs", isDarkMode ? "text-green-400" : "text-green-600")}>
+                            <div>دائن</div>
+                            <div className="text-xs">(Credit)</div>
+                          </th>
+                          <th className={cn("px-2 py-2 text-center font-semibold text-xs", isDarkMode ? "text-gray-300" : "text-gray-600")}>الرصيد<br/>الجاري</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {customerTransactions.map((transaction, idx) => {
+                          const txDate = transaction.created_at || transaction.date || transaction.transaction_date;
+                          const txType = transaction.type || transaction.transaction_type || 'unknown';
+                          const txDescription = transaction.description || transaction.notes || transaction.detail || `عملية #${idx + 1}`;
+                          const txAmount = Math.round(Number(transaction.amount || transaction.value || 0));
+                          const txBalance = Math.round(Number(transaction.balance || transaction.current_balance || 0));
+                          const isPayment = txType === 'payment' || txType === 'دفعة' || txType === 'رصيد' || txType === 'إيداع';
+                          
+                          return (
+                            <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-600 hover:bg-gray-700/30" : "border-gray-300 hover:bg-gray-50")}>
+                              <td className={cn("px-2 py-2 text-xs whitespace-nowrap", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                                {txDate ? new Date(txDate).toLocaleDateString('ar-IQ', {year: 'numeric', month: '2-digit', day: '2-digit'}) : '—'}
+                              </td>
+                              <td className={cn("px-2 py-2 text-xs", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                                {txDescription}
+                              </td>
+                              <td className={cn("px-2 py-2 text-center font-bold text-xs text-red-600", isDarkMode ? "text-red-400" : "")}>
+                                {isPayment ? '—' : txAmount.toLocaleString('en-US')}
+                              </td>
+                              <td className={cn("px-2 py-2 text-center font-bold text-xs text-green-600", isDarkMode ? "text-green-400" : "")}>
+                                {isPayment ? txAmount.toLocaleString('en-US') : '—'}
+                              </td>
+                              <td className={cn("px-2 py-2 text-center text-xs font-semibold", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                                {txBalance.toLocaleString('en-US')}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className={cn("p-6 text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                      <p className="text-sm">لا توجد عمليات</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <button
-                onClick={() => setShowCustomerStatement(false)}
-                className={cn("w-full py-2 rounded-lg font-normal text-sm transition-all", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-200 hover:bg-gray-300")}
-              >
-                إغلاق
-              </button>
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => setShowCustomerStatement(false)}
+                  className={cn("flex-1 py-2 rounded-lg font-semibold text-sm transition-all", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-300 hover:bg-gray-400 text-gray-900")}
+                >
+                  إغلاق
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAccountStatement(true);
+                    setShowCustomerStatement(false);
+                  }}
+                  className={cn("flex-1 py-2 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2", isDarkMode ? "bg-red-700 hover:bg-red-600 text-white" : "bg-red-600 hover:bg-red-700 text-white")}
+                  title="تسديد دفعة"
+                >
+                  <span>💸</span> دفع
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>
