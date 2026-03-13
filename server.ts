@@ -516,6 +516,13 @@ async function runMigrations() {
     `);
     console.log("✅ Migration: codes column added to topup_products");
 
+    // Add images column to topup_products table
+    await pool.query(`
+      ALTER TABLE topup_products
+      ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT ARRAY[]::TEXT[];
+    `);
+    console.log("✅ Migration: images column added to topup_products");
+
     // Add auction columns to products table
     await pool.query(`
       ALTER TABLE products
