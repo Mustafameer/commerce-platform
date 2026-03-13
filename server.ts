@@ -3530,7 +3530,7 @@ async function startServer() {
             id: o.id,
             created_at: o.created_at,
             type: 'topup',
-            description: o.company_name ? \`\${o.company_name} - \${o.product_amount || o.total_amount} د.ع\` : 'شراء',
+            description: o.company_name ? `${o.company_name} - ${o.product_amount || o.total_amount} د.ع` : 'شراء',
             amount: Number(o.total_amount || 0),
             is_payment: false,
             source: 'topup_order'
