@@ -9920,36 +9920,40 @@ const MerchantTopupDashboard = () => {
     }
 
     try {
-      // Handle image upload only
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const imageData = e.target?.result as string;
-        
-        const response = await fetch('/api/topup/upload-images', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            store_id: topupStoreId,
-            topup_product_id: selectedProductForCodes,
-            images: [imageData]
-          })
-        });
+      // Wrap FileReader in Promise to properly wait for file loading
+      const imageData = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const data = e.target?.result as string;
+          resolve(data);
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(uploadedFile);
+      });
 
-        const responseData = await response.json();
+      const response = await fetch('/api/topup/upload-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          store_id: topupStoreId,
+          topup_product_id: selectedProductForCodes,
+          images: [imageData]
+        })
+      });
 
-        if (response.ok) {
-          alert(responseData.message || 'تم تحميل الصورة بنجاح!');
-          setShowCodeUploadModal(false);
-          setUploadedFile(null);
-          setSelectedProductForCodes(null);
-          const updatedRes = await fetch(`/api/topup/products/${topupStoreId}`);
-          const data = await updatedRes.json();
-          setProducts(Array.isArray(data) ? data : []);
-        } else {
-          alert(`خطأ: ${responseData.error || 'فشل تحميل الصورة'}`);
-        }
-      };
-      reader.readAsDataURL(uploadedFile);
+      const responseData = await response.json();
+
+      if (response.ok) {
+        alert(responseData.message || 'تم تحميل الصورة بنجاح!');
+        setShowCodeUploadModal(false);
+        setUploadedFile(null);
+        setSelectedProductForCodes(null);
+        const updatedRes = await fetch(`/api/topup/products/${topupStoreId}`);
+        const data = await updatedRes.json();
+        setProducts(Array.isArray(data) ? data : []);
+      } else {
+        alert(`خطأ: ${responseData.error || 'فشل تحميل الصورة'}`);
+      }
     } catch (error) {
       console.error('❌ Error uploading image:', error);
       alert('حدث خطأ: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
