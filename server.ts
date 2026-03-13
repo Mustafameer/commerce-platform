@@ -3564,6 +3564,20 @@ async function startServer() {
           return res.status(404).json({ error: "Failed to update payment" });
         }
 
+        // ✅ CRITICAL FIX: Insert payment record into customer_payments table
+        // so it appears in the statement endpoint's transaction list
+        try {
+          await pool.query(
+            `INSERT INTO customer_payments (customer_id, amount, payment_method, notes, created_at)
+             VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`,
+            [customer_id, amount, 'online', 'تسديد ديون من خلال متجر الشحن']
+          );
+          console.log(`✅ [TOPUP PAYMENT] Payment recorded in customer_payments table`);
+        } catch (dbErr) {
+          console.warn(`⚠️ [TOPUP PAYMENT] Warning: Could not record payment in customer_payments:`, (dbErr as any).message);
+          // Don't fail the API - the starting_balance was already updated
+        }
+
         console.log(`💳 [TOPUP PAYMENT] Customer: ${customer_id} - Amount: ${amount} د.ع - New Balance: ${newStartingBalance} د.ع`);
         
         res.json({ 

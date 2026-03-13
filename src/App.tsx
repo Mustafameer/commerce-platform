@@ -4759,6 +4759,11 @@ const MerchantDashboard = () => {
         if (customerId) {
           const refreshed = await refreshCustomerStatement(customerId);
           console.log('🎯 Refresh result:', refreshed ? '✅ Success' : '❌ Failed');
+          
+          // Also reload in TopupStorefront if handleLoadCustomerStatement exists
+          if (typeof handleLoadCustomerStatement === 'function') {
+            await handleLoadCustomerStatement(customerId);
+          }
         }
       } else {
         const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
