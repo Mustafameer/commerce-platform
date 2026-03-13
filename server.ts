@@ -3491,7 +3491,7 @@ async function startServer() {
         
         // Get customer info
         const customerResult = await pool.query(
-          `SELECT id, name, phone, email, customer_type, credit_limit, current_debt
+          `SELECT id, name, phone, email, customer_type, credit_limit, current_debt, starting_balance, created_at
            FROM customers WHERE id = $1`,
           [customerId]
         );
@@ -3501,8 +3501,9 @@ async function startServer() {
         }
         
         const customer = customerResult.rows[0];
+        const openingBalance = Number(customer.starting_balance) || 0;
         
-        // Get customer's orders (transactions)
+        // Get customer's topup orders (purchases/debits)
         const ordersResult = await pool.query(
           `SELECT 
             o.id, o.store_id, o.topup_product_id, o.quantity, o.total_amount,
@@ -3511,16 +3512,87 @@ async function startServer() {
            LEFT JOIN topup_products tp ON o.topup_product_id = tp.id
            LEFT JOIN topup_companies tc ON tp.company_id = tc.id
            WHERE o.customer_id = $1
-           ORDER BY o.created_at DESC
-           LIMIT 50`,
+           ORDER BY o.created_at ASC`,
           [customerId]
         );
         
+        // Get customer's payments (credits)
+        const paymentsResult = await pool.query(
+          `SELECT id, customer_id, amount, payment_method, notes as description, created_at
+           FROM customer_payments WHERE customer_id = $1
+           ORDER BY created_at ASC`,
+          [customerId]
+        );
+        
+        // Combine all transactions and build statement
+        const allItems = [
+          ...ordersResult.rows.map(o => ({
+            id: o.id,
+            created_at: o.created_at,
+            type: 'topup',
+            description: o.company_name ? \`\${o.company_name} - \${o.product_amount || o.total_amount} د.ع\` : 'شراء',
+            amount: Number(o.total_amount || 0),
+            is_payment: false,
+            source: 'topup_order'
+          })),
+          ...paymentsResult.rows.map(p => ({
+            id: p.id,
+            created_at: p.created_at,
+            type: 'payment',
+            description: p.description || 'دفعة',
+            amount: Number(p.amount || 0),
+            is_payment: true,
+            source: 'payment'
+          }))
+        ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        
+        // Calculate running balance (starting from opening balance)
+        let runningBalance = openingBalance;
+        const itemsWithBalance = allItems.map(item => {
+          if (item.is_payment) {
+            runningBalance -= item.amount;  // Payment reduces debt
+          } else {
+            runningBalance += item.amount;  // Purchase increases debt
+          }
+          return { ...item, balance: Math.max(0, runningBalance) };
+        });
+        
+        // Add opening balance transaction
+        const transactions = [
+          {
+            id: 0,
+            created_at: customer.created_at,
+            type: 'opening',
+            description: 'ديون سابقة',
+            amount: openingBalance,
+            balance: openingBalance,
+            is_payment: false,
+            source: 'opening'
+          },
+          ...itemsWithBalance
+        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        
+        // Calculate final current debt
+        const finalBalance = itemsWithBalance.length > 0 
+          ? itemsWithBalance[itemsWithBalance.length - 1].balance 
+          : openingBalance;
+        
         res.json({
-          customer,
-          transactions: ordersResult.rows
+          customer: {
+            id: customer.id,
+            name: customer.name,
+            phone: customer.phone,
+            email: customer.email,
+            customer_type: customer.customer_type,
+            credit_limit: Number(customer.credit_limit),
+            current_debt: finalBalance,
+            starting_balance: openingBalance
+          },
+          transactions,
+          current_debt: finalBalance
         });
       } catch (error) {
+        console.error('❌ Statement error:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });

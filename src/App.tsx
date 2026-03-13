@@ -12291,45 +12291,41 @@ const TopupStorefront = () => {
     setIsLoadingStatement(true);
     try {
       console.log('🔍 Fetching TOPUP statement for customer:', customer.customer_id);
-      // ✅ FIXED: Use the correct topup endpoint, not the regular customer endpoint
       const res = await fetch(`/api/topup/customers/${customer.customer_id}/statement`);
       const data = await res.json();
       console.log('📊 Raw API response:', data);
       console.log('📊 Response status:', res.status, 'OK:', res.ok);
       
       if (res.ok) {
-        // Handle topup response format: { customer: {...}, transactions: [...] }
+        // Handle topup response format: { customer: {...}, transactions: [...], current_debt: X }
         let transactions = [];
         
         if (data.transactions && Array.isArray(data.transactions)) {
-          console.log('✓ Found data.transactions'); 
+          console.log('✓ Found data.transactions with', data.transactions.length, 'items');
           transactions = data.transactions;
         } else if (Array.isArray(data)) {
           console.log('✓ Data is array (fallback)');
           transactions = data;
-        } else if (data.data && Array.isArray(data.data)) {
-          console.log('✓ Found data.data');
-          transactions = data.data;
         } else {
           console.warn('⚠️ Unknown response format:', Object.keys(data));
           transactions = [];
         }
         
         console.log('📊 Final transactions count:', transactions.length);
-        console.log('📊 First transaction sample:', transactions[0]);
+        if (transactions.length > 0) {
+          console.log('📊 Sample transactions:', transactions.slice(0, 3));
+        }
         
-        // Transform topup_orders to statement format
-        const formattedTransactions = transactions.map((tx: any) => ({
-          id: tx.id,
-          created_at: tx.created_at,
-          type: 'topup',
-          description: `${tx.company_name || 'شركة'} - ${tx.product_amount || tx.amount || 0} د.ع`,
-          amount: Number(tx.total_amount || 0),
-          balance: 0, // Will be calculated if needed
-          is_payment: false
-        }));
+        setStatementTransactions(transactions);
         
-        setStatementTransactions(formattedTransactions);
+        // Update customer debt from API response
+        if (data.current_debt !== undefined) {
+          console.log('💰 Updating customer debt from API:', data.current_debt);
+          setCustomer(prevCustomer => ({
+            ...prevCustomer,
+            current_debt: data.current_debt
+          }));
+        }
       } else {
         console.error('❌ API returned error status:', res.status);
         setStatementTransactions([]);
@@ -12993,11 +12989,21 @@ const TopupStorefront = () => {
                       📊 المعاملات {isLoadingStatement && <span className="text-xs font-normal">(جاري التحميل...)</span>}
                     </h4>
                     <div className={cn("border rounded-lg overflow-x-auto", isDarkMode ? "border-gray-700 bg-gray-900/30" : "border-gray-200 bg-gray-50")}>
-                      {console.log('📋 Modal rendering:', { isLoadingStatement, transactionCount: statementTransactions?.length })}
+                      {console.log('📋 Statement Modal Debug:', { 
+                        showAccountStatement, 
+                        isLoadingStatement, 
+                        transactionCount: statementTransactions?.length,
+                        transactions: statementTransactions
+                      })}
                       {isLoadingStatement ? (
                         <div className="p-8 text-center">
                           <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2" style={{borderColor: primaryColor}}></div>
                           <p className={cn("mt-2 text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>جاري تحميل البيانات...</p>
+                        </div>
+                      ) : !statementTransactions || statementTransactions.length === 0 ? (
+                        <div className={cn("p-8 text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                          <p className="text-sm font-semibold mb-2">⚠️ لا توجد معاملات</p>
+                          <p className="text-xs">قد لم يتم تحميل البيانات بعد. حاول مرة أخرى.</p>
                         </div>
                       ) : (
                         <table className="w-full text-xs border-collapse">
@@ -13005,9 +13011,9 @@ const TopupStorefront = () => {
                             <tr>
                               <th className={cn("px-3 py-2 text-right font-bold border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
                               <th className={cn("px-3 py-2 text-right font-bold border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
-                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>مدين (Debit)</th>
-                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>دائن (Credit)</th>
-                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الديون الجالية</th>
+                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>مدين<br/>(Debit)</th>
+                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>دائن<br/>(Credit)</th>
+                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الرصيد</th>
                             </tr>
                           </thead>
                           <tbody>
