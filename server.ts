@@ -4053,13 +4053,13 @@ async function startServer() {
         // Merge old and new unique images only
         const allImages = [...existingImages, ...newUniqueImages];
 
-        // Update product with new images
+        // Update product with new images only - don't modify available_codes
         const result = await pool.query(
           `UPDATE topup_products 
-           SET images = $1, available_codes = $2 
-           WHERE id = $3 AND store_id = $4 
-           RETURNING id, available_codes`,
-          [allImages, allImages.length, topup_product_id, store_id]
+           SET images = $1
+           WHERE id = $2 AND store_id = $3 
+           RETURNING id, images`,
+          [allImages, topup_product_id, store_id]
         );
 
         let message = `تم تحميل ${newUniqueImages.length} صورة جديدة بنجاح`;

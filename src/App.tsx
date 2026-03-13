@@ -9777,35 +9777,49 @@ const MerchantTopupDashboard = () => {
       if (response.ok) {
         const productId = isEditingProduct ? isEditingProduct : responseData.product?.id;
         
-        // Upload images if any are selected
+        // Upload images if any are selected - wait for all to complete
         if (productImages.length > 0 && productId) {
           console.log('📸 Uploading', productImages.length, 'images...');
           
-          for (const imageFile of productImages) {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-              try {
-                const imageData = e.target?.result as string;
-                
-                const imageResponse = await fetch('/api/topup/upload-images', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    store_id: topupStoreId,
-                    topup_product_id: productId,
-                    images: [imageData]
-                  })
-                });
+          const uploadPromises = productImages.map(imageFile => {
+            return new Promise<void>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = async (e) => {
+                try {
+                  const imageData = e.target?.result as string;
+                  
+                  const imageResponse = await fetch('/api/topup/upload-images', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      store_id: topupStoreId,
+                      topup_product_id: productId,
+                      images: [imageData]
+                    })
+                  });
 
-                if (!imageResponse.ok) {
-                  const imgError = await imageResponse.json();
-                  console.warn('⚠️ Error uploading image:', imgError);
+                  if (!imageResponse.ok) {
+                    const imgError = await imageResponse.json();
+                    console.warn('⚠️ Error uploading image:', imgError);
+                  } else {
+                    console.log('✅ Image uploaded successfully');
+                  }
+                  resolve();
+                } catch (err) {
+                  console.error('❌ Error processing image:', err);
+                  reject(err);
                 }
-              } catch (err) {
-                console.error('❌ Error processing image:', err);
-              }
-            };
-            reader.readAsDataURL(imageFile);
+              };
+              reader.onerror = () => reject(new Error('Failed to read file'));
+              reader.readAsDataURL(imageFile);
+            });
+          });
+          
+          try {
+            await Promise.all(uploadPromises);
+            console.log('✅ All images uploaded successfully');
+          } catch (err) {
+            console.error('❌ Error uploading images:', err);
           }
         }
 
@@ -9813,9 +9827,13 @@ const MerchantTopupDashboard = () => {
         setShowProductModal(false);
         setProductForm({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
         setProductImages([]);
-        const res = await fetch(`/api/topup/products/${topupStoreId}`);
-        const data = await res.json();
-        setProducts(Array.isArray(data) ? data : []);
+        
+        // Reload products AFTER all images are uploaded
+        setTimeout(async () => {
+          const res = await fetch(`/api/topup/products/${topupStoreId}`);
+          const data = await res.json();
+          setProducts(Array.isArray(data) ? data : []);
+        }, 500);
       } else {
         const errorMsg = responseData.error || responseData.message || 'فشل حفظ المنتج';
         alert('خطأ: ' + errorMsg);
