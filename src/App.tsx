@@ -12290,30 +12290,26 @@ const TopupStorefront = () => {
     
     setIsLoadingStatement(true);
     try {
-      console.log('🔍 Fetching statement for customer:', customer.customer_id);
-      const res = await fetch(`/api/customers/${customer.customer_id}/statement`);
+      console.log('🔍 Fetching TOPUP statement for customer:', customer.customer_id);
+      // ✅ FIXED: Use the correct topup endpoint, not the regular customer endpoint
+      const res = await fetch(`/api/topup/customers/${customer.customer_id}/statement`);
       const data = await res.json();
       console.log('📊 Raw API response:', data);
       console.log('📊 Response status:', res.status, 'OK:', res.ok);
       
       if (res.ok) {
-        // Handle different response formats
+        // Handle topup response format: { customer: {...}, transactions: [...] }
         let transactions = [];
-        if (Array.isArray(data)) {
-          console.log('✓ Data is array');
-          transactions = data;
-        } else if (data.transactions && Array.isArray(data.transactions)) {
-          console.log('✓ Found data.transactions');
+        
+        if (data.transactions && Array.isArray(data.transactions)) {
+          console.log('✓ Found data.transactions'); 
           transactions = data.transactions;
+        } else if (Array.isArray(data)) {
+          console.log('✓ Data is array (fallback)');
+          transactions = data;
         } else if (data.data && Array.isArray(data.data)) {
           console.log('✓ Found data.data');
           transactions = data.data;
-        } else if (data.orders && Array.isArray(data.orders)) {
-          console.log('✓ Found data.orders');
-          transactions = data.orders;
-        } else if (data.purchases && Array.isArray(data.purchases)) {
-          console.log('✓ Found data.purchases');
-          transactions = data.purchases;
         } else {
           console.warn('⚠️ Unknown response format:', Object.keys(data));
           transactions = [];
@@ -12321,16 +12317,19 @@ const TopupStorefront = () => {
         
         console.log('📊 Final transactions count:', transactions.length);
         console.log('📊 First transaction sample:', transactions[0]);
-        setStatementTransactions(transactions);
         
-        // 🔄 ALSO UPDATE customer state with latest debt from API
-        if (data.current_debt !== undefined) {
-          console.log('💰 Updating customer debt from API:', data.current_debt);
-          setCustomer(prevCustomer => ({
-            ...prevCustomer,
-            current_debt: data.current_debt
-          }));
-        }
+        // Transform topup_orders to statement format
+        const formattedTransactions = transactions.map((tx: any) => ({
+          id: tx.id,
+          created_at: tx.created_at,
+          type: 'topup',
+          description: `${tx.company_name || 'شركة'} - ${tx.product_amount || tx.amount || 0} د.ع`,
+          amount: Number(tx.total_amount || 0),
+          balance: 0, // Will be calculated if needed
+          is_payment: false
+        }));
+        
+        setStatementTransactions(formattedTransactions);
       } else {
         console.error('❌ API returned error status:', res.status);
         setStatementTransactions([]);
