@@ -5680,11 +5680,11 @@ const MerchantDashboard = () => {
                                 <span className={cn("font-normal text-sm", isDarkMode ? "text-gray-200" : "text-gray-900")}>{formatCurrency(p.price)}</span>
                               </div>
                             </div>
-                            {/* Show codes count for topup products */}
-                            {p.topup_codes && Array.isArray(p.topup_codes) && p.topup_codes.length > 0 && (
+                            {/* Show images count for topup products */}
+                            {p.images && Array.isArray(p.images) && p.images.filter((img: any) => img && String(img).length > 0).length > 0 && (
                               <div className="flex items-center justify-center gap-1 mt-1.5 pt-1.5 border-t border-black/5">
-                                <span className={cn("text-sm font-normal", isDarkMode ? "text-blue-400" : "text-blue-600")}>🔑</span>
-                                <span className={cn("font-normal text-[11px]", isDarkMode ? "text-blue-300" : "text-blue-700")}>{p.topup_codes.length} أكواد</span>
+                                <span className={cn("text-sm font-normal", isDarkMode ? "text-blue-400" : "text-blue-600")}>📷</span>
+                                <span className={cn("font-normal text-[11px]", isDarkMode ? "text-blue-300" : "text-blue-700")}>{p.images.filter((img: any) => img && String(img).length > 0).length} صور</span>
                               </div>
                             )}
                           </div>
@@ -7108,8 +7108,10 @@ const CustomerStorefront = () => {
     if (!selectedProduct) return null;
     
     if (storeType === 'topup') {
-      // Topup product modal - show codes
-      const codes = Array.isArray(selectedProduct.topup_codes) ? selectedProduct.topup_codes : [];
+      // Topup product modal - show card images instead of codes
+      const images = Array.isArray(selectedProduct.images) 
+        ? selectedProduct.images.filter((img: any) => img && String(img).length > 0)
+        : [];
       
       return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-4 overflow-y-auto" dir="rtl">
@@ -7129,21 +7131,51 @@ const CustomerStorefront = () => {
                 <p className={cn("text-sm sm:text-lg mt-2", isDarkMode ? "text-gray-300" : "text-gray-600")}>{selectedProduct.description}</p>
               </div>
 
-              <div className={cn("p-6 rounded-2xl mb-6 border-2", isDarkMode ? "bg-green-900/30 border-green-700" : "bg-green-50 border-green-200")}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className={cn("text-sm font-normal block mb-2", isDarkMode ? "text-green-400" : "text-green-600")}>عدد الأكواد المتاحة</span>
-                    <span className="text-3xl sm:text-4xl font-bold text-green-500">{codes.length}</span>
+              {/* Card Images Gallery */}
+              {images.length > 0 && (
+                <>
+                  <div className={cn("p-6 rounded-2xl mb-6 border-2", isDarkMode ? "bg-blue-900/30 border-blue-700" : "bg-blue-50 border-blue-200")}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className={cn("text-sm font-normal block mb-2", isDarkMode ? "text-blue-400" : "text-blue-600")}>عدد صور البطاقات المتاحة</span>
+                        <span className="text-3xl sm:text-4xl font-bold text-blue-500">{images.length}</span>
+                      </div>
+                      <div className="text-4xl sm:text-5xl">📷</div>
+                    </div>
                   </div>
-                  <div className="text-4xl sm:text-5xl">🔑</div>
-                </div>
-              </div>
 
-
+                  {/* Image Preview Gallery */}
+                  <div className={cn("mb-6 p-4 rounded-2xl border", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
+                    <p className={cn("text-sm font-normal mb-3", isDarkMode ? "text-gray-300" : "text-gray-600")}>عينة من الصور:</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {images.slice(0, 3).map((imageUrl: any, idx: number) => (
+                        <a 
+                          key={idx}
+                          href={imageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="aspect-square rounded-lg overflow-hidden hover:scale-105 transition-transform cursor-pointer"
+                        >
+                          <img 
+                            src={imageUrl} 
+                            alt={`Card ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                    {images.length > 3 && (
+                      <p className={cn("text-xs mt-2", isDarkMode ? "text-gray-400" : "text-gray-500")}>
+                        ... و {images.length - 3} صور إضافية
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
 
               <div className="flex justify-between items-end pb-6 border-b border-black/10 mb-6">
                 <div>
-                  <p className={cn("text-xs font-normal mb-2 uppercase", isDarkMode ? "text-gray-500" : "text-gray-500")}>السعر لكل كود</p>
+                  <p className={cn("text-xs font-normal mb-2 uppercase", isDarkMode ? "text-gray-500" : "text-gray-500")}>السعر</p>
                   <p className={cn("text-3xl sm:text-5xl font-bold", isDarkMode ? "text-white" : "text-gray-900")}>{formatCurrency(selectedProduct.price)}</p>
                 </div>
               </div>
@@ -7157,7 +7189,7 @@ const CustomerStorefront = () => {
                 style={{ backgroundColor: primaryColor }}
               >
                 <ShoppingCart size={24} />
-                شراء أكواد
+                شراء البطاقات
               </button>
             </div>
           </motion.div>
