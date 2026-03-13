@@ -9929,6 +9929,16 @@ const MerchantTopupDashboard = () => {
 
     setIsUploadingImage(true);
     try {
+      // Helper function to fetch with timeout
+      const fetchWithTimeout = (url: string, options: any, timeoutMs: number = 15000) => {
+        return Promise.race([
+          fetch(url, options),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`Request timeout after ${timeoutMs}ms`)), timeoutMs)
+          )
+        ]);
+      };
+
       // Wrap FileReader in Promise to properly wait for file loading
       const imageData = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -9940,7 +9950,9 @@ const MerchantTopupDashboard = () => {
         reader.readAsDataURL(uploadedFile);
       });
 
-      const response = await fetch('/api/topup/upload-images', {
+      console.log('📤 Starting image upload for product:', selectedProductForCodes);
+      
+      const response = await fetchWithTimeout('/api/topup/upload-images', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -9953,19 +9965,29 @@ const MerchantTopupDashboard = () => {
       const responseData = await response.json();
 
       if (response.ok) {
+        console.log('✅ Image uploaded successfully');
         alert(responseData.message || 'تم تحميل الصورة بنجاح!');
         setShowCodeUploadModal(false);
         setUploadedFile(null);
         setSelectedProductForCodes(null);
-        const updatedRes = await fetch(`/api/topup/products/${topupStoreId}`);
-        const data = await updatedRes.json();
-        setProducts(Array.isArray(data) ? data : []);
+        
+        // Refresh products with timeout
+        try {
+          const updatedRes = await fetchWithTimeout(`/api/topup/products/${topupStoreId}`, {});
+          const data = await updatedRes.json();
+          setProducts(Array.isArray(data) ? data : []);
+          console.log('✅ Products refreshed after upload');
+        } catch (refreshError) {
+          console.warn('⚠️ Failed to refresh products:', refreshError);
+          // Don't fail the whole upload if refresh fails, just log it
+        }
       } else {
         alert(`خطأ: ${responseData.error || 'فشل تحميل الصورة'}`);
       }
     } catch (error) {
       console.error('❌ Error uploading image:', error);
-      alert('حدث خطأ: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
+      const errorMsg = error instanceof Error ? error.message : 'خطأ غير معروف';
+      alert('حدث خطأ: ' + errorMsg);
     } finally {
       setIsUploadingImage(false);
     }

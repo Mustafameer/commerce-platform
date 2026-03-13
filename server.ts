@@ -4064,18 +4064,25 @@ async function startServer() {
     // Upload images to topup product (card images with codes printed on them)
     app.post("/api/topup/upload-images", async (req, res) => {
       try {
+        console.log('📤 Starting image upload request...');
         const { store_id, topup_product_id, images } = req.body;
 
         if (!store_id || !topup_product_id || !images || !Array.isArray(images)) {
+          console.warn('⚠️ Missing required fields');
           return res.status(400).json({ error: "Missing required fields or invalid images format" });
         }
+
+        console.log('📊 Image upload details:', { store_id, topup_product_id, image_count: images.length });
 
         // Filter out empty images
         const validImages = images.filter((img: string) => img && img.trim()).map((img: string) => img.trim());
 
         if (validImages.length === 0) {
+          console.warn('⚠️ No valid images provided');
           return res.status(400).json({ error: "No valid images provided" });
         }
+
+        console.log('✔️ Valid images count:', validImages.length);
 
         // Get existing images
         const existingResult = await pool.query(
@@ -4084,6 +4091,7 @@ async function startServer() {
         );
 
         if (existingResult.rows.length === 0) {
+          console.warn('⚠️ Product not found');
           return res.status(404).json({ error: "Product not found" });
         }
 
@@ -4101,6 +4109,8 @@ async function startServer() {
         // Merge old and new unique images only
         const allImages = [...existingImages, ...newUniqueImages];
 
+        console.log('💾 Updating product with images...');
+
         // Update product with new images only - don't modify available_codes
         const result = await pool.query(
           `UPDATE topup_products 
@@ -4115,7 +4125,7 @@ async function startServer() {
           message += ` (تم تخطي ${duplicateCount} صور مكررة)`;
         }
 
-        console.log('✅ Images uploaded:', { product_id: topup_product_id, new_count: newUniqueImages.length, duplicate_count: duplicateCount });
+        console.log('✅ Images uploaded successfully:', { product_id: topup_product_id, new_count: newUniqueImages.length, duplicate_count: duplicateCount });
         res.json({ success: true, message, product: result.rows[0] });
       } catch (error) {
         console.error('❌ Error uploading images:', error);
