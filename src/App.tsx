@@ -9319,15 +9319,28 @@ const MerchantTopupDashboard = () => {
   // Store ID - from logged-in user
   const topupStoreId = user?.store_id || user?.id || 13;
 
+  useEffect(() => {
+    console.log('🔍 Store ID Determined:', { userId: user?.id, storeId: user?.store_id, finalStoreId: topupStoreId });
+  }, [topupStoreId]);
+
   // Function to refresh dashboard data
   const refreshDashboardData = async () => {
     try {
+      console.log('🔄 Refreshing dashboard data for store:', topupStoreId);
+      
       const [comp, prod, cust, ordersData] = await Promise.all([
         fetch(`/api/topup/companies/${topupStoreId}`).then(r => r.json()),
         fetch(`/api/topup/products/${topupStoreId}`).then(r => r.json()),
         fetch(`/api/topup/customers/${topupStoreId}`).then(r => r.json()),
         fetch(`/api/topup/orders?storeId=${topupStoreId}`).then(r => r.json()).catch(() => []),
       ]);
+      
+      console.log('📊 Dashboard Data Loaded:', {
+        companies: comp,
+        products: prod,
+        customers: cust,
+        orders: ordersData
+      });
       
       setCompanies(Array.isArray(comp) ? comp : []);
       setProducts(Array.isArray(prod) ? prod : []);
@@ -9339,6 +9352,9 @@ const MerchantTopupDashboard = () => {
         Array.isArray(prod) ? prod : [],
         Array.isArray(ordersData) ? ordersData : []
       );
+      
+      console.log('📈 Calculated Stats:', calculatedStats);
+      
       setStats({
         totalOrders: Array.isArray(ordersData) ? ordersData.length : 0,
         totalRevenue: calculatedStats.totalRevenue,
@@ -9346,7 +9362,7 @@ const MerchantTopupDashboard = () => {
         activeCodes: calculatedStats.totalCodes - calculatedStats.usedCodes
       });
     } catch (error) {
-      console.error('Error refreshing dashboard data:', error);
+      console.error('❌ Error refreshing dashboard data:', error);
     }
   };
 
@@ -9434,16 +9450,24 @@ const MerchantTopupDashboard = () => {
   };
 
   useEffect(() => {
-    if (showLogin || !topupStoreId) return;
+    if (showLogin || !topupStoreId) {
+      console.log('⏭️ Skipping refresh: showLogin=', showLogin, 'topupStoreId=', topupStoreId);
+      return;
+    }
 
+    console.log('✅ Starting data refresh for store:', topupStoreId);
+    
     // Load data immediately
     refreshDashboardData();
 
     // Set up auto-refresh every 5 seconds for real-time updates
-    const interval = setInterval(refreshDashboardData, 5000);
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing data...');
+      refreshDashboardData();
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [section, showLogin]);
+  }, [section, showLogin, topupStoreId]);
 
   // Fetch store settings on mount
   useEffect(() => {
