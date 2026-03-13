@@ -11410,7 +11410,7 @@ const MerchantTopupDashboard = () => {
               </div>
               <div className="flex gap-2">
                 <button 
-                  onClick={() => setShowPaymentForm(true)} 
+                  onClick={() => setShowStatementPaymentForm(true)} 
                   className={cn("p-2 rounded-lg transition-all", isDarkMode ? "hover:bg-gray-600 text-green-400" : "hover:bg-gray-200 text-green-600")}
                   title="تسديد دفعة"
                 >
@@ -11509,7 +11509,7 @@ const MerchantTopupDashboard = () => {
       )}
 
       {/* Payment Form Modal */}
-      {showPaymentForm && selectedCustomerStatement && (
+      {showStatementPaymentForm && selectedCustomerStatement && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[101] flex items-center justify-center p-4" dir="rtl">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -11518,7 +11518,7 @@ const MerchantTopupDashboard = () => {
           >
             <div className={cn("p-4 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
               <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>💳 تسديد دفعة</h3>
-              <button onClick={() => setShowPaymentForm(false)} className="p-1 hover:bg-gray-300/20 rounded">
+              <button onClick={() => setShowStatementPaymentForm(false)} className="p-1 hover:bg-gray-300/20 rounded">
                 <X size={20} className={isDarkMode ? "text-white" : "text-gray-900"} />
               </button>
             </div>
@@ -11548,12 +11548,12 @@ const MerchantTopupDashboard = () => {
               <div className="flex gap-2 pt-4">
                 <button
                   onClick={async () => {
-                    if (!selectedCustomerStatement?.customer_id || !paymentFormAmount) {
+                    if (!selectedCustomerStatement?.customer_id || !statementPaymentAmount) {
                       alert('⚠️ يرجى إدخال المبلغ');
                       return;
                     }
 
-                    const amount = parseFloat(paymentFormAmount);
+                    const amount = parseFloat(statementPaymentAmount);
                     if (isNaN(amount) || amount <= 0) {
                       alert('⚠️ يرجى إدخال مبلغ صحيح');
                       return;
@@ -11565,7 +11565,7 @@ const MerchantTopupDashboard = () => {
                       return;
                     }
 
-                    setIsProcessingPayment(true);
+                    setIsProcessingStatementPayment(true);
                     try {
                       const paymentData = {
                         customer_id: selectedCustomerStatement.customer_id,
@@ -11585,8 +11585,8 @@ const MerchantTopupDashboard = () => {
 
                       if (res.ok) {
                         alert('✅ تم تسديد المبلغ بنجاح!');
-                        setPaymentFormAmount('');
-                        setShowPaymentForm(false);
+                        setStatementPaymentAmount('');
+                        setShowStatementPaymentForm(false);
                         
                         if (selectedCustomerStatement?.customer_id) {
                           setTimeout(() => {
@@ -11602,7 +11602,7 @@ const MerchantTopupDashboard = () => {
                       setIsProcessingPayment(false);
                     }
                   }}
-                  disabled={isProcessingPayment || !paymentFormAmount}
+                  disabled={isProcessingStatementPayment || !statementPaymentAmount}
                   className={cn("flex-1 py-3 rounded-lg font-normal text-white transition-all", isProcessingPayment ? "opacity-50 bg-gray-500" : "bg-green-600 hover:bg-green-700")}
                 >
                   {isProcessingPayment ? '⏳ جاري الإرسال...' : '✓ تأكيد'}
@@ -11772,9 +11772,9 @@ const TopupStorefront = () => {
   const [selectedCustomerStatement, setSelectedCustomerStatement] = useState<any>(null);
   const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
   const [isLoadingCustomerTransactions, setIsLoadingCustomerTransactions] = useState(false);
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [paymentFormAmount, setPaymentFormAmount] = useState('');
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showStatementPaymentForm, setShowStatementPaymentForm] = useState(false);
+  const [statementPaymentAmount, setStatementPaymentAmount] = useState('');
+  const [isProcessingStatementPayment, setIsProcessingStatementPayment] = useState(false);
 
   // Load customer data from localStorage on component mount - HIGH PRIORITY
   useEffect(() => {
