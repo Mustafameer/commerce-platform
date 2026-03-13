@@ -596,6 +596,13 @@ async function runMigrations() {
       // Column already exists, ignore
     }
 
+    // Add is_active column to stores table for soft delete support
+    await pool.query(`
+      ALTER TABLE stores
+      ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+    `);
+    console.log("✅ Migration: is_active column added to stores");
+
   } catch (error) {
     // Ignore column already exists errors
     const errorMsg = (error as any).message || '';
@@ -846,6 +853,7 @@ async function startServer() {
           SELECT s.*, u.name as owner_name_from_user, u.phone as owner_phone_from_user, u.email as owner_email_from_user
           FROM stores s
           LEFT JOIN users u ON s.owner_id = u.id
+          WHERE s.is_active = true
           ORDER BY s.created_at DESC
         `);
         
@@ -871,7 +879,7 @@ async function startServer() {
           SELECT s.*, u.name as owner_name_from_user, u.phone as owner_phone_from_user
           FROM stores s
           LEFT JOIN users u ON s.owner_id = u.id
-          WHERE s.id = $1
+          WHERE s.id = $1 AND s.is_active = true
         `, [storeId]);
         
         if (result.rows.length === 0) {
@@ -904,7 +912,7 @@ async function startServer() {
             SELECT s.*, u.name as owner_name_from_user, u.phone as owner_phone_from_user
             FROM stores s
             LEFT JOIN users u ON s.owner_id = u.id
-            WHERE s.id = $1
+            WHERE s.id = $1 AND s.is_active = true
           `, [parseInt(slug)]);
         } else {
           // Search by slug
@@ -912,7 +920,7 @@ async function startServer() {
             SELECT s.*, u.name as owner_name_from_user, u.phone as owner_phone_from_user
             FROM stores s
             LEFT JOIN users u ON s.owner_id = u.id
-            WHERE s.slug = $1
+            WHERE s.slug = $1 AND s.is_active = true
           `, [slug]);
         }
         
@@ -1929,7 +1937,7 @@ async function startServer() {
     app.get("/api/admin/stats", async (req, res) => {
       try {
         const salesStatuses = ['pending', 'completed'];
-        const storesResult = await pool.query("SELECT COUNT(*) as count FROM stores");
+        const storesResult = await pool.query("SELECT COUNT(*) as count FROM stores WHERE is_active = true");
         const ordersResult = await pool.query("SELECT COUNT(*) as count FROM orders WHERE status = ANY($1::text[])", [salesStatuses]);
         const customersResult = await pool.query("SELECT COUNT(DISTINCT customer_id) as count FROM orders WHERE customer_id IS NOT NULL AND status = ANY($1::text[])", [salesStatuses]);
         const usersResult = await pool.query("SELECT COUNT(*) as count FROM users");
@@ -1944,6 +1952,7 @@ async function startServer() {
             COALESCE(SUM(o.total_amount), 0) as store_revenue
           FROM stores s
           LEFT JOIN orders o ON s.id = o.store_id AND o.status = ANY($1::text[])
+          WHERE s.is_active = true
           GROUP BY s.id, s.percentage_enabled, s.commission_percentage
         `, [salesStatuses]);
         
@@ -2119,19 +2128,26 @@ async function startServer() {
       }
     });
 
-    // Delete store
+    // Delete store (soft delete - mark as inactive)
     app.delete("/api/admin/delete-store/:id", async (req, res) => {
       try {
         const { id } = req.params;
         
-        // Delete the store
-        const result = await pool.query("DELETE FROM stores WHERE id = $1 RETURNING id", [parseInt(id)]);
+        // Soft delete: mark the store as inactive instead of hard delete
+        const result = await pool.query(
+          "UPDATE stores SET is_active = false WHERE id = $1 RETURNING id, store_name",
+          [parseInt(id)]
+        );
         
         if (result.rows.length === 0) {
           return res.status(404).json({ error: "Store not found" });
         }
         
-        res.json({ message: "Store deleted successfully", storeId: result.rows[0].id });
+        res.json({ 
+          message: "Store deleted successfully", 
+          storeId: result.rows[0].id,
+          storeName: result.rows[0].store_name 
+        });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
       }
