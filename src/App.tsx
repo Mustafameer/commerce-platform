@@ -9229,6 +9229,7 @@ const MerchantTopupDashboard = () => {
   const [isEditingPayment, setIsEditingPayment] = useState<number | null>(null);
   const [isEditingCustomer, setIsEditingCustomer] = useState<number | null>(null);
   const [isEditingProduct, setIsEditingProduct] = useState<number | null>(null);
+  const [isEditingCompany, setIsEditingCompany] = useState<number | null>(null);
   const [selectedProductForCodes, setSelectedProductForCodes] = useState<number | null>(null);
   const [selectedCustomerStatement, setSelectedCustomerStatement] = useState<any>(null);
   const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
