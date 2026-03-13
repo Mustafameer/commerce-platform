@@ -11603,12 +11603,12 @@ const MerchantTopupDashboard = () => {
                     }
                   }}
                   disabled={isProcessingStatementPayment || !statementPaymentAmount}
-                  className={cn("flex-1 py-3 rounded-lg font-normal text-white transition-all", isProcessingPayment ? "opacity-50 bg-gray-500" : "bg-green-600 hover:bg-green-700")}
+                  className={cn("flex-1 py-3 rounded-lg font-normal text-white transition-all", isProcessingStatementPayment ? "opacity-50 bg-gray-500" : "bg-green-600 hover:bg-green-700")}
                 >
-                  {isProcessingPayment ? '⏳ جاري الإرسال...' : '✓ تأكيد'}
+                  {isProcessingStatementPayment ? '⏳ جاري الإرسال...' : '✓ تأكيد'}
                 </button>
                 <button
-                  onClick={() => setShowPaymentForm(false)}
+                  onClick={() => setShowStatementPaymentForm(false)}
                   className={cn("flex-1 py-3 rounded-lg font-normal transition-all", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-200 hover:bg-gray-300")}
                 >
                   إلغاء
@@ -12321,7 +12321,7 @@ const TopupStorefront = () => {
         console.log('✅ Payment transaction added to statement immediately');
         
         setPaymentAmount('');
-        setShowPaymentForm(false);
+        // Don't close payment form here, user's existing payment form
         
         // Then refresh from server in background (async)
         setTimeout(async () => {
