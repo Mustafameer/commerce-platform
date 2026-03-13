@@ -9250,8 +9250,8 @@ const MerchantTopupDashboard = () => {
   const [dashboardLogo, setDashboardLogo] = useState<string>('');
   const [logoRefreshKey, setLogoRefreshKey] = useState(0);
 
-  // Store ID - using 13 for top-up store (علي الهادي)
-  const topupStoreId = 13;
+  // Store ID - from logged-in user
+  const topupStoreId = user?.store_id || user?.id || 13;
 
   // Function to refresh dashboard data
   const refreshDashboardData = async () => {
