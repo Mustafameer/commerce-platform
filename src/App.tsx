@@ -10659,7 +10659,7 @@ const MerchantTopupDashboard = () => {
                                   setSelectedCustomerStatement(customerWithId);
                                   setShowCustomerStatement(true);
                                   // Load transactions when opening statement modal
-                                  setTimeout(() => handleLoadStatement(customerWithId.customer_id), 100);
+                                  setTimeout(() => handleLoadCustomerStatement(customerWithId.customer_id), 100);
                                 }}
                                 className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-green-900/30 text-green-400 hover:bg-green-900/60" : "text-green-600 hover:bg-green-50")}
                                 title="كشف الحساب"
@@ -11669,6 +11669,14 @@ const TopupStorefront = () => {
   const [canProceedWithPurchase, setCanProceedWithPurchase] = useState(true);
   const [showCreditWarning, setShowCreditWarning] = useState(false);
 
+  // Customer statement modal states (for merchant operations)
+  const [showCustomerStatement, setShowCustomerStatement] = useState(false);
+  const [selectedCustomerStatement, setSelectedCustomerStatement] = useState<any>(null);
+  const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
+  const [isLoadingCustomerTransactions, setIsLoadingCustomerTransactions] = useState(false);
+  const [merchantPaymentAmount, setMerchantPaymentAmount] = useState('');
+  const [isProcessingMerchantPayment, setIsProcessingMerchantPayment] = useState(false);
+
   // Load customer data from localStorage on component mount - HIGH PRIORITY
   useEffect(() => {
     console.log('🔍 TopupStorefront: Loading customer from localStorage on mount');
@@ -12294,6 +12302,60 @@ const TopupStorefront = () => {
     }
   };
 
+  // Load specific customer's statement (for merchant dashboard operations)
+  const handleLoadCustomerStatement = async (customerId: number) => {
+    if (!customerId) {
+      console.warn('⚠️ No customer_id provided to handleLoadCustomerStatement');
+      return;
+    }
+    
+    setIsLoadingCustomerTransactions(true);
+    try {
+      console.log('🔍 Fetching statement for customer:', customerId);
+      const res = await fetch(`/api/customers/${customerId}/statement`);
+      const data = await res.json();
+      console.log('📊 Raw API response:', data);
+      
+      if (res.ok) {
+        // Handle different response formats
+        let transactions = [];
+        if (Array.isArray(data)) {
+          transactions = data;
+        } else if (data.transactions && Array.isArray(data.transactions)) {
+          transactions = data.transactions;
+        } else if (data.data && Array.isArray(data.data)) {
+          transactions = data.data;
+        } else if (data.orders && Array.isArray(data.orders)) {
+          transactions = data.orders;
+        } else if (data.purchases && Array.isArray(data.purchases)) {
+          transactions = data.purchases;
+        } else {
+          console.warn('⚠️ Unknown response format:', Object.keys(data));
+          transactions = [];
+        }
+        
+        console.log('📌 Setting customer transactions with:', transactions.length, 'items');
+        setCustomerTransactions(transactions);
+        
+        // Update selectedCustomerStatement with current_debt from API if available
+        if (data.current_debt !== undefined) {
+          setSelectedCustomerStatement(prevCustomer => ({
+            ...prevCustomer,
+            current_debt: data.current_debt
+          }));
+        }
+      } else {
+        console.error('❌ API returned error status:', res.status);
+        setCustomerTransactions([]);
+      }
+    } catch (error) {
+      console.error('❌ Error loading customer statement:', error);
+      setCustomerTransactions([]);
+    } finally {
+      setIsLoadingCustomerTransactions(false);
+    }
+  };
+
   const handleAddMerchantPayment = async () => {
     if (!selectedCustomerStatement?.customer_id || !merchantPaymentAmount) {
       alert('⚠️ يرجى إدخال المبلغ');
@@ -12341,9 +12403,11 @@ const TopupStorefront = () => {
         setMerchantPaymentAmount('');
         
         // Reload the statement to show updated balance
-        setTimeout(() => {
-          handleLoadStatement();
-        }, 500);
+        if (selectedCustomerStatement?.customer_id) {
+          setTimeout(() => {
+            handleLoadCustomerStatement(selectedCustomerStatement.customer_id);
+          }, 500);
+        }
       } else {
         alert('❌ فشل تسديد المبلغ: ' + (data?.error || 'خطأ غير معروف'));
       }
