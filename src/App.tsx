@@ -9302,6 +9302,7 @@ const MerchantTopupDashboard = () => {
   const [productForm, setProductForm] = useState({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
   const [productImages, setProductImages] = useState<File[]>([]);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [customerForm, setCustomerForm] = useState({ name: '', phone: '', email: '', password: '', customer_type: 'cash', credit_limit: '0', starting_balance: '' });
   const [storeSettings, setStoreSettings] = useState({ store_name: '', logo_url: '' });
   const [storeLogoBg, setStoreLogoFile] = useState<File | null>(null);
@@ -9919,6 +9920,14 @@ const MerchantTopupDashboard = () => {
       return;
     }
 
+    // Check file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (uploadedFile.size > maxSize) {
+      alert(`حجم الملف كبير جداً. الحد الأقصى: 5MB\nحجم الملف الحالي: ${(uploadedFile.size / 1024 / 1024).toFixed(2)}MB`);
+      return;
+    }
+
+    setIsUploadingImage(true);
     try {
       // Wrap FileReader in Promise to properly wait for file loading
       const imageData = await new Promise<string>((resolve, reject) => {
@@ -9957,6 +9966,8 @@ const MerchantTopupDashboard = () => {
     } catch (error) {
       console.error('❌ Error uploading image:', error);
       alert('حدث خطأ: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -10948,21 +10959,43 @@ const MerchantTopupDashboard = () => {
               <label className={cn("border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all", uploadedFile ? "border-green-500 bg-green-50/10" : isDarkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-200 hover:border-gray-300")}>
                 <input
                   type="file"
-                  onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      // Check file size (max 5MB)
+                      const maxSize = 5 * 1024 * 1024; // 5MB
+                      if (file.size > maxSize) {
+                        alert(`حجم الملف كبير جداً. الحد الأقصى: 5MB\nحجم الملف الحالي: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+                        e.target.value = ''; // Clear input
+                        setUploadedFile(null);
+                      } else {
+                        setUploadedFile(file);
+                      }
+                    } else {
+                      setUploadedFile(null);
+                    }
+                  }}
                   className="hidden"
                   accept="image/*"
                 />
                 {uploadedFile ? (
-                  <div className={cn("font-normal", isDarkMode ? "text-green-400" : "text-green-600")}>{uploadedFile.name}</div>
+                  <div className={cn("font-normal", isDarkMode ? "text-green-400" : "text-green-600")}>
+                    <div>{uploadedFile.name}</div>
+                    <div className="text-xs mt-1 opacity-70">{(uploadedFile.size / 1024).toFixed(2)} KB</div>
+                  </div>
                 ) : (
                   <div>
                     <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>اختر صورة أو اسحبها هنا</p>
-                    <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>JPG أو PNG أو WebP...</p>
+                    <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>JPG أو PNG أو WebP (الحد الأقصى 5MB)</p>
                   </div>
                 )}
               </label>
-              <button onClick={handleUploadCodes} className="w-full py-3 bg-green-600 text-white font-normal rounded-lg hover:bg-green-700">
-                رفع الصورة
+              <button 
+                onClick={handleUploadCodes} 
+                disabled={isUploadingImage || !uploadedFile}
+                className={cn("w-full py-3 text-white font-normal rounded-lg transition-all", isUploadingImage ? "bg-green-500 cursor-not-allowed opacity-70" : "bg-green-600 hover:bg-green-700")}
+              >
+                {isUploadingImage ? '⏳ جاري التحميل...' : 'رفع الصورة'}
               </button>
             </div>
           </motion.div>
