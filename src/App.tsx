@@ -12294,6 +12294,67 @@ const TopupStorefront = () => {
     }
   };
 
+  const handleAddMerchantPayment = async () => {
+    if (!selectedCustomerStatement?.customer_id || !merchantPaymentAmount) {
+      alert('⚠️ يرجى إدخال المبلغ');
+      return;
+    }
+
+    // Validate amount is a valid number
+    const amount = parseFloat(merchantPaymentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert('⚠️ يرجى إدخال مبلغ صحيح أكبر من الصفر');
+      return;
+    }
+
+    // Get store_id from current customer or user
+    const storeId = actualStoreId; // Use actualStoreId from TopupStorefront
+    if (!storeId) {
+      alert('⚠️ لم يتم العثور على معرف المتجر');
+      return;
+    }
+
+    setIsProcessingMerchantPayment(true);
+    try {
+      const paymentData = {
+        customer_id: selectedCustomerStatement.customer_id,
+        store_id: storeId,
+        amount: amount,
+        payment_method: 'manual',
+        notes: 'تسديد يدوي من قبل التاجر'
+      };
+
+      console.log('💳 Sending payment:', paymentData);
+
+      const res = await fetch('/api/customer-payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(paymentData)
+      });
+
+      const data = await res.json();
+      console.log('📬 Server Response:', { status: res.status, ok: res.ok, data });
+
+      if (res.ok) {
+        console.log('✅ Payment processed successfully');
+        alert('✅ تم تسديد المبلغ بنجاح!');
+        setMerchantPaymentAmount('');
+        
+        // Reload the statement to show updated balance
+        setTimeout(() => {
+          handleLoadStatement();
+        }, 500);
+      } else {
+        alert('❌ فشل تسديد المبلغ: ' + (data?.error || 'خطأ غير معروف'));
+      }
+    } catch (error) {
+      console.error('❌ Error processing payment:', error);
+      alert('❌ حدث خطأ: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
+    } finally {
+      setIsProcessingMerchantPayment(false);
+    }
+  };
+
   const handleLogout = () => {
     setCustomer(null);
     localStorage.removeItem('topupCustomer');
