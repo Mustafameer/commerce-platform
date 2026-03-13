@@ -10659,7 +10659,7 @@ const MerchantTopupDashboard = () => {
                                   setSelectedCustomerStatement(customerWithId);
                                   setShowCustomerStatement(true);
                                   // Load transactions when opening statement modal
-                                  setTimeout(() => handleLoadCustomerStatement(customerWithId.customer_id), 100);
+                                  setTimeout(() => handleLoadStatement(customerWithId.customer_id), 100);
                                 }}
                                 className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-green-900/30 text-green-400 hover:bg-green-900/60" : "text-green-600 hover:bg-green-50")}
                                 title="كشف الحساب"
