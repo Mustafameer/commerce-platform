@@ -3733,7 +3733,7 @@ async function startServer() {
         res.set('Expires', '0');
         
         const result = await pool.query(
-          `SELECT * FROM topup_companies WHERE store_id = $1 AND is_active = true ORDER BY id`,
+          `SELECT * FROM topup_companies WHERE store_id = $1 ORDER BY id`,
           [storeId]
         );
         
@@ -3908,12 +3908,13 @@ async function startServer() {
             tp.available_codes,
             tp.codes,
             tp.images,
+            tp.is_active,
             tc.name as company_name,
             tpc.name as category_name
           FROM topup_products tp
           LEFT JOIN topup_companies tc ON tp.company_id = tc.id
           LEFT JOIN topup_product_categories tpc ON tp.category_id = tpc.id
-          WHERE tp.store_id = $1 AND tp.is_active = true
+          WHERE tp.store_id = $1
           ORDER BY tp.created_at DESC`,
           [storeId]
         );
