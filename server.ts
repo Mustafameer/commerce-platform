@@ -603,10 +603,41 @@ async function runMigrations() {
     `);
     console.log("✅ Migration: is_active column added to stores");
 
+    // Create indexes for performance optimization
+    console.log("📊 Creating database indexes for better query performance...");
+    
+    // Index for topup_companies queries
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_topup_companies_store_id 
+      ON topup_companies(store_id);
+    `);
+    console.log("✅ Index: idx_topup_companies_store_id created");
+    
+    // Index for topup_product_categories queries
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_topup_product_categories_store_id 
+      ON topup_product_categories(store_id);
+    `);
+    console.log("✅ Index: idx_topup_product_categories_store_id created");
+    
+    // Index for topup_products queries
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_topup_products_store_id 
+      ON topup_products(store_id);
+    `);
+    console.log("✅ Index: idx_topup_products_store_id created");
+    
+    // Index for topup_products company lookups
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_topup_products_company_id 
+      ON topup_products(company_id);
+    `);
+    console.log("✅ Index: idx_topup_products_company_id created");
+
   } catch (error) {
     // Ignore column already exists errors
     const errorMsg = (error as any).message || '';
-    if (!errorMsg.includes('already exists')) {
+    if (!errorMsg.includes('already exists') && !errorMsg.includes('already exists as')) {
       console.error("⚠️  Migration warning:", error);
     }
   }
@@ -3726,10 +3757,8 @@ async function startServer() {
       try {
         const { storeId } = req.params;
         
-        // منع التخزين المؤقت - اقرأ البيانات الجديدة من قاعدة البيانات
-        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        res.set('Pragma', 'no-cache');
-        res.set('Expires', '0');
+        // Allow browser caching for 10 seconds to reduce database load
+        res.set('Cache-Control', 'private, max-age=10');
         
         const result = await pool.query(
           `SELECT * FROM topup_companies WHERE store_id = $1 ORDER BY id`,
@@ -3814,10 +3843,8 @@ async function startServer() {
       try {
         const { storeId } = req.params;
         
-        // منع التخزين المؤقت - اقرأ البيانات الجديدة من قاعدة البيانات
-        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        res.set('Pragma', 'no-cache');
-        res.set('Expires', '0');
+        // Allow browser caching for 10 seconds to reduce database load
+        res.set('Cache-Control', 'private, max-age=10');
         
         const result = await pool.query(
           `SELECT * FROM topup_product_categories WHERE store_id = $1 AND is_active = true ORDER BY id ASC`,
@@ -3888,10 +3915,8 @@ async function startServer() {
       try {
         const { storeId } = req.params;
         
-        // منع التخزين المؤقت - اقرأ البيانات الجديدة من قاعدة البيانات
-        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        res.set('Pragma', 'no-cache');
-        res.set('Expires', '0');
+        // Allow browser caching for 10 seconds to reduce database load
+        res.set('Cache-Control', 'private, max-age=10');
         
         const result = await pool.query(
           `SELECT 
