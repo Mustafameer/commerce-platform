@@ -10191,10 +10191,13 @@ const MerchantTopupDashboard = () => {
             <div className="space-y-6">
               <button
                 onClick={() => {
+                  console.log('✅ Add Product button clicked!');
+                  console.log('🔍 Current states:', { showProductModal, productForm, isEditingProduct });
                   setProductForm({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
                   setProductImages([]);
                   setIsEditingProduct(null);
                   setShowProductModal(true);
+                  console.log('✅ setShowProductModal called with true');
                 }}
                 className="px-6 py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700 flex items-center gap-2"
               >
@@ -10273,7 +10276,7 @@ const MerchantTopupDashboard = () => {
 
               {/* Product Modal with Image Upload - MOVED INSIDE TOPUP SCOPE */}
               {showProductModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" dir="rtl">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" dir="rtl" onClick={() => console.log('🎬 Modal visible in DOM!')}>
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
