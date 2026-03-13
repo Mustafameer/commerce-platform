@@ -2514,6 +2514,7 @@ const RegisterMerchantPage = () => {
 const AdminDashboard = () => {
   const { isDarkMode } = useTheme();
   const [stores, setStores] = useState<(Store & { owner_name?: string; status?: string; owner_phone?: string; slug?: string })[]>([]);
+  const [pendingStores, setPendingStores] = useState<(Store & { owner_name?: string; status?: string; owner_phone?: string; slug?: string })[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -2540,6 +2541,12 @@ const AdminDashboard = () => {
     ((s as any).slug || '').toLowerCase().includes(dashboardQuery.toLowerCase())
   );
 
+  const filteredPendingStores = pendingStores.filter(s => 
+    ((s as any).store_name || s.name || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
+    (s.owner_name || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
+    (s.owner_phone || '').toLowerCase().includes(dashboardQuery.toLowerCase())
+  );
+
   const filteredUsers = users.filter(u => 
     (u.name && u.name.toLowerCase().includes(dashboardQuery.toLowerCase())) ||
     (u.phone || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
@@ -2548,6 +2555,25 @@ const AdminDashboard = () => {
 
   const isStoreApproved = (store: any) => Boolean(store?.is_active || store?.status === 'approved' || store?.status === 'active');
   const isStorePending = (store: any) => Boolean(!isStoreApproved(store) && store?.status === 'pending');
+  
+  // Load pending stores when approvals section is opened
+  useEffect(() => {
+    const loadPendingStores = async () => {
+      try {
+        const res = await fetch('/api/admin/pending-stores');
+        if (res.ok) {
+          const data = await res.json();
+          setPendingStores(data);
+        }
+      } catch (err) {
+        console.error('Error loading pending stores:', err);
+      }
+    };
+    
+    if (section === 'approvals') {
+      loadPendingStores();
+    }
+  }, [section]);
   
   useEffect(() => {
     if (section === 'settings') {
@@ -2732,6 +2758,7 @@ const AdminDashboard = () => {
         // Keep dialog open so user can send WhatsApp message manually
         // Refresh
         fetch('/api/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh stores error:', err));
+        fetch('/api/admin/pending-stores').then(res => res.json()).then(setPendingStores).catch(err => console.error('Refresh pending stores error:', err));
         fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Refresh stats error:', err));
       } else {
         const errorMsg = data.error || "خطأ غير معروف عند تفعيل المتجر";
@@ -2753,6 +2780,7 @@ const AdminDashboard = () => {
       if (res.ok) {
         alert("تم رفض طلب المتجر بنجاح");
         fetch('/api/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
+        fetch('/api/admin/pending-stores').then(res => res.json()).then(setPendingStores).catch(err => console.error('Refresh pending stores error:', err));
         fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Stats refresh error:', err));
       } else {
         alert("فشل رفض المتجر: " + (data.error || "خطأ غير معروف"));
@@ -3542,13 +3570,13 @@ const AdminDashboard = () => {
           <h3 className={cn("font-normal text-xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>طلبات انضمام المتاجر</h3>
         </div>
         <div className={cn("divide-y", isDarkMode ? "divide-gray-700" : "divide-black/5")}>
-          {pendingStores.length === 0 ? (
+          {filteredPendingStores.length === 0 ? (
             <div className="p-16 text-center text-gray-400">
               <StoreIcon size={48} className="mx-auto mb-4 opacity-20" />
               <p className="font-normal">{dashboardQuery ? 'لا توجد نتائج تطابق بحثك.' : 'لا توجد طلبات معلقة حالياً'}</p>
             </div>
           ) : (
-            pendingStores.map(store => (
+            filteredPendingStores.map(store => (
               <div key={store.id} className={cn("p-6 flex items-center justify-between transition-colors", isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-50")}>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600">
@@ -3589,7 +3617,7 @@ const AdminDashboard = () => {
 
   const sidebarCounts = {
     stores: stats.totalStores || 0,
-    approvals: stores.filter(isStorePending).length,
+    approvals: pendingStores.length,
     users: adminUsers.length
   };
 

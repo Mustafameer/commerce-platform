@@ -2128,6 +2128,30 @@ async function startServer() {
       }
     });
 
+    // Get pending stores (awaiting approval)
+    app.get("/api/admin/pending-stores", async (req, res) => {
+      try {
+        const result = await pool.query(`
+          SELECT s.*, u.name as owner_name_from_user, u.phone as owner_phone_from_user, u.email as owner_email_from_user
+          FROM stores s
+          LEFT JOIN users u ON s.owner_id = u.id
+          WHERE s.status = 'pending' OR (s.is_active = false AND s.status IS NULL)
+          ORDER BY s.created_at DESC
+        `);
+        
+        const stores = result.rows.map(store => ({
+          ...store,
+          owner_name: store.owner_name || store.owner_name_from_user || 'غير معروف',
+          owner_phone: store.owner_phone || store.owner_phone_from_user || '',
+          owner_email: store.owner_email || store.owner_email_from_user || ''
+        }));
+        
+        res.json(stores);
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
     // Delete store (soft delete - mark as inactive)
     app.delete("/api/admin/delete-store/:id", async (req, res) => {
       try {
