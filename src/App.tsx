@@ -11408,9 +11408,18 @@ const MerchantTopupDashboard = () => {
                 <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>📋 كشف حساب العميل</h3>
                 <p className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>{selectedCustomerStatement.name} • {selectedCustomerStatement.phone}</p>
               </div>
-              <button onClick={() => setShowCustomerStatement(false)} className="p-1 hover:bg-gray-300/20 rounded">
-                <X size={20} className={isDarkMode ? "text-white" : "text-gray-900"} />
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setShowPaymentForm(true)} 
+                  className={cn("p-2 rounded-lg transition-all", isDarkMode ? "hover:bg-gray-600 text-green-400" : "hover:bg-gray-200 text-green-600")}
+                  title="تسديد دفعة"
+                >
+                  <CreditCard size={20} />
+                </button>
+                <button onClick={() => setShowCustomerStatement(false)} className="p-1 hover:bg-gray-300/20 rounded">
+                  <X size={20} className={isDarkMode ? "text-white" : "text-gray-900"} />
+                </button>
+              </div>
             </div>
             <div className="p-4 space-y-4">
               {/* Customer Info - Compact */}
@@ -11488,92 +11497,123 @@ const MerchantTopupDashboard = () => {
                 )}
               </div>
 
-              {/* Add Payment Section for Merchant */}
-              <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300")}>
-                <h4 className={cn("text-xs font-bold mb-2", isDarkMode ? "text-green-300" : "text-green-700")}>💳 إضافة تسديد</h4>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    value={merchantPaymentAmount}
-                    onChange={(e) => setMerchantPaymentAmount(e.target.value)}
-                    placeholder="المبلغ"
-                    max={Math.max(0, selectedCustomerStatement.current_debt || 0)}
-                    className={cn("flex-1 px-2 py-1 rounded text-xs border", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
-                  />
-                  <button
-                    onClick={async () => {
-                      if (!selectedCustomerStatement?.customer_id || !merchantPaymentAmount) {
-                        alert('⚠️ يرجى إدخال المبلغ');
-                        return;
-                      }
-
-                      const amount = parseFloat(merchantPaymentAmount);
-                      if (isNaN(amount) || amount <= 0) {
-                        alert('⚠️ يرجى إدخال مبلغ صحيح أكبر من الصفر');
-                        return;
-                      }
-
-                      const storeId = actualStoreId;
-                      if (!storeId) {
-                        alert('⚠️ لم يتم العثور على معرف المتجر');
-                        return;
-                      }
-
-                      setIsProcessingMerchantPayment(true);
-                      try {
-                        const paymentData = {
-                          customer_id: selectedCustomerStatement.customer_id,
-                          store_id: storeId,
-                          amount: amount,
-                          payment_method: 'manual',
-                          notes: 'تسديد يدوي من قبل التاجر'
-                        };
-
-                        console.log('💳 Sending payment:', paymentData);
-
-                        const res = await fetch('/api/customer-payments', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify(paymentData)
-                        });
-
-                        const data = await res.json();
-                        console.log('📬 Server Response:', { status: res.status, ok: res.ok, data });
-
-                        if (res.ok) {
-                          console.log('✅ Payment processed successfully');
-                          alert('✅ تم تسديد المبلغ بنجاح!');
-                          setMerchantPaymentAmount('');
-                          
-                          if (selectedCustomerStatement?.customer_id) {
-                            setTimeout(() => {
-                              handleLoadCustomerStatement(selectedCustomerStatement.customer_id);
-                            }, 500);
-                          }
-                        } else {
-                          alert('❌ فشل تسديد المبلغ: ' + (data?.error || 'خطأ غير معروف'));
-                        }
-                      } catch (error) {
-                        console.error('❌ Error processing payment:', error);
-                        alert('❌ حدث خطأ: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
-                      } finally {
-                        setIsProcessingMerchantPayment(false);
-                      }
-                    }}
-                    disabled={isProcessingMerchantPayment}
-                    className={cn("px-3 py-1 rounded text-xs text-white font-normal transition-colors whitespace-nowrap", isProcessingMerchantPayment ? "opacity-50 bg-gray-500" : "bg-green-600 hover:bg-green-700")}
-                  >
-                    {isProcessingMerchantPayment ? '...' : '✓'}
-                  </button>
-                </div>
-              </div>
-
               <button
                 onClick={() => setShowCustomerStatement(false)}
                 className={cn("w-full py-2 rounded-lg font-normal text-sm transition-all", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-200 hover:bg-gray-300")}
               >
                 إغلاق
               </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Payment Form Modal */}
+      {showPaymentForm && selectedCustomerStatement && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[101] flex items-center justify-center p-4" dir="rtl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={cn("rounded-2xl w-full max-w-md shadow-2xl", isDarkMode ? "bg-gray-800" : "bg-white")}
+          >
+            <div className={cn("p-4 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
+              <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>💳 تسديد دفعة</h3>
+              <button onClick={() => setShowPaymentForm(false)} className="p-1 hover:bg-gray-300/20 rounded">
+                <X size={20} className={isDarkMode ? "text-white" : "text-gray-900"} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>العميل</p>
+                <p className={cn("text-base font-bold", isDarkMode ? "text-white" : "text-gray-900")}>{selectedCustomerStatement.name}</p>
+              </div>
+              
+              <div>
+                <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>الديون الحالية</p>
+                <p className={cn("text-2xl font-bold", isDarkMode ? "text-red-400" : "text-red-600")}>{Math.round(selectedCustomerStatement.current_debt || 0)?.toLocaleString('en-US')} د.ع</p>
+              </div>
+
+              <div>
+                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>مبلغ الدفعة</label>
+                <input
+                  type="number"
+                  value={paymentFormAmount}
+                  onChange={(e) => setPaymentFormAmount(e.target.value)}
+                  placeholder="أدخل المبلغ"
+                  max={Math.max(0, selectedCustomerStatement.current_debt || 0)}
+                  className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-200")}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <button
+                  onClick={async () => {
+                    if (!selectedCustomerStatement?.customer_id || !paymentFormAmount) {
+                      alert('⚠️ يرجى إدخال المبلغ');
+                      return;
+                    }
+
+                    const amount = parseFloat(paymentFormAmount);
+                    if (isNaN(amount) || amount <= 0) {
+                      alert('⚠️ يرجى إدخال مبلغ صحيح');
+                      return;
+                    }
+
+                    const storeId = actualStoreId;
+                    if (!storeId) {
+                      alert('⚠️ لم يتم العثور على معرف المتجر');
+                      return;
+                    }
+
+                    setIsProcessingPayment(true);
+                    try {
+                      const paymentData = {
+                        customer_id: selectedCustomerStatement.customer_id,
+                        store_id: storeId,
+                        amount: amount,
+                        payment_method: 'manual',
+                        notes: 'تسديد يدوي من قبل التاجر'
+                      };
+
+                      const res = await fetch('/api/customer-payments', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(paymentData)
+                      });
+
+                      const data = await res.json();
+
+                      if (res.ok) {
+                        alert('✅ تم تسديد المبلغ بنجاح!');
+                        setPaymentFormAmount('');
+                        setShowPaymentForm(false);
+                        
+                        if (selectedCustomerStatement?.customer_id) {
+                          setTimeout(() => {
+                            handleLoadCustomerStatement(selectedCustomerStatement.customer_id);
+                          }, 500);
+                        }
+                      } else {
+                        alert('❌ فشل التسديد: ' + (data?.error || 'خطأ غير معروف'));
+                      }
+                    } catch (error) {
+                      alert('❌ حدث خطأ: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
+                    } finally {
+                      setIsProcessingPayment(false);
+                    }
+                  }}
+                  disabled={isProcessingPayment || !paymentFormAmount}
+                  className={cn("flex-1 py-3 rounded-lg font-normal text-white transition-all", isProcessingPayment ? "opacity-50 bg-gray-500" : "bg-green-600 hover:bg-green-700")}
+                >
+                  {isProcessingPayment ? '⏳ جاري الإرسال...' : '✓ تأكيد'}
+                </button>
+                <button
+                  onClick={() => setShowPaymentForm(false)}
+                  className={cn("flex-1 py-3 rounded-lg font-normal transition-all", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-200 hover:bg-gray-300")}
+                >
+                  إلغاء
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -11732,8 +11772,9 @@ const TopupStorefront = () => {
   const [selectedCustomerStatement, setSelectedCustomerStatement] = useState<any>(null);
   const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
   const [isLoadingCustomerTransactions, setIsLoadingCustomerTransactions] = useState(false);
-  const [merchantPaymentAmount, setMerchantPaymentAmount] = useState('');
-  const [isProcessingMerchantPayment, setIsProcessingMerchantPayment] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentFormAmount, setPaymentFormAmount] = useState('');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Load customer data from localStorage on component mount - HIGH PRIORITY
   useEffect(() => {
