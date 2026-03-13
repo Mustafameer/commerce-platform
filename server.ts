@@ -523,6 +523,13 @@ async function runMigrations() {
     `);
     console.log("✅ Migration: images column added to topup_products");
 
+    // Add is_active column to topup_products table
+    await pool.query(`
+      ALTER TABLE topup_products
+      ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+    `);
+    console.log("✅ Migration: is_active column added to topup_products");
+
     // Add auction columns to products table
     await pool.query(`
       ALTER TABLE products
@@ -3860,6 +3867,7 @@ async function startServer() {
             tp.wholesale_price AS bulk_price,
             tp.available_codes,
             tp.codes,
+            tp.images,
             tc.name as company_name,
             tpc.name as category_name
           FROM topup_products tp
