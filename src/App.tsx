@@ -10410,11 +10410,11 @@ const MerchantTopupDashboard = () => {
                     </thead>
                   <tbody>
                     {products.filter(p => {
-                      const imagesCount = (p.images && Array.isArray(p.images)) ? p.images.filter((img: any) => img && img.length > 0).length : 0;
+                      const imagesCount = (p.images && Array.isArray(p.images)) ? p.images.filter((img: any) => img && String(img).length > 0).length : 0;
                       return imagesCount > 0;
                     }).length > 0 ? (
                       products.map(product => {
-                        const imagesCount = (product.images && Array.isArray(product.images)) ? product.images.filter((img: any) => img && img.length > 0).length : 0;
+                        const imagesCount = (product.images && Array.isArray(product.images)) ? product.images.filter((img: any) => img && String(img).length > 0).length : 0;
                         return imagesCount > 0 && (
                           <tr key={product.id} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{product.company_name}</td>
@@ -10422,8 +10422,10 @@ const MerchantTopupDashboard = () => {
                             <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-green-400" : "text-green-600")}>{imagesCount}</td>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-gray-300" : "text-gray-700")}>
                               <div className="flex flex-wrap gap-2">
-                                {product.images && Array.isArray(product.images) && product.images.slice(0, 5).map((imageUrl: any, idx: number) => (
-                                  imageUrl && imageUrl.length > 0 ? (
+                                {product.images && Array.isArray(product.images) && product.images
+                                  .filter((img: any) => img && String(img).length > 0)
+                                  .slice(0, 5)
+                                  .map((imageUrl: any, idx: number) => (
                                     <a 
                                       key={idx} 
                                       href={imageUrl}
@@ -10433,11 +10435,10 @@ const MerchantTopupDashboard = () => {
                                     >
                                       📷 صورة {idx + 1}
                                     </a>
-                                  ) : null
-                                ))}
-                                {product.images && product.images.filter((img: any) => img && img.length > 0).length > 5 && (
+                                  ))}
+                                {product.images && Array.isArray(product.images) && product.images.filter((img: any) => img && String(img).length > 0).length > 5 && (
                                   <span className={cn("px-2 py-1 text-xs rounded", isDarkMode ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-600")}>
-                                    +{product.images.filter((img: any) => img && img.length > 0).length - 5} صور أخرى
+                                    +{product.images.filter((img: any) => img && String(img).length > 0).length - 5} صور أخرى
                                   </span>
                                 )}
                               </div>
