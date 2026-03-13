@@ -10390,9 +10390,13 @@ const MerchantTopupDashboard = () => {
             </div>
           )}
 
-          {/* Codes Section */}
+          {/* Card Images Section - صور البطاقات */}
           {currentSection === 'codes' && (
             <div className="space-y-6">
+              <div className="flex items-center gap-2 mb-4">
+                <h2 className={cn("text-2xl font-normal", isDarkMode ? "text-white" : "text-gray-900")}>🖼️ صور البطاقات المرفوعة</h2>
+              </div>
+              
               <Card className={cn("overflow-hidden", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
                 <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
                   <table className="w-full">
@@ -10400,32 +10404,40 @@ const MerchantTopupDashboard = () => {
                       <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
                         <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الشركة</th>
                         <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>المبلغ</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>عدد الأكواد</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الأكواد</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>عدد الصور</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الصور المرفوعة</th>
                       </tr>
                     </thead>
                   <tbody>
                     {products.filter(p => {
-                      const codesCount = typeof p.available_codes === 'number' ? p.available_codes : (p.codes && p.codes.length > 0 ? p.codes.length : 0);
-                      return codesCount > 0;
+                      const imagesCount = (p.images && Array.isArray(p.images)) ? p.images.filter((img: any) => img && img.length > 0).length : 0;
+                      return imagesCount > 0;
                     }).length > 0 ? (
                       products.map(product => {
-                        const codesCount = typeof product.available_codes === 'number' ? product.available_codes : (product.codes && product.codes.length > 0 ? product.codes.length : 0);
-                        return codesCount > 0 && (
+                        const imagesCount = (product.images && Array.isArray(product.images)) ? product.images.filter((img: any) => img && img.length > 0).length : 0;
+                        return imagesCount > 0 && (
                           <tr key={product.id} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{product.company_name}</td>
-                            <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{product.amount?.toLocaleString('en-US')}</td>
-                            <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-green-400" : "text-green-600")}>{codesCount}</td>
+                            <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{product.amount?.toLocaleString('en-US')} د.ع</td>
+                            <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-green-400" : "text-green-600")}>{imagesCount}</td>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-gray-300" : "text-gray-700")}>
                               <div className="flex flex-wrap gap-2">
-                                {product.codes && Array.isArray(product.codes) && product.codes.slice(0, 5).map((code, idx) => (
-                                  <span key={idx} className={cn("px-2 py-1 text-xs rounded", isDarkMode ? "bg-gray-700 text-blue-300" : "bg-blue-50 text-blue-700")}>
-                                    {code}
-                                  </span>
+                                {product.images && Array.isArray(product.images) && product.images.slice(0, 5).map((imageUrl: any, idx: number) => (
+                                  imageUrl && imageUrl.length > 0 ? (
+                                    <a 
+                                      key={idx} 
+                                      href={imageUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={cn("inline-block px-2 py-1 text-xs rounded hover:opacity-80 transition-opacity cursor-pointer", isDarkMode ? "bg-blue-900 text-blue-300" : "bg-blue-50 text-blue-700")}
+                                    >
+                                      📷 صورة {idx + 1}
+                                    </a>
+                                  ) : null
                                 ))}
-                                {product.codes && product.codes.length > 5 && (
+                                {product.images && product.images.filter((img: any) => img && img.length > 0).length > 5 && (
                                   <span className={cn("px-2 py-1 text-xs rounded", isDarkMode ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-600")}>
-                                    +{product.codes.length - 5} أكثر
+                                    +{product.images.filter((img: any) => img && img.length > 0).length - 5} صور أخرى
                                   </span>
                                 )}
                               </div>
@@ -10436,7 +10448,7 @@ const MerchantTopupDashboard = () => {
                     ) : (
                       <tr className={cn("border-t", isDarkMode ? "border-gray-700" : "border-gray-200")}>
                         <td colSpan={4} className={cn("px-6 py-8 text-center", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                          🔑 الأكواد المرفوعة ستظهر هنا
+                          📸 الصور المرفوعة ستظهر هنا
                         </td>
                       </tr>
                     )}
