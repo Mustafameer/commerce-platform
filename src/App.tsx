@@ -1926,7 +1926,8 @@ const MobileFooterNav = () => {
 
   const handleDashboardSelect = (section: string) => {
     if (user) {
-      navigate(`/merchant/${section}`);
+      const basePath = user.store_type === 'topup' ? '/topup-merchant' : '/merchant';
+      navigate(`${basePath}/${section}`);
     } else {
       navigate('/login');
     }
@@ -2115,9 +2116,12 @@ const LoginPage = () => {
         setUser(user);
         if (user.role === 'admin') navigate('/admin');
         else if (user.role === 'merchant') {
-          // For merchants, always go to regular merchant dashboard
-          // TopupStorefront is for customers, not merchants
-          navigate('/merchant');
+          // Check store type for correct routing
+          if (user.store_type === 'topup') {
+            navigate('/topup-merchant');
+          } else {
+            navigate('/merchant');
+          }
         }
         else navigate('/');
       } else {
@@ -9143,7 +9147,7 @@ function App() {
           <Route path="/store/:slug" element={<CustomerStorefront />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/topup-cart" element={<TopupCartPage />} />
-          <Route path="/login" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'merchant' ? '/merchant' : '/'} replace /> : <LoginPage />} />
+          <Route path="/login" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'merchant' ? (user.store_type === 'topup' ? '/topup-merchant' : '/merchant') : '/'} replace /> : <LoginPage />} />
           <Route path="/register-merchant" element={<RegisterMerchantPage />} />
           
           {/* Info Pages */}
