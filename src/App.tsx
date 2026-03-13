@@ -4876,113 +4876,9 @@ const MerchantDashboard = () => {
     );
   }
 
-  // Render new product modal with image upload
+  // Stub - product modal is rendered directly in JSX below
   const renderProductModal = () => {
-    if (!showProductModal) return null;
-    
-    return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" dir="rtl">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className={cn("rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
-        >
-          <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
-            <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>{isEditingProduct ? 'تعديل المنتج' : 'إضافة منتج جديد'}</h3>
-            <button onClick={() => setShowProductModal(false)}>
-              <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
-            </button>
-          </div>
-          <div className="p-6 space-y-4">
-            <div>
-              <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>الشركة</label>
-              <select
-                value={productForm.company_id}
-                onChange={(e) => setProductForm({ ...productForm, company_id: e.target.value })}
-                className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200")}
-              >
-                <option value="">اختر شركة</option>
-                {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>المبلغ</label>
-              <input
-                type="number"
-                value={productForm.amount}
-                onChange={(e) => setProductForm({ ...productForm, amount: e.target.value })}
-                placeholder="المبلغ (5000, 10000...)"
-                className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
-              />
-            </div>
-
-            {/* Images Upload Section */}
-            <div>
-              <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>🖼️ صور البطاقات (اختياري)</label>
-              <label className={cn("border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all", productImages.length > 0 ? "border-blue-500 bg-blue-50/10" : isDarkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-200 hover:border-gray-300")}>
-                <input
-                  type="file"
-                  multiple
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    setProductImages(files);
-                  }}
-                  className="hidden"
-                  accept="image/*"
-                />
-                {productImages.length > 0 ? (
-                  <div>
-                    <p className={cn("text-sm font-normal", isDarkMode ? "text-blue-400" : "text-blue-600")}>
-                      ✓ {productImages.length} صورة
-                    </p>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setProductImages([]);
-                      }}
-                      className={cn("mt-2 text-xs px-3 py-1 rounded", isDarkMode ? "bg-red-900 text-red-200 hover:bg-red-800" : "bg-red-100 text-red-600 hover:bg-red-200")}
-                    >
-                      حذف
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>🖼️ اختر صور</p>
-                    <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>اسحب أو انقر</p>
-                  </div>
-                )}
-              </label>
-            </div>
-
-            <div>
-              <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>السعر</label>
-              <input
-                type="number"
-                value={productForm.price}
-                onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                placeholder="السعر (بالدينار)"
-                className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
-              />
-            </div>
-            <div>
-              <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>سعر الجملة</label>
-              <input
-                type="number"
-                value={productForm.bulk_price}
-                onChange={(e) => setProductForm({ ...productForm, bulk_price: e.target.value })}
-                placeholder="سعر الجملة (اختياري)"
-                className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
-              />
-            </div>
-
-            <button onClick={saveProduct} className="w-full py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700">
-              {isEditingProduct ? 'تحديث' : 'إضافة'}
-            </button>
-          </div>
-        </motion.div>
-      </div>
-    );
+    return null;
   };
 
   const renderCategoryModal = () => {
@@ -10817,6 +10713,111 @@ const MerchantTopupDashboard = () => {
       )}
 
       {renderProductModal()}
+
+      {/* Product Modal with Image Upload */}
+      {showProductModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" dir="rtl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={cn("rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
+          >
+            <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
+              <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>{isEditingProduct ? 'تعديل المنتج' : 'إضافة منتج جديد'}</h3>
+              <button onClick={() => setShowProductModal(false)}>
+                <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>الشركة</label>
+                <select
+                  value={productForm.company_id}
+                  onChange={(e) => setProductForm({ ...productForm, company_id: e.target.value })}
+                  className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200")}
+                >
+                  <option value="">اختر شركة</option>
+                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>المبلغ</label>
+                <input
+                  type="number"
+                  value={productForm.amount}
+                  onChange={(e) => setProductForm({ ...productForm, amount: e.target.value })}
+                  placeholder="المبلغ (5000, 10000...)"
+                  className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                />
+              </div>
+
+              {/* Images Upload Section - MOVED HERE */}
+              <div>
+                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>🖼️ صور البطاقات (اختياري)</label>
+                <label className={cn("border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all", productImages.length > 0 ? "border-blue-500 bg-blue-50/10" : isDarkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-200 hover:border-gray-300")}>
+                  <input
+                    type="file"
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setProductImages(files);
+                    }}
+                    className="hidden"
+                    accept="image/*"
+                  />
+                  {productImages.length > 0 ? (
+                    <div>
+                      <p className={cn("text-sm font-normal", isDarkMode ? "text-blue-400" : "text-blue-600")}>
+                        ✓ {productImages.length} صورة
+                      </p>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setProductImages([]);
+                        }}
+                        className={cn("mt-2 text-xs px-3 py-1 rounded", isDarkMode ? "bg-red-900 text-red-200 hover:bg-red-800" : "bg-red-100 text-red-600 hover:bg-red-200")}
+                      >
+                        حذف
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>🖼️ اختر صور</p>
+                      <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>اسحب أو انقر</p>
+                    </div>
+                  )}
+                </label>
+              </div>
+
+              <div>
+                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>السعر</label>
+                <input
+                  type="number"
+                  value={productForm.price}
+                  onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                  placeholder="السعر (بالدينار)"
+                  className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                />
+              </div>
+              <div>
+                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>سعر الجملة</label>
+                <input
+                  type="number"
+                  value={productForm.bulk_price}
+                  onChange={(e) => setProductForm({ ...productForm, bulk_price: e.target.value })}
+                  placeholder="سعر الجملة (اختياري)"
+                  className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                />
+              </div>
+
+              <button onClick={saveProduct} className="w-full py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700">
+                {isEditingProduct ? 'تحديث' : 'إضافة'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Images Upload Modal */}
       {showCodeUploadModal && (
