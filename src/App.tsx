@@ -9301,7 +9301,7 @@ const MerchantTopupDashboard = () => {
   const [companyForm, setCompanyForm] = useState({ name: '', logo_url: '' });
   const [productForm, setProductForm] = useState({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
   const [productImages, setProductImages] = useState<File[]>([]);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [customerForm, setCustomerForm] = useState({ name: '', phone: '', email: '', password: '', customer_type: 'cash', credit_limit: '0', starting_balance: '' });
   const [storeSettings, setStoreSettings] = useState({ store_name: '', logo_url: '' });
@@ -9910,8 +9910,8 @@ const MerchantTopupDashboard = () => {
   };
 
   const handleUploadCodes = async () => {
-    if (!uploadedFile) {
-      alert('يرجى اختيار صورة');
+    if (uploadedFiles.length === 0) {
+      alert('يرجى اختيار صور');
       return;
     }
 
@@ -9920,17 +9920,10 @@ const MerchantTopupDashboard = () => {
       return;
     }
 
-    // Check file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (uploadedFile.size > maxSize) {
-      alert(`حجم الملف كبير جداً. الحد الأقصى: 5MB\nحجم الملف الحالي: ${(uploadedFile.size / 1024 / 1024).toFixed(2)}MB`);
-      return;
-    }
-
     setIsUploadingImage(true);
     try {
       // Helper function to fetch with timeout
-      const fetchWithTimeout = (url: string, options: any, timeoutMs: number = 15000) => {
+      const fetchWithTimeout = (url: string, options: any, timeoutMs: number = 30000) => {
         return Promise.race([
           fetch(url, options),
           new Promise((_, reject) =>
@@ -9939,18 +9932,38 @@ const MerchantTopupDashboard = () => {
         ]);
       };
 
-      // Wrap FileReader in Promise to properly wait for file loading
-      const imageData = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const data = e.target?.result as string;
-          resolve(data);
-        };
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(uploadedFile);
-      });
+      // Helper to convert file to base64
+      const fileToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const data = e.target?.result as string;
+            resolve(data);
+          };
+          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.readAsDataURL(file);
+        });
+      };
 
-      console.log('📤 Starting image upload for product:', selectedProductForCodes);
+      console.log('📤 Starting upload for', uploadedFiles.length, 'images for product:', selectedProductForCodes);
+      
+      // Convert all files to base64
+      const imageDataList = await Promise.all(
+        uploadedFiles.map(file => fileToBase64(file).catch(err => {
+          console.warn('⚠️ Error converting file', file.name, ':', err);
+          return null;
+        }))
+      );
+
+      // Filter out any failed conversions
+      const validImages = imageDataList.filter((img): img is string => img !== null);
+      
+      if (validImages.length === 0) {
+        alert('فشل تحويل الصور. يرجى المحاولة مرة أخرى.');
+        return;
+      }
+
+      console.log('✔️ Converted', validImages.length, 'images successfully');
       
       const response = await fetchWithTimeout('/api/topup/upload-images', {
         method: 'POST',
@@ -9958,17 +9971,17 @@ const MerchantTopupDashboard = () => {
         body: JSON.stringify({
           store_id: topupStoreId,
           topup_product_id: selectedProductForCodes,
-          images: [imageData]
+          images: validImages
         })
       });
 
       const responseData = await response.json();
 
       if (response.ok) {
-        console.log('✅ Image uploaded successfully');
-        alert(responseData.message || 'تم تحميل الصورة بنجاح!');
+        console.log('✅ All images uploaded successfully');
+        alert(responseData.message || `تم تحميل ${validImages.length} صورة بنجاح!`);
         setShowCodeUploadModal(false);
-        setUploadedFile(null);
+        setUploadedFiles([]);
         setSelectedProductForCodes(null);
         
         // Refresh products with timeout
@@ -10978,46 +10991,61 @@ const MerchantTopupDashboard = () => {
               <p className={cn("text-sm", isDarkMode ? "text-white" : "text-gray-600")}>
                 رفع صور بطاقات الشحن (الكود والسيريال مطبوع على الصورة)
               </p>
-              <label className={cn("border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all", uploadedFile ? "border-green-500 bg-green-50/10" : isDarkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-200 hover:border-gray-300")}>
+              <label className={cn("border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all", uploadedFiles.length > 0 ? "border-green-500 bg-green-50/10" : isDarkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-200 hover:border-gray-300")}>
                 <input
                   type="file"
+                  multiple
                   onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
+                    const files = Array.from(e.target.files || []);
+                    const validFiles: File[] = [];
+                    let hasError = false;
+
+                    for (const file of files) {
                       // Check file size (max 5MB)
                       const maxSize = 5 * 1024 * 1024; // 5MB
                       if (file.size > maxSize) {
-                        alert(`حجم الملف كبير جداً. الحد الأقصى: 5MB\nحجم الملف الحالي: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-                        e.target.value = ''; // Clear input
-                        setUploadedFile(null);
+                        alert(`حجم الملف "${file.name}" كبير جداً. الحد الأقصى: 5MB (الحجم الحالي: ${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+                        hasError = true;
+                      } else if (!file.type.startsWith('image/')) {
+                        alert(`الملف "${file.name}" ليس صورة. الرجاء اختيار ملفات صور فقط.`);
+                        hasError = true;
                       } else {
-                        setUploadedFile(file);
+                        validFiles.push(file);
                       }
-                    } else {
-                      setUploadedFile(null);
+                    }
+
+                    if (!hasError) {
+                      setUploadedFiles(validFiles);
                     }
                   }}
                   className="hidden"
                   accept="image/*"
                 />
-                {uploadedFile ? (
-                  <div className={cn("font-normal", isDarkMode ? "text-green-400" : "text-green-600")}>
-                    <div>{uploadedFile.name}</div>
-                    <div className="text-xs mt-1 opacity-70">{(uploadedFile.size / 1024).toFixed(2)} KB</div>
+                {uploadedFiles.length > 0 ? (
+                  <div className={cn("font-normal space-y-2", isDarkMode ? "text-green-400" : "text-green-600")}>
+                    <div className="font-semibold">✓ تم اختيار {uploadedFiles.length} صورة</div>
+                    <div className="max-h-32 overflow-y-auto text-xs space-y-1">
+                      {uploadedFiles.map((file, idx) => (
+                        <div key={idx} className="flex items-center justify-between bg-white/10 p-2 rounded">
+                          <span>{file.name}</span>
+                          <span className="opacity-70">({(file.size / 1024).toFixed(1)} KB)</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div>
-                    <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>اختر صورة أو اسحبها هنا</p>
-                    <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>JPG أو PNG أو WebP (الحد الأقصى 5MB)</p>
+                    <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>اختر صور أو اسحبها هنا</p>
+                    <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>يمكنك اختيار عدة صور (JPG أو PNG أو WebP، الحد الأقصى 5MB لكل صورة)</p>
                   </div>
                 )}
               </label>
               <button 
                 onClick={handleUploadCodes} 
-                disabled={isUploadingImage || !uploadedFile}
+                disabled={isUploadingImage || uploadedFiles.length === 0}
                 className={cn("w-full py-3 text-white font-normal rounded-lg transition-all", isUploadingImage ? "bg-green-500 cursor-not-allowed opacity-70" : "bg-green-600 hover:bg-green-700")}
               >
-                {isUploadingImage ? '⏳ جاري التحميل...' : 'رفع الصورة'}
+                {isUploadingImage ? '⏳ جاري التحميل...' : `رفع ${uploadedFiles.length} صورة`}
               </button>
             </div>
           </motion.div>
