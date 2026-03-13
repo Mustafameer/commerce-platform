@@ -11824,17 +11824,20 @@ const TopupStorefront = () => {
     console.log(`📡 API_BASE_URL: "${API_BASE_URL}"`);
     
     const fetchData = async () => {
+      console.log('📋 fetchData: Starting fetch operation');
+      let hasError = false;
+      
       try {
         // إضافة timestamp لفرض جلب البيانات الجديدة من قاعدة البيانات
         const timestamp = Date.now();
         console.log('🔍 Fetching products with timestamp:', timestamp);
         
-        // Create AbortController with 30-second timeout (Railway can be slow)
+        // Create AbortController with 60-second timeout (increased from 30)
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
-          console.warn('⏱️ Fetch timeout after 30 seconds');
+          console.warn('⏱️ Fetch timeout after 60 seconds - aborting');
           controller.abort();
-        }, 30000);
+        }, 60000);
         
         // First, get store by slug to get actual store ID
         let storeRes;
@@ -11860,8 +11863,9 @@ const TopupStorefront = () => {
           console.log('✅ Store response received:', storeRes);
         } catch (e) {
           clearTimeout(timeoutId);
+          hasError = true;
           if (e instanceof TypeError && e.message.includes('aborted')) {
-            console.error('❌ Store fetch timeout');
+            console.error('❌ Store fetch timeout or aborted');
             alert('انتهت مهلة الاتصال بالمتجر. يرجى المحاولة لاحقاً');
           } else {
             console.error('❌ Store fetch error:', e);
@@ -11873,6 +11877,7 @@ const TopupStorefront = () => {
         
         if (!storeRes || storeRes.error) {
           clearTimeout(timeoutId);
+          hasError = true;
           console.error('Store not found:', storeRes?.error);
           alert(`متجر غير موجود: ${storeRes?.error}`);
           setLoading(false);
@@ -11885,48 +11890,54 @@ const TopupStorefront = () => {
         setStoreInfo(storeRes);
         
         // Fetch companies, categories, products with timeout
+        console.log('📡 Fetching companies...');
         const companiesRes = await fetch(`/api/topup/companies/${actualStoreId}?_t=${timestamp}`, { 
           cache: 'no-store',
           signal: controller.signal 
         }).then(async r => {
+          console.log('   Companies response status:', r.status);
           if (!r.ok) {
             console.warn('⚠️ Companies fetch returned status:', r.status);
             return [];
           }
           const data = await r.json();
-          console.log('✅ Companies fetched:', Array.isArray(data) ? data.length : 0);
+          console.log('✅ Companies fetched:', Array.isArray(data) ? data.length : 0, data);
           return Array.isArray(data) ? data : [];
         }).catch(e => {
           console.warn('⚠️ Companies fetch error (non-blocking):', e.message);
           return [];
         });
         
+        console.log('📡 Fetching categories...');
         const categoriesRes = await fetch(`/api/topup/categories/${actualStoreId}?_t=${timestamp}`, { 
           cache: 'no-store',
           signal: controller.signal 
         }).then(async r => {
+          console.log('   Categories response status:', r.status);
           if (!r.ok) {
             console.warn('⚠️ Categories fetch returned status:', r.status);
             return [];
           }
           const data = await r.json();
-          console.log('✅ Categories fetched:', Array.isArray(data) ? data.length : 0);
+          console.log('✅ Categories fetched:', Array.isArray(data) ? data.length : 0, data);
           return Array.isArray(data) ? data : [];
         }).catch(e => {
           console.warn('⚠️ Categories fetch error (non-blocking):', e.message);
           return [];
         });
         
+        console.log('📡 Fetching products...');
         const productsRes = await fetch(`/api/topup/products/${actualStoreId}?_t=${timestamp}`, { 
           cache: 'no-store',
           signal: controller.signal 
         }).then(async r => {
+          console.log('   Products response status:', r.status);
           if (!r.ok) {
             console.warn('⚠️ Products fetch returned status:', r.status);
             return [];
           }
           const data = await r.json();
-          console.log('✅ Products fetched:', Array.isArray(data) ? data.length : 0);
+          console.log('✅ Products fetched:', Array.isArray(data) ? data.length : 0, data.length > 0 ? data[0] : 'empty');
           return Array.isArray(data) ? data : [];
         }).catch(e => {
           console.warn('⚠️ Products fetch error (non-blocking):', e.message);
@@ -11941,18 +11952,29 @@ const TopupStorefront = () => {
           products: productsRes.length
         });
         
+        console.log('🔄 Setting state...');
         setCompanies(companiesRes);
         setCategories(categoriesRes);
         setProducts(productsRes);
+        
+        console.log('✅ Setting loading to false');
         setLoading(false);
+        console.log('✅ Data load complete');
       } catch (error) {
-        console.error('❌ Error loading data:', error);
+        hasError = true;
+        console.error('❌ Error loading data - Caught in main try/catch:', error);
+        console.error('   Error type:', error instanceof Error ? error.constructor.name : typeof error);
+        console.error('   Error message:', error instanceof Error ? error.message : String(error));
         alert(`خطأ في تحميل البيانات: ${(error as Error).message}`);
+        console.log('✅ Setting loading to false after error');
         setLoading(false);
+      } finally {
+        console.log('📋 fetchData: Operation complete, hasError:', hasError);
       }
     };
     
     // Fetch immediately on mount
+    console.log('📍 Calling fetchData on component mount');
     fetchData();
     
     // تحديث البيانات كل 30 ثانية للتحقق من تحديثات جديدة (بدلاً من كل 3 ثواني)
@@ -11962,6 +11984,7 @@ const TopupStorefront = () => {
     }, 30000);
     
     return () => {
+      console.log('🧹 Cleaning up TopupStorefront product fetch effect');
       clearInterval(refreshInterval);
     };
   }, [storeId]);
