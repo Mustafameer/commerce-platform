@@ -9835,7 +9835,10 @@ const MerchantTopupDashboard = () => {
       console.log('📥 Product response:', responseData);
 
       if (response.ok) {
-        const productId = isEditingProduct ? isEditingProduct : responseData.product?.id;
+        // Get product ID from response - backend returns product directly
+        const productId = isEditingProduct ? isEditingProduct : (responseData.id || responseData.product?.id);
+        
+        console.log('✅ Product saved with ID:', productId);
         
         // Upload images if any are selected - wait for all to complete
         if (productImages.length > 0 && productId) {
