@@ -11823,9 +11823,15 @@ const TopupStorefront = () => {
     console.log(`🚀 TopupStorefront mount with storeId: ${storeId}`);
     console.log(`📡 API_BASE_URL: "${API_BASE_URL}"`);
     
+    let isMounted = true; // Track if component is still mounted
+    
     const fetchData = async () => {
       console.log('📋 fetchData: Starting fetch operation');
-      let hasError = false;
+      
+      if (!isMounted) {
+        console.log('❌ Component unmounted, aborting fetch');
+        return;
+      }
       
       try {
         // إضافة timestamp لفرض جلب البيانات الجديدة من قاعدة البيانات
@@ -11854,8 +11860,10 @@ const TopupStorefront = () => {
           if (!resp.ok) {
             console.error('❌ Store fetch failed:', resp.status, resp.statusText);
             clearTimeout(timeoutId);
-            alert(`خطأ: لم تتمكن من جلب بيانات المتجر (${resp.status})`);
-            setLoading(false);
+            if (isMounted) {
+              alert(`خطأ: لم تتمكن من جلب بيانات المتجر (${resp.status})`);
+              setLoading(false);
+            }
             return;
           }
           
@@ -11863,7 +11871,8 @@ const TopupStorefront = () => {
           console.log('✅ Store response received:', storeRes);
         } catch (e) {
           clearTimeout(timeoutId);
-          hasError = true;
+          if (!isMounted) return;
+          
           if (e instanceof TypeError && e.message.includes('aborted')) {
             console.error('❌ Store fetch timeout or aborted');
             alert('انتهت مهلة الاتصال بالمتجر. يرجى المحاولة لاحقاً');
@@ -11877,7 +11886,8 @@ const TopupStorefront = () => {
         
         if (!storeRes || storeRes.error) {
           clearTimeout(timeoutId);
-          hasError = true;
+          if (!isMounted) return;
+          
           console.error('Store not found:', storeRes?.error);
           alert(`متجر غير موجود: ${storeRes?.error}`);
           setLoading(false);
@@ -11886,65 +11896,73 @@ const TopupStorefront = () => {
         
         const actualStoreId = storeRes.id;
         console.log('✅ Store found:', { storeId, actualStoreId, store_name: storeRes.store_name });
-        setActualStoreId(actualStoreId);
-        setStoreInfo(storeRes);
+        if (isMounted) {
+          setActualStoreId(actualStoreId);
+          setStoreInfo(storeRes);
+        }
         
         // Fetch companies, categories, products with timeout
-        console.log('📡 Fetching companies...');
-        const companiesRes = await fetch(`/api/topup/companies/${actualStoreId}?_t=${timestamp}`, { 
-          cache: 'no-store',
-          signal: controller.signal 
-        }).then(async r => {
-          console.log('   Companies response status:', r.status);
-          if (!r.ok) {
-            console.warn('⚠️ Companies fetch returned status:', r.status);
-            return [];
-          }
-          const data = await r.json();
-          console.log('✅ Companies fetched:', Array.isArray(data) ? data.length : 0, data);
-          return Array.isArray(data) ? data : [];
-        }).catch(e => {
-          console.warn('⚠️ Companies fetch error (non-blocking):', e.message);
-          return [];
-        });
+        console.log('📡 Fetching companies, categories, and products in parallel...');
         
-        console.log('📡 Fetching categories...');
-        const categoriesRes = await fetch(`/api/topup/categories/${actualStoreId}?_t=${timestamp}`, { 
-          cache: 'no-store',
-          signal: controller.signal 
-        }).then(async r => {
-          console.log('   Categories response status:', r.status);
-          if (!r.ok) {
-            console.warn('⚠️ Categories fetch returned status:', r.status);
+        const [companiesRes, categoriesRes, productsRes] = await Promise.all([
+          fetch(`/api/topup/companies/${actualStoreId}?_t=${timestamp}`, { 
+            cache: 'no-store',
+            signal: controller.signal 
+          }).then(async r => {
+            console.log('   Companies response status:', r.status);
+            if (!r.ok) {
+              console.warn('⚠️ Companies fetch returned status:', r.status);
+              return [];
+            }
+            const data = await r.json();
+            console.log('✅ Companies fetched:', Array.isArray(data) ? data.length : 0);
+            return Array.isArray(data) ? data : [];
+          }).catch(e => {
+            console.warn('⚠️ Companies fetch error:', e.message);
             return [];
-          }
-          const data = await r.json();
-          console.log('✅ Categories fetched:', Array.isArray(data) ? data.length : 0, data);
-          return Array.isArray(data) ? data : [];
-        }).catch(e => {
-          console.warn('⚠️ Categories fetch error (non-blocking):', e.message);
-          return [];
-        });
-        
-        console.log('📡 Fetching products...');
-        const productsRes = await fetch(`/api/topup/products/${actualStoreId}?_t=${timestamp}`, { 
-          cache: 'no-store',
-          signal: controller.signal 
-        }).then(async r => {
-          console.log('   Products response status:', r.status);
-          if (!r.ok) {
-            console.warn('⚠️ Products fetch returned status:', r.status);
+          }),
+          
+          fetch(`/api/topup/categories/${actualStoreId}?_t=${timestamp}`, { 
+            cache: 'no-store',
+            signal: controller.signal 
+          }).then(async r => {
+            console.log('   Categories response status:', r.status);
+            if (!r.ok) {
+              console.warn('⚠️ Categories fetch returned status:', r.status);
+              return [];
+            }
+            const data = await r.json();
+            console.log('✅ Categories fetched:', Array.isArray(data) ? data.length : 0);
+            return Array.isArray(data) ? data : [];
+          }).catch(e => {
+            console.warn('⚠️ Categories fetch error:', e.message);
             return [];
-          }
-          const data = await r.json();
-          console.log('✅ Products fetched:', Array.isArray(data) ? data.length : 0, data.length > 0 ? data[0] : 'empty');
-          return Array.isArray(data) ? data : [];
-        }).catch(e => {
-          console.warn('⚠️ Products fetch error (non-blocking):', e.message);
-          return [];
-        });
+          }),
+          
+          fetch(`/api/topup/products/${actualStoreId}?_t=${timestamp}`, { 
+            cache: 'no-store',
+            signal: controller.signal 
+          }).then(async r => {
+            console.log('   Products response status:', r.status);
+            if (!r.ok) {
+              console.warn('⚠️ Products fetch returned status:', r.status);
+              return [];
+            }
+            const data = await r.json();
+            console.log('✅ Products fetched:', Array.isArray(data) ? data.length : 0);
+            return Array.isArray(data) ? data : [];
+          }).catch(e => {
+            console.warn('⚠️ Products fetch error:', e.message);
+            return [];
+          })
+        ]);
         
         clearTimeout(timeoutId);
+        
+        if (!isMounted) {
+          console.log('⚠️ Component unmounted before state update');
+          return;
+        }
         
         console.log('📊 Data Summary:', {
           companies: companiesRes.length,
@@ -11952,7 +11970,7 @@ const TopupStorefront = () => {
           products: productsRes.length
         });
         
-        console.log('🔄 Setting state...');
+        console.log('🔄 Setting state (all at once)...');
         setCompanies(companiesRes);
         setCategories(categoriesRes);
         setProducts(productsRes);
@@ -11961,15 +11979,13 @@ const TopupStorefront = () => {
         setLoading(false);
         console.log('✅ Data load complete');
       } catch (error) {
-        hasError = true;
         console.error('❌ Error loading data - Caught in main try/catch:', error);
         console.error('   Error type:', error instanceof Error ? error.constructor.name : typeof error);
         console.error('   Error message:', error instanceof Error ? error.message : String(error));
-        alert(`خطأ في تحميل البيانات: ${(error as Error).message}`);
-        console.log('✅ Setting loading to false after error');
-        setLoading(false);
-      } finally {
-        console.log('📋 fetchData: Operation complete, hasError:', hasError);
+        if (isMounted) {
+          alert(`خطأ في تحميل البيانات: ${(error as Error).message}`);
+          setLoading(false);
+        }
       }
     };
     
@@ -11979,12 +11995,15 @@ const TopupStorefront = () => {
     
     // تحديث البيانات كل 30 ثانية للتحقق من تحديثات جديدة (بدلاً من كل 3 ثواني)
     const refreshInterval = setInterval(() => {
-      console.log('🔄 Auto-refreshing products data...');
-      fetchData();
+      if (isMounted) {
+        console.log('🔄 Auto-refreshing products data...');
+        fetchData();
+      }
     }, 30000);
     
     return () => {
       console.log('🧹 Cleaning up TopupStorefront product fetch effect');
+      isMounted = false;
       clearInterval(refreshInterval);
     };
   }, [storeId]);
