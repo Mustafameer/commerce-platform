@@ -931,39 +931,37 @@ async function startServer() {
     app.get("/api/stores/slug/:slug", async (req, res) => {
       try {
         const { slug } = req.params;
+        const startTime = Date.now();
+        console.log(`📍 [STORE API] Request for slug: "${slug}" at ${startTime}`);
+        
+        // Cache for 5 minutes to reduce database load
+        res.set('Cache-Control', 'private, max-age=300');
         
         // Check if slug is numeric (ID)
         const isNumericId = /^\d+$/.test(slug);
         
         let result;
         if (isNumericId) {
-          // Search by ID
-          result = await pool.query(`
-            SELECT s.*, u.name as owner_name_from_user, u.phone as owner_phone_from_user
-            FROM stores s
-            LEFT JOIN users u ON s.owner_id = u.id
-            WHERE s.id = $1
-          `, [parseInt(slug)]);
+          // Search by ID - extremely simple and fast
+          console.log(`  ⏱️  Querying by ID: ${parseInt(slug)}`);
+          result = await pool.query(`SELECT * FROM stores WHERE id = $1 LIMIT 1`, [parseInt(slug)]);
         } else {
-          // Search by slug
-          result = await pool.query(`
-            SELECT s.*, u.name as owner_name_from_user, u.phone as owner_phone_from_user
-            FROM stores s
-            LEFT JOIN users u ON s.owner_id = u.id
-            WHERE s.slug = $1
-          `, [slug]);
+          // Search by slug - use index efficiently
+          console.log(`  ⏱️  Querying by slug: "${slug}"`);
+          result = await pool.query(`SELECT * FROM stores WHERE slug = $1 LIMIT 1`, [slug]);
         }
+        
+        const queryTime = Date.now() - startTime;
+        console.log(`  ✅ Query completed in ${queryTime}ms, rows: ${result.rows.length}`);
         
         if (result.rows.length === 0) {
           return res.status(404).json({ error: 'Store not found' });
         }
         
         const store = result.rows[0];
-        res.json({
-          ...store,
-          owner_name: store.owner_name || store.owner_name_from_user || 'غير معروف',
-          owner_phone: store.owner_phone || store.owner_phone_from_user || ''
-        });
+        const totalTime = Date.now() - startTime;
+        console.log(`  ✅ Total time: ${totalTime}ms`);
+        res.json(store);
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
       }

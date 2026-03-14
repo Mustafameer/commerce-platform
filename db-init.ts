@@ -119,6 +119,30 @@ export async function initializeDatabase(connectionString: string) {
       }
     }
 
+    // Create indexes for fast query performance
+    console.log('\n📇 [DB-INIT] Creating performance indexes...');
+    const indexes = [
+      'CREATE INDEX IF NOT EXISTS idx_stores_slug ON stores(slug);',
+      'CREATE INDEX IF NOT EXISTS idx_stores_id ON stores(id);',
+      'CREATE INDEX IF NOT EXISTS idx_topup_stores_slug ON topup_stores(slug);',
+      'CREATE INDEX IF NOT EXISTS idx_topup_companies_store_id ON topup_companies(store_id);',
+      'CREATE INDEX IF NOT EXISTS idx_topup_categories_store_id ON topup_product_categories(store_id);',
+      'CREATE INDEX IF NOT EXISTS idx_topup_products_store_id ON topup_products(store_id);',
+      'CREATE INDEX IF NOT EXISTS idx_customers_store_id ON customers(store_id);',
+      'CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);'
+    ];
+    
+    for (const indexStmt of indexes) {
+      try {
+        await client.query(indexStmt);
+      } catch (err: any) {
+        if (!err.message.includes('already exists')) {
+          console.warn('  ⚠️  [DB-INIT] Index creation warning:', err.message.substring(0, 50));
+        }
+      }
+    }
+    console.log('✅ [DB-INIT] Indexes created/verified');
+
     console.log(`\n\n✅ [DB-INIT] Database initialization complete!`);
     console.log(`📊 [DB-INIT] Statements: ${successCount} executed, ${skippedCount} skipped (already exist)`);
     
