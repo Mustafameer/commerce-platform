@@ -10386,17 +10386,24 @@ const MerchantTopupDashboard = () => {
                               {/* Statement button */}
                               <button 
                                 onClick={async () => {
+                                  setSelectedCustomerStatement(customer);
+                                  setCustomerTransactions([]);
+                                  setIsLoadingCustomerTransactions(true);
+                                  setShowCustomerStatement(true);
+                                  
                                   try {
                                     const res = await fetch(`/api/topup/customers/${customer.id}/statement`);
                                     if (res.ok) {
                                       const data = await res.json();
-                                      setSelectedCustomerStatement(customer);
                                       setCustomerTransactions(Array.isArray(data.transactions) ? data.transactions : []);
-                                      setShowCustomerStatement(true);
+                                    } else {
+                                      alert('فشل تحميل كشف الحساب');
                                     }
                                   } catch (error) {
                                     console.error('Error loading statement:', error);
                                     alert('حدث خطأ في تحميل كشف الحساب');
+                                  } finally {
+                                    setIsLoadingCustomerTransactions(false);
                                   }
                                 }}
                                 className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-blue-900/30 text-blue-400 hover:bg-blue-900/60" : "text-blue-600 hover:bg-blue-50")}
