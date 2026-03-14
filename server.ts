@@ -3835,6 +3835,21 @@ async function startServer() {
       }
     });
 
+    app.get("/api/topup/companies", async (req, res) => {
+      try {
+        // Cache for 5 minutes to reduce database load
+        res.set('Cache-Control', 'private, max-age=300');
+        
+        const result = await pool.query(
+          `SELECT * FROM topup_companies ORDER BY store_id, id`
+        );
+        
+        res.json(result.rows);
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
     app.get("/api/topup/companies/:storeId", async (req, res) => {
       try {
         const { storeId } = req.params;
@@ -3921,6 +3936,21 @@ async function startServer() {
     });
 
     // Get topup categories (all categories, not just those with products)
+    app.get("/api/topup/categories", async (req, res) => {
+      try {
+        // Cache for 5 minutes to reduce database load
+        res.set('Cache-Control', 'private, max-age=300');
+        
+        const result = await pool.query(
+          `SELECT * FROM topup_product_categories WHERE is_active = true ORDER BY store_id, id ASC`
+        );
+        
+        res.json(result.rows);
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
     app.get("/api/topup/categories/:storeId", async (req, res) => {
       try {
         const { storeId } = req.params;
@@ -3992,6 +4022,45 @@ async function startServer() {
       }
     });
 
+    // Get all topup products (without store filter)
+    app.get("/api/topup/products", async (req, res) => {
+      try {
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : 500;
+        const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+        
+        // Cache for 5 minutes to reduce database load
+        res.set('Cache-Control', 'private, max-age=300');
+        
+        const result = await pool.query(
+          `SELECT 
+            tp.id,
+            tp.store_id,
+            tp.company_id,
+            tp.category_id,
+            tp.amount,
+            tp.price,
+            tp.retail_price,
+            tp.wholesale_price,
+            tp.wholesale_price AS bulk_price,
+            tp.available_codes,
+            tp.is_active,
+            tc.name as company_name,
+            tpc.name as category_name
+          FROM topup_products tp
+          LEFT JOIN topup_companies tc ON tp.company_id = tc.id
+          LEFT JOIN topup_product_categories tpc ON tp.category_id = tpc.id
+          WHERE tp.is_active = true
+          ORDER BY tp.created_at DESC
+          LIMIT $1 OFFSET $2`,
+          [limit, offset]
+        );
+        
+        res.json(result.rows);
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
     // Get topup products
     app.get("/api/topup/products/:storeId", async (req, res) => {
       try {
@@ -4014,15 +4083,13 @@ async function startServer() {
             tp.wholesale_price,
             tp.wholesale_price AS bulk_price,
             tp.available_codes,
-            tp.codes,
-            tp.images,
             tp.is_active,
             tc.name as company_name,
             tpc.name as category_name
           FROM topup_products tp
           LEFT JOIN topup_companies tc ON tp.company_id = tc.id
           LEFT JOIN topup_product_categories tpc ON tp.category_id = tpc.id
-          WHERE tp.store_id = $1
+          WHERE tp.store_id = $1 AND tp.is_active = true
           ORDER BY tp.created_at DESC
           LIMIT $2 OFFSET $3`,
           [storeId, limit, offset]

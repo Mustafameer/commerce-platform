@@ -3871,8 +3871,6 @@ const MerchantDashboard = () => {
 
   // Customer Statement Modal States
   const [showCustomerStatement, setShowCustomerStatement] = useState(false);
-  const [showCustomerAccountModal, setShowCustomerAccountModal] = useState(false);
-  const [customerAccountModalTab, setCustomerAccountModalTab] = useState<'statement' | 'payments'>('statement');
   const [selectedCustomerStatement, setSelectedCustomerStatement] = useState<any>(null);
   const [selectedCustomerForPayments, setSelectedCustomerForPayments] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
@@ -3910,16 +3908,6 @@ const MerchantDashboard = () => {
     };
     checkStoreId();
   }, [user, setUser]);
-
-  // Monitor modal state changes for debugging
-  useEffect(() => {
-    console.log('🔍 Modal State Changed:', {
-      showCustomerAccountModal,
-      selectedCustomerForPayments: selectedCustomerForPayments?.name || null,
-      selectedCustomerStatement: selectedCustomerStatement?.name || null,
-      shouldRender: showCustomerAccountModal && (selectedCustomerForPayments || selectedCustomerStatement)
-    });
-  }, [showCustomerAccountModal, selectedCustomerForPayments, selectedCustomerStatement]);
 
   useEffect(() => {
     if (user?.store_id) {
@@ -4573,332 +4561,6 @@ const MerchantDashboard = () => {
     }
   };
 
-  // Helper function to refresh customer statement data without closing modal
-  const refreshCustomerStatement = async (customerId: number) => {
-    try {
-      console.log('🔄 [REFRESH] Starting for customer:', customerId);
-      
-      // Small delay to ensure database is updated
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const statementRes = await fetch(`/api/customers/${customerId}/statement?t=${Date.now()}`);
-      
-      if (!statementRes.ok) {
-        console.error('❌ [REFRESH] Failed to fetch:', statementRes.status);
-        return false;
-      }
-      
-      const statementData = await statementRes.json();
-      console.log('📊 [REFRESH] Data received:', {
-        name: statementData.name,
-        currentDebt: statementData.current_debt,
-        txCount: statementData.transactions?.length,
-      });
-      
-      if (statementData.transactions && statementData.transactions.length > 0) {
-        console.log('📋 [REFRESH] Transaction details:');
-        statementData.transactions.forEach((t: any, i: number) => {
-          console.log(`  [${i}] type=${t.type}, amount=${t.amount}, balance=${t.balance}`);
-        });
-      }
-      
-      // Update statement header with fresh data
-      setSelectedCustomerStatement(prev => {
-        const updated = {
-          ...prev,
-          name: statementData.name,
-          phone: statementData.phone,
-          customer_id: customerId,
-          current_debt: statementData.current_debt,
-          credit_limit: statementData.credit_limit,
-          starting_balance: statementData.starting_balance
-        };
-        console.log('✅ [REFRESH] Updated statement header:', {
-          debt: updated.current_debt,
-          available: (updated.credit_limit - updated.current_debt)
-        });
-        return updated;
-      });
-      
-      // Update transactions
-      let transactions = [];
-      if (Array.isArray(statementData.transactions)) {
-        transactions = statementData.transactions;
-        console.log('✅ [REFRESH] Setting', transactions.length, 'transactions');
-      }
-      setCustomerTransactions(transactions);
-      
-      // Refresh customers list in background
-      if (user?.store_id) {
-        try {
-          const customersRes = await fetch(`/api/merchant/customers?storeId=${user.store_id}&t=${Date.now()}`);
-          if (customersRes.ok) {
-            const updatedCustomers = await customersRes.json();
-            setCustomers(Array.isArray(updatedCustomers) ? updatedCustomers : []);
-            console.log('🔄 [REFRESH] Customers list updated');
-          }
-        } catch (err) {
-          console.warn('⚠️ [REFRESH] Could not refresh customers list:', err);
-        }
-      }
-      
-      console.log('✅ [REFRESH] Complete!');
-      return true;
-    } catch (err) {
-      console.error('❌ [REFRESH] Error:', err);
-      return false;
-    }
-  };
-
-  // Handle Load Customer Statement
-  const handleLoadStatement = async (customerId: number) => {
-    try {
-      setIsLoadingCustomerTransactions(true);
-      console.log('🔍 STARTING handleLoadStatement for customer:', customerId);
-      
-      // Ensure we have a customer ID
-      if (!customerId || customerId <= 0) {
-        console.error('❌ Invalid customer ID:', customerId);
-        setIsLoadingCustomerTransactions(false);
-        return;
-      }
-      
-      const res = await fetch(`/api/customers/${customerId}/statement`);
-      console.log('📡 Response status:', res.status);
-      
-      const data = await res.json();
-      console.log("📊 API Response full data:", data);
-      
-      if (!res.ok) {
-        console.error('❌ API Error:', data);
-        throw new Error(data.error || `HTTP ${res.status}`);
-      }
-      
-      // Handle different response formats
-      let transactions = [];
-      if (Array.isArray(data)) {
-        transactions = data;
-      } else if (data.transactions && Array.isArray(data.transactions)) {
-        transactions = data.transactions;
-      } else if (data.data && Array.isArray(data.data)) {
-        transactions = data.data;
-      } else {
-        console.warn('⚠️ Unexpected response format:', data);
-        transactions = [];
-      }
-      
-      console.log('📌 Setting transactions state with:', transactions.length, 'items');
-      setCustomerTransactions(transactions);
-      console.log('✅ Transactions loaded:', transactions.length);
-      console.log('📋 Full transactions data returned from API:');
-      transactions.forEach((t, i) => {
-        console.log(`  ${i+1}. Type: ${t.type} | Amount: ${t.amount} | Is Payment: ${t.is_payment} | Balance: ${t.balance}`);
-      });
-      if (transactions.length > 0) {
-        console.log('🔍 First transaction:', JSON.stringify(transactions[0], null, 2));
-      }
-      
-      if (transactions.length === 0) {
-        console.log('💡 No transactions found, showing opening balance or empty state');
-      }
-      
-      // Update the header info with latest data from API  
-      console.log('📝 API Response data:', { 
-        current_debt: data.current_debt, 
-        credit_limit: data.credit_limit, 
-        starting_balance: data.starting_balance,
-        name: data.name
-      });
-      
-      setSelectedCustomerStatement({
-        name: data.name || selectedCustomerStatement?.name,
-        customer_id: customerId,
-        current_debt: data.current_debt,
-        credit_limit: data.credit_limit,
-        starting_balance: data.starting_balance
-      });
-      console.log('🔄 Updated statement header with new values from API - current_debt:', data.current_debt);
-    } catch (err) {
-      console.error('🔴 Error loading statement:', err);
-      setCustomerTransactions([]);
-      const errorMsg = err instanceof Error ? err.message : 'حدث خطأ غير متوقع';
-      alert(`❌ فشل تحميل كشف الحساب\n${errorMsg}`);
-    } finally {
-      setIsLoadingCustomerTransactions(false);
-    }
-  };
-
-  // Handle merchant adding payment for customer
-  const handleAddMerchantPayment = async () => {
-    if (!selectedCustomerStatement?.customer_id || !merchantPaymentAmount) {
-      alert('⚠️ يرجى إدخال المبلغ');
-      return;
-    }
-
-    // Validate amount is a valid number
-    const amount = parseFloat(merchantPaymentAmount);
-    if (isNaN(amount) || amount <= 0) {
-      alert('⚠️ يرجى إدخال مبلغ صحيح أكبر من الصفر');
-      return;
-    }
-
-    // Get store_id from current user (merchant's store)
-    const storeId = user?.store_id || (selectedCustomerStatement as any)?.store_id;
-    if (!storeId) {
-      alert('⚠️ لم يتم العثور على معرف المتجر');
-      return;
-    }
-
-    setIsProcessingMerchantPayment(true);
-    try {
-      const paymentData = {
-        customer_id: selectedCustomerStatement.customer_id,
-        store_id: storeId,
-        amount: amount,
-        payment_method: 'manual',
-        notes: 'تسديد يدوي من قبل التاجر'
-      };
-
-      console.log('💳 Sending payment:', paymentData);
-      console.log('📊 Payment validation - customer_id:', selectedCustomerStatement.customer_id, 'store_id:', storeId, 'amount:', amount);
-
-      const res = await fetch('/api/customer-payments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(paymentData)
-      });
-
-      const data = await res.json();
-      console.log('📬 Server Response:', { status: res.status, ok: res.ok, data });
-
-      if (res.ok) {
-        console.log('✅ Payment created successfully');
-        setMerchantPaymentAmount('');
-        
-        // Immediately refresh statement without closing modal
-        const customerId = selectedCustomerStatement?.customer_id;
-        console.log('🔄 Starting refresh for customer:', customerId);
-        
-        if (customerId) {
-          const refreshed = await refreshCustomerStatement(customerId);
-          console.log('🎯 Refresh result:', refreshed ? '✅ Success' : '❌ Failed');
-          
-          // Also reload in TopupStorefront if handleLoadCustomerStatement exists
-          if (typeof handleLoadCustomerStatement === 'function') {
-            await handleLoadCustomerStatement(customerId);
-          }
-        }
-      } else {
-        const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
-        console.error('❌ Server error:', errorMsg);
-        alert(`❌ ${errorMsg}`);
-      }
-    } catch (err) {
-      console.error('❌ Payment error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير معروف';
-      alert(`❌ حدث خطأ في تسجيل الدفعة:\n${errorMessage}`);
-    } finally {
-      setIsProcessingMerchantPayment(false);
-    }
-  };
-
-  // Handle Edit Transaction
-  const handleEditTransaction = (transaction: any) => {
-    setEditingTransactionId(transaction.id);
-    setEditingTransactionAmount(transaction.amount.toString());
-    setIsEditingTransaction(true);
-  };
-
-  // Handle Save Edit Transaction
-  const handleSaveEditTransaction = async () => {
-    if (!editingTransactionId || !editingTransactionAmount) {
-      alert('⚠️ يرجى إدخال المبلغ');
-      return;
-    }
-
-    const amount = parseFloat(editingTransactionAmount);
-    if (isNaN(amount) || amount <= 0) {
-      alert('⚠️ يرجى إدخال مبلغ صحيح');
-      return;
-    }
-
-    setIsEditingTransaction(true);
-    try {
-      console.log('📝 Updating transaction:', { id: editingTransactionId, amount });
-
-      const res = await fetch(`/api/customer-payments/${editingTransactionId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount })
-      });
-
-      const data = await res.json();
-      console.log('📬 Update Response:', { status: res.status, ok: res.ok, data });
-
-      if (res.ok) {
-        alert('✅ تم تحديث المعاملة بنجاح');
-        setEditingTransactionId(null);
-        setEditingTransactionAmount('');
-        
-        // Immediately refresh statement without closing modal
-        const customerId = selectedCustomerStatement?.customer_id;
-        if (customerId) {
-          await refreshCustomerStatement(customerId);
-        }
-      } else {
-        const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
-        console.error('❌ Server error:', errorMsg);
-        alert(`❌ ${errorMsg}`);
-      }
-    } catch (err) {
-      console.error('❌ Edit error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير معروف';
-      alert(`❌ حدث خطأ في تحديث المعاملة:\n${errorMessage}`);
-    } finally {
-      setIsEditingTransaction(false);
-    }
-  };
-
-  // Handle Delete Transaction
-  const handleDeleteTransaction = async (transactionId: number) => {
-    if (!confirm('⚠️ هل أنت متأكد من حذف هذه المعاملة؟ لا يمكن استرجاع البيانات بعد ذلك')) {
-      return;
-    }
-
-    setIsDeletingTransactionId(transactionId);
-    try {
-      console.log('🗑️ Deleting transaction:', transactionId);
-
-      const res = await fetch(`/api/customer-payments/${transactionId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      const data = await res.json();
-      console.log('📬 Delete Response:', { status: res.status, ok: res.ok, data });
-
-      if (res.ok) {
-        alert('✅ تم حذف المعاملة بنجاح');
-        
-        // Immediately refresh statement without closing modal
-        const customerId = selectedCustomerStatement?.customer_id;
-        if (customerId) {
-          await refreshCustomerStatement(customerId);
-        }
-      } else {
-        const errorMsg = data.error || `خطأ من الخادم (${res.status})`;
-        console.error('❌ Server error:', errorMsg);
-        alert(`❌ ${errorMsg}`);
-      }
-    } catch (err) {
-      console.error('❌ Delete error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير معروف';
-      alert(`❌ حدث خطأ في حذف المعاملة:\n${errorMessage}`);
-    } finally {
-      setIsDeletingTransactionId(null);
-    }
-  };
-
   if (user?.role === 'merchant' && (!user.store_active || (user.store_status && user.store_status !== 'approved' && user.store_status !== 'active'))) {
     return (
       <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center p-4">
@@ -5034,7 +4696,6 @@ const MerchantDashboard = () => {
 
   const renderCustomers = () => {
     console.log('🏪 renderCustomers() called', {
-      showCustomerAccountModal,
       selectedCustomerForPayments: selectedCustomerForPayments?.name || null,
       selectedCustomerStatement: selectedCustomerStatement?.name || null,
       customersCount: customers.length
@@ -6871,210 +6532,6 @@ const MerchantDashboard = () => {
                   onClick={() => setShowCustomerStatement(false)}
                   className={cn("px-6 py-2 rounded-lg font-normal transition-all", isDarkMode ? "bg-gray-600 hover:bg-gray-500 text-gray-100" : "bg-gray-200 hover:bg-gray-300 text-gray-700")}
                 >
-                  إغلاق
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-
-        {/* Merged Customer Account Modal (Statement + Payments) */}
-        {showCustomerAccountModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto font-sans" dir="rtl">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              className={cn("rounded-2xl w-full max-w-4xl shadow-2xl border overflow-hidden max-h-[95vh] overflow-y-auto", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-white/20")}
-            >
-              {/* Header with Tabs */}
-              <div className={cn("p-6 border-b sticky top-0 z-10", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50/50 border-black/5")}>
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <h3 className={cn("text-2xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>بيانات الحساب</h3>
-                    <p className={cn("text-sm font-medium mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                      {selectedCustomerForPayments?.name || selectedCustomerStatement?.name} - {selectedCustomerForPayments?.phone || selectedCustomerStatement?.phone}
-                    </p>
-                  </div>
-                  <button 
-                    onClick={() => setShowCustomerAccountModal(false)}
-                    className={cn("p-2 rounded-lg transition-colors", isDarkMode ? "hover:bg-gray-600 text-gray-400" : "hover:bg-black/5 text-gray-400")}
-                  >
-                    <X size={24} />
-                  </button>
-                </div>
-
-                {/* Tabs */}
-                <div className="flex gap-2 border-t pt-4" style={{ borderColor: isDarkMode ? '#4B5563' : '#e5e7eb' }}>
-                  <button
-                    onClick={() => setCustomerAccountModalTab('statement')}
-                    className={cn("px-4 py-2 rounded-lg font-normal text-sm transition-all", 
-                      customerAccountModalTab === 'statement' 
-                        ? (isDarkMode ? "bg-indigo-600 text-white" : "bg-indigo-100 text-indigo-700")
-                        : (isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-600 hover:text-gray-900")
-                    )}
-                  >
-                    📋 كشف الحساب
-                  </button>
-                  <button
-                    onClick={() => setCustomerAccountModalTab('payments')}
-                    className={cn("px-4 py-2 rounded-lg font-normal text-sm transition-all", 
-                      customerAccountModalTab === 'payments' 
-                        ? (isDarkMode ? "bg-indigo-600 text-white" : "bg-indigo-100 text-indigo-700")
-                        : (isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-600 hover:text-gray-900")
-                    )}
-                  >
-                    💳 إدارة التسديدات
-                  </button>
-                </div>
-              </div>
-
-              {/* Content Area */}
-              <div className="p-6 flex-1 overflow-y-auto">
-                {/* STATEMENT TAB */}
-                {customerAccountModalTab === 'statement' && (
-                  <div className="space-y-6">
-                    {/* Credit Info Cards */}
-                    <div className={cn("grid grid-cols-3 gap-4")}>
-                      <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-blue-900/30" : "bg-blue-50")}>
-                        <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-blue-300" : "text-blue-600")}>حد الائتمان</p>
-                        <p className={cn("text-lg font-bold", isDarkMode ? "text-blue-400" : "text-blue-700")}>
-                          {formatCurrency(selectedCustomerStatement?.credit_limit || 0)}
-                        </p>
-                      </div>
-                      <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-red-900/30" : "bg-red-50")}>
-                        <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
-                        <p className={cn("text-lg font-bold", isDarkMode ? "text-red-400" : "text-red-700")}>
-                          {formatCurrency(selectedCustomerStatement?.current_debt || 0)}
-                        </p>
-                      </div>
-                      <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-green-900/30" : "bg-green-50")}>
-                        <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-green-300" : "text-green-600")}>الرصيد المتاح</p>
-                        <p className={cn("text-lg font-bold", isDarkMode ? "text-green-400" : "text-green-700")}>
-                          {formatCurrency((selectedCustomerStatement?.credit_limit || 0) - (selectedCustomerStatement?.current_debt || 0))}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Transactions Table */}
-                    {isLoadingCustomerTransactions ? (
-                      <div className="flex items-center justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }}></div>
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-right text-xs md:text-sm">
-                          <thead>
-                            <tr className={cn("border-b", isDarkMode ? "border-gray-600 bg-gray-700" : "border-gray-200 bg-gray-50")}>
-                              <th className={cn("px-4 py-2 font-bold text-xs text-left", isDarkMode ? "text-gray-300" : "text-gray-600")}>التاريخ</th>
-                              <th className={cn("px-4 py-2 font-bold text-xs text-left", isDarkMode ? "text-gray-300" : "text-gray-600")}>البيان</th>
-                              <th className={cn("px-4 py-2 font-bold text-xs text-center", isDarkMode ? "text-red-400" : "text-red-600")}>مدين</th>
-                              <th className={cn("px-4 py-2 font-bold text-xs text-center", isDarkMode ? "text-green-400" : "text-green-600")}>دائن</th>
-                              <th className={cn("px-4 py-2 font-bold text-xs text-center", isDarkMode ? "text-blue-400" : "text-blue-600")}>الرصيد</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {customerTransactions.map((tx, idx) => {
-                              const balance = Number(tx.balance) || 0;
-                              const amount = Number(tx.amount) || 0;
-                              const isPayment = tx.is_payment === true;
-                              const isDebit = !isPayment && (tx.type === 'topup' || tx.type === 'debit' || tx.type === 'opening');
-                              let type = 'معاملة';
-                              if (tx.type === 'opening') type = 'ديون سابقة';
-                              else if (isPayment) type = '✓ دفعة';
-                              else if (tx.type === 'topup') type = 'بطاقة شحن';
-                              const debit = (tx.type === 'topup' || isDebit) && amount !== 0 ? Math.abs(amount) : 0;
-                              const credit = isPayment && amount !== 0 ? Math.abs(amount) : 0;
-                              return (
-                                <tr key={idx} className={cn("border-b", isDarkMode ? "border-gray-700" : "border-gray-100")}>
-                                  <td className={cn("px-4 py-3 font-normal text-xs", isDarkMode ? "text-gray-300" : "text-gray-700")}>{new Date(tx.created_at || tx.date).toLocaleDateString('ar-IQ')}</td>
-                                  <td className={cn("px-4 py-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>{type}</td>
-                                  <td className={cn("px-4 py-3 font-bold text-center text-sm", debit > 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : "text-gray-400")}>{debit > 0 ? formatCurrency(debit) : '—'}</td>
-                                  <td className={cn("px-4 py-3 font-bold text-center text-sm", credit > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : "text-gray-400")}>{credit > 0 ? formatCurrency(credit) : '—'}</td>
-                                  <td className={cn("px-4 py-3 font-bold text-center text-sm", balance > 0 ? (isDarkMode ? "text-blue-400" : "text-blue-600") : "text-gray-400")}>{formatCurrency(balance)}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-
-                    {/* Manual Payment */}
-                    <div className={cn("p-4 border-t rounded-lg", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
-                      <h4 className={cn("font-normal text-sm mb-4", isDarkMode ? "text-gray-300" : "text-gray-700")}>💳 دفعة يدوية</h4>
-                      <div className="flex gap-3">
-                        <div className="flex-1 relative">
-                          <input type="number" value={merchantPaymentAmount} onChange={(e) => setMerchantPaymentAmount(e.target.value)} placeholder="المبلغ" className={cn("w-full px-4 py-3 border rounded-lg outline-none pl-12", isDarkMode ? "bg-gray-600 border-gray-500 text-gray-100" : "bg-white border-black/5")} />
-                          <span className={cn("absolute left-3 top-1/2 -translate-y-1/2 text-sm", isDarkMode ? "text-gray-400" : "text-gray-500")}>د.أ</span>
-                        </div>
-                        <button onClick={handleAddMerchantPayment} disabled={isProcessingMerchantPayment || !merchantPaymentAmount} className={cn("px-6 py-3 rounded-lg text-white transition-all flex gap-2", isProcessingMerchantPayment ? "opacity-50 cursor-not-allowed" : "hover:scale-105")} style={{ backgroundColor: primaryColor }}>
-                          {isProcessingMerchantPayment ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <Plus size={18} />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* PAYMENTS TAB */}
-                {customerAccountModalTab === 'payments' && (
-                  <div className="space-y-6">
-                    <div className={cn("border rounded-lg overflow-x-auto", isDarkMode ? "border-gray-700" : "border-gray-200")}>
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
-                            <th className={cn("px-4 py-3 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>المبلغ</th>
-                            <th className={cn("px-4 py-3 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>الطريقة</th>
-                            <th className={cn("px-4 py-3 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>ملاحظات</th>
-                            <th className={cn("px-4 py-3 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>التاريخ</th>
-                            <th className={cn("px-4 py-3 text-center font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>إجراءات</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {payments.length === 0 ? (
-                            <tr><td colSpan={5} className={cn("px-4 py-8 text-center", isDarkMode ? "text-gray-400" : "text-gray-500")}>لا توجد تسديدات</td></tr>
-                          ) : (
-                            payments.map((p) => (
-                              <tr key={p.id} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200")}>
-                                <td className={cn("px-4 py-3", isDarkMode ? "text-white" : "text-gray-900")}>{Math.round(p.amount)?.toLocaleString()} د.ع</td>
-                                <td className={cn("px-4 py-3", isDarkMode ? "text-gray-300" : "text-gray-600")}>{p.payment_method || '—'}</td>
-                                <td className={cn("px-4 py-3 text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>{p.notes || '—'}</td>
-                                <td className={cn("px-4 py-3 text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>{new Date(p.created_at).toLocaleDateString('ar-IQ')}</td>
-                                <td className="px-4 py-3 flex gap-2 justify-center">
-                                  <button onClick={() => { setPaymentForm({ amount: p.amount.toString(), payment_method: p.payment_method || '', notes: p.notes || '' }); setIsEditingPayment(p.id); }} className="p-2 text-blue-600 hover:bg-blue-100 rounded"><Edit2 size={16} /></button>
-                                  <button onClick={() => { if (confirm('تأكيد الحذف؟')) { fetch(`/api/customer-payments/${p.id}`, { method: 'DELETE' }).then(() => setPayments(payments.filter(x => x.id !== p.id))).catch(); } }} className="p-2 text-red-600 hover:bg-red-100 rounded"><Trash2 size={16} /></button>
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className={cn("p-4 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
-                      <h4 className={cn("font-normal text-sm mb-4", isDarkMode ? "text-white" : "text-gray-900")}>{isEditingPayment ? '✏️ تعديل' : '➕ إضافة'}</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <input type="number" value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })} placeholder="المبلغ" className={cn("px-4 py-3 rounded-lg border outline-none", isDarkMode ? "bg-gray-600 border-gray-500 text-white" : "bg-white border-gray-300")} />
-                        <input type="text" value={paymentForm.payment_method} onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })} placeholder="الطريقة" className={cn("px-4 py-3 rounded-lg border outline-none", isDarkMode ? "bg-gray-600 border-gray-500 text-white" : "bg-white border-gray-300")} />
-                        <input type="text" value={paymentForm.notes} onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })} placeholder="ملاحظات" className={cn("px-4 py-3 rounded-lg border outline-none", isDarkMode ? "bg-gray-600 border-gray-500 text-white" : "bg-white border-gray-300")} />
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => { const a = parseFloat(paymentForm.amount); if (!a || a <= 0) { alert('مبلغ غير صحيح'); return; } fetch(isEditingPayment ? `/api/customer-payments/${isEditingPayment}` : '/api/customer-payments', { method: isEditingPayment ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer_id: selectedCustomerForPayments?.customer_id || selectedCustomerForPayments?.id, store_id: user?.store_id, amount: a, payment_method: paymentForm.payment_method, notes: paymentForm.notes }) }).then(r => r.ok ? (setPaymentForm({ amount: '', payment_method: '', notes: '' }), setIsEditingPayment(null), fetch(`/api/customer-payments/${user?.store_id}/${selectedCustomerForPayments?.id}`).then(r => r.json()).then(d => setPayments(Array.isArray(d) ? d : []))) : alert('خطأ')).catch(); }} className="flex-1 px-4 py-2 rounded-lg text-white bg-green-600 hover:bg-green-700 font-normal transition">
-                          {isEditingPayment ? '💾 حفظ' : '➕ إضافة'}
-                        </button>
-                        {isEditingPayment && (
-                          <button onClick={() => { setIsEditingPayment(null); setPaymentForm({ amount: '', payment_method: '', notes: '' }); }} className={cn("flex-1 px-4 py-2 rounded-lg font-normal border transition", isDarkMode ? "bg-gray-600 border-gray-500 text-gray-200 hover:bg-gray-500" : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200")}>
-                            إلغاء
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className={cn("p-4 border-t flex justify-end", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
-                <button onClick={() => setShowCustomerAccountModal(false)} className={cn("px-6 py-2 rounded-lg font-normal transition-all", isDarkMode ? "bg-gray-600 hover:bg-gray-500 text-gray-100" : "bg-gray-200 hover:bg-gray-300 text-gray-700")}>
                   إغلاق
                 </button>
               </div>
@@ -9476,6 +8933,7 @@ function App() {
 const MerchantTopupDashboard = () => {
   const { isDarkMode } = useTheme();
   const { user, setUser } = useAuthStore();
+  const { primaryColor } = useSettingsStore();
   const { section } = useParams();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -9500,10 +8958,7 @@ const MerchantTopupDashboard = () => {
   const [showProductModal, setShowProductModal] = useState(false);
   const [showCodeUploadModal, setShowCodeUploadModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
-  const [showCustomerStatement, setShowCustomerStatement] = useState(false);
   const [showPaymentsModal, setShowPaymentsModal] = useState(false);
-  const [showCustomerAccountModal, setShowCustomerAccountModal] = useState(false);
-  const [customerAccountModalTab, setCustomerAccountModalTab] = useState<'statement' | 'payments'>('statement');
   const [selectedCustomerForPayments, setSelectedCustomerForPayments] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_method: '', notes: '' });
@@ -9512,11 +8967,6 @@ const MerchantTopupDashboard = () => {
   const [isEditingProduct, setIsEditingProduct] = useState<number | null>(null);
   const [isEditingCompany, setIsEditingCompany] = useState<number | null>(null);
   const [selectedProductForCodes, setSelectedProductForCodes] = useState<number | null>(null);
-  const [selectedCustomerStatement, setSelectedCustomerStatement] = useState<any>(null);
-  const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
-  const [isLoadingCustomerTransactions, setIsLoadingCustomerTransactions] = useState(false);
-  const [merchantPaymentAmount, setMerchantPaymentAmount] = useState('');
-  const [isProcessingMerchantPayment, setIsProcessingMerchantPayment] = useState(false);
 
   // Form states
   const [companyForm, setCompanyForm] = useState({ name: '', logo_url: '' });
@@ -9663,6 +9113,43 @@ const MerchantTopupDashboard = () => {
     });
 
     return { totalCodes, usedCodes, totalRevenue };
+  };
+
+  // Load customer statement with transactions
+  const handleLoadStatement = async (customerId?: number) => {
+    const targetCustomerId = customerId || selectedCustomerStatement?.customer_id || selectedCustomerStatement?.id;
+    
+    if (!targetCustomerId) {
+      console.warn('⚠️ No customer_id found');
+      return;
+    }
+    
+    setIsLoadingCustomerTransactions(true);
+    try {
+      console.log('🔍 Fetching statement for customer:', targetCustomerId);
+      const res = await fetch(`/api/topup/customers/${targetCustomerId}/statement`);
+      const data = await res.json();
+      console.log('📊 Raw API response:', data);
+      
+      if (res.ok) {
+        let transactions = [];
+        if (data.transactions && Array.isArray(data.transactions)) {
+          transactions = data.transactions;
+        } else if (Array.isArray(data)) {
+          transactions = data;
+        }
+        console.log('📌 Setting transactions:', transactions.length);
+        setCustomerTransactions(transactions);
+      } else {
+        console.error('❌ API Error:', data);
+        setCustomerTransactions([]);
+      }
+    } catch (error) {
+      console.error('❌ Error loading statement:', error);
+      setCustomerTransactions([]);
+    } finally {
+      setIsLoadingCustomerTransactions(false);
+    }
   };
 
   useEffect(() => {
@@ -10880,63 +10367,20 @@ const MerchantTopupDashboard = () => {
                           <td className={cn("px-6 py-4 font-semibold", customer.current_debt > customer.credit_limit ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-400" : "text-yellow-600"))}>{Math.round(customer.current_debt)?.toLocaleString('en-US')} د.ع</td>
                           <td className="px-6 py-4">
                             <div className="flex gap-2 pointer-events-auto">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  console.log('🎯 Customer Account Button Clicked:', customer.name);
-                                  const customerWithId = {
-                                    ...customer,
-                                    customer_id: customer.customer_id || customer.id
-                                  };
-                                  console.log('📌 Customer object:', {
-                                    id: customerWithId.id,
-                                    customer_id: customerWithId.customer_id,
-                                    name: customerWithId.name,
-                                    phone: customerWithId.phone
-                                  });
-                                  
-                                  // Set all states FIRST - before async operations
-                                  console.log('✅ Setting states...');
-                                  setSelectedCustomerForPayments(customerWithId);
-                                  setSelectedCustomerStatement(customerWithId);
-                                  setShowCustomerAccountModal(true);
-                                  setCustomerAccountModalTab('statement');
-                                  console.log('✅ States set, modal should be showing now');
-                                  
-                                  // Then fetch data asynchronously
-                                  console.log('⏬ Starting async data fetches...');
-                                  fetch(`/api/customer-payments/${user?.store_id}/${customer.id}`)
-                                    .then(r => r.json())
-                                    .then(data => {
-                                      console.log('💳 Payments fetched:', data);
-                                      setPayments(Array.isArray(data) ? data : []);
-                                    })
-                                    .catch(err => console.error('❌ Error fetching payments:', err));
-                                  
-                                  // Load statement data
-                                  console.log('⏱️ Scheduling handleLoadStatement...');
-                                  setTimeout(() => {
-                                    console.log('🔔 Timeout callback: calling handleLoadStatement');
-                                    handleLoadStatement(customerWithId.customer_id || customerWithId.id);
-                                  }, 50);
-                                }}
-                                className={cn("p-2 rounded-lg transition-all cursor-pointer active:scale-95 hover:scale-110", isDarkMode ? "bg-blue-900/30 text-blue-400 hover:bg-blue-900/60" : "text-blue-600 hover:bg-blue-50")}
-                                title="بيانات الحساب والتسديدات"
-                                type="button"
-                              >
-                                <CreditCard size={16} />
-                              </button>
+                              {/* Edit button */}
                               <button 
                                 onClick={() => {
                                   setCustomerForm({ name: customer.name, phone: customer.phone, email: customer.email || '', password: customer.password || '', customer_type: customer.customer_type, credit_limit: customer.credit_limit.toString(), starting_balance: (customer.starting_balance || 0).toString() });
                                   setIsEditingCustomer(customer.id);
                                   setShowCustomerModal(true);
                                 }}
-                                className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-blue-900/30 text-blue-400 hover:bg-blue-900/60" : "text-blue-600 hover:bg-blue-50")}
+                                className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-amber-900/30 text-amber-400 hover:bg-amber-900/60" : "text-amber-600 hover:bg-amber-50")}
                                 title="تعديل"
                               >
-                                <Edit2 size={16} />
+                                <Edit size={16} />
                               </button>
+
+                              {/* Delete button */}
                               <button 
                                 onClick={async () => {
                                   if (!confirm('هل تريد حذف هذا العميل؟')) return;
@@ -11406,395 +10850,6 @@ const MerchantTopupDashboard = () => {
         </div>
       )}
 
-      {/* Payments Management Modal */}
-      {showPaymentsModal && selectedCustomerForPayments && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" dir="rtl">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className={cn("rounded-2xl w-full max-w-4xl shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
-          >
-            <div className={cn("p-6 border-b flex justify-between items-center sticky top-0", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
-              <div>
-                <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>إدارة التسديدات</h3>
-                <p className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>{selectedCustomerForPayments.name}</p>
-              </div>
-              <button onClick={() => setShowPaymentsModal(false)}>
-                <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* Customer Info Summary */}
-              <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                <div>
-                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>الاسم</p>
-                  <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>{selectedCustomerForPayments.name}</p>
-                </div>
-                <div>
-                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>الهاتف</p>
-                  <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>{selectedCustomerForPayments.phone}</p>
-                </div>
-                <div>
-                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>البريد الإلكتروني</p>
-                  <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>{selectedCustomerForPayments.email || '-'}</p>
-                </div>
-                <div>
-                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>النوع</p>
-                  <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>
-                    {selectedCustomerForPayments.customer_type === 'reseller' ? '🏪 جملة' : '👤 مفرد'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Payments Table */}
-              <div className={cn("border rounded-lg overflow-hidden", isDarkMode ? "border-gray-700" : "border-gray-200")}>
-                <table className="w-full">
-                  <thead>
-                    <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
-                      <th className={cn("px-4 py-3 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>المبلغ</th>
-                      <th className={cn("px-4 py-3 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>طريقة الدفع</th>
-                      <th className={cn("px-4 py-3 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>الملاحظات</th>
-                      <th className={cn("px-4 py-3 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>التاريخ</th>
-                      <th className={cn("px-4 py-3 text-center font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>الإجراءات</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payments.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className={cn("px-4 py-8 text-center", isDarkMode ? "text-gray-400 bg-gray-800" : "text-gray-500 bg-gray-50")}>
-                          لا توجد تسديدات مسجلة
-                        </td>
-                      </tr>
-                    ) : (
-                      payments.map((payment: any, index: number) => (
-                        <tr key={payment.id} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
-                          <td className={cn("px-4 py-3 font-normal", isDarkMode ? "text-white" : "text-gray-900")}>
-                            {Math.round(payment.amount)?.toLocaleString('en-US')} د.ع
-                          </td>
-                          <td className={cn("px-4 py-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>
-                            {payment.payment_method || '-'}
-                          </td>
-                          <td className={cn("px-4 py-3 font-normal text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                            {payment.notes || '-'}
-                          </td>
-                          <td className={cn("px-4 py-3 font-normal text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                            {new Date(payment.created_at).toLocaleDateString('ar-IQ')}
-                          </td>
-                          <td className="px-4 py-3 flex gap-2 justify-center">
-                            <button
-                              onClick={() => {
-                                setPaymentForm({
-                                  amount: payment.amount.toString(),
-                                  payment_method: payment.payment_method || '',
-                                  notes: payment.notes || ''
-                                });
-                                setIsEditingPayment(payment.id);
-                              }}
-                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (confirm('هل تأكد من حذف هذا التسديد؟')) {
-                                  fetch(`/api/customer-payments/${payment.id}`, { method: 'DELETE' })
-                                    .then(r => r.json())
-                                    .then(async () => {
-                                      // Remove from payments list
-                                      setPayments(payments.filter((p: any) => p.id !== payment.id));
-                                      // Refetch customers to update debt
-                                      const customersResponse = await fetch(`/api/topup/customers/${user?.store_id}`);
-                                      const customersData = await customersResponse.json();
-                                      setCustomers(Array.isArray(customersData) ? customersData : []);
-                                    })
-                                    .catch(err => alert('خطأ في الحذف: ' + err.message));
-                                }
-                              }}
-                              className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-all"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Payment Form */}
-              <div className={cn("p-4 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
-                <h4 className={cn("font-normal text-sm mb-4", isDarkMode ? "text-white" : "text-gray-900")}>
-                  {isEditingPayment ? '✏️ تعديل التسديد' : '➕ إضافة تسديد جديد'}
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>المبلغ (د.ع)</label>
-                    <input
-                      type="number"
-                      value={paymentForm.amount}
-                      onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                      placeholder="0"
-                      className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-600 border-gray-500 text-white placeholder-gray-400" : "bg-white border-gray-300 text-gray-900")}
-                    />
-                  </div>
-                  <div>
-                    <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>طريقة الدفع</label>
-                    <input
-                      type="text"
-                      value={paymentForm.payment_method}
-                      onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
-                      placeholder="تحويل / نقد / شيك..."
-                      className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-600 border-gray-500 text-white placeholder-gray-400" : "bg-white border-gray-300 text-gray-900")}
-                    />
-                  </div>
-                  <div>
-                    <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>الملاحظات</label>
-                    <input
-                      type="text"
-                      value={paymentForm.notes}
-                      onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
-                      placeholder="ملاحظات اختيارية..."
-                      className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-600 border-gray-500 text-white placeholder-gray-400" : "bg-white border-gray-300 text-gray-900")}
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-3 mt-4">
-                  <button
-                    onClick={async () => {
-                      if (!paymentForm.amount || parseFloat(paymentForm.amount) <= 0) {
-                        alert('يرجى إدخال مبلغ صحيح');
-                        return;
-                      }
-
-                      try {
-                        if (isEditingPayment) {
-                          // Update payment
-                          const response = await fetch(`/api/customer-payments/${isEditingPayment}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              amount: parseFloat(paymentForm.amount),
-                              payment_method: paymentForm.payment_method,
-                              notes: paymentForm.notes
-                            })
-                          });
-                          if (response.ok) {
-                            alert('تم تحديث التسديد بنجاح');
-                            // Refetch both payments and customers to update debt
-                            const [paymentsResponse, customersResponse] = await Promise.all([
-                              fetch(`/api/customer-payments/${user?.store_id}/${selectedCustomerForPayments.id}`),
-                              fetch(`/api/topup/customers/${user?.store_id}`)
-                            ]);
-                            const paymentsData = await paymentsResponse.json();
-                            const customersData = await customersResponse.json();
-                            setPayments(Array.isArray(paymentsData) ? paymentsData : []);
-                            setCustomers(Array.isArray(customersData) ? customersData : []);
-                            setPaymentForm({ amount: '', payment_method: '', notes: '' });
-                            setIsEditingPayment(null);
-                          }
-                        } else {
-                          // Add new payment
-                          const response = await fetch('/api/customer-payments', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              customer_id: selectedCustomerForPayments.id,
-                              store_id: user?.store_id,
-                              amount: parseFloat(paymentForm.amount),
-                              payment_method: paymentForm.payment_method,
-                              notes: paymentForm.notes
-                            })
-                          });
-                          if (response.ok) {
-                            alert('تم إضافة التسديد بنجاح');
-                            // Refetch both payments and customers to update debt
-                            const [paymentsResponse, customersResponse] = await Promise.all([
-                              fetch(`/api/customer-payments/${user?.store_id}/${selectedCustomerForPayments.id}`),
-                              fetch(`/api/topup/customers/${user?.store_id}`)
-                            ]);
-                            const paymentsData = await paymentsResponse.json();
-                            const customersData = await customersResponse.json();
-                            setPayments(Array.isArray(paymentsData) ? paymentsData : []);
-                            setCustomers(Array.isArray(customersData) ? customersData : []);
-                            setPaymentForm({ amount: '', payment_method: '', notes: '' });
-                          }
-                        }
-                      } catch (error) {
-                        alert('خطأ: ' + (error as any).message);
-                      }
-                    }}
-                    className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-normal transition-all"
-                  >
-                    {isEditingPayment ? '💾 حفظ التعديلات' : '➕ إضافة التسديد'}
-                  </button>
-                  {isEditingPayment && (
-                    <button
-                      onClick={() => {
-                        setPaymentForm({ amount: '', payment_method: '', notes: '' });
-                        setIsEditingPayment(null);
-                      }}
-                      className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-normal transition-all"
-                    >
-                      ❌ إلغاء
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <button
-                onClick={() => setShowPaymentsModal(false)}
-                className={cn("w-full py-3 rounded-lg font-normal transition-all", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-200 hover:bg-gray-300")}
-              >
-                إغلاق
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Customer Statement Modal */}
-      {showCustomerStatement && selectedCustomerStatement && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" dir="rtl">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className={cn("rounded-2xl w-full max-w-4xl shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
-          >
-            {console.log('📋 Customer Statement Modal - Customer:', selectedCustomerStatement?.name, 'Transactions:', customerTransactions?.length)}
-            <div className={cn("p-4 border-b flex justify-between items-center sticky top-0 z-50", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
-              <div>
-                <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>📋 كشف الحساب الكامل</h3>
-                <p className={cn("text-sm font-semibold", isDarkMode ? "text-gray-300" : "text-gray-700")}>{selectedCustomerStatement.name}</p>
-                <p className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>{selectedCustomerStatement.phone}</p>
-              </div>
-              <button onClick={() => setShowCustomerStatement(false)} className="p-1 hover:bg-gray-300/20 rounded">
-                <X size={20} className={isDarkMode ? "text-white" : "text-gray-900"} />
-              </button>
-            </div>
-            <div className="p-4 space-y-4">
-              {/* Customer Info - 4 Boxes matching mobile design */}
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                {/* Box 1: الرصيد المتاح (Purple) */}
-                <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-purple-900/20 border-purple-600" : "bg-purple-50 border-purple-300")}>
-                  <p className={isDarkMode ? "text-purple-400 text-xs" : "text-purple-600 text-xs"}>الرصيد المتاح</p>
-                  <p className={cn("font-bold mt-2 text-lg", isDarkMode ? "text-purple-300" : "text-purple-600")}>{Math.round(Math.max(0, selectedCustomerStatement.credit_limit - selectedCustomerStatement.current_debt)).toLocaleString('en-US')}</p>
-                  <p className={cn("text-xs", isDarkMode ? "text-purple-400" : "text-purple-500")}>د.ع</p>
-                </div>
-
-                {/* Box 2: حد الاشتمان (Blue) */}
-                <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-blue-900/20 border-blue-600" : "bg-blue-50 border-blue-300")}>
-                  <p className={isDarkMode ? "text-blue-400 text-xs" : "text-blue-600 text-xs"}>حد الاشتمان</p>
-                  <p className={cn("font-bold mt-2 text-lg", isDarkMode ? "text-blue-300" : "text-blue-600")}>{Math.round(selectedCustomerStatement.credit_limit).toLocaleString('en-US')}</p>
-                  <p className={cn("text-xs", isDarkMode ? "text-blue-400" : "text-blue-500")}>د.ع</p>
-                </div>
-
-                {/* Box 3: الرصيد المتاح (Green) - Shows available balance */}
-                <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300")}>
-                  <p className={isDarkMode ? "text-green-400 text-xs" : "text-green-600 text-xs"}>الرصيد المتاح</p>
-                  <p className={cn("font-bold mt-2 text-lg", isDarkMode ? "text-green-300" : "text-green-600")}>{Math.round(Math.max(0, selectedCustomerStatement.credit_limit - selectedCustomerStatement.current_debt)).toLocaleString('en-US')}</p>
-                  <p className={cn("text-xs", isDarkMode ? "text-green-400" : "text-green-500")}>د.ع</p>
-                </div>
-
-                {/* Box 4: الديون الحالية (Orange/Yellow) */}
-                <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-amber-900/20 border-amber-600" : "bg-amber-50 border-amber-300")}>
-                  <p className={isDarkMode ? "text-amber-400 text-xs" : "text-amber-600 text-xs"}>الديون الحالية</p>
-                  <p className={cn("font-bold mt-2 text-lg", isDarkMode ? "text-amber-300" : "text-amber-600")}>{Math.round(selectedCustomerStatement.current_debt).toLocaleString('en-US')}</p>
-                  <p className={cn("text-xs", isDarkMode ? "text-amber-400" : "text-amber-500")}>د.ع</p>
-                </div>
-              </div>
-
-              {/* Transactions Table - جدول المعاملات */}
-              <div className="space-y-2">
-                <h4 className={cn("text-sm font-semibold flex items-center gap-2", isDarkMode ? "text-white" : "text-gray-900")}>
-                  📊 المعاملات
-                </h4>
-                <div className="border rounded-lg overflow-auto max-h-[35vh]" style={{borderColor: isDarkMode ? '#374151' : '#e5e7eb'}}>
-                  {isLoadingCustomerTransactions ? (
-                    <div className="p-8 text-center">
-                      <p className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>⏳ جاري تحميل العمليات...</p>
-                    </div>
-                  ) : customerTransactions && customerTransactions.length > 0 ? (
-                    <table className="w-full text-xs">
-                      <thead className={cn("sticky top-0", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
-                        <tr>
-                          <th className={cn("px-2 py-2 text-right font-semibold text-xs", isDarkMode ? "text-gray-300" : "text-gray-600")}>التاريخ</th>
-                          <th className={cn("px-2 py-2 text-right font-semibold text-xs", isDarkMode ? "text-gray-300" : "text-gray-600")}>البيان</th>
-                          <th className={cn("px-2 py-2 text-center font-semibold text-xs", isDarkMode ? "text-red-400" : "text-red-600")}>
-                            <div>مدين</div>
-                            <div className="text-xs">(Debit)</div>
-                          </th>
-                          <th className={cn("px-2 py-2 text-center font-semibold text-xs", isDarkMode ? "text-green-400" : "text-green-600")}>
-                            <div>دائن</div>
-                            <div className="text-xs">(Credit)</div>
-                          </th>
-                          <th className={cn("px-2 py-2 text-center font-semibold text-xs", isDarkMode ? "text-gray-300" : "text-gray-600")}>الرصيد<br/>الجاري</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {customerTransactions.map((transaction, idx) => {
-                          const txDate = transaction.created_at || transaction.date || transaction.transaction_date;
-                          const txType = transaction.type || transaction.transaction_type || 'unknown';
-                          const txDescription = transaction.description || transaction.notes || transaction.detail || `عملية #${idx + 1}`;
-                          const txAmount = Math.round(Number(transaction.amount || transaction.value || 0));
-                          const txBalance = Math.round(Number(transaction.balance || transaction.current_balance || 0));
-                          const isPayment = txType === 'payment' || txType === 'دفعة' || txType === 'رصيد' || txType === 'إيداع';
-                          
-                          return (
-                            <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-600 hover:bg-gray-700/30" : "border-gray-300 hover:bg-gray-50")}>
-                              <td className={cn("px-2 py-2 text-xs whitespace-nowrap", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                                {txDate ? new Date(txDate).toLocaleDateString('ar-IQ', {year: 'numeric', month: '2-digit', day: '2-digit'}) : '—'}
-                              </td>
-                              <td className={cn("px-2 py-2 text-xs", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                                {txDescription}
-                              </td>
-                              <td className={cn("px-2 py-2 text-center font-bold text-xs text-red-600", isDarkMode ? "text-red-400" : "")}>
-                                {isPayment ? '—' : txAmount.toLocaleString('en-US')}
-                              </td>
-                              <td className={cn("px-2 py-2 text-center font-bold text-xs text-green-600", isDarkMode ? "text-green-400" : "")}>
-                                {isPayment ? txAmount.toLocaleString('en-US') : '—'}
-                              </td>
-                              <td className={cn("px-2 py-2 text-center text-xs font-semibold", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                                {txBalance.toLocaleString('en-US')}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <div className={cn("p-6 text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                      <p className="text-sm">لا توجد عمليات</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-2">
-                <button
-                  onClick={() => setShowCustomerStatement(false)}
-                  className={cn("flex-1 py-2 rounded-lg font-semibold text-sm transition-all", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-300 hover:bg-gray-400 text-gray-900")}
-                >
-                  إغلاق
-                </button>
-                <button
-                  onClick={() => {
-                    setShowAccountStatement(true);
-                    setShowCustomerStatement(false);
-                  }}
-                  className={cn("flex-1 py-2 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2", isDarkMode ? "bg-red-700 hover:bg-red-600 text-white" : "bg-red-600 hover:bg-red-700 text-white")}
-                  title="تسديد دفعة"
-                >
-                  <span>💸</span> دفع
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
       {/* Mobile Navigation Drawer */}
       {showMobileDrawer && (
         <div className="fixed inset-0 z-50 flex">
@@ -11903,6 +10958,20 @@ const TopupStorefront = () => {
   const { primaryColor } = useSettingsStore();
   const { addItem, items: cartItems } = useTopupCartStore();
   const navigate = useNavigate();
+  
+  // Force cache bust on component mount
+  useEffect(() => {
+    const timestamp = Date.now();
+    const cacheKey = `topupStorefront_build_${timestamp}`;
+    const lastBuild = sessionStorage.getItem('topupStorefront_lastBuild');
+    
+    if (!lastBuild || (timestamp - parseInt(lastBuild)) > 60000) {
+      // More than 1 minute old, reload
+      sessionStorage.setItem('topupStorefront_lastBuild', timestamp.toString());
+      console.log('🔄 Cache-busting reload for TopupStorefront');
+      // window.location.reload();
+    }
+  }, []);
   
   const [storeInfo, setStoreInfo] = useState<any>(null);
   const [storeLogo, setStoreLogo] = useState<string>('');
@@ -12065,6 +11134,88 @@ const TopupStorefront = () => {
       }
       
       try {
+        // First, resolve the store slug to numeric ID
+        console.log(`🔍 Resolving store slug: "${storeId}"`);
+        console.log(`📍 Full API URL: /api/stores/slug/${storeId}`);
+        
+        // If slug is just "store" or numeric, handle differently
+        let actualStoreId: number | null = null;
+        
+        // Try to parse as numeric ID first
+        const numericAttempt = parseInt(storeId);
+        if (!isNaN(numericAttempt) && numericAttempt > 0) {
+          actualStoreId = numericAttempt;
+          console.log(`✅ Parsed storeId as numeric directly: ${actualStoreId}`);
+        } else if (storeId === 'store' || storeId === 'topup') {
+          // For generic slugs, try to find a store with topup products
+          console.log(`⚠️ Generic slug detected (${storeId}), searching for store with topup products...`);
+          try {
+            const storesRes = await fetch('/api/topup/products?limit=1');
+            if (storesRes.ok) {
+              const firstProduct = await storesRes.json();
+              if (Array.isArray(firstProduct) && firstProduct.length > 0) {
+                actualStoreId = firstProduct[0].store_id;
+                console.log(`✅ Found store from first product: ${actualStoreId}`);
+              } else {
+                actualStoreId = 13; // Fallback to store 13
+                console.log(`⚠️ No products found, using default store: 13`);
+              }
+            } else {
+              actualStoreId = 13;
+              console.log(`⚠️ Failed to find store, using default: 13`);
+            }
+          } catch (e) {
+            actualStoreId = 13;
+            console.log(`⚠️ Error searching for store: ${e}, using default: 13`);
+          }
+        } else {
+          // Try to resolve via API
+          const storeRes = await fetch(`/api/stores/slug/${storeId}`);
+          console.log(`📊 Store response status: ${storeRes.status}`);
+          
+          if (!storeRes.ok) {
+            console.warn(`⚠️ Store slug not found (${storeRes.status}), searching for store with topup products...`);
+            try {
+              const storesRes = await fetch('/api/topup/products?limit=1');
+              if (storesRes.ok) {
+                const firstProduct = await storesRes.json();
+                if (Array.isArray(firstProduct) && firstProduct.length > 0) {
+                  actualStoreId = firstProduct[0].store_id;
+                  console.log(`✅ Found store from first product: ${actualStoreId}`);
+                } else {
+                  actualStoreId = 13;
+                  console.log(`⚠️ No products found, using default store: 13`);
+                }
+              }
+            } catch (e) {
+              actualStoreId = 13;
+              console.log(`⚠️ Error in fallback search: ${e}, using default: 13`);
+            }
+          } else {
+            const storeData = await storeRes.json();
+            console.log(`📦 Store data received:`, storeData);
+            
+            actualStoreId = storeData.id;
+            if (!actualStoreId || actualStoreId === undefined) {
+              console.error(`❌ No ID in store data! Using default: 13`);
+              actualStoreId = 13;
+            }
+            
+            // Store the info for later use
+            setStoreInfo(storeData);
+          }
+        }
+        
+        // Ensure it's numeric
+        actualStoreId = Number(actualStoreId);
+        if (isNaN(actualStoreId) || actualStoreId <= 0) {
+          console.error(`❌ Could not resolve store ID, using default: 13`);
+          actualStoreId = 13;
+        }
+        
+        console.log(`✅ Using store ID: ${actualStoreId}`);
+        if (isMounted) setActualStoreId(actualStoreId);
+        
         // إضافة timestamp لفرض جلب البيانات الجديدة من قاعدة البيانات
         const timestamp = Date.now();
         console.log('🔍 Fetching products with timestamp:', timestamp);
@@ -12076,16 +11227,46 @@ const TopupStorefront = () => {
           controller.abort();
         }, 60000);
         
-        // Use storeId directly (assume it's the actual store ID from URL)
-        // If we need additional validation, we can fetch it later
-        const actualStoreId = parseInt(storeId.split('-')[0]) || storeId;
-        console.log('✅ Using storeId directly:', actualStoreId);
-        
         // Fetch companies, categories, products with timeout in PARALLEL (no waiting for store)
-        console.log('📡 Fetching companies, categories, and products in parallel...');
+        console.log(`📡 Fetching companies, categories, and products in parallel for store ID: ${actualStoreId}...`);
         
         const [companiesRes, categoriesRes, productsRes] = await Promise.all([
+          // Try store-specific endpoint first, fallback to all companies
           fetch(`/api/topup/companies/${actualStoreId}?_t=${timestamp}`, { 
+            cache: 'no-store',
+            signal: controller.signal 
+          }).then(async r => {
+            console.log('   Companies response status:', r.status);
+            if (!r.ok) {
+              console.warn('⚠️ Companies fetch for store returned status:', r.status);
+              console.log('   Trying fallback: GET /api/topup/companies');
+              // Fallback to get all companies
+              const fallback = await fetch('/api/topup/companies', { cache: 'no-store', signal: controller.signal });
+              if (!fallback.ok) {
+                console.warn('⚠️ Fallback companies fetch also failed:', fallback.status);
+                return [];
+              }
+              const data = await fallback.json();
+              console.log('✅ Companies fetched (fallback):', Array.isArray(data) ? data.length : 0);
+              return Array.isArray(data) ? data : [];
+            }
+            const data = await r.json();
+            console.log('✅ Companies fetched:', Array.isArray(data) ? data.length : 0);
+            if (!Array.isArray(data) || data.length === 0) {
+              console.log('   No data from store endpoint, trying fallback');
+              const fallback = await fetch('/api/topup/companies', { cache: 'no-store', signal: controller.signal });
+              if (!fallback.ok) return [];
+              const fallbackData = await fallback.json();
+              console.log('✅ Companies fetched (fallback):', Array.isArray(fallbackData) ? fallbackData.length : 0);
+              return Array.isArray(fallbackData) ? fallbackData : [];
+            }
+            return Array.isArray(data) ? data : [];
+          }).catch(e => {
+            console.warn('⚠️ Companies fetch error:', e.message);
+            return [];
+          }),
+          
+          fetch(`/api/topup/categories/${actualStoreId}?_t=${timestamp}`, { 
             cache: 'no-store',
             signal: controller.signal 
           }).then(async r => {
@@ -12504,16 +11685,18 @@ const TopupStorefront = () => {
   };
 
   // Load customer statement with transactions
-  const handleLoadStatement = async () => {
-    if (!customer?.customer_id) {
+  const handleLoadStatement = async (customerId?: number) => {
+    const targetCustomerId = customerId || customer?.customer_id;
+    
+    if (!targetCustomerId) {
       console.warn('⚠️ No customer_id found');
       return;
     }
     
     setIsLoadingStatement(true);
     try {
-      console.log('🔍 Fetching TOPUP statement for customer:', customer.customer_id);
-      const res = await fetch(`/api/topup/customers/${customer.customer_id}/statement`);
+      console.log('🔍 Fetching TOPUP statement for customer:', targetCustomerId);
+      const res = await fetch(`/api/topup/customers/${targetCustomerId}/statement`);
       const data = await res.json();
       console.log('📊 Raw API response:', data);
       console.log('📊 Response status:', res.status, 'OK:', res.ok);
