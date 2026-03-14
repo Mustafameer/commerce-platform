@@ -11826,63 +11826,12 @@ const TopupStorefront = () => {
           controller.abort();
         }, 60000);
         
-        // First, get store by slug to get actual store ID
-        let storeRes;
-        const storeUrl = `/api/stores/slug/${storeId}?_t=${timestamp}`;
-        console.log(`📍 Fetching store from: ${storeUrl}`);
-        console.log(`   Full URL will be: ${API_BASE_URL ? API_BASE_URL + storeUrl : storeUrl}`);
+        // Use storeId directly (assume it's the actual store ID from URL)
+        // If we need additional validation, we can fetch it later
+        const actualStoreId = parseInt(storeId.split('-')[0]) || storeId;
+        console.log('✅ Using storeId directly:', actualStoreId);
         
-        try {
-          const resp = await fetch(storeUrl, { 
-            cache: 'no-store',
-            signal: controller.signal 
-          });
-          
-          if (!resp.ok) {
-            console.error('❌ Store fetch failed:', resp.status, resp.statusText);
-            clearTimeout(timeoutId);
-            if (isMounted) {
-              alert(`خطأ: لم تتمكن من جلب بيانات المتجر (${resp.status})`);
-              setLoading(false);
-            }
-            return;
-          }
-          
-          storeRes = await resp.json();
-          console.log('✅ Store response received:', storeRes);
-        } catch (e) {
-          clearTimeout(timeoutId);
-          if (!isMounted) return;
-          
-          if (e instanceof TypeError && e.message.includes('aborted')) {
-            console.error('❌ Store fetch timeout or aborted');
-            alert('انتهت مهلة الاتصال بالمتجر. يرجى المحاولة لاحقاً');
-          } else {
-            console.error('❌ Store fetch error:', e);
-            alert(`خطأ في جلب المتجر: ${(e as Error).message}`);
-          }
-          setLoading(false);
-          return;
-        }
-        
-        if (!storeRes || storeRes.error) {
-          clearTimeout(timeoutId);
-          if (!isMounted) return;
-          
-          console.error('Store not found:', storeRes?.error);
-          alert(`متجر غير موجود: ${storeRes?.error}`);
-          setLoading(false);
-          return;
-        }
-        
-        const actualStoreId = storeRes.id;
-        console.log('✅ Store found:', { storeId, actualStoreId, store_name: storeRes.store_name });
-        if (isMounted) {
-          setActualStoreId(actualStoreId);
-          setStoreInfo(storeRes);
-        }
-        
-        // Fetch companies, categories, products with timeout
+        // Fetch companies, categories, products with timeout in PARALLEL (no waiting for store)
         console.log('📡 Fetching companies, categories, and products in parallel...');
         
         const [companiesRes, categoriesRes, productsRes] = await Promise.all([
