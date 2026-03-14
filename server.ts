@@ -737,6 +737,8 @@ async function seedData() {
     }
 
     // Seed default topup companies and categories for topup stores
+    // ❌ DISABLED: Don't recreate companies, users manage them via API
+    /*
     const topupStoresResult = await pool.query(
       "SELECT id FROM stores WHERE store_type = 'topup' ORDER BY id ASC"
     );
@@ -768,6 +770,7 @@ async function seedData() {
         console.log(`✅ Seeded ${defaultCompanies.length} companies for topup store ${storeId}`);
       }
     }
+    */
 
   } catch (error) {
     const errorMsg = (error as any).message || '';
@@ -1208,6 +1211,8 @@ async function startServer() {
         );
 
         const storeId = storeResult.rows[0].id;
+        // ❌ DISABLED: Don't auto-seed companies, merchants manage them via API
+        /*
         // If it's a topup store, seed default providers and categories (not products - let merchant add them)
         if (storeType === 'topup') {
           const defaultCompanies = [
@@ -1225,6 +1230,7 @@ async function startServer() {
             );
           }
         }
+        */
 
         // Update user with store_id
         await pool.query(
