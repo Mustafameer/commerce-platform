@@ -5033,6 +5033,12 @@ const MerchantDashboard = () => {
   };
 
   const renderCustomers = () => {
+    console.log('🏪 renderCustomers() called', {
+      showCustomerAccountModal,
+      selectedCustomerForPayments: selectedCustomerForPayments?.name || null,
+      selectedCustomerStatement: selectedCustomerStatement?.name || null,
+      customersCount: customers.length
+    });
     const creditStatusColor = (debt: number, limit: number) => {
       if (limit === 0) return "text-gray-400";
       const usage = (debt / limit) * 100;
