@@ -3837,8 +3837,8 @@ async function startServer() {
 
     app.get("/api/topup/companies", async (req, res) => {
       try {
-        // Default store ID is 21 (main topup store with products)
-        const storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 21;
+        // Default store ID is 13 (Ali Al-Hadi topup store with correct products)
+        const storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 13;
         
         // Cache for 5 minutes to reduce database load
         res.set('Cache-Control', 'private, max-age=300');
@@ -3939,11 +3939,11 @@ async function startServer() {
       }
     });
 
-    // Get topup categories (default to store 21)
+    // Get topup categories (default to store 13)
     app.get("/api/topup/categories", async (req, res) => {
       try {
-        // Default store ID is 21 (main topup store with products)
-        const storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 21;
+        // Default store ID is 13 (Ali Al-Hadi topup store with correct products)
+        const storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 13;
         
         // Cache for 5 minutes to reduce database load
         res.set('Cache-Control', 'private, max-age=300');
@@ -4030,13 +4030,13 @@ async function startServer() {
       }
     });
 
-    // Get all topup products (default to store 21 - main topup store)
+    // Get all topup products (default to store 13 - Ali Al-Hadi topup store)
     app.get("/api/topup/products", async (req, res) => {
       try {
         const limit = req.query.limit ? parseInt(req.query.limit as string) : 500;
         const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
-        // Default store ID is 21 (main topup store with products)
-        const storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 21;
+        // Default store ID is 13 (Ali Al-Hadi topup store with correct products)
+        const storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 13;
         
         // Cache for 5 minutes to reduce database load
         res.set('Cache-Control', 'private, max-age=300');
