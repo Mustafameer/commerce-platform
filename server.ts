@@ -880,22 +880,20 @@ async function startServer() {
     // Get stores
     app.get("/api/stores", async (req, res) => {
       try {
+        const { limit = 50, offset = 0 } = req.query;
+        const limitNum = Math.min(parseInt(limit as string) || 50, 500);
+        const offsetNum = Math.max(0, parseInt(offset as string) || 0);
+        
         const result = await pool.query(`
-          SELECT s.*, u.name as owner_name_from_user, u.phone as owner_phone_from_user, u.email as owner_email_from_user
-          FROM stores s
-          LEFT JOIN users u ON s.owner_id = u.id
-          ORDER BY s.created_at DESC
-        `);
+          SELECT id, store_name, slug, logo_url, primary_color, is_active, store_type, status, owner_name, owner_phone
+          FROM stores
+          WHERE is_active = true
+          ORDER BY created_at DESC
+          LIMIT $1 OFFSET $2
+        `, [limitNum, offsetNum]);
         
-        // Ensure owner_name is populated from user if not in stores table
-        const stores = result.rows.map(store => ({
-          ...store,
-          owner_name: store.owner_name || store.owner_name_from_user || 'غير معروف',
-          owner_phone: store.owner_phone || store.owner_phone_from_user || '',
-          owner_email: store.owner_email || store.owner_email_from_user || ''
-        }));
-        
-        res.json(stores);
+        res.set('Cache-Control', 'public, max-age=300'); // 5 minutes
+        res.json(result.rows);
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
       }

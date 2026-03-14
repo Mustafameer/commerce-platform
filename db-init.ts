@@ -124,6 +124,8 @@ export async function initializeDatabase(connectionString: string) {
     const indexes = [
       'CREATE INDEX IF NOT EXISTS idx_stores_slug ON stores(slug);',
       'CREATE INDEX IF NOT EXISTS idx_stores_id ON stores(id);',
+      'CREATE INDEX IF NOT EXISTS idx_stores_is_active ON stores(is_active);',
+      'CREATE INDEX IF NOT EXISTS idx_stores_is_active_created ON stores(is_active, created_at DESC);',
       'CREATE INDEX IF NOT EXISTS idx_topup_stores_slug ON topup_stores(slug);',
       'CREATE INDEX IF NOT EXISTS idx_topup_companies_store_id ON topup_companies(store_id);',
       'CREATE INDEX IF NOT EXISTS idx_topup_categories_store_id ON topup_product_categories(store_id);',

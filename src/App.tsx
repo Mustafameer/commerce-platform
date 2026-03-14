@@ -8746,12 +8746,12 @@ const StoresPage = () => {
   useEffect(() => {
     const fetchStores = async () => {
       try {
-        const res = await fetch('/api/stores');
+        const res = await fetch('/api/stores?limit=50');
         const data = await res.json();
-        const activeStores = Array.isArray(data) ? data.filter(s => s.is_active) : [];
-        setStores(activeStores);
+        // API now returns only active stores, no need to filter
+        setStores(Array.isArray(data) ? data : []);
 
-        setStoresWithLogos(buildStoreLogosMap(activeStores));
+        setStoresWithLogos(buildStoreLogosMap(Array.isArray(data) ? data : []));
         setLoading(false);
       } catch (err) {
         console.error("Fetch error:", err);
