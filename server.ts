@@ -3505,22 +3505,20 @@ async function startServer() {
         const customer = customerResult.rows[0];
         const openingBalance = Number(customer.starting_balance) || 0;
         
-        // Get customer's topup orders (purchases/debits)
+        // Get customer's topup orders (purchases/debits) from orders table
         const ordersResult = await pool.query(
           `SELECT 
-            o.id, o.store_id, o.topup_product_id, o.quantity, o.total_amount,
-            o.status, o.created_at, tp.amount as product_amount, tc.name as company_name
-           FROM topup_orders o
-           LEFT JOIN topup_products tp ON o.topup_product_id = tp.id
-           LEFT JOIN topup_companies tc ON tp.company_id = tc.id
-           WHERE o.customer_id = $1
+            o.id, o.store_id, o.total_amount,
+            o.status, o.created_at
+           FROM orders o
+           WHERE o.customer_id = $1 AND o.is_topup_order = true
            ORDER BY o.created_at ASC`,
           [customerId]
         );
         
         // Get customer's payments (credits)
         const paymentsResult = await pool.query(
-          `SELECT id, customer_id, amount, payment_method, notes as description, created_at
+          `SELECT id, customer_id, amount, payment_method, created_at
            FROM customer_payments WHERE customer_id = $1
            ORDER BY created_at ASC`,
           [customerId]
@@ -3532,7 +3530,7 @@ async function startServer() {
             id: o.id,
             created_at: o.created_at,
             type: 'topup',
-            description: o.company_name ? `${o.company_name} - ${o.product_amount || o.total_amount} د.ع` : 'شراء',
+            description: `شراء - ${o.total_amount || 0} د.ع`,
             amount: Number(o.total_amount || 0),
             is_payment: false,
             source: 'topup_order'
@@ -3541,7 +3539,7 @@ async function startServer() {
             id: p.id,
             created_at: p.created_at,
             type: 'payment',
-            description: p.description || 'دفعة',
+            description: 'دفعة',
             amount: Number(p.amount || 0),
             is_payment: true,
             source: 'payment'
