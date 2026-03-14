@@ -12639,18 +12639,18 @@ const TopupStorefront = () => {
                       }}
                       className="mb-4"
                     >
-                      <div className="text-xs font-normal text-gray-500 mb-1">{product.company_name}</div>
-                      <div className="text-lg sm:text-2xl font-normal mb-2">{product.amount.toLocaleString('en-US')} دينار</div>
+                      <div className="text-xs font-normal text-gray-500 mb-1">{product.company_name || 'غير محدد'}</div>
+                      <div className="text-lg sm:text-2xl font-normal mb-2">{(product.amount || 0).toLocaleString('en-US')} دينار</div>
                       <div className={cn("text-xs font-normal mb-3", isDarkMode ? "text-gray-400" : "text-gray-600")}> 
-                        {product.category_name}
+                        {product.category_name || 'فئة'}
                       </div>
                       <div className="space-y-1">
                         <div className={cn("text-base sm:text-lg font-normal", selectedProduct?.id === product.id ? "text-green-500" : isDarkMode ? "text-blue-400" : "text-indigo-600")}> 
-                          {displayPrice.toLocaleString('en-US')} د.ع
+                          {(displayPrice || 0).toLocaleString('en-US')} د.ع
                         </div>
                         {showBulkBadge && (
                           <div className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                            <del>{(product.wholesale_price || product.price).toLocaleString('en-US')} د.ع</del>
+                            <del>{((product.wholesale_price || product.price) || 0).toLocaleString('en-US')} د.ع</del>
                           </div>
                         )}
                       </div>
