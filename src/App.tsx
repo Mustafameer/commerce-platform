@@ -11015,6 +11015,7 @@ const MerchantTopupDashboard = () => {
                         const isPayment = tx.is_payment === true;
                         const debit = isPayment ? 0 : Math.abs(tx.amount || 0);
                         const credit = isPayment ? Math.abs(tx.amount || 0) : 0;
+                        console.log(`📊 Row ${idx}:`, { description: tx.description, type: tx.type, is_payment: tx.is_payment, debit, credit });
                         return (
                           <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
                             <td className={cn("px-4 py-3 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
