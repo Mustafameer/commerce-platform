@@ -3941,15 +3941,14 @@ async function startServer() {
 
     // Get topup categories (default to store 13)
     app.get("/api/topup/categories", async (req, res) => {
-      try {
-        // Default store ID is 13 (Ali Al-Hadi topup store with correct products)
+      try {\n        // Default store ID is 13 (Ali Al-Hadi topup store with correct products)
         const storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 13;
         
         // Cache for 5 minutes to reduce database load
         res.set('Cache-Control', 'private, max-age=300');
         
         const result = await pool.query(
-          `SELECT * FROM topup_product_categories WHERE store_id = $1 AND is_active = true ORDER BY id ASC`,
+          `SELECT * FROM topup_product_categories WHERE store_id = $1 ORDER BY id ASC`,
           [storeId]
         );
         
@@ -4059,7 +4058,7 @@ async function startServer() {
           FROM topup_products tp
           LEFT JOIN topup_companies tc ON tp.company_id = tc.id
           LEFT JOIN topup_product_categories tpc ON tp.category_id = tpc.id
-          WHERE tp.store_id = $1 AND tp.is_active = true
+          WHERE tp.store_id = $1
           ORDER BY tp.created_at DESC
           LIMIT $2 OFFSET $3`,
           [storeId, limit, offset]
@@ -4099,7 +4098,7 @@ async function startServer() {
           FROM topup_products tp
           LEFT JOIN topup_companies tc ON tp.company_id = tc.id
           LEFT JOIN topup_product_categories tpc ON tp.category_id = tpc.id
-          WHERE tp.store_id = $1 AND tp.is_active = true
+          WHERE tp.store_id = $1
           ORDER BY tp.created_at DESC
           LIMIT $2 OFFSET $3`,
           [storeId, limit, offset]
