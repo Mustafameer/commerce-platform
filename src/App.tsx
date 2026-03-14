@@ -8959,10 +8959,14 @@ const MerchantTopupDashboard = () => {
   const [showCodeUploadModal, setShowCodeUploadModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showPaymentsModal, setShowPaymentsModal] = useState(false);
+  const [showCustomerStatement, setShowCustomerStatement] = useState(false);
   const [selectedCustomerForPayments, setSelectedCustomerForPayments] = useState<any>(null);
+  const [selectedCustomerStatement, setSelectedCustomerStatement] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
+  const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_method: '', notes: '' });
   const [isEditingPayment, setIsEditingPayment] = useState<number | null>(null);
+  const [isLoadingCustomerTransactions, setIsLoadingCustomerTransactions] = useState(false);
   const [isEditingCustomer, setIsEditingCustomer] = useState<number | null>(null);
   const [isEditingProduct, setIsEditingProduct] = useState<number | null>(null);
   const [isEditingCompany, setIsEditingCompany] = useState<number | null>(null);
@@ -10890,6 +10894,76 @@ const MerchantTopupDashboard = () => {
               <button onClick={saveCustomer} className="w-full py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700">
                 {isEditingCustomer ? 'تحديث' : 'إضافة'}
               </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Customer Statement Modal */}
+      {showCustomerStatement && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" dir="rtl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={cn("rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
+          >
+            <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
+              <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>كشف حساب - {selectedCustomerStatement?.name}</h3>
+              <button onClick={() => setShowCustomerStatement(false)}>
+                <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
+              </button>
+            </div>
+            <div className="p-6">
+              {isLoadingCustomerTransactions ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2" style={{borderColor: primaryColor}}></div>
+                  <p className={cn("mt-3", isDarkMode ? "text-gray-300" : "text-gray-600")}>جاري تحميل البيانات...</p>
+                </div>
+              ) : !customerTransactions || customerTransactions.length === 0 ? (
+                <div className={cn("text-center py-8", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                  <p className="text-sm">لا توجد معاملات</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
+                        <th className={cn("px-4 py-3 text-right font-normal border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
+                        <th className={cn("px-4 py-3 text-right font-normal border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
+                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>مدين</th>
+                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>دائن</th>
+                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الرصيد</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {customerTransactions.map((tx, idx) => {
+                        const isPayment = tx.is_payment === true;
+                        const debit = isPayment ? 0 : Math.abs(tx.amount || 0);
+                        const credit = isPayment ? Math.abs(tx.amount || 0) : 0;
+                        return (
+                          <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
+                            <td className={cn("px-4 py-3 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
+                              {tx.created_at ? new Date(tx.created_at).toLocaleDateString('ar-IQ') : '—'}
+                            </td>
+                            <td className={cn("px-4 py-3 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
+                              {tx.description || 'معاملة'}
+                            </td>
+                            <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-red-400 border-gray-700" : "text-red-600 border-gray-200")}>
+                              {debit > 0 ? debit.toLocaleString('en-US') : '—'}
+                            </td>
+                            <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-green-400 border-gray-700" : "text-green-600 border-gray-200")}>
+                              {credit > 0 ? credit.toLocaleString('en-US') : '—'}
+                            </td>
+                            <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-blue-400 border-gray-700" : "text-blue-600 border-gray-200")}>
+                              {(tx.balance || 0).toLocaleString('en-US')}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </motion.div>
         </div>
