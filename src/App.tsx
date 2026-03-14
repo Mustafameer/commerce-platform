@@ -3871,7 +3871,13 @@ const MerchantDashboard = () => {
 
   // Customer Statement Modal States
   const [showCustomerStatement, setShowCustomerStatement] = useState(false);
+  const [showCustomerAccountModal, setShowCustomerAccountModal] = useState(false);
+  const [customerAccountModalTab, setCustomerAccountModalTab] = useState<'statement' | 'payments'>('statement');
   const [selectedCustomerStatement, setSelectedCustomerStatement] = useState<any>(null);
+  const [selectedCustomerForPayments, setSelectedCustomerForPayments] = useState<any>(null);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [paymentForm, setPaymentForm] = useState({ amount: '', payment_method: '', notes: '' });
+  const [isEditingPayment, setIsEditingPayment] = useState<number | null>(null);
   const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
   const [isLoadingCustomerTransactions, setIsLoadingCustomerTransactions] = useState(false);
   const [merchantPaymentAmount, setMerchantPaymentAmount] = useState('');
