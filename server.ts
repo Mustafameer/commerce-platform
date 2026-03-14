@@ -3493,7 +3493,7 @@ async function startServer() {
         
         // Get customer info
         const customerResult = await pool.query(
-          `SELECT id, name, phone, email, customer_type, credit_limit, current_debt, starting_balance, created_at
+          `SELECT id, name, phone, email, customer_type, credit_limit, created_at
            FROM customers WHERE id = $1`,
           [customerId]
         );
@@ -3504,24 +3504,14 @@ async function startServer() {
         
         const customer = customerResult.rows[0];
         
-        // Get ALL payments to calculate original opening balance
-        const allPaymentsResult = await pool.query(
-          `SELECT COALESCE(SUM(amount), 0) as total_payments FROM customer_payments WHERE customer_id = $1`,
-          [customerId]
-        );
-        
-        const totalPayments = Number(allPaymentsResult.rows[0]?.total_payments || 0);
-        
-        // Original opening balance = current starting_balance + all payments made
-        const openingBalance = Number(customer.starting_balance || 0) + totalPayments;
-        
         // Get customer's topup orders (purchases/debits) from orders table
+        // Use topup_customer_id OR customer_id since some orders use either
         const ordersResult = await pool.query(
           `SELECT 
             o.id, o.store_id, o.total_amount,
             o.status, o.created_at
            FROM orders o
-           WHERE o.customer_id = $1 AND o.is_topup_order = true
+           WHERE (o.topup_customer_id = $1 OR o.customer_id = $1) AND o.is_topup_order = true
            ORDER BY o.created_at ASC`,
           [customerId]
         );
@@ -3535,7 +3525,7 @@ async function startServer() {
         );
         
         // Combine all transactions and build statement
-        let allItems = [
+        const allItems = [
           ...ordersResult.rows.map(o => ({
             id: o.id,
             created_at: o.created_at,
@@ -3556,32 +3546,16 @@ async function startServer() {
           }))
         ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         
-        // Add opening balance transaction at the beginning
-        allItems = [
-          {
-            id: 0,
-            created_at: customer.created_at,
-            type: 'opening',
-            description: 'ديون سابقة',
-            amount: openingBalance,
-            is_payment: false,
-            source: 'opening'
-          },
-          ...allItems
-        ];
+        // Opening balance is always 0 for new customers (no previous debt)
+        const openingBalance = 0;
         
-        // Calculate running balance (from first transaction onwards)
+        // Calculate running balance starting from 0
         let runningBalance = 0;
         const itemsWithBalance = allItems.map((item, idx) => {
-          if (idx === 0) {
-            // Opening balance
-            runningBalance = item.amount;
+          if (item.is_payment) {
+            runningBalance -= item.amount;  // Payment reduces debt
           } else {
-            if (item.is_payment) {
-              runningBalance -= item.amount;  // Payment reduces debt
-            } else {
-              runningBalance += item.amount;  // Purchase increases debt
-            }
+            runningBalance += item.amount;  // Purchase increases debt
           }
           return { ...item, balance: Math.max(0, runningBalance) };
         });
@@ -3592,7 +3566,7 @@ async function startServer() {
         // Calculate final current debt
         const finalBalance = itemsWithBalance.length > 0 
           ? itemsWithBalance[itemsWithBalance.length - 1].balance 
-          : openingBalance;
+          : 0;
         
         res.json({
           customer: {
@@ -3602,8 +3576,7 @@ async function startServer() {
             email: customer.email,
             customer_type: customer.customer_type,
             credit_limit: Number(customer.credit_limit),
-            current_debt: finalBalance,
-            starting_balance: openingBalance
+            current_debt: finalBalance
           },
           transactions,
           current_debt: finalBalance
