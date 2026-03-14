@@ -10387,11 +10387,11 @@ const MerchantTopupDashboard = () => {
                               <button 
                                 onClick={async () => {
                                   try {
-                                    const res = await fetch(`/api/topup/customers/${customer.id}/transactions`);
+                                    const res = await fetch(`/api/topup/customers/${customer.id}/statement`);
                                     if (res.ok) {
                                       const data = await res.json();
                                       setSelectedCustomerStatement(customer);
-                                      setCustomerTransactions(Array.isArray(data) ? data : []);
+                                      setCustomerTransactions(Array.isArray(data.transactions) ? data.transactions : []);
                                       setShowCustomerStatement(true);
                                     }
                                   } catch (error) {
