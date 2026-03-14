@@ -3843,8 +3843,8 @@ async function startServer() {
       try {
         const { storeId } = req.params;
         
-        // Allow browser caching for 10 seconds to reduce database load
-        res.set('Cache-Control', 'private, max-age=10');
+        // Cache for 5 minutes to reduce database load
+        res.set('Cache-Control', 'private, max-age=300');
         
         const result = await pool.query(
           `SELECT * FROM topup_companies WHERE store_id = $1 ORDER BY id`,
@@ -3929,8 +3929,8 @@ async function startServer() {
       try {
         const { storeId } = req.params;
         
-        // Allow browser caching for 10 seconds to reduce database load
-        res.set('Cache-Control', 'private, max-age=10');
+        // Cache for 5 minutes to reduce database load
+        res.set('Cache-Control', 'private, max-age=300');
         
         const result = await pool.query(
           `SELECT * FROM topup_product_categories WHERE store_id = $1 AND is_active = true ORDER BY id ASC`,
@@ -4000,9 +4000,11 @@ async function startServer() {
     app.get("/api/topup/products/:storeId", async (req, res) => {
       try {
         const { storeId } = req.params;
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : 500;
+        const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
         
-        // Allow browser caching for 10 seconds to reduce database load
-        res.set('Cache-Control', 'private, max-age=10');
+        // Cache for 5 minutes to reduce database load
+        res.set('Cache-Control', 'private, max-age=300');
         
         const result = await pool.query(
           `SELECT 
@@ -4025,8 +4027,9 @@ async function startServer() {
           LEFT JOIN topup_companies tc ON tp.company_id = tc.id
           LEFT JOIN topup_product_categories tpc ON tp.category_id = tpc.id
           WHERE tp.store_id = $1
-          ORDER BY tp.created_at DESC`,
-          [storeId]
+          ORDER BY tp.created_at DESC
+          LIMIT $2 OFFSET $3`,
+          [storeId, limit, offset]
         );
         
         res.json(result.rows);
