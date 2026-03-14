@@ -4078,6 +4078,8 @@ async function startServer() {
             tp.wholesale_price,
             tp.wholesale_price AS bulk_price,
             tp.available_codes,
+            tp.images,
+            tp.codes,
             tp.is_active,
             tc.name as company_name,
             tpc.name as category_name
@@ -4118,6 +4120,8 @@ async function startServer() {
             tp.wholesale_price,
             tp.wholesale_price AS bulk_price,
             tp.available_codes,
+            tp.images,
+            tp.codes,
             tp.is_active,
             tc.name as company_name,
             tpc.name as category_name
@@ -4285,6 +4289,9 @@ async function startServer() {
         console.log('📤 Starting image upload request...');
         const { store_id, topup_product_id, images } = req.body;
 
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+
         if (!store_id || !topup_product_id || !images || !Array.isArray(images)) {
           console.warn('⚠️ Missing required fields');
           return res.status(400).json({ error: "Missing required fields or invalid images format" });
@@ -4355,6 +4362,9 @@ async function startServer() {
     app.post("/api/topup/upload-codes", async (req, res) => {
       try {
         const { store_id, topup_product_id, codes } = req.body;
+
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
 
         if (!store_id || !topup_product_id || !codes || !Array.isArray(codes)) {
           return res.status(400).json({ error: "Missing required fields or invalid codes format" });
