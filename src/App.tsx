@@ -8960,11 +8960,12 @@ const MerchantTopupDashboard = () => {
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showPaymentsModal, setShowPaymentsModal] = useState(false);
   const [showCustomerStatement, setShowCustomerStatement] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [selectedCustomerForPayments, setSelectedCustomerForPayments] = useState<any>(null);
   const [selectedCustomerStatement, setSelectedCustomerStatement] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
-  const [paymentForm, setPaymentForm] = useState({ amount: '', payment_method: '', notes: '' });
+  const [paymentForm, setPaymentForm] = useState({ amount: '' });
   const [isEditingPayment, setIsEditingPayment] = useState<number | null>(null);
   const [isLoadingCustomerTransactions, setIsLoadingCustomerTransactions] = useState(false);
   const [isEditingCustomer, setIsEditingCustomer] = useState<number | null>(null);
@@ -10908,14 +10909,82 @@ const MerchantTopupDashboard = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className={cn("rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
+            className={cn("rounded-2xl w-full max-w-4xl shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
           >
             <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
               <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>كشف حساب - {selectedCustomerStatement?.name}</h3>
-              <button onClick={() => setShowCustomerStatement(false)}>
-                <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setShowPaymentForm(!showPaymentForm)}
+                  className={cn("px-4 py-2 rounded-lg text-white font-normal text-sm flex items-center gap-2", isDarkMode ? "bg-green-600 hover:bg-green-700" : "bg-green-600 hover:bg-green-700")}
+                >
+                  <Plus size={16} /> تسديد
+                </button>
+                <button onClick={() => setShowCustomerStatement(false)}>
+                  <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
+                </button>
+              </div>
             </div>
+
+            {/* Payment Form */}
+            {showPaymentForm && (
+              <div className={cn("p-6 border-b", isDarkMode ? "bg-green-900/20 border-green-600/50" : "bg-green-50 border-green-200")}>
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    <input
+                      type="number"
+                      placeholder="أدخل المبلغ..."
+                      value={paymentForm.amount}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                      max={selectedCustomerStatement?.current_debt || 0}
+                      className={cn("flex-1 px-4 py-2 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-gray-300")}
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!paymentForm.amount || parseFloat(paymentForm.amount) <= 0) {
+                          alert('أدخل مبلغ صحيح');
+                          return;
+                        }
+                        try {
+                          const res = await fetch(`/api/topup/payment`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              customer_id: selectedCustomerStatement.id,
+                              amount: parseFloat(paymentForm.amount),
+                              payment_method: 'cash'
+                            })
+                          });
+                          if (res.ok) {
+                            alert('✓ تم التسديد بنجاح');
+                            setPaymentForm({ amount: '' });
+                            setShowPaymentForm(false);
+                            // Reload statement
+                            setIsLoadingCustomerTransactions(true);
+                            const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
+                            if (statementRes.ok) {
+                              const data = await statementRes.json();
+                              setCustomerTransactions(Array.isArray(data.transactions) ? data.transactions : []);
+                              setSelectedCustomerStatement(data.customer);
+                            }
+                            setIsLoadingCustomerTransactions(false);
+                          } else {
+                            alert('فشل التسديد');
+                          }
+                        } catch (error) {
+                          console.error('Payment error:', error);
+                          alert('حدث خطأ');
+                        }
+                      }}
+                      className={cn("px-6 py-2 rounded-lg text-white font-normal text-sm", isDarkMode ? "bg-green-600 hover:bg-green-700" : "bg-green-600 hover:bg-green-700")}
+                    >
+                      تأكيد
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="p-6">
               {isLoadingCustomerTransactions ? (
                 <div className="text-center py-8">
@@ -10936,6 +11005,7 @@ const MerchantTopupDashboard = () => {
                         <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>مدين</th>
                         <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>دائن</th>
                         <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الرصيد</th>
+                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>الإجراءات</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -10959,6 +11029,48 @@ const MerchantTopupDashboard = () => {
                             </td>
                             <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-blue-400 border-gray-700" : "text-blue-600 border-gray-200")}>
                               {(tx.balance || 0).toLocaleString('en-US')}
+                            </td>
+                            <td className={cn("px-4 py-3 border text-center", isDarkMode ? "border-gray-700" : "border-gray-200")}>
+                              <div className="flex gap-2 justify-center">
+                                {isPayment && (
+                                  <>
+                                    <button
+                                      onClick={() => alert('تحديث: قريباً')}
+                                      className={cn("p-1.5 rounded transition-all", isDarkMode ? "text-amber-400 hover:bg-amber-900/30" : "text-amber-600 hover:bg-amber-50")}
+                                      title="تحديث"
+                                    >
+                                      <Edit2 size={14} />
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        if (!confirm('هل تريد حذف هذا التسديد؟')) return;
+                                        try {
+                                          const res = await fetch(`/api/topup/payment/${tx.id}`, { method: 'DELETE' });
+                                          if (res.ok) {
+                                            alert('✓ تم الحذف بنجاح');
+                                            // Reload statement
+                                            setIsLoadingCustomerTransactions(true);
+                                            const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
+                                            if (statementRes.ok) {
+                                              const data = await statementRes.json();
+                                              setCustomerTransactions(Array.isArray(data.transactions) ? data.transactions : []);
+                                              setSelectedCustomerStatement(data.customer);
+                                            }
+                                            setIsLoadingCustomerTransactions(false);
+                                          }
+                                        } catch (error) {
+                                          console.error('Delete error:', error);
+                                          alert('حدث خطأ');
+                                        }
+                                      }}
+                                      className={cn("p-1.5 rounded transition-all", isDarkMode ? "text-red-400 hover:bg-red-900/30" : "text-red-600 hover:bg-red-50")}
+                                      title="حذف"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
