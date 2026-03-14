@@ -2178,14 +2178,14 @@ async function startServer() {
       }
     });
 
-    // Delete store (soft delete - mark as inactive)
+    // Delete store (hard delete - remove from database)
     app.delete("/api/admin/delete-store/:id", async (req, res) => {
       try {
         const { id } = req.params;
         
-        // Soft delete: mark the store as inactive instead of hard delete
+        // Hard delete: actually remove the store from database
         const result = await pool.query(
-          "UPDATE stores SET is_active = false WHERE id = $1 RETURNING id, store_name",
+          "DELETE FROM stores WHERE id = $1 RETURNING id, store_name",
           [parseInt(id)]
         );
         
@@ -3932,8 +3932,9 @@ async function startServer() {
       try {
         const { id } = req.params;
         
-        await pool.query(`UPDATE topup_companies SET is_active = false WHERE id = $1`, [id]);
-        res.json({ success: true });
+        // Actually delete the company
+        await pool.query(`DELETE FROM topup_companies WHERE id = $1`, [id]);
+        res.json({ success: true, message: "✅ تم حذف الشركة بنجاح" });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
       }
@@ -4023,7 +4024,7 @@ async function startServer() {
       try {
         const { id } = req.params;
         
-        await pool.query(`UPDATE topup_product_categories SET is_active = false WHERE id = $1`, [id]);
+        await pool.query(`DELETE FROM topup_product_categories WHERE id = $1`, [id]);
         res.json({ success: true });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
@@ -4234,7 +4235,7 @@ async function startServer() {
         res.set('Expires', '0');
         
         const result = await pool.query(
-          `UPDATE topup_products SET is_active = false WHERE id = $1 RETURNING id, is_active`,
+          `DELETE FROM topup_products WHERE id = $1 RETURNING id`,
           [parseInt(id)]
         );
         
