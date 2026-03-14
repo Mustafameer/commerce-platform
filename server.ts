@@ -3608,7 +3608,7 @@ async function startServer() {
 
         // Get customer info including starting_balance
         const customerResult = await pool.query(
-          `SELECT id, customer_id, starting_balance, credit_limit FROM customers WHERE id = $1`,
+          `SELECT id, starting_balance, credit_limit FROM customers WHERE id = $1`,
           [customer_id]
         );
 
