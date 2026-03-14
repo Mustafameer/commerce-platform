@@ -3911,6 +3911,16 @@ const MerchantDashboard = () => {
     checkStoreId();
   }, [user, setUser]);
 
+  // Monitor modal state changes for debugging
+  useEffect(() => {
+    console.log('🔍 Modal State Changed:', {
+      showCustomerAccountModal,
+      selectedCustomerForPayments: selectedCustomerForPayments?.name || null,
+      selectedCustomerStatement: selectedCustomerStatement?.name || null,
+      shouldRender: showCustomerAccountModal && (selectedCustomerForPayments || selectedCustomerStatement)
+    });
+  }, [showCustomerAccountModal, selectedCustomerForPayments, selectedCustomerStatement]);
+
   useEffect(() => {
     if (user?.store_id) {
       console.log('📥 MerchantDashboard - Fetching data for store:', user.store_id, 'Type:', user?.store_type);
@@ -4645,6 +4655,13 @@ const MerchantDashboard = () => {
     try {
       setIsLoadingCustomerTransactions(true);
       console.log('🔍 STARTING handleLoadStatement for customer:', customerId);
+      
+      // Ensure we have a customer ID
+      if (!customerId || customerId <= 0) {
+        console.error('❌ Invalid customer ID:', customerId);
+        setIsLoadingCustomerTransactions(false);
+        return;
+      }
       
       const res = await fetch(`/api/customers/${customerId}/statement`);
       console.log('📡 Response status:', res.status);
@@ -6856,7 +6873,7 @@ const MerchantDashboard = () => {
         )}
 
         {/* Merged Customer Account Modal (Statement + Payments) */}
-        {showCustomerAccountModal && (selectedCustomerForPayments || selectedCustomerStatement) && (
+        {showCustomerAccountModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto font-sans" dir="rtl">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -10860,19 +10877,42 @@ const MerchantTopupDashboard = () => {
                               <button 
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  console.log('🎯 Customer Account Button Clicked:', customer.name);
                                   const customerWithId = {
                                     ...customer,
                                     customer_id: customer.customer_id || customer.id
                                   };
+                                  console.log('📌 Customer object:', {
+                                    id: customerWithId.id,
+                                    customer_id: customerWithId.customer_id,
+                                    name: customerWithId.name,
+                                    phone: customerWithId.phone
+                                  });
+                                  
+                                  // Set all states FIRST - before async operations
+                                  console.log('✅ Setting states...');
                                   setSelectedCustomerForPayments(customerWithId);
                                   setSelectedCustomerStatement(customerWithId);
                                   setShowCustomerAccountModal(true);
                                   setCustomerAccountModalTab('statement');
-                                  // Fetch payments and load statement data
+                                  console.log('✅ States set, modal should be showing now');
+                                  
+                                  // Then fetch data asynchronously
+                                  console.log('⏬ Starting async data fetches...');
                                   fetch(`/api/customer-payments/${user?.store_id}/${customer.id}`)
                                     .then(r => r.json())
-                                    .then(data => setPayments(Array.isArray(data) ? data : []));
-                                  setTimeout(() => handleLoadStatement(customerWithId.customer_id), 100);
+                                    .then(data => {
+                                      console.log('💳 Payments fetched:', data);
+                                      setPayments(Array.isArray(data) ? data : []);
+                                    })
+                                    .catch(err => console.error('❌ Error fetching payments:', err));
+                                  
+                                  // Load statement data
+                                  console.log('⏱️ Scheduling handleLoadStatement...');
+                                  setTimeout(() => {
+                                    console.log('🔔 Timeout callback: calling handleLoadStatement');
+                                    handleLoadStatement(customerWithId.customer_id || customerWithId.id);
+                                  }, 50);
                                 }}
                                 className={cn("p-2 rounded-lg transition-all cursor-pointer active:scale-95 hover:scale-110", isDarkMode ? "bg-blue-900/30 text-blue-400 hover:bg-blue-900/60" : "text-blue-600 hover:bg-blue-50")}
                                 title="بيانات الحساب والتسديدات"
