@@ -10383,6 +10383,28 @@ const MerchantTopupDashboard = () => {
                           <td className={cn("px-6 py-4 font-semibold", customer.current_debt > customer.credit_limit ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-400" : "text-yellow-600"))}>{Math.round(customer.current_debt)?.toLocaleString('en-US')} د.ع</td>
                           <td className="px-6 py-4">
                             <div className="flex gap-2 pointer-events-auto">
+                              {/* Statement button */}
+                              <button 
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/topup/customers/${customer.id}/transactions`);
+                                    if (res.ok) {
+                                      const data = await res.json();
+                                      setSelectedCustomerStatement(customer);
+                                      setCustomerTransactions(Array.isArray(data) ? data : []);
+                                      setShowCustomerStatement(true);
+                                    }
+                                  } catch (error) {
+                                    console.error('Error loading statement:', error);
+                                    alert('حدث خطأ في تحميل كشف الحساب');
+                                  }
+                                }}
+                                className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-blue-900/30 text-blue-400 hover:bg-blue-900/60" : "text-blue-600 hover:bg-blue-50")}
+                                title="كشف الحساب"
+                              >
+                                <FileText size={16} />
+                              </button>
+
                               {/* Edit button */}
                               <button 
                                 onClick={() => {
