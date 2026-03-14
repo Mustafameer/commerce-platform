@@ -10850,9 +10850,10 @@ const MerchantTopupDashboard = () => {
                           <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-purple-300" : "text-purple-700")}>{Math.round(customer.starting_balance || 0)?.toLocaleString('en-US')} د.ع</td>
                           <td className={cn("px-6 py-4 font-semibold", customer.current_debt > customer.credit_limit ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-400" : "text-yellow-600"))}>{Math.round(customer.current_debt)?.toLocaleString('en-US')} د.ع</td>
                           <td className="px-6 py-4">
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 pointer-events-auto">
                               <button 
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   const customerWithId = {
                                     ...customer,
                                     customer_id: customer.customer_id || customer.id
@@ -10867,8 +10868,9 @@ const MerchantTopupDashboard = () => {
                                     .then(data => setPayments(Array.isArray(data) ? data : []));
                                   setTimeout(() => handleLoadStatement(customerWithId.customer_id), 100);
                                 }}
-                                className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-blue-900/30 text-blue-400 hover:bg-blue-900/60" : "text-blue-600 hover:bg-blue-50")}
+                                className={cn("p-2 rounded-lg transition-all cursor-pointer active:scale-95 hover:scale-110", isDarkMode ? "bg-blue-900/30 text-blue-400 hover:bg-blue-900/60" : "text-blue-600 hover:bg-blue-50")}
                                 title="بيانات الحساب والتسديدات"
+                                type="button"
                               >
                                 <CreditCard size={16} />
                               </button>
