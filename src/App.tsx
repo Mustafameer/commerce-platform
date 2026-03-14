@@ -10399,9 +10399,12 @@ const MerchantTopupDashboard = () => {
                                     const res = await fetch(`/api/topup/customers/${customer.id}/statement`);
                                     if (res.ok) {
                                       const data = await res.json();
+                                      console.log('✅ Statement loaded:', data);
                                       setCustomerTransactions(Array.isArray(data.transactions) ? data.transactions : []);
                                     } else {
-                                      alert('فشل تحميل كشف الحساب');
+                                      const errorData = await res.json();
+                                      console.error('❌ API Error:', res.status, errorData);
+                                      alert(`فشل تحميل كشف الحساب: ${errorData.error || 'خطأ غير معروف'}`);
                                     }
                                   } catch (error) {
                                     console.error('Error loading statement:', error);
