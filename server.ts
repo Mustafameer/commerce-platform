@@ -5365,6 +5365,79 @@ async function startServer() {
       }
     });
 
+    // ⚠️ DANGEROUS: Delete ALL data from database (restore schema/structure only)
+    app.delete("/api/admin/purge-all-data", async (req, res) => {
+      try {
+        console.log("🚨 [ADMIN] PURGE ALL DATA - Nuclear option called");
+        
+        // List of tables to clear (in order of dependencies)
+        const tablesToClear = [
+          'topup_orders_detail',
+          'topup_orders',
+          'order_items',
+          'orders',
+          'cart_items',
+          'customer_payments',
+          'customer_transactions',
+          'customers',
+          'topup_products',
+          'topup_product_categories',
+          'topup_companies',
+          'products',
+          'categories',
+          'stores',
+          'company_users'
+        ];
+
+        const results: any = {};
+
+        // Delete all data from each table
+        for (const table of tablesToClear) {
+          try {
+            const result = await pool.query(`DELETE FROM ${table}`);
+            results[table] = result.rowCount;
+            console.log(`✓ تم حذف ${result.rowCount} سجل من ${table}`);
+          } catch (err: any) {
+            console.log(`⚠️ ${table}: ${err.message}`);
+          }
+        }
+
+        // Reset sequences
+        const sequences = [
+          'stores_id_seq',
+          'categories_id_seq',
+          'products_id_seq',
+          'customers_id_seq',
+          'orders_id_seq',
+          'order_items_id_seq',
+          'topup_companies_id_seq',
+          'topup_product_categories_id_seq',
+          'topup_products_id_seq',
+          'topup_orders_id_seq',
+          'company_users_id_seq'
+        ];
+
+        for (const seq of sequences) {
+          try {
+            await pool.query(`ALTER SEQUENCE ${seq} RESTART WITH 1`);
+            console.log(`✓ تم إعادة تعيين ${seq}`);
+          } catch (err: any) {
+            console.log(`⚠️ ${seq}: ${err.message}`);
+          }
+        }
+
+        res.json({ 
+          success: true, 
+          message: "✅ تم حذف جميع البيانات بنجاح - الجداول جاهزة لبيانات جديدة",
+          deleted: results
+        });
+        
+      } catch (error) {
+        console.error("❌ Error purging data:", error);
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
     // Catch-all route - serve index.html for all non-API, non-file requests (SPA routing)
     app.use("*", (req, res) => {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
