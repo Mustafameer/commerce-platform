@@ -3846,8 +3846,8 @@ async function startServer() {
         // Default store ID is 21 (only topup store)
         const storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 21;
         
-        // Cache for 5 minutes to reduce database load
-        res.set('Cache-Control', 'private, max-age=300');
+        // No cache - always get fresh data
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
         const result = await pool.query(
           `SELECT * FROM topup_companies WHERE store_id = $1 ORDER BY id`,
@@ -3864,8 +3864,8 @@ async function startServer() {
       try {
         const { storeId } = req.params;
         
-        // Cache for 5 minutes to reduce database load
-        res.set('Cache-Control', 'private, max-age=300');
+        // No cache - always get fresh data
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
         const result = await pool.query(
           `SELECT * FROM topup_companies WHERE store_id = $1 ORDER BY id`,
@@ -3887,6 +3887,9 @@ async function startServer() {
           return res.status(400).json({ error: "store_id and name are required" });
         }
         
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        
         const result = await pool.query(
           `INSERT INTO topup_companies (store_id, name, logo_url) VALUES ($1, $2, $3) RETURNING *`,
           [store_id, name, logo_url || '']
@@ -3903,6 +3906,9 @@ async function startServer() {
       try {
         const { id } = req.params;
         const { name, logo_url } = req.body;
+        
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
         const updates = [];
         const values = [];
@@ -3938,6 +3944,9 @@ async function startServer() {
       try {
         const { id } = req.params;
         
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        
         // Actually delete the company
         await pool.query(`DELETE FROM topup_companies WHERE id = $1`, [id]);
         res.json({ success: true, message: "✅ تم حذف الشركة بنجاح" });
@@ -3952,8 +3961,8 @@ async function startServer() {
         // Default store ID is 21 (only topup store)
         const storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 21;
         
-        // Cache for 5 minutes to reduce database load
-        res.set('Cache-Control', 'private, max-age=300');
+        // No cache - always get fresh data
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
         const result = await pool.query(
           `SELECT * FROM topup_product_categories WHERE store_id = $1 ORDER BY id ASC`,
@@ -3970,8 +3979,8 @@ async function startServer() {
       try {
         const { storeId } = req.params;
         
-        // Cache for 5 minutes to reduce database load
-        res.set('Cache-Control', 'private, max-age=300');
+        // No cache - always get fresh data
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
         const result = await pool.query(
           `SELECT * FROM topup_product_categories WHERE store_id = $1 ORDER BY id ASC`,
@@ -3993,6 +4002,9 @@ async function startServer() {
           return res.status(400).json({ error: "store_id and name are required" });
         }
         
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        
         const result = await pool.query(
           `INSERT INTO topup_product_categories (store_id, name) VALUES ($1, $2) RETURNING *`,
           [store_id, name]
@@ -4009,6 +4021,9 @@ async function startServer() {
       try {
         const { id } = req.params;
         const { name } = req.body;
+        
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
         const result = await pool.query(
           `UPDATE topup_product_categories SET name = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
@@ -4030,6 +4045,9 @@ async function startServer() {
       try {
         const { id } = req.params;
         
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        
         await pool.query(`DELETE FROM topup_product_categories WHERE id = $1`, [id]);
         res.json({ success: true });
       } catch (error) {
@@ -4045,8 +4063,8 @@ async function startServer() {
         // Default store ID is 21 (only topup store)
         const storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 21;
         
-        // Cache for 5 minutes to reduce database load
-        res.set('Cache-Control', 'private, max-age=300');
+        // No cache - always get fresh data
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
         const result = await pool.query(
           `SELECT 
@@ -4085,8 +4103,8 @@ async function startServer() {
         const limit = req.query.limit ? parseInt(req.query.limit as string) : 500;
         const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
         
-        // Cache for 5 minutes to reduce database load
-        res.set('Cache-Control', 'private, max-age=300');
+        // No cache - always get fresh data
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
         const result = await pool.query(
           `SELECT 
@@ -4124,6 +4142,9 @@ async function startServer() {
         const { store_id, company_id, amount, price, bulk_price, quantity_type, category_id } = req.body;
         
         console.log('📦 Product POST received:', { store_id, company_id, amount, price });
+        
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
         if (!store_id) {
           return res.status(400).json({ error: "Missing store_id" });
@@ -4180,6 +4201,9 @@ async function startServer() {
       try {
         const { id } = req.params;
         const { amount, price, bulk_price, retail_price, wholesale_price, available_codes } = req.body;
+        
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
         const updates = [];
         const values = [];
