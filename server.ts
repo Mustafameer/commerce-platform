@@ -3837,11 +3837,15 @@ async function startServer() {
 
     app.get("/api/topup/companies", async (req, res) => {
       try {
+        // Default store ID is 13 (Ali Al-Hadi topup store)
+        const storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 13;
+        
         // Cache for 5 minutes to reduce database load
         res.set('Cache-Control', 'private, max-age=300');
         
         const result = await pool.query(
-          `SELECT * FROM topup_companies ORDER BY store_id, id`
+          `SELECT * FROM topup_companies WHERE store_id = $1 ORDER BY id`,
+          [storeId]
         );
         
         res.json(result.rows);
@@ -3935,14 +3939,18 @@ async function startServer() {
       }
     });
 
-    // Get topup categories (all categories, not just those with products)
+    // Get topup categories (default to store 13)
     app.get("/api/topup/categories", async (req, res) => {
       try {
+        // Default store ID is 13 (Ali Al-Hadi topup store)
+        const storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 13;
+        
         // Cache for 5 minutes to reduce database load
         res.set('Cache-Control', 'private, max-age=300');
         
         const result = await pool.query(
-          `SELECT * FROM topup_product_categories WHERE is_active = true ORDER BY store_id, id ASC`
+          `SELECT * FROM topup_product_categories WHERE store_id = $1 AND is_active = true ORDER BY id ASC`,
+          [storeId]
         );
         
         res.json(result.rows);
@@ -4022,11 +4030,13 @@ async function startServer() {
       }
     });
 
-    // Get all topup products (without store filter)
+    // Get all topup products (default to store 13 - Ali Al-Hadi topup store)
     app.get("/api/topup/products", async (req, res) => {
       try {
         const limit = req.query.limit ? parseInt(req.query.limit as string) : 500;
         const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+        // Default store ID is 13 (Ali Al-Hadi topup store)
+        const storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 13;
         
         // Cache for 5 minutes to reduce database load
         res.set('Cache-Control', 'private, max-age=300');
@@ -4049,10 +4059,10 @@ async function startServer() {
           FROM topup_products tp
           LEFT JOIN topup_companies tc ON tp.company_id = tc.id
           LEFT JOIN topup_product_categories tpc ON tp.category_id = tpc.id
-          WHERE tp.is_active = true
+          WHERE tp.store_id = $1 AND tp.is_active = true
           ORDER BY tp.created_at DESC
-          LIMIT $1 OFFSET $2`,
-          [limit, offset]
+          LIMIT $2 OFFSET $3`,
+          [storeId, limit, offset]
         );
         
         res.json(result.rows);
