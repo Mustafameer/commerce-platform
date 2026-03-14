@@ -3503,7 +3503,17 @@ async function startServer() {
         }
         
         const customer = customerResult.rows[0];
-        const openingBalance = Number(customer.starting_balance) || 0;
+        
+        // Get ALL payments to calculate original opening balance
+        const allPaymentsResult = await pool.query(
+          `SELECT COALESCE(SUM(amount), 0) as total_payments FROM customer_payments WHERE customer_id = $1`,
+          [customerId]
+        );
+        
+        const totalPayments = Number(allPaymentsResult.rows[0]?.total_payments || 0);
+        
+        // Original opening balance = current starting_balance + all payments made
+        const openingBalance = Number(customer.starting_balance || 0) + totalPayments;
         
         // Get customer's topup orders (purchases/debits) from orders table
         const ordersResult = await pool.query(
