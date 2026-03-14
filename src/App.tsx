@@ -5066,12 +5066,9 @@ const MerchantDashboard = () => {
             <tr className={cn(isDarkMode ? "bg-gray-800" : "bg-white")}> 
               {isTopupStore ? (
                 <>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-400" : "text-gray-400")}>الاسم</th>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-400" : "text-gray-400")}>النوع</th>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-400" : "text-gray-400")}>الرقم</th>
                   <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>حد الائتمان</th>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الرصيد الابتدائي</th>
                   <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الديون الحالية</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الرصيد المتاح</th>
                   <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الإجراءات</th>
                 </>
               ) : (
@@ -5089,7 +5086,7 @@ const MerchantDashboard = () => {
           <tbody className={cn(isDarkMode ? "divide-gray-800" : "divide-gray-50")}> 
             {customers.length === 0 ? (
               <tr>
-                <td colSpan={isTopupStore ? 6 : 6} className="px-6 py-12 text-center">
+                <td colSpan={isTopupStore ? 4 : 6} className="px-6 py-12 text-center">
                   <div className="text-gray-400 text-sm font-normal">لا توجد عملاء بعد. أضف عميلاً جديداً</div>
                 </td>
               </tr>
@@ -5101,33 +5098,17 @@ const MerchantDashboard = () => {
                 
                 return (
                   <tr key={cust.id} className={cn("transition-colors group", isDarkMode ? "hover:bg-gray-700/50" : "hover:bg-indigo-50/30")}>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center text-sm font-normal", isDarkMode ? "bg-indigo-900/30 text-indigo-400" : "bg-indigo-100 text-indigo-600")}>
-                          {cust.name?.charAt(0)}
-                        </div>
-                        <div className={cn("text-sm font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{cust.name}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={cn("text-xs font-normal px-2.5 py-1 rounded-lg", cust.customer_type === 'reseller' ? (isDarkMode ? "bg-blue-900/30 text-blue-400" : "bg-blue-100 text-blue-700") : (isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"))}>
-                        {cust.customer_type === 'reseller' ? 'نقطة بيع' : 'عميل نقدي'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={cn("text-xs font-normal px-2 py-1 rounded-lg border", isDarkMode ? "bg-gray-700 text-gray-300 border-gray-600" : "bg-gray-50 text-gray-600 border-gray-100")}>{cust.phone}</span>
-                    </td>
                     <td className="px-6 py-4 text-center">
                       <span className={cn("text-sm font-normal font-mono", isDarkMode ? "text-gray-300" : "text-gray-700")}>{formatCurrency(cust.credit_limit || 0)}</span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={cn("text-sm font-normal font-mono px-2 py-1 rounded-lg", isDarkMode ? "bg-purple-900/20 text-purple-300" : "bg-purple-50 text-purple-700")}>{formatCurrency(cust.starting_balance || 0)}</span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className={cn("px-3 py-1 rounded-lg text-sm font-normal font-mono", creditStatusBg(cust.current_debt || 0, cust.credit_limit || 0), creditStatusColor(cust.current_debt || 0, cust.credit_limit || 0))}>
                         {formatCurrency(cust.current_debt || 0)}
                         {cust.credit_limit > 0 && <span className="text-xs"> ({Math.round(debtPercentage)}%)</span>}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={cn("text-sm font-normal font-mono px-2 py-1 rounded-lg", availableCredit > 0 ? (isDarkMode ? "bg-green-900/30 text-green-400" : "bg-green-100 text-green-700") : (isDarkMode ? "bg-red-900/30 text-red-400" : "bg-red-100 text-red-700"))}>{formatCurrency(availableCredit)}</span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-1">
