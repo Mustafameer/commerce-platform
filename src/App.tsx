@@ -10951,8 +10951,8 @@ const MerchantTopupDashboard = () => {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                               customer_id: selectedCustomerStatement.id,
-                              amount: parseFloat(paymentForm.amount),
-                              payment_method: 'cash'
+                              store_id: topupStoreId,
+                              amount: parseFloat(paymentForm.amount)
                             })
                           });
                           if (res.ok) {
