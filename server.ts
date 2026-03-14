@@ -3525,7 +3525,7 @@ async function startServer() {
         );
         
         // Combine all transactions and build statement
-        const allItems = [
+        let allItems = [
           ...ordersResult.rows.map(o => ({
             id: o.id,
             created_at: o.created_at,
@@ -3546,31 +3546,38 @@ async function startServer() {
           }))
         ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         
-        // Calculate running balance (starting from opening balance)
-        let runningBalance = openingBalance;
-        const itemsWithBalance = allItems.map(item => {
-          if (item.is_payment) {
-            runningBalance -= item.amount;  // Payment reduces debt
-          } else {
-            runningBalance += item.amount;  // Purchase increases debt
-          }
-          return { ...item, balance: Math.max(0, runningBalance) };
-        });
-        
-        // Add opening balance transaction
-        const transactions = [
+        // Add opening balance transaction at the beginning
+        allItems = [
           {
             id: 0,
             created_at: customer.created_at,
             type: 'opening',
             description: 'ديون سابقة',
             amount: openingBalance,
-            balance: openingBalance,
             is_payment: false,
             source: 'opening'
           },
-          ...itemsWithBalance
-        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          ...allItems
+        ];
+        
+        // Calculate running balance (from first transaction onwards)
+        let runningBalance = 0;
+        const itemsWithBalance = allItems.map((item, idx) => {
+          if (idx === 0) {
+            // Opening balance
+            runningBalance = item.amount;
+          } else {
+            if (item.is_payment) {
+              runningBalance -= item.amount;  // Payment reduces debt
+            } else {
+              runningBalance += item.amount;  // Purchase increases debt
+            }
+          }
+          return { ...item, balance: Math.max(0, runningBalance) };
+        });
+        
+        // For display, reverse the order (newest first)
+        const transactions = [...itemsWithBalance].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
         // Calculate final current debt
         const finalBalance = itemsWithBalance.length > 0 

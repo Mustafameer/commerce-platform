@@ -10964,6 +10964,8 @@ const MerchantTopupDashboard = () => {
                             const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
                             if (statementRes.ok) {
                               const data = await statementRes.json();
+                              console.log('📊 Statement data:', data);
+                              console.log('📊 Transactions:', data.transactions);
                               setCustomerTransactions(Array.isArray(data.transactions) ? data.transactions : []);
                               setSelectedCustomerStatement(data.customer);
                             }
