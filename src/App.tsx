@@ -12230,10 +12230,10 @@ const TopupStorefront = () => {
                           handleLoadStatement();
                           setShowAccountStatement(true);
                         }}
-                        className={cn("py-2 px-2 sm:px-3 rounded text-xs font-normal text-white transition-colors", isDarkMode ? "bg-blue-900 hover:bg-blue-800" : "bg-blue-600 hover:bg-blue-700")}
+                        className={cn("py-2 px-2 sm:px-3 rounded text-xs font-normal text-white transition-colors flex items-center justify-center gap-1", isDarkMode ? "bg-blue-900 hover:bg-blue-800" : "bg-blue-600 hover:bg-blue-700")}
                         title="عرض تفاصيل الحساب"
                       >
-                        📋 <span className="hidden sm:inline">كشف</span>
+                        <FileText size={14} /> <span className="hidden sm:inline">كشف الحساب</span>
                       </button>
                       <button
                         onClick={handleLogout}
