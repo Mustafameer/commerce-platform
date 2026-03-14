@@ -9866,7 +9866,23 @@ const MerchantTopupDashboard = () => {
           <div className={cn("mt-8 pt-8 border-t", isDarkMode ? "border-gray-800" : "border-gray-200")}>
             <div className={cn("p-4 rounded-lg mb-4", isDarkMode ? "bg-gray-800" : "bg-gray-100")}>
               <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>أنت مسجل بصفة</p>
-              <p className={cn("font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{user?.name || 'تاجر'}</p>
+              <p className={cn("font-normal mb-4", isDarkMode ? "text-gray-100" : "text-gray-900")}>{user?.name || 'تاجر'}</p>
+              
+              {/* Account Statement and Payment Buttons */}
+              <div className="space-y-2">
+                <button
+                  onClick={() => setCurrentSection('customer-statement')}
+                  className={cn("w-full px-3 py-2 rounded-lg font-normal flex items-center justify-center gap-2 text-sm transition-all", isDarkMode ? "bg-blue-900/30 text-blue-400 hover:bg-blue-900/50" : "bg-blue-50 text-blue-600 hover:bg-blue-100")}
+                >
+                  <FileText size={16} /> 📄 كشف الحساب
+                </button>
+                <button
+                  onClick={() => setCurrentSection('add-payment')}
+                  className={cn("w-full px-3 py-2 rounded-lg font-normal flex items-center justify-center gap-2 text-sm transition-all", isDarkMode ? "bg-green-900/30 text-green-400 hover:bg-green-900/50" : "bg-green-50 text-green-600 hover:bg-green-100")}
+                >
+                  <CreditCard size={16} /> 💳 إضافة تسديد دفعة
+                </button>
+              </div>
             </div>
             <button
               onClick={handleLogout}
