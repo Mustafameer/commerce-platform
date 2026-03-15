@@ -5743,20 +5743,8 @@ async function startServer() {
       }
     });
 
-    // Serve static files from dist with fallback to index.html for SPA routing
+    // Define distPath here (will be served later, after API routes)
     const distPath = path.join(__dirname, "dist");
-    
-    // Serve assets with caching
-    app.use('/assets', express.static(path.join(distPath, "assets"), {
-      maxAge: '1y',
-      etag: false
-    }));
-    
-    // Serve other static files
-    app.use(express.static(distPath, {
-      extensions: ['html', 'js', 'css', 'json', 'svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'woff', 'woff2'],
-      index: false // Disable automatic index.html handling
-    }));
 
     // Customer Payments APIs
     // Get all payments for a customer
@@ -6083,6 +6071,19 @@ async function startServer() {
         res.status(500).json({ error: (error as any).message });
       }
     });
+
+    // IMPORTANT: Serve static files AFTER all API routes to avoid conflicts
+    // Serve assets with caching
+    app.use('/assets', express.static(path.join(distPath, "assets"), {
+      maxAge: '1y',
+      etag: false
+    }));
+    
+    // Serve other static files
+    app.use(express.static(distPath, {
+      extensions: ['html', 'js', 'css', 'json', 'svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'woff', 'woff2'],
+      index: false // Disable automatic index.html handling
+    }));
 
     // Catch-all route - serve index.html for all non-API, non-file requests (SPA routing)
     app.use("*", (req, res) => {
