@@ -3512,6 +3512,7 @@ async function startServer() {
         
         const customer = customerResult.rows[0];
         console.log(`✅ [STATEMENT] Customer found: ${customer.name}`);
+        console.log(`   🔍 Customer data: starting_balance=${customer.starting_balance}, credit_limit=${customer.credit_limit}`);
         
         // ✅ Calculate ORIGINAL opening balance
         // opening_balance = current_starting_balance + all_payments_made
@@ -3523,7 +3524,10 @@ async function startServer() {
         const totalPayments = Number(paymentsCountResult.rows[0]?.total_payments || 0);
         const openingBalance = Number(customer.starting_balance || 0) + totalPayments;
         
-        console.log(`📊 [STATEMENT] Opening balance = (${customer.starting_balance} + ${totalPayments} payments) = ${openingBalance}`);
+        console.log(`📊 [STATEMENT] Opening balance calculation:`);
+        console.log(`   Current starting_balance: ${customer.starting_balance}`);
+        console.log(`   Total payments made: ${totalPayments}`);
+        console.log(`   Original opening balance: ${openingBalance} د.ع`);
         
         // Get customer's topup orders (purchases/debits) from orders table
         // Use topup_customer_id OR customer_id since some orders use either
