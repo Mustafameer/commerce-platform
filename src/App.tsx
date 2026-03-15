@@ -9629,35 +9629,10 @@ const MerchantTopupDashboard = () => {
         
         console.log('✅ Product saved with ID:', productId);
         
-        // Handle existing images deletion for updates
-        if (isEditingProduct && existingProductImages.length >= 0) {
-          // Update the product with the remaining images
-          try {
-            const updateImageResponse = await fetch(`/api/topup/products/${productId}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                store_id: topupStoreId,
-                company_id: parseInt(productForm.company_id),
-                amount: parseInt(productForm.amount),
-                price: parseInt(productForm.price),
-                bulk_price: productForm.bulk_price ? parseInt(productForm.bulk_price) : parseInt(productForm.price),
-                quantity_type: productForm.quantity_type,
-                images: existingProductImages // Send remaining images
-              })
-            });
-            
-            if (updateImageResponse.ok) {
-              console.log('✅ Product images updated');
-            }
-          } catch (err) {
-            console.warn('⚠️ Error updating product images:', err);
-          }
-        }
-        
-        // Upload images if any are selected - wait for all to complete
+        // Upload NEW images first if any are selected
+        const uploadedImageUrls: string[] = [];
         if (productImages.length > 0 && productId) {
-          console.log('📸 Uploading', productImages.length, 'images...');
+          console.log('📸 Uploading', productImages.length, 'new images...');
           
           const uploadPromises = productImages.map(imageFile => {
             return new Promise<void>((resolve, reject) => {
@@ -9680,7 +9655,12 @@ const MerchantTopupDashboard = () => {
                     const imgError = await imageResponse.json();
                     console.warn('⚠️ Error uploading image:', imgError);
                   } else {
+                    const uploadResult = await imageResponse.json();
                     console.log('✅ Image uploaded successfully');
+                    // Track uploaded image URLs if API returns them
+                    if (uploadResult.image_urls && Array.isArray(uploadResult.image_urls)) {
+                      uploadedImageUrls.push(...uploadResult.image_urls);
+                    }
                   }
                   resolve();
                 } catch (err) {
@@ -9695,9 +9675,38 @@ const MerchantTopupDashboard = () => {
           
           try {
             await Promise.all(uploadPromises);
-            console.log('✅ All images uploaded successfully');
+            console.log('✅ All new images uploaded successfully');
           } catch (err) {
             console.error('❌ Error uploading images:', err);
+          }
+        }
+        
+        // After uploading new images, update product with combined images if this is an edit
+        if (isEditingProduct) {
+          try {
+            // Combine existing images + newly uploaded images
+            const allImages = [...existingProductImages, ...uploadedImageUrls];
+            console.log('🔄 Updating product with combined images:', allImages.length, 'total');
+            
+            const updateImageResponse = await fetch(`/api/topup/products/${productId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                store_id: topupStoreId,
+                company_id: parseInt(productForm.company_id),
+                amount: parseInt(productForm.amount),
+                price: parseInt(productForm.price),
+                bulk_price: productForm.bulk_price ? parseInt(productForm.bulk_price) : parseInt(productForm.price),
+                quantity_type: productForm.quantity_type,
+                images: allImages // Send all images (existing + newly uploaded)
+              })
+            });
+            
+            if (updateImageResponse.ok) {
+              console.log('✅ Product images updated successfully');
+            }
+          } catch (err) {
+            console.warn('⚠️ Error updating product images:', err);
           }
         }
 
