@@ -11551,23 +11551,44 @@ const TopupStorefront = () => {
                 ...storeInfoData,
                 store_name: storeInfoData.store_name || storeInfoData.name || storeInfoData.title || 'متجر البطاقات'
               };
-              if (isMounted) setStoreInfo(enrichedStoreData);
+              if (isMounted) {
+                setStoreInfo(enrichedStoreData);
+                // Save to localStorage for later retrieval
+                localStorage.setItem(`storeInfo_${actualStoreId}`, JSON.stringify(enrichedStoreData));
+                console.log(`✅ Saved store info to localStorage:`, enrichedStoreData.store_name);
+              }
             } else {
               console.warn(`⚠️ Could not fetch store info`);
-              // Set default store info
+              // Try to load from localStorage as fallback
+              const cachedInfo = localStorage.getItem(`storeInfo_${actualStoreId}`);
+              if (cachedInfo) {
+                const cached = JSON.parse(cachedInfo);
+                if (isMounted) setStoreInfo(cached);
+                console.log(`✅ Loaded cached store info from localStorage`);
+              } else {
+                // Set default store info
+                if (isMounted) setStoreInfo({ 
+                  store_name: 'متجر البطاقات',
+                  name: 'متجر البطاقات',
+                  description: 'اختر شركتك المفضلة وقيمة الشحن'
+                });
+              }
+            }
+          } catch (err) {
+            console.warn(`⚠️ Error fetching store info:`, err);
+            // Try to load from localStorage as fallback
+            const cachedInfo = localStorage.getItem(`storeInfo_${actualStoreId}`);
+            if (cachedInfo) {
+              const cached = JSON.parse(cachedInfo);
+              if (isMounted) setStoreInfo(cached);
+              console.log(`✅ Loaded cached store info from localStorage (on error)`);
+            } else {
               if (isMounted) setStoreInfo({ 
                 store_name: 'متجر البطاقات',
                 name: 'متجر البطاقات',
                 description: 'اختر شركتك المفضلة وقيمة الشحن'
               });
             }
-          } catch (err) {
-            console.warn(`⚠️ Error fetching store info:`, err);
-            if (isMounted) setStoreInfo({ 
-              store_name: 'متجر البطاقات',
-              name: 'متجر البطاقات',
-              description: 'اختر شركتك المفضلة وقيمة الشحن'
-            });
           }
         }
         
@@ -11764,6 +11785,18 @@ const TopupStorefront = () => {
   useEffect(() => {
     if (!actualStoreId) return;
     
+    // First, try to load cached storeInfo
+    const cachedInfo = localStorage.getItem(`storeInfo_${actualStoreId}`);
+    if (cachedInfo && (!storeInfo || !storeInfo.store_name)) {
+      try {
+        const cached = JSON.parse(cachedInfo);
+        console.log(`✅ Loading cached store info from localStorage:`, cached.store_name);
+        setStoreInfo(cached);
+      } catch (err) {
+        console.error('⚠️ Error loading cached store info:', err);
+      }
+    }
+
     const loadStoreLogo = () => {
       const storeSettings = localStorage.getItem(`storeSettings_${actualStoreId}`);
       if (storeSettings) {
@@ -11781,6 +11814,8 @@ const TopupStorefront = () => {
         } catch (err) {
           console.error('⚠️ Error parsing store settings:', err);
         }
+      } else {
+        console.log('⚠️ No store settings found in localStorage for ID:', actualStoreId);
       }
     };
 
@@ -11799,9 +11834,14 @@ const TopupStorefront = () => {
 
     // Listen for storage changes (for multi-tab support)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === `storeSettings_${actualStoreId}`) {
-        console.log('🔄 Store settings changed in browser storage, reloading logo');
+      if (e.key === `storeSettings_${actualStoreId}` || e.key === `storeInfo_${actualStoreId}`) {
+        console.log('🔄 Store settings or info changed in browser storage, reloading');
         loadStoreLogo();
+        const cachedInfo = localStorage.getItem(`storeInfo_${actualStoreId}`);
+        if (cachedInfo) {
+          const cached = JSON.parse(cachedInfo);
+          setStoreInfo(cached);
+        }
       }
     };
 
@@ -12548,8 +12588,13 @@ const TopupStorefront = () => {
                 />
               )}
               <div className="flex-1 text-center">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-normal leading-tight">{storeInfo?.store_name || 'متجر بطاقات الشحن'}</h1>
-                <p className={cn("mt-1 text-xs sm:text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>{storeInfo?.description || 'اختر شركتك المفضلة وقيمة الشحن'}</p>
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-normal leading-tight">
+                  {storeInfo?.store_name ? storeInfo.store_name : 'متجر بطاقات الشحن'}
+                  {console.log('🔍 Store Name Debug:', { store_name: storeInfo?.store_name, storeInfo })}
+                </h1>
+                <p className={cn("mt-1 text-xs sm:text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                  {storeInfo?.description || 'اختر شركتك المفضلة وقيمة الشحن'}
+                </p>
               </div>
             </div>
             {customer ? (
