@@ -11810,10 +11810,27 @@ const TopupStorefront = () => {
             console.log('   Products response status:', r.status);
             if (!r.ok) {
               console.warn('⚠️ Products fetch returned status:', r.status);
-              return [];
+              // Log more details about the failed request
+              console.log('   Trying fallback: GET /api/topup/products');
+              const fallback = await fetch('/api/topup/products', { cache: 'no-store', signal: controller.signal });
+              if (!fallback.ok) {
+                console.warn('⚠️ Fallback products fetch also failed:', fallback.status);
+                return [];
+              }
+              const fallbackData = await fallback.json();
+              console.log('✅ Products fetched (fallback):', Array.isArray(fallbackData) ? fallbackData.length : 0);
+              return Array.isArray(fallbackData) ? fallbackData : [];
             }
             const data = await r.json();
             console.log('✅ Products fetched:', Array.isArray(data) ? data.length : 0);
+            if (Array.isArray(data) && data.length > 0) {
+              console.log('   Sample product:', { 
+                id: data[0].id, 
+                company_name: data[0].company_name,
+                hasImages: !!data[0].images,
+                imagesCount: Array.isArray(data[0].images) ? data[0].images.filter((img: any) => img && String(img).length > 0).length : 0
+              });
+            }
             return Array.isArray(data) ? data : [];
           }).catch(e => {
             console.warn('⚠️ Products fetch error:', e.message);
@@ -11833,6 +11850,16 @@ const TopupStorefront = () => {
           categories: categoriesRes.length,
           products: productsRes.length
         });
+        
+        if (companiesRes.length === 0) {
+          console.warn('⚠️ NO COMPANIES FETCHED! Checking data...');
+          console.log('   Companies response:', companiesRes);
+        }
+        
+        if (productsRes.length === 0) {
+          console.warn('⚠️ NO PRODUCTS FETCHED! Checking data...');
+          console.log('   Products response:', productsRes);
+        }
         
         console.log('🔄 Setting state (all at once)...');
         setCompanies(companiesRes);
@@ -12019,6 +12046,21 @@ const TopupStorefront = () => {
       clearInterval(checkInterval);
     };
   }, []);
+
+  // Refetch products and companies when customer logs in
+  useEffect(() => {
+    if (customer && customer.customer_id && !loading) {
+      console.log('🔄 Customer logged in or changed - refetching products/companies...');
+      setLoading(true);
+      
+      // Re-trigger the data fetch
+      const timer = setTimeout(() => {
+        setLoading(false);
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [customer?.customer_id]);
 
   // راقب عند إغلاق نموذج الدخول للتأكد من تحميل البيانات مباشرة
   useEffect(() => {
@@ -12693,9 +12735,26 @@ const TopupStorefront = () => {
                   }}
                   className={cn("px-2 sm:px-3 py-2 rounded-lg border text-xs sm:text-sm font-normal", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
                 >
-                  <option value="">جميع الشركات</option>
-                  {companiesWithProducts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  <option value="">جميع الشركات ({companiesWithProducts.length})</option>
+                  {companiesWithProducts.length === 0 ? (
+                    <option disabled>❌ لا توجد شركات متاحة</option>
+                  ) : (
+                    companiesWithProducts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                  )}
                 </select>
+                {companiesWithProducts.length === 0 && (
+                  <button
+                    onClick={() => {
+                      console.log('🔄 Reloading data...');
+                      setLoading(true);
+                      setTimeout(() => setLoading(false), 1000);
+                    }}
+                    className={cn("px-2 sm:px-3 py-2 rounded-lg border text-xs sm:text-sm font-normal ", isDarkMode ? "bg-yellow-900/30 border-yellow-600 text-yellow-300 hover:bg-yellow-900/50" : "bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100")}
+                    title="إعادة تحميل البيانات"
+                  >
+                    🔄 تحديث
+                  </button>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-4 w-full lg:w-auto order-1 lg:order-2 justify-center">
@@ -13208,7 +13267,22 @@ const TopupStorefront = () => {
             {/* Empty State */}
             {filteredProducts.every(p => !Array.isArray(p.images) || p.images.filter((img: any) => img && String(img).length > 0).length === 0) && (
               <div className={cn("text-center py-12", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                <p className="text-lg font-normal">📸 لا توجد صور متاحة</p>
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4 mx-auto"></div>
+                    <p className="text-lg font-normal">جاري التحميل...</p>
+                  </>
+                ) : filteredProducts.length === 0 ? (
+                  <>
+                    <p className="text-lg font-normal mb-2">📸 لا توجد منتجات</p>
+                    <p className="text-sm">اختر شركة من الفلتر أعلاه</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-lg font-normal mb-2">📸 لا توجد صور متاحة</p>
+                    <p className="text-sm">المنتجات المتاحة لا تحتوي على صور. تواصل مع المتجر.</p>
+                  </>
+                )}
               </div>
             )}
           </div>
