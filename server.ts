@@ -3490,6 +3490,12 @@ async function startServer() {
     app.get("/api/topup/customers/:customerId/statement", async (req, res) => {
       try {
         const { customerId } = req.params;
+        
+        // ⚠️ CRITICAL: Disable all caching for dynamic data
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+        
         console.log(`📊 [STATEMENT] Fetching for customer ID: ${customerId}`);
         
         // Get customer info
@@ -3597,6 +3603,11 @@ async function startServer() {
     // Topup Payment - Reduce starting_balance or current_debt
     app.post("/api/topup/payment", async (req, res) => {
       try {
+        // ⚠️ CRITICAL: Disable all caching for this endpoint
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+        
         const { customer_id, store_id, amount } = req.body;
         
         console.log(`💳 [PAYMENT REQUEST] Customer: ${customer_id}, Amount: ${amount}, Store: ${store_id}`);
