@@ -10240,30 +10240,55 @@ const MerchantTopupDashboard = () => {
                       </button>
                     </div>
                     <div className="p-6 space-y-4">
-                      <div>
-                        <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>الشركة</label>
-                        <select
-                          value={productForm.company_id}
-                          onChange={(e) => setProductForm({ ...productForm, company_id: e.target.value })}
-                          className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200")}
-                        >
-                          <option value="">اختر شركة</option>
-                          {companies && companies.length > 0 ? (
-                            companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
-                          ) : (
-                            <option disabled>جاري التحميل...</option>
-                          )}
-                        </select>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>الشركة</label>
+                          <select
+                            value={productForm.company_id}
+                            onChange={(e) => setProductForm({ ...productForm, company_id: e.target.value })}
+                            className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200")}
+                          >
+                            <option value="">اختر شركة</option>
+                            {companies && companies.length > 0 ? (
+                              companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                            ) : (
+                              <option disabled>جاري التحميل...</option>
+                            )}
+                          </select>
+                        </div>
+                        <div>
+                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>المبلغ</label>
+                          <input
+                            type="number"
+                            value={productForm.amount}
+                            onChange={(e) => setProductForm({ ...productForm, amount: e.target.value })}
+                            placeholder="المبلغ (5000, 10000...)"
+                            className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>المبلغ</label>
-                        <input
-                          type="number"
-                          value={productForm.amount}
-                          onChange={(e) => setProductForm({ ...productForm, amount: e.target.value })}
-                          placeholder="المبلغ (5000, 10000...)"
-                          className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
-                        />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>السعر</label>
+                          <input
+                            type="number"
+                            value={productForm.price}
+                            onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                            placeholder="السعر (بالدينار)"
+                            className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                          />
+                        </div>
+                        <div>
+                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>سعر الجملة</label>
+                          <input
+                            type="number"
+                            value={productForm.bulk_price}
+                            onChange={(e) => setProductForm({ ...productForm, bulk_price: e.target.value })}
+                            placeholder="سعر الجملة (اختياري)"
+                            className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                          />
+                        </div>
                       </div>
 
                       {/* Images Upload Section */}
@@ -10333,27 +10358,6 @@ const MerchantTopupDashboard = () => {
                           </div>
                         </div>
                       )}
-
-                      <div>
-                        <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>السعر</label>
-                        <input
-                          type="number"
-                          value={productForm.price}
-                          onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                          placeholder="السعر (بالدينار)"
-                          className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
-                        />
-                      </div>
-                      <div>
-                        <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>سعر الجملة</label>
-                        <input
-                          type="number"
-                          value={productForm.bulk_price}
-                          onChange={(e) => setProductForm({ ...productForm, bulk_price: e.target.value })}
-                          placeholder="سعر الجملة (اختياري)"
-                          className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
-                        />
-                      </div>
 
                       <button onClick={saveProduct} className="w-full py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700">
                         {isEditingProduct ? 'تحديث' : 'إضافة'}
