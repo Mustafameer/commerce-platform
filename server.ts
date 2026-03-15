@@ -6072,16 +6072,6 @@ async function startServer() {
       }
     });
 
-    // IMPORTANT: Add middleware to skip static serving for API routes
-    app.use((req, res, next) => {
-      // If it's an API route, skip static serving
-      if (req.path.startsWith('/api/')) {
-        return next();
-      }
-      // Otherwise continue to static serving
-      next();
-    });
-
     // IMPORTANT: Serve static files AFTER all API routes to avoid conflicts
     // Serve assets with caching
     app.use('/assets', express.static(path.join(distPath, "assets"), {
@@ -6096,7 +6086,13 @@ async function startServer() {
     }));
 
     // Catch-all route - serve index.html for all non-API, non-file requests (SPA routing)
+    // Only serve HTML to browser requests, return 404 for API calls
     app.use("*", (req, res) => {
+      // If it's an API route that wasn't caught above, return 404
+      if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: "API endpoint not found", path: req.path });
+      }
+      
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.sendFile(path.join(distPath, "index.html"));
     });
