@@ -13226,24 +13226,15 @@ const TopupStorefront = () => {
             <h2 className={cn("text-2xl font-normal mb-6", isDarkMode ? "text-white" : "text-gray-900")}>� المنتجات المتاحة للشراء</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" key={`products-list-${products.length}-${Date.now()}`}>
               {filteredProducts
-                .filter((product: any) => {
-                  // Filter out empty/invalid products
-                  const hasValidPrice = product.price && product.price > 0;
-                  const hasValidAmount = product.amount && product.amount > 0;
-                  const productImages = Array.isArray(product.images) 
-                    ? product.images.filter((img: any) => img && String(img).length > 0)
-                    : [];
-                  const hasImages = productImages.length > 0;
-                  const isValid = hasValidPrice && hasValidAmount && hasImages;
-                  console.log(`📋 Product ${product.id}: price=${product.price}, amount=${product.amount}, images=${productImages.length}, valid=${isValid}`);
-                  return isValid;
-                })
                 .map((product: any) => {
                 // Get images count for this product
                 const productImages = Array.isArray(product.images) 
                   ? product.images.filter((img: any) => img && String(img).length > 0)
                   : [];
                 const imagesCount = productImages.length;
+                
+                // Log all products for debugging
+                console.log(`📋 Product ${product.id}: amount=${product.amount}, price=${product.price}, images=${imagesCount}`, product);
 
                 // Calculate price based on customer type
                 const displayPrice = customer?.customer_type === 'reseller' && product.retail_price 
