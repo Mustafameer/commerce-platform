@@ -5684,6 +5684,74 @@ async function startServer() {
       }
     });
 
+    // Initialize store 1 with test products
+    app.get("/api/init/store1-products", async (req, res) => {
+      try {
+        console.log('🔧 Initializing store 1 with test products...');
+        
+        // Create SVG images
+        const svg1 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzQyODVGNCIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIyNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmb250LXdlaWdodD0iYm9sZCI+MzU8L3RleHQ+PC9zdmc+';
+        const svg2 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2YxNDMyNyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIyNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmb250LXdlaWdodD0iYm9sZCI+MjU8L3RleHQ+PC9zdmc+';
+        const svg3 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2ZkYzIwOCIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIyNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmb250LXdlaWdodD0iYm9sZCI+MTV4NTwvdGV4dD48L3N2Zz4=';
+        
+        // Delete old products
+        await pool.query('DELETE FROM topup_products WHERE store_id = 1');
+        
+        // Get or create companies
+        const companies = await pool.query('SELECT id, name FROM topup_companies WHERE store_id = 1');
+        
+        let companyIds: { [key: string]: number } = {};
+        if (companies.rows.length === 0) {
+          const newCompanies = await pool.query(`
+            INSERT INTO topup_companies (store_id, name, logo_url)
+            VALUES 
+              (1, 'زين أثير', 'https://via.placeholder.com/100'),
+              (1, 'آسيا سيل', 'https://via.placeholder.com/100'),
+              (1, 'كورك', 'https://via.placeholder.com/100')
+            RETURNING id, name
+          `);
+          newCompanies.rows.forEach(c => {
+            companyIds[c.name] = c.id;
+          });
+        } else {
+          companies.rows.forEach(c => {
+            companyIds[c.name] = c.id;
+          });
+        }
+        
+        // Add products
+        const products = await pool.query(`
+          INSERT INTO topup_products (store_id, company_id, amount, price, retail_price, wholesale_price, images, is_active)
+          VALUES 
+            (1, $1, 35000, 40000, 38000, 37000, $2, true),
+            (1, $3, 25000, 27500, 26500, 26000, $4, true),
+            (1, $5, 15000, 17500, 16500, 16000, $6, true)
+          RETURNING id, amount, price, array_length(images, 1) as images_count
+        `, [
+          companyIds['زين أثير'],
+          [svg1, svg2, svg3, svg1, svg2],
+          companyIds['آسيا سيل'],
+          [svg3, svg1, svg2, svg3, svg1, svg2, svg3],
+          companyIds['كورك'],
+          [svg2, svg3, svg1, svg2, svg3]
+        ]);
+        
+        console.log('✅ Initialized store 1 with products:');
+        products.rows.forEach(p => {
+          console.log(`   - ID: ${p.id} | Amount: ${p.amount} | Price: ${p.price} | Images: ${p.images_count}`);
+        });
+        
+        res.json({ 
+          success: true, 
+          message: '✅ تم تهيئة المنتجات بنجاح',
+          products: products.rows
+        });
+      } catch (error) {
+        console.error('❌ Error initializing:', error);
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
     // Catch-all route - serve index.html for all non-API, non-file requests (SPA routing)
     app.use("*", (req, res) => {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
