@@ -3576,13 +3576,14 @@ async function startServer() {
         // openingBalance = current_starting_balance + all_payments_made
         
         // Always add opening balance as first transaction for transparency
+        // Opening balance shows in DEBIT (مدين) column since it's what customer initially owes
         allItems.unshift({
           id: 0,
           created_at: customer.created_at,
           type: 'opening',
           description: 'رصيد افتتاحي',
           amount: openingBalance,
-          is_payment: false,
+          is_payment: false,  // Ensures it shows in مدين (debit) column
           source: 'opening'
         });
         
@@ -3604,15 +3605,16 @@ async function startServer() {
           return { ...item, balance: Math.max(0, runningBalance) };
         });
         
-        // For display, reverse the order (newest first)
-        const transactions = [...itemsWithBalance].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        // For display, keep chronological order (oldest first) so running balance makes sense
+        // Opening balance first, then transactions in order, so balances accumulate correctly
+        const transactions = itemsWithBalance;
         
-        // Calculate final current debt
+        // Calculate final current balance
         const finalBalance = itemsWithBalance.length > 0 
           ? itemsWithBalance[itemsWithBalance.length - 1].balance 
           : 0;
         
-        console.log(`📊 [STATEMENT] Final: ${transactions.length} transactions, final debt: ${finalBalance} د.ع`);
+        console.log(`📊 [STATEMENT] Final: ${transactions.length} transactions, final balance: ${finalBalance} د.ع`);
         
         res.json({
           customer: {
