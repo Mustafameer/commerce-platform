@@ -4488,6 +4488,145 @@ async function startServer() {
       }
     });
 
+    // Get images for a topup product (from topup_product_images table)
+    app.get("/api/topup/product-images/:storeId/:productId", async (req, res) => {
+      try {
+        const { storeId, productId } = req.params;
+        
+        const result = await pool.query(
+          `SELECT id, image_data, image_type, created_at 
+           FROM topup_product_images 
+           WHERE store_id = $1 AND product_id = $2 
+           ORDER BY created_at ASC`,
+          [parseInt(storeId), parseInt(productId)]
+        );
+        
+        res.json({
+          success: true,
+          count: result.rows.length,
+          images: result.rows
+        });
+      } catch (error) {
+        res.status(500).json({ 
+          success: false, 
+          error: (error as any).message 
+        });
+      }
+    });
+
+    // Get image count for a product
+    app.get("/api/topup/product-images-count/:storeId/:productId", async (req, res) => {
+      try {
+        const { storeId, productId } = req.params;
+        
+        const result = await pool.query(
+          `SELECT COUNT(*) as count FROM topup_product_images 
+           WHERE store_id = $1 AND product_id = $2`,
+          [parseInt(storeId), parseInt(productId)]
+        );
+        
+        res.json({
+          success: true,
+          count: result.rows[0].count
+        });
+      } catch (error) {
+        res.status(500).json({ 
+          success: false, 
+          error: (error as any).message 
+        });
+      }
+    });
+
+    // Delete an image (after customer downloads it)
+    app.delete("/api/topup/product-images/:imageId", async (req, res) => {
+      try {
+        const { imageId } = req.params;
+        
+        // Get image info before deletion
+        const imageInfo = await pool.query(
+          `SELECT store_id, product_id FROM topup_product_images WHERE id = $1`,
+          [parseInt(imageId)]
+        );
+        
+        if (imageInfo.rows.length === 0) {
+          return res.status(404).json({ 
+            success: false, 
+            error: "Image not found" 
+          });
+        }
+        
+        // Delete the image
+        await pool.query(
+          `DELETE FROM topup_product_images WHERE id = $1`,
+          [parseInt(imageId)]
+        );
+        
+        console.log(`🗑️  Image deleted: ${imageId} (store: ${imageInfo.rows[0].store_id}, product: ${imageInfo.rows[0].product_id})`);
+        
+        res.json({
+          success: true,
+          message: "Image deleted successfully",
+          deletedImageId: imageId
+        });
+      } catch (error) {
+        res.status(500).json({ 
+          success: false, 
+          error: (error as any).message 
+        });
+      }
+    });
+
+    // Add images to topup product (admin endpoint)
+    app.post("/api/topup/add-product-images", async (req, res) => {
+      try {
+        const { store_id, product_id, images } = req.body;
+        
+        if (!store_id || !product_id || !Array.isArray(images) || images.length === 0) {
+          return res.status(400).json({
+            success: false,
+            error: "Missing required fields: store_id, product_id, images array"
+          });
+        }
+        
+        let insertedCount = 0;
+        let duplicateCount = 0;
+        
+        for (const imageData of images) {
+          try {
+            const result = await pool.query(
+              `INSERT INTO topup_product_images (store_id, product_id, image_data, image_type)
+               VALUES ($1, $2, $3, $4)
+               ON CONFLICT DO NOTHING
+               RETURNING id`,
+              [store_id, product_id, imageData, 'svg']
+            );
+            
+            if (result.rows.length > 0) {
+              insertedCount++;
+            } else {
+              duplicateCount++;
+            }
+          } catch (err) {
+            console.error(`⚠️  Error inserting image: ${err}`);
+          }
+        }
+        
+        console.log(`✅ Images added: ${insertedCount} inserted, ${duplicateCount} duplicates`);
+        
+        res.json({
+          success: true,
+          message: `Added ${insertedCount} images`,
+          inserted: insertedCount,
+          duplicates: duplicateCount
+        });
+      } catch (error) {
+        res.status(500).json({ 
+          success: false, 
+          error: (error as any).message 
+        });
+      }
+    });
+
     // Upload images to topup product (card images with codes printed on them)
     app.post("/api/topup/upload-images", async (req, res) => {
       try {

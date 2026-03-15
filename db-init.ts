@@ -131,7 +131,9 @@ export async function initializeDatabase(connectionString: string) {
       'CREATE INDEX IF NOT EXISTS idx_topup_categories_store_id ON topup_product_categories(store_id);',
       'CREATE INDEX IF NOT EXISTS idx_topup_products_store_id ON topup_products(store_id);',
       'CREATE INDEX IF NOT EXISTS idx_customers_store_id ON customers(store_id);',
-      'CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);'
+      'CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);',
+      'CREATE INDEX IF NOT EXISTS idx_topup_product_images_store_product ON topup_product_images(store_id, product_id);',
+      'CREATE INDEX IF NOT EXISTS idx_topup_product_images_created ON topup_product_images(created_at);'
     ];
     
     for (const indexStmt of indexes) {
@@ -143,6 +145,28 @@ export async function initializeDatabase(connectionString: string) {
         }
       }
     }
+
+    // Create topup_product_images table if it doesn't exist
+    console.log('📸 [DB-INIT] Creating/verifying topup_product_images table...');
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS topup_product_images (
+          id SERIAL PRIMARY KEY,
+          store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+          product_id INTEGER NOT NULL REFERENCES topup_products(id) ON DELETE CASCADE,
+          image_data TEXT NOT NULL,
+          image_type VARCHAR(50) DEFAULT 'svg',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(store_id, product_id, image_data)
+        )
+      `);
+      console.log('✅ [DB-INIT] topup_product_images table created/verified');
+    } catch (err: any) {
+      if (!err.message.includes('already exists')) {
+        console.warn('  ⚠️  [DB-INIT] Table creation warning:', err.message.substring(0, 50));
+      }
+    }
+    
     console.log('✅ [DB-INIT] Indexes created/verified');
 
     console.log(`\n\n✅ [DB-INIT] Database initialization complete!`);
