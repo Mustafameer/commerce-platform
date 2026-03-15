@@ -11511,6 +11511,7 @@ const TopupStorefront = () => {
           } else {
             const storeData = await storeRes.json();
             console.log(`📦 Store data received:`, storeData);
+            console.log(`📦 Store name field:`, storeData.store_name, `Other name fields: name=${storeData.name}, title=${storeData.title}`);
             
             actualStoreId = storeData.id;
             if (!actualStoreId || actualStoreId === undefined) {
@@ -11518,8 +11519,13 @@ const TopupStorefront = () => {
               actualStoreId = 21;
             }
             
-            // Store the info for later use
-            setStoreInfo(storeData);
+            // Store the info for later use - ensure store_name is available
+            const enrichedStoreData = {
+              ...storeData,
+              store_name: storeData.store_name || storeData.name || storeData.title || 'متجر البطاقات'
+            };
+            console.log(`✅ Enriched store data:`, enrichedStoreData);
+            setStoreInfo(enrichedStoreData);
           }
         }
         
