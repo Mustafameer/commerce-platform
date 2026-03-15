@@ -800,6 +800,33 @@ async function seedData() {
   }
 }
 
+async function ensureMissingTables() {
+  try {
+    console.log('📸 [SERVER] Ensuring topup_product_images table exists...');
+    
+    // Create topup_product_images table if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS topup_product_images (
+        id SERIAL PRIMARY KEY,
+        store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+        product_id INTEGER NOT NULL REFERENCES topup_products(id) ON DELETE CASCADE,
+        image_data TEXT NOT NULL,
+        image_type VARCHAR(50) DEFAULT 'svg',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(store_id, product_id, image_data)
+      )
+    `);
+    
+    // Create indexes
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_topup_product_images_store_product ON topup_product_images(store_id, product_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_topup_product_images_created ON topup_product_images(created_at)`);
+    
+    console.log('✅ [SERVER] topup_product_images table and indexes ensured');
+  } catch (error) {
+    console.error('⚠️  [SERVER] Error ensuring tables:', (error as any).message);
+  }
+}
+
 async function startServer() {
   try {
     // Test database connection first
@@ -807,6 +834,9 @@ async function startServer() {
     if (!connected) {
       console.warn("⚠️  Database connection failed, but starting server anyway (check database settings)");
     } else {
+      // Ensure all required tables exist (for Railway migrations)
+      await ensureMissingTables();
+      
       // Load/restore data from backup if database is empty
       const dbUrl = process.env.DATABASE_URL || "postgresql://postgres:123@localhost:5432/multi_ecommerce";
       await initializeDatabase(dbUrl);
