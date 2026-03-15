@@ -11539,6 +11539,38 @@ const TopupStorefront = () => {
         console.log(`✅ Using store ID: ${actualStoreId}`);
         if (isMounted) setActualStoreId(actualStoreId);
         
+        // 🔥 CRITICAL: Fetch store info even if not using slug resolution
+        if (!storeInfo || !storeInfo.store_name) {
+          console.log(`📦 Fetching store info for store ID ${actualStoreId}`);
+          try {
+            const storeInfoRes = await fetch(`/api/stores/${actualStoreId}`);
+            if (storeInfoRes.ok) {
+              const storeInfoData = await storeInfoRes.json();
+              console.log(`📦 Store info fetched:`, storeInfoData);
+              const enrichedStoreData = {
+                ...storeInfoData,
+                store_name: storeInfoData.store_name || storeInfoData.name || storeInfoData.title || 'متجر البطاقات'
+              };
+              if (isMounted) setStoreInfo(enrichedStoreData);
+            } else {
+              console.warn(`⚠️ Could not fetch store info`);
+              // Set default store info
+              if (isMounted) setStoreInfo({ 
+                store_name: 'متجر البطاقات',
+                name: 'متجر البطاقات',
+                description: 'اختر شركتك المفضلة وقيمة الشحن'
+              });
+            }
+          } catch (err) {
+            console.warn(`⚠️ Error fetching store info:`, err);
+            if (isMounted) setStoreInfo({ 
+              store_name: 'متجر البطاقات',
+              name: 'متجر البطاقات',
+              description: 'اختر شركتك المفضلة وقيمة الشحن'
+            });
+          }
+        }
+        
         // إضافة timestamp لفرض جلب البيانات الجديدة من قاعدة البيانات
         const timestamp = Date.now();
         console.log('🔍 Fetching products with timestamp:', timestamp);
