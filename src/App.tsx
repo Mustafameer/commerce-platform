@@ -8988,6 +8988,7 @@ const MerchantTopupDashboard = () => {
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [dashboardLogo, setDashboardLogo] = useState<string>('');
   const [logoRefreshKey, setLogoRefreshKey] = useState(0);
+  const [storeInfo, setStoreInfo] = useState<any>(null);
 
   // Store ID - from logged-in user
   const topupStoreId = user?.store_id || user?.id || 13;
@@ -9295,6 +9296,44 @@ const MerchantTopupDashboard = () => {
     return () => {
       window.removeEventListener('storeSettingsUpdated', handleSettingsUpdate);
     };
+  }, [topupStoreId]);
+
+  // Fetch store info for sidebar branding
+  useEffect(() => {
+    if (topupStoreId) {
+      console.log('📦 MerchantTopupDashboard - Fetching store info for store:', topupStoreId);
+      
+      // Try to load from localStorage first
+      const cachedInfo = localStorage.getItem(`storeInfo_${topupStoreId}`);
+      if (cachedInfo) {
+        try {
+          const cached = JSON.parse(cachedInfo);
+          setStoreInfo(cached);
+          console.log('✅ Loaded store info from cache for sidebar');
+        } catch (e) {
+          console.error('Failed to parse cached store info:', e);
+        }
+      }
+      
+      // Always fetch fresh from API
+      fetch(`/api/stores/${topupStoreId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data && !data.error) {
+            // Enrich with store_name fallback
+            const enrichedData = {
+              ...data,
+              store_name: data.store_name || data.name || data.title || 'متجر البطاقات'
+            };
+            setStoreInfo(enrichedData);
+            localStorage.setItem(`storeInfo_${topupStoreId}`, JSON.stringify(enrichedData));
+            console.log('✅ Updated store info for sidebar:', enrichedData.store_name);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch store info:', err);
+        });
+    }
   }, [topupStoreId]);
 
   const handleStoreLogoUpload = async (file: File) => {
@@ -9832,7 +9871,7 @@ const MerchantTopupDashboard = () => {
               </div>
             )}
             <div>
-              <h2 className={cn("font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>الإدارة</h2>
+              <h2 className={cn("font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{storeInfo?.store_name || 'الإدارة'}</h2>
               <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>متجر البطاقات</p>
             </div>
           </div>
