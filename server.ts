@@ -6072,6 +6072,16 @@ async function startServer() {
       }
     });
 
+    // IMPORTANT: Add middleware to skip static serving for API routes
+    app.use((req, res, next) => {
+      // If it's an API route, skip static serving
+      if (req.path.startsWith('/api/')) {
+        return next();
+      }
+      // Otherwise continue to static serving
+      next();
+    });
+
     // IMPORTANT: Serve static files AFTER all API routes to avoid conflicts
     // Serve assets with caching
     app.use('/assets', express.static(path.join(distPath, "assets"), {
