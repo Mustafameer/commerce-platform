@@ -12545,19 +12545,7 @@ const TopupStorefront = () => {
                     </div>
 
                     {/* Buttons */}
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      <button
-                        onClick={() => {
-                          console.log('🔘 Statement button clicked - customer:', customer);
-                          console.log('🔘 Customer ID:', customer?.customer_id);
-                          handleLoadStatement();
-                          setShowAccountStatement(true);
-                        }}
-                        className={cn("py-2 px-2 sm:px-3 rounded text-xs font-normal text-white transition-colors flex items-center justify-center gap-1", isDarkMode ? "bg-blue-900 hover:bg-blue-800" : "bg-blue-600 hover:bg-blue-700")}
-                        title="عرض تفاصيل الحساب"
-                      >
-                        <FileText size={14} /> <span className="hidden sm:inline">كشف الحساب</span>
-                      </button>
+                    <div className="grid grid-cols-1 gap-2 mt-2">
                       <button
                         onClick={handleLogout}
                         className={cn("py-2 px-2 sm:px-3 rounded text-xs font-normal", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
