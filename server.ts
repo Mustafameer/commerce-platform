@@ -3524,7 +3524,10 @@ async function startServer() {
            ORDER BY o.created_at ASC`,
           [customerId]
         );
-        console.log(`📦 [STATEMENT] Orders found: ${ordersResult.rows.length}`);
+        console.log(`📦 [STATEMENT] Orders query - Customer: ${customerId}, Found: ${ordersResult.rows.length}`);
+        if (ordersResult.rows.length > 0) {
+          console.log(`   Orders:`, ordersResult.rows.map(o => ({ id: o.id, amount: o.total_amount, topup_customer_id: o.id })));
+        }
         
         // Get customer's payments (credits)
         const paymentsResult = await pool.query(
@@ -3533,7 +3536,10 @@ async function startServer() {
            ORDER BY created_at ASC`,
           [customerId]
         );
-        console.log(`💳 [STATEMENT] Payments found: ${paymentsResult.rows.length}`);
+        console.log(`💳 [STATEMENT] Payments query - Customer: ${customerId}, Found: ${paymentsResult.rows.length}`);
+        if (paymentsResult.rows.length > 0) {
+          console.log(`   Payments:`, paymentsResult.rows.map(p => ({ id: p.id, amount: p.amount, customer_id: p.customer_id })));
+        }
         
         // Combine all transactions and build statement
         const allItems = [
