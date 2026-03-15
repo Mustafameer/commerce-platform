@@ -3593,9 +3593,9 @@ async function startServer() {
         let runningBalance = openingBalance;
         const otherTransactionsWithBalance = otherTransactions.map((item) => {
           if (item.is_payment) {
-            runningBalance += item.amount;  // Payment ADDS to balance (reduces debt owed)
+            runningBalance -= item.amount;  // Payment REDUCES debt (balance goes down)
           } else {
-            runningBalance -= item.amount;  // Purchase REDUCES balance (increases debt owed)
+            runningBalance += item.amount;  // Purchase INCREASES debt (balance goes up)
           }
           return { ...item, balance: Math.max(0, runningBalance) };
         });
