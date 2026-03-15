@@ -3572,31 +3572,26 @@ async function startServer() {
           }))
         ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         
-        // Opening balance has already been calculated above using the formula:
-        // openingBalance = current_starting_balance + all_payments_made
+        // DON'T add opening balance to allItems - handle separately below
         
-        // Always add opening balance as first transaction for transparency
-        // Opening balance shows in DEBIT (مدين) column since it's what customer initially owes
-        allItems.unshift({
+        // Separate opening balance (IMMUTABLE) from other transactions
+        const openingBalanceRow = {
           id: 0,
           created_at: customer.created_at,
           type: 'opening',
           description: 'رصيد افتتاحي',
           amount: openingBalance,
-          is_payment: false,  // Ensures it shows in مدين (debit) column
-          source: 'opening'
-        });
+          is_payment: false,
+          source: 'opening',
+          balance: openingBalance  // FIXED - never changes!
+        };
         
-        // Sort transactions chronologically
-        const allItemsSorted = allItems.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        // Sort transactions chronologically (exclude opening balance)
+        const otherTransactions = allItems.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         
-        // Calculate running balance starting from opening balance
+        // Calculate running balance for OTHER transactions starting from opening balance
         let runningBalance = openingBalance;
-        const itemsWithBalance = allItemsSorted.map((item, idx) => {
-          if (idx === 0 && item.type === 'opening') {
-            // Opening balance transaction - the starting point
-            return { ...item, balance: openingBalance };
-          }
+        const otherTransactionsWithBalance = otherTransactions.map((item) => {
           if (item.is_payment) {
             runningBalance += item.amount;  // Payment ADDS to balance (reduces debt owed)
           } else {
@@ -3605,9 +3600,8 @@ async function startServer() {
           return { ...item, balance: Math.max(0, runningBalance) };
         });
         
-        // For display, keep chronological order (oldest first) so running balance makes sense
-        // Opening balance first, then transactions in order, so balances accumulate correctly
-        const transactions = itemsWithBalance;
+        // Combine: opening balance FIRST (always fixed), then other transactions
+        const transactions = [openingBalanceRow, ...otherTransactionsWithBalance];
         
         // Calculate final current balance
         const finalBalance = itemsWithBalance.length > 0 
