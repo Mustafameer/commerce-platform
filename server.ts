@@ -634,6 +634,25 @@ async function runMigrations() {
     `);
     console.log("✅ Index: idx_topup_products_company_id created");
 
+    // Indices for statement endpoint performance (customer queries)
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_orders_topup_customer_id 
+      ON orders(topup_customer_id) WHERE is_topup_order = true;
+    `);
+    console.log("✅ Index: idx_orders_topup_customer_id created");
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_orders_customer_id_topup 
+      ON orders(customer_id) WHERE is_topup_order = true;
+    `);
+    console.log("✅ Index: idx_orders_customer_id_topup created");
+
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_customer_payments_customer_id 
+      ON customer_payments(customer_id);
+    `);
+    console.log("✅ Index: idx_customer_payments_customer_id created");
+
   } catch (error) {
     // Ignore column already exists errors
     const errorMsg = (error as any).message || '';
