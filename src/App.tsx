@@ -10369,7 +10369,7 @@ const MerchantTopupDashboard = () => {
                         <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الهاتف</th>
                         <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>النوع</th>
                         <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>حد الائتمان</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الرصيد الابتدائي</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ديون سابقة</th>
                         <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الديون الحالية</th>
                         <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الإجراءات</th>
                       </tr>

@@ -3579,7 +3579,7 @@ async function startServer() {
           id: 0,
           created_at: customer.created_at,
           type: 'opening',
-          description: 'رصيد افتتاحي',
+          description: 'ديون سابقة',
           amount: openingBalance,
           is_payment: false,
           source: 'opening',
