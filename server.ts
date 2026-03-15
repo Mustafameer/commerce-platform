@@ -3513,6 +3513,18 @@ async function startServer() {
         const customer = customerResult.rows[0];
         console.log(`✅ [STATEMENT] Customer found: ${customer.name}`);
         
+        // ✅ Calculate ORIGINAL opening balance
+        // opening_balance = current_starting_balance + all_payments_made
+        // This is because starting_balance gets reduced by payments
+        const paymentsCountResult = await pool.query(
+          `SELECT COALESCE(SUM(amount), 0) as total_payments FROM customer_payments WHERE customer_id = $1`,
+          [customerId]
+        );
+        const totalPayments = Number(paymentsCountResult.rows[0]?.total_payments || 0);
+        const openingBalance = Number(customer.starting_balance || 0) + totalPayments;
+        
+        console.log(`📊 [STATEMENT] Opening balance = (${customer.starting_balance} + ${totalPayments} payments) = ${openingBalance}`);
+        
         // Get customer's topup orders (purchases/debits) from orders table
         // Use topup_customer_id OR customer_id since some orders use either
         const ordersResult = await pool.query(
@@ -3563,9 +3575,8 @@ async function startServer() {
           }))
         ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         
-        // Opening balance represents any previous debt when customer account was created
-        // For new customers, this is typically 0
-        const openingBalance = 0;
+        // Opening balance has already been calculated above using the formula:
+        // openingBalance = current_starting_balance + all_payments_made
         
         // Always add opening balance as first transaction for transparency
         allItems.unshift({
