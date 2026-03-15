@@ -3707,6 +3707,65 @@ async function startServer() {
       }
     });
 
+    // Delete payment
+    app.delete("/api/topup/payment/:paymentId", async (req, res) => {
+      try {
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+
+        const { paymentId } = req.params;
+        
+        console.log(`🗑️ [DELETE PAYMENT] Attempting to delete payment: ${paymentId}`);
+        
+        // Get payment details first
+        const paymentRes = await pool.query(
+          `SELECT customer_id, store_id, amount FROM customer_payments WHERE id = $1`,
+          [paymentId]
+        );
+        
+        if (paymentRes.rows.length === 0) {
+          console.log(`❌ [DELETE PAYMENT] Payment not found: ${paymentId}`);
+          return res.status(404).json({ error: "Payment not found" });
+        }
+        
+        const payment = paymentRes.rows[0];
+        
+        // Delete the payment
+        const deleteRes = await pool.query(
+          `DELETE FROM customer_payments WHERE id = $1 RETURNING id`,
+          [paymentId]
+        );
+        
+        if (deleteRes.rows.length === 0) {
+          return res.status(500).json({ error: "Failed to delete payment" });
+        }
+        
+        // Restore the starting_balance (add the payment amount back)
+        const customerRes = await pool.query(
+          `SELECT starting_balance FROM customers WHERE id = $1`,
+          [payment.customer_id]
+        );
+        
+        const restoredBalance = Number(customerRes.rows[0].starting_balance) + Number(payment.amount);
+        
+        await pool.query(
+          `UPDATE customers SET starting_balance = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+          [restoredBalance, payment.customer_id]
+        );
+        
+        console.log(`✅ [DELETE PAYMENT] Payment deleted and balance restored. Customer: ${payment.customer_id}, Restored amount: ${payment.amount} د.ع`);
+        
+        res.json({ 
+          success: true, 
+          message: "تم حذف التسديد بنجاح"
+        });
+      } catch (error) {
+        console.error("❌ Delete payment error:", error);
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
     // Check credit before purchase
     app.post("/api/customers/:customerId/check-credit", async (req, res) => {
       try {

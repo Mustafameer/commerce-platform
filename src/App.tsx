@@ -11046,7 +11046,7 @@ const MerchantTopupDashboard = () => {
                             </td>
                             <td className={cn("px-4 py-3 border text-center", isDarkMode ? "border-gray-700" : "border-gray-200")}>
                               <div className="flex gap-2 justify-center">
-                                {isPayment && (
+                                {isPayment && tx.source !== 'opening' && (
                                   <>
                                     <button
                                       onClick={() => alert('تحديث: قريباً')}
@@ -11071,6 +11071,8 @@ const MerchantTopupDashboard = () => {
                                               setSelectedCustomerStatement(data.customer);
                                             }
                                             setIsLoadingCustomerTransactions(false);
+                                          } else {
+                                            alert('فشل الحذف');
                                           }
                                         } catch (error) {
                                           console.error('Delete error:', error);
