@@ -4904,7 +4904,7 @@ const MerchantDashboard = () => {
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          className={cn("rounded-[2rem] w-full max-w-sm shadow-2xl border overflow-hidden max-h-[95vh] overflow-y-auto", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-white/20")}
+          className={cn("rounded-[2rem] w-full max-w-lg shadow-2xl border overflow-hidden max-h-[95vh] overflow-y-auto", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-white/20")}
         >
           <div className={cn("p-5 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50/50 border-black/5")}>
             <div>
