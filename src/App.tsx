@@ -11416,12 +11416,15 @@ const MerchantTopupDashboard = () => {
 
 const TopupStorefront = () => {
   const { slug: rawStoreId } = useParams();
-  // Normalize store ID: if store is 21 or 13 (non-existent), use store 1 (علي_الهادي) with slug "store"
+  // Store 13 is the actual topup store with companies (زين أثير، آسيا سيل، كورك)
   let storeId = rawStoreId;
   const storeNum = parseInt(rawStoreId || '0');
-  if (storeNum === 21 || storeNum === 13) {
-    storeId = 'store'; // Redirect to store 1
-    console.log(`🔄 Detected store ${storeNum} (doesn't exist), redirecting to store 1 (store slug)`);
+  if (storeNum === 21) {
+    storeId = '13'; // If store 21 is requested, use store 13 instead
+    console.log(`🔄 Store 21 doesn't exist, using store 13 (the actual topup store)`);
+  } else if (storeNum === 1) {
+    storeId = '13'; // If store 1 is requested for topup, redirect to store 13
+    console.log(`🔄 Redirecting store 1 to store 13 (the topup store)`);
   }
   
   const { isDarkMode } = useTheme();
