@@ -10817,7 +10817,7 @@ const MerchantTopupDashboard = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className={cn("rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
+            className={cn("rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
           >
             <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
               <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>{isEditingCustomer ? 'تعديل العميل' : 'إضافة عميل جديد'}</h3>
@@ -10826,78 +10826,88 @@ const MerchantTopupDashboard = () => {
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <div>
-                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>الاسم</label>
-                <input
-                  type="text"
-                  value={customerForm.name}
-                  onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
-                  placeholder="اسم العميل"
-                  className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>الاسم</label>
+                  <input
+                    type="text"
+                    value={customerForm.name}
+                    onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
+                    placeholder="اسم العميل"
+                    className={cn("w-full px-4 py-3 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                  />
+                </div>
+                <div>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>رقم الهاتف</label>
+                  <input
+                    type="tel"
+                    value={customerForm.phone}
+                    onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
+                    placeholder="07xxxxxxxxx"
+                    className={cn("w-full px-4 py-3 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                  />
+                </div>
               </div>
-              <div>
-                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>رقم الهاتف</label>
-                <input
-                  type="tel"
-                  value={customerForm.phone}
-                  onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
-                  placeholder="07xxxxxxxxx"
-                  className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
-                />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>البريد الإلكتروني</label>
+                  <input
+                    type="email"
+                    value={customerForm.email}
+                    onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
+                    placeholder=""
+                    className={cn("w-full px-4 py-3 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                  />
+                </div>
+                <div>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>كلمة المرور</label>
+                  <input
+                    type="password"
+                    value={customerForm.password}
+                    onChange={(e) => setCustomerForm({ ...customerForm, password: e.target.value })}
+                    placeholder="••••••••"
+                    className={cn("w-full px-4 py-3 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                  />
+                </div>
               </div>
-              <div>
-                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>البريد الإلكتروني</label>
-                <input
-                  type="email"
-                  value={customerForm.email}
-                  onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
-                  placeholder="email@example.com"
-                  className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
-                />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>نوع العميل</label>
+                  <select
+                    value={customerForm.customer_type}
+                    onChange={(e) => setCustomerForm({ ...customerForm, customer_type: e.target.value })}
+                    className={cn("w-full px-4 py-3 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200")}
+                  >
+                    <option value="cash">👤 عميل مفرد</option>
+                    <option value="reseller">🏪 نقطة بيع</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>حد الائتمان</label>
+                  <input
+                    type="number"
+                    value={customerForm.credit_limit}
+                    onChange={(e) => setCustomerForm({ ...customerForm, credit_limit: e.target.value })}
+                    placeholder="0"
+                    className={cn("w-full px-4 py-3 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                  />
+                </div>
               </div>
+
               <div>
-                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>كلمة المرور</label>
-                <input
-                  type="password"
-                  value={customerForm.password}
-                  onChange={(e) => setCustomerForm({ ...customerForm, password: e.target.value })}
-                  placeholder="••••••••"
-                  className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
-                />
-              </div>
-              <div>
-                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>نوع العميل</label>
-                <select
-                  value={customerForm.customer_type}
-                  onChange={(e) => setCustomerForm({ ...customerForm, customer_type: e.target.value })}
-                  className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200")}
-                >
-                  <option value="cash">👤 عميل مفرد (نقدي)</option>
-                  <option value="reseller">🏪 نقطة بيع (جملة)</option>
-                </select>
-              </div>
-              <div>
-                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>حد الائتمان</label>
-                <input
-                  type="number"
-                  value={customerForm.credit_limit}
-                  onChange={(e) => setCustomerForm({ ...customerForm, credit_limit: e.target.value })}
-                  placeholder="0"
-                  className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
-                />
-              </div>
-              <div>
-                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>💵 الرصيد الابتدائي (اختياري)</label>
+                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>💵 ديون سابقة</label>
                 <input
                   type="number"
                   value={customerForm.starting_balance}
                   onChange={(e) => setCustomerForm({ ...customerForm, starting_balance: e.target.value })}
                   placeholder="0"
-                  className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                  className={cn("w-full px-4 py-3 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
                 />
               </div>
-              <button onClick={saveCustomer} className="w-full py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700">
+
+              <button onClick={saveCustomer} className="w-full py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700 text-sm">
                 {isEditingCustomer ? 'تحديث' : 'إضافة'}
               </button>
             </div>
