@@ -9309,6 +9309,10 @@ const MerchantTopupDashboard = () => {
         try {
           const cached = JSON.parse(cachedInfo);
           setStoreInfo(cached);
+          // Also set logo if available
+          if (cached.logo_url && cached.logo_url.length > 100) {
+            setDashboardLogo(cached.logo_url);
+          }
           console.log('✅ Loaded store info from cache for sidebar');
         } catch (e) {
           console.error('Failed to parse cached store info:', e);
@@ -9326,8 +9330,13 @@ const MerchantTopupDashboard = () => {
               store_name: data.store_name || data.name || data.title || 'متجر البطاقات'
             };
             setStoreInfo(enrichedData);
+            // Also set logo if available
+            if (enrichedData.logo_url && enrichedData.logo_url.length > 100) {
+              setDashboardLogo(enrichedData.logo_url);
+              setLogoRefreshKey(prev => prev + 1); // Force refresh the img tag
+            }
             localStorage.setItem(`storeInfo_${topupStoreId}`, JSON.stringify(enrichedData));
-            console.log('✅ Updated store info for sidebar:', enrichedData.store_name);
+            console.log('✅ Updated store info for sidebar:', enrichedData.store_name, 'with logo:', !!enrichedData.logo_url);
           }
         })
         .catch(err => {
