@@ -3604,9 +3604,9 @@ async function startServer() {
         const transactions = [openingBalanceRow, ...otherTransactionsWithBalance];
         
         // Calculate final current balance
-        const finalBalance = itemsWithBalance.length > 0 
-          ? itemsWithBalance[itemsWithBalance.length - 1].balance 
-          : 0;
+        const finalBalance = otherTransactionsWithBalance.length > 0 
+          ? otherTransactionsWithBalance[otherTransactionsWithBalance.length - 1].balance 
+          : openingBalance;
         
         console.log(`📊 [STATEMENT] Final: ${transactions.length} transactions, final balance: ${finalBalance} د.ع`);
         
