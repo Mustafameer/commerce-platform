@@ -13110,60 +13110,56 @@ const TopupStorefront = () => {
             </Card>
           )}
 
-          {/* Products Grid - 80% Width */}
+          {/* Product Images Gallery - 80% Width */}
           <div className="max-w-[80%] mx-auto">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4" key={`products-${products.length}-${Date.now()}`}>
-              {filteredProducts.map((product, idx) => {
-                // العملاء المفردون (cash): wholesale_price
-                // العملاء الجملة (reseller): retail_price
+            <h2 className={cn("text-2xl font-normal mb-6", isDarkMode ? "text-white" : "text-gray-900")}>🖼️ صور المنتجات المتاحة</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4" key={`images-gallery-${products.length}-${Date.now()}`}>
+              {filteredProducts.flatMap((product) => {
+                // Get images for this product
+                const productImages = Array.isArray(product.images) 
+                  ? product.images.filter((img: any) => img && String(img).length > 0)
+                  : [];
+
+                if (productImages.length === 0) return [];
+
+                // Calculate price based on customer type
                 const displayPrice = customer?.customer_type === 'reseller' && product.retail_price 
                   ? product.retail_price 
                   : (product.wholesale_price || product.price || 0);
+                
                 const hasBulkPrice = product.retail_price && product.wholesale_price && product.retail_price !== product.wholesale_price;
                 const showBulkBadge = customer?.customer_type === 'reseller' && hasBulkPrice;
-                const productQuantity = quantity && selectedProduct?.id === product.id ? quantity : 1;
 
-                return (
+                return productImages.map((imageUrl: string, imageIdx: number) => (
                   <motion.div
-                    key={`product-${product.id}-${product.available_codes}`}
+                    key={`product-image-${product.id}-${imageIdx}`}
                     whileHover={{ y: -4 }}
                     className={cn(
-                      "p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-all relative",
-                      selectedProduct?.id === product.id
-                        ? `border-[${primaryColor}] bg-opacity-10`
-                        : isDarkMode ? "border-green-700 hover:border-green-600" : "border-green-500 hover:border-green-600"
+                      "rounded-lg overflow-hidden border-2 cursor-pointer transition-all relative group",
+                      isDarkMode ? "border-green-700 hover:border-green-600 bg-gray-800" : "border-green-500 hover:border-green-600 bg-white"
                     )}
                   >
-                    {showBulkBadge && (
-                      <div className="absolute -top-2 -right-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs font-normal">
-                        🎉 جملة
-                      </div>
-                    )}
-                    <div 
-                      onClick={() => {
-                        console.log('📦 Selecting product:', {
-                          id: product.id,
-                          name: product.company_name,
-                          amount: product.amount,
-                          price: product.price,
-                          retail_price: product.retail_price,
-                          wholesale_price: product.wholesale_price,
-                          bulk_price: product.bulk_price,
-                          available_codes: product.available_codes,
-                          codes_count: product.codes ? product.codes.length : 0,
-                          all_keys: Object.keys(product).sort()
-                        });
-                        setSelectedProduct(product);
-                      }}
-                      className="mb-4"
-                    >
+                    {/* Image Container */}
+                    <div className="relative w-full h-40 overflow-hidden bg-gray-200">
+                      <img 
+                        src={imageUrl} 
+                        alt={`${product.company_name} - ${product.amount}`}
+                        className="w-full h-full object-cover"
+                      />
+                      {showBulkBadge && (
+                        <div className="absolute -top-2 -right-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs font-normal">
+                          🎉 جملة
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info Section */}
+                    <div className="p-3">
                       <div className="text-xs font-normal text-gray-500 mb-1">{product.company_name || 'غير محدد'}</div>
-                      <div className="text-lg sm:text-2xl font-normal mb-2">{(product.amount || 0).toLocaleString('en-US')} دينار</div>
-                      <div className={cn("text-xs font-normal mb-3", isDarkMode ? "text-gray-400" : "text-gray-600")}> 
-                        {product.category_name || 'فئة'}
-                      </div>
-                      <div className="space-y-1">
-                        <div className={cn("text-base sm:text-lg font-normal", selectedProduct?.id === product.id ? "text-green-500" : isDarkMode ? "text-blue-400" : "text-indigo-600")}> 
+                      <div className="text-sm font-normal mb-2">{(product.amount || 0).toLocaleString('en-US')} دينار</div>
+                      
+                      <div className="space-y-1 mb-3">
+                        <div className={cn("text-base font-normal", isDarkMode ? "text-blue-400" : "text-indigo-600")}> 
                           {(displayPrice || 0).toLocaleString('en-US')} د.ع
                         </div>
                         {showBulkBadge && (
@@ -13172,91 +13168,49 @@ const TopupStorefront = () => {
                           </div>
                         )}
                       </div>
-                    </div>
 
-                    {/* Quantity and Cart Controls */}
-                    <div className="mt-4 pt-4 border-t" style={{borderColor: isDarkMode ? '#374151' : '#e5e7eb'}}>
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-2 bg-opacity-10 rounded px-2 py-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (selectedProduct?.id === product.id && quantity > 1) {
-                                setQuantity(quantity - 1);
-                              } else if (selectedProduct?.id === product.id) {
-                                setQuantity(1);
-                              } else {
-                                setSelectedProduct(product);
-                                setQuantity(1);
-                              }
-                            }}
-                            className={cn("px-2 py-1 rounded text-sm font-normal transition-all", isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-300")}
-                            title="إنقاص"
-                          >
-                            −
-                          </button>
-                          <span className={cn("px-2 py-1 text-sm font-normal min-w-[2rem] text-center", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                            {selectedProduct?.id === product.id ? quantity : 1}
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (selectedProduct?.id === product.id) {
-                                setQuantity(quantity + 1);
-                              } else {
-                                setSelectedProduct(product);
-                                setQuantity(2);
-                              }
-                            }}
-                            className={cn("px-2 py-1 rounded text-sm font-normal transition-all", isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-300")}
-                            title="زيادة"
-                          >
-                            +
-                          </button>
-                        </div>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            
-                            // Calculate correct price based on customer type
-                            let correctPrice = product.price; // default
-                            if (customer?.customer_type === 'reseller') {
-                              correctPrice = product.retail_price || product.wholesale_price || product.price;
-                            } else {
-                              correctPrice = product.wholesale_price || product.price;
-                            }
-                            
-                            console.log('💳 Adding to cart with correct price:', {
-                              productId: product.id,
-                              customerType: customer?.customer_type,
-                              basePrice: product.price,
-                              retail_price: product.retail_price,
-                              wholesale_price: product.wholesale_price,
-                              correctPrice: correctPrice
-                            });
-                            
-                            addItem({ 
-                              ...product,
-                              price: correctPrice,  // Override with correct price
-                              store_type: 'topup',
-                              store_id: actualStoreId || parseInt(storeId || '0'),
-                              quantity: selectedProduct?.id === product.id ? quantity : 1 
-                            });
-                            playAddToCartSound();
-                          }}
-                          className={cn("flex-1 py-2 px-2 rounded text-sm font-normal transition-all flex items-center justify-center gap-1", isDarkMode ? "bg-green-900 hover:bg-green-800 text-green-200" : "bg-green-100 hover:bg-green-200 text-green-700")}
-                          title="إضافة للسلة"
-                        >
-                          <ShoppingCart size={14} />
-                          <span className="text-xs">سلة</span>
-                        </button>
-                      </div>
+                      {/* Add to Cart Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          
+                          console.log('🛒 Adding image to cart:', {
+                            productId: product.id,
+                            imageIndex: imageIdx,
+                            imageUrl: imageUrl.substring(0, 50) + '...',
+                            customerType: customer?.customer_type,
+                            price: displayPrice
+                          });
+                          
+                          addItem({ 
+                            ...product,
+                            price: displayPrice,
+                            image_url: imageUrl,
+                            product_image_index: imageIdx,
+                            store_type: 'topup',
+                            store_id: actualStoreId || parseInt(storeId || '0'),
+                            quantity: 1
+                          });
+                          playAddToCartSound();
+                        }}
+                        className={cn("w-full py-2 px-2 rounded text-sm font-normal transition-all flex items-center justify-center gap-1", isDarkMode ? "bg-green-900 hover:bg-green-800 text-green-200" : "bg-green-100 hover:bg-green-200 text-green-700")}
+                        title="إضافة للسلة"
+                      >
+                        <ShoppingCart size={14} />
+                        <span className="text-xs">إضافة</span>
+                      </button>
                     </div>
                   </motion.div>
-                );
+                ));
               })}
             </div>
+
+            {/* Empty State */}
+            {filteredProducts.every(p => !Array.isArray(p.images) || p.images.filter((img: any) => img && String(img).length > 0).length === 0) && (
+              <div className={cn("text-center py-12", isDarkMode ? "text-gray-400" : "text-gray-500")}>
+                <p className="text-lg font-normal">📸 لا توجد صور متاحة</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
