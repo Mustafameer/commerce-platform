@@ -8979,6 +8979,7 @@ const MerchantTopupDashboard = () => {
   const [companyForm, setCompanyForm] = useState({ name: '', logo_url: '' });
   const [productForm, setProductForm] = useState({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
   const [productImages, setProductImages] = useState<File[]>([]);
+  const [existingProductImages, setExistingProductImages] = useState<string[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [customerForm, setCustomerForm] = useState({ name: '', phone: '', email: '', password: '', customer_type: 'cash', credit_limit: '0', starting_balance: '' });
@@ -9628,6 +9629,32 @@ const MerchantTopupDashboard = () => {
         
         console.log('✅ Product saved with ID:', productId);
         
+        // Handle existing images deletion for updates
+        if (isEditingProduct && existingProductImages.length >= 0) {
+          // Update the product with the remaining images
+          try {
+            const updateImageResponse = await fetch(`/api/topup/products/${productId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                store_id: topupStoreId,
+                company_id: parseInt(productForm.company_id),
+                amount: parseInt(productForm.amount),
+                price: parseInt(productForm.price),
+                bulk_price: productForm.bulk_price ? parseInt(productForm.bulk_price) : parseInt(productForm.price),
+                quantity_type: productForm.quantity_type,
+                images: existingProductImages // Send remaining images
+              })
+            });
+            
+            if (updateImageResponse.ok) {
+              console.log('✅ Product images updated');
+            }
+          } catch (err) {
+            console.warn('⚠️ Error updating product images:', err);
+          }
+        }
+        
         // Upload images if any are selected - wait for all to complete
         if (productImages.length > 0 && productId) {
           console.log('📸 Uploading', productImages.length, 'images...');
@@ -9678,6 +9705,7 @@ const MerchantTopupDashboard = () => {
         setShowProductModal(false);
         setProductForm({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
         setProductImages([]);
+        setExistingProductImages([]);
         
         // Reload products AFTER all images are uploaded
         setTimeout(async () => {
@@ -10112,6 +10140,7 @@ const MerchantTopupDashboard = () => {
                   console.log('🔍 Current states:', { showProductModal, productForm, isEditingProduct });
                   setProductForm({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
                   setProductImages([]);
+                  setExistingProductImages([]);
                   setIsEditingProduct(null);
                   setShowProductModal(true);
                   console.log('✅ setShowProductModal called with true');
@@ -10146,6 +10175,11 @@ const MerchantTopupDashboard = () => {
                               onClick={() => {
                                 setProductForm({ company_id: product.company_id.toString(), amount: product.amount.toString(), price: product.price.toString(), bulk_price: product.bulk_price?.toString() || '', category_id: '', quantity_type: product.quantity_type || 'unit' });
                                 setProductImages([]);
+                                // Load existing images from product
+                                const existingImages = Array.isArray(product.images) 
+                                  ? product.images.filter((img: any) => img && String(img).length > 0)
+                                  : [];
+                                setExistingProductImages(existingImages);
                                 setIsEditingProduct(product.id);
                                 setShowProductModal(true);
                               }}
@@ -10270,6 +10304,35 @@ const MerchantTopupDashboard = () => {
                           )}
                         </label>
                       </div>
+
+                      {/* Existing Images Display */}
+                      {existingProductImages.length > 0 && (
+                        <div>
+                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>📸 الصور الموجودة</label>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            {existingProductImages.map((imageUrl, index) => (
+                              <div key={`existing-${index}`} className="relative group">
+                                <img 
+                                  src={imageUrl} 
+                                  alt={`Existing ${index + 1}`}
+                                  className={cn("w-full h-24 object-cover rounded-lg border", isDarkMode ? "border-gray-600" : "border-gray-300")}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setExistingProductImages(prev => prev.filter((_, i) => i !== index));
+                                  }}
+                                  className={cn("absolute top-1 right-1 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity", isDarkMode ? "bg-red-900 text-red-200" : "bg-red-600 text-white")}
+                                  title="حذف الصورة"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       <div>
                         <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>السعر</label>
