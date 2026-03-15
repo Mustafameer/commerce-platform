@@ -9883,12 +9883,6 @@ const MerchantTopupDashboard = () => {
                 >
                   <FileText size={16} /> 📄 كشف الحساب
                 </button>
-                <button
-                  onClick={() => setCurrentSection('add-payment')}
-                  className={cn("w-full px-3 py-2 rounded-lg font-normal flex items-center justify-center gap-2 text-sm transition-all", isDarkMode ? "bg-green-900/30 text-green-400 hover:bg-green-900/50" : "bg-green-50 text-green-600 hover:bg-green-100")}
-                >
-                  <CreditCard size={16} /> 💳 إضافة تسديد دفعة
-                </button>
               </div>
             </div>
             <button
