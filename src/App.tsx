@@ -10943,19 +10943,19 @@ const MerchantTopupDashboard = () => {
               {/* Credit Limit */}
               <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-blue-900/30 border border-blue-700/50" : "bg-blue-50 border border-blue-200")}>
                 <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-blue-300" : "text-blue-600")}>حد الائتمان</p>
-                <p className={cn("text-2xl font-semibold", isDarkMode ? "text-blue-300" : "text-blue-700")}>{(selectedCustomerStatement?.credit_limit || 0).toLocaleString('en-US')} د.ع</p>
+                <p className={cn("text-2xl font-semibold", isDarkMode ? "text-blue-300" : "text-blue-700")}>{Math.round(selectedCustomerStatement?.credit_limit || 0).toLocaleString('en-US')} د.ع</p>
               </div>
               
               {/* Current Debt */}
               <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-red-900/30 border border-red-700/50" : "bg-red-50 border border-red-200")}>
                 <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
-                <p className={cn("text-2xl font-semibold", isDarkMode ? "text-red-300" : "text-red-700")}>{(selectedCustomerStatement?.current_debt || 0).toLocaleString('en-US')} د.ع</p>
+                <p className={cn("text-2xl font-semibold", isDarkMode ? "text-red-300" : "text-red-700")}>{Math.round(selectedCustomerStatement?.current_debt || 0).toLocaleString('en-US')} د.ع</p>
               </div>
 
               {/* Available Balance */}
               <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-green-900/30 border border-green-700/50" : "bg-green-50 border border-green-200")}>
                 <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-green-300" : "text-green-600")}>الرصيد الحالي</p>
-                <p className={cn("text-2xl font-semibold", isDarkMode ? "text-green-300" : "text-green-700")}>{Math.max(0, (selectedCustomerStatement?.credit_limit || 0) - (selectedCustomerStatement?.current_debt || 0)).toLocaleString('en-US')} د.ع</p>
+                <p className={cn("text-2xl font-semibold", isDarkMode ? "text-green-300" : "text-green-700")}>{Math.round(Math.max(0, (selectedCustomerStatement?.credit_limit || 0) - (selectedCustomerStatement?.current_debt || 0))).toLocaleString('en-US')} د.ع</p>
               </div>
             </div>
 
