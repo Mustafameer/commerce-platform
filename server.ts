@@ -3514,20 +3514,13 @@ async function startServer() {
         console.log(`✅ [STATEMENT] Customer found: ${customer.name}`);
         console.log(`   🔍 Customer data: starting_balance=${customer.starting_balance}, credit_limit=${customer.credit_limit}`);
         
-        // ✅ Calculate ORIGINAL opening balance
-        // opening_balance = current_starting_balance + all_payments_made
-        // This is because starting_balance gets reduced by payments
-        const paymentsCountResult = await pool.query(
-          `SELECT COALESCE(SUM(amount), 0) as total_payments FROM customer_payments WHERE customer_id = $1`,
-          [customerId]
-        );
-        const totalPayments = Number(paymentsCountResult.rows[0]?.total_payments || 0);
-        const openingBalance = Number(customer.starting_balance || 0) + totalPayments;
+        // ✅ Calculate opening balance
+        // Opening balance is just the starting_balance - it never changes!
+        // It represents the initial capital/credit given to customer
+        const openingBalance = Number(customer.starting_balance || 0);
         
         console.log(`📊 [STATEMENT] Opening balance calculation:`);
-        console.log(`   Current starting_balance: ${customer.starting_balance}`);
-        console.log(`   Total payments made: ${totalPayments}`);
-        console.log(`   Original opening balance: ${openingBalance} د.ع`);
+        console.log(`   Starting balance (immutable): ${openingBalance} د.ع`);
         
         // Get customer's topup orders (purchases/debits) from orders table
         // Use topup_customer_id OR customer_id since some orders use either
@@ -3604,9 +3597,9 @@ async function startServer() {
             return { ...item, balance: openingBalance };
           }
           if (item.is_payment) {
-            runningBalance -= item.amount;  // Payment reduces debt
+            runningBalance += item.amount;  // Payment ADDS to balance (reduces debt owed)
           } else {
-            runningBalance += item.amount;  // Purchase increases debt
+            runningBalance -= item.amount;  // Purchase REDUCES balance (increases debt owed)
           }
           return { ...item, balance: Math.max(0, runningBalance) };
         });
