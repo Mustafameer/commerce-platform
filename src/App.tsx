@@ -10231,7 +10231,7 @@ const MerchantTopupDashboard = () => {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className={cn("rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
+                    className={cn("rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
                   >
                     <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
                       <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>{isEditingProduct ? 'تعديل المنتج' : 'إضافة منتج جديد'}</h3>
@@ -10240,7 +10240,8 @@ const MerchantTopupDashboard = () => {
                       </button>
                     </div>
                     <div className="p-6 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Row 1: Company & Amount */}
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>الشركة</label>
                           <select
@@ -10268,7 +10269,8 @@ const MerchantTopupDashboard = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Row 2: Price & Bulk Price */}
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>السعر</label>
                           <input
@@ -10291,7 +10293,7 @@ const MerchantTopupDashboard = () => {
                         </div>
                       </div>
 
-                      {/* Images Upload Section */}
+                      {/* Row 3: Images Upload Section */}
                       <div>
                         <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>🖼️ صور البطاقات (اختياري)</label>
                         <label className={cn("border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all", productImages.length > 0 ? "border-blue-500 bg-blue-50/10" : isDarkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-200 hover:border-gray-300")}>
@@ -10330,7 +10332,7 @@ const MerchantTopupDashboard = () => {
                         </label>
                       </div>
 
-                      {/* Existing Images Display */}
+                      {/* Row 4: Existing Images Display */}
                       {existingProductImages.length > 0 && (
                         <div>
                           <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>📸 الصور الموجودة</label>
@@ -10359,6 +10361,7 @@ const MerchantTopupDashboard = () => {
                         </div>
                       )}
 
+                      {/* Row 5: Submit Button */}
                       <button onClick={saveProduct} className="w-full py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700">
                         {isEditingProduct ? 'تحديث' : 'إضافة'}
                       </button>
