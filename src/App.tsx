@@ -11009,7 +11009,7 @@ const MerchantTopupDashboard = () => {
                   <p className="text-sm">لا توجد معاملات</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
                   <table className="w-full text-sm border-collapse">
                     <thead>
                       <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
