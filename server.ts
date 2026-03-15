@@ -3600,8 +3600,8 @@ async function startServer() {
           return { ...item, balance: Math.max(0, runningBalance) };
         });
         
-        // Combine: opening balance FIRST (always fixed), then other transactions in REVERSE order (newest first)
-        const transactions = [openingBalanceRow, ...otherTransactionsWithBalance.reverse()];
+        // Combine: other transactions in REVERSE order (newest first), opening balance LAST (always at bottom)
+        const transactions = [...otherTransactionsWithBalance.reverse(), openingBalanceRow];
         
         // Calculate final current balance
         const finalBalance = otherTransactionsWithBalance.length > 0 
