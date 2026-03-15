@@ -1003,6 +1003,84 @@ async function startServer() {
       }
     });
 
+    // Create images table and add sample images
+    app.post("/api/setup/images-table", async (req, res) => {
+      try {
+        console.log('📸 Setting up images table...');
+        
+        // Step 1: Create the table if it doesn't exist
+        console.log('   Creating table...');
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS topup_product_images (
+            id SERIAL PRIMARY KEY,
+            store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+            product_id INTEGER NOT NULL REFERENCES topup_products(id) ON DELETE CASCADE,
+            image_data TEXT NOT NULL,
+            image_type VARCHAR(50) DEFAULT 'svg',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(store_id, product_id, image_data)
+          )
+        `);
+        console.log('   ✓ Table created');
+        
+        // Step 2: Create indexes
+        console.log('   Creating indexes...');
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_topup_product_images_store_product ON topup_product_images(store_id, product_id)`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_topup_product_images_created ON topup_product_images(created_at)`);
+        console.log('   ✓ Indexes created');
+        
+        // Step 3: Add sample images for each product in store 13
+        console.log('   Adding sample images to products...');
+        
+        const svg1 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzQyODVGNCIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIyNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmb250LXdlaWdodD0iYm9sZCI+MzU8L3RleHQ+PC9zdmc+';
+        const svg2 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2YxNDMyNyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIyNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmb250LXdlaWdodD0iYm9sZCI+MjU8L3RleHQ+PC9zdmc+';
+        const svg3 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2ZkYzIwOCIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIyNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmb250LXdlaWdodD0iYm9sZCI+MTV4NTwvdGV4dD48L3N2Zz4=';
+        
+        // Get all products from store 13
+        const products = await pool.query('SELECT id FROM topup_products WHERE store_id = 13');
+        
+        let insertedCount = 0;
+        const images = [svg1, svg2, svg3, svg1, svg2]; // 5 images to rotate
+        
+        for (const product of products.rows) {
+          // Add 5 images to each product
+          for (let i = 0; i < 5; i++) {
+            try {
+              await pool.query(`
+                INSERT INTO topup_product_images (store_id, product_id, image_data, image_type)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT DO NOTHING
+              `, [13, product.id, images[i], 'svg']);
+              
+              insertedCount++;
+            } catch (err) {
+              // Ignore duplicates
+            }
+          }
+        }
+        
+        console.log(`   ✓ Added ${insertedCount} images`);
+        
+        // Step 4: Return status
+        const imageCount = await pool.query('SELECT COUNT(*) as count FROM topup_product_images');
+        
+        res.json({
+          success: true,
+          message: '✅ Images table setup complete',
+          table_created: true,
+          total_images: imageCount.rows[0].count,
+          products_updated: products.rows.length
+        });
+        
+      } catch (error) {
+        console.error('❌ Error setting up images table:', (error as any).message);
+        res.status(500).json({
+          success: false,
+          error: (error as any).message
+        });
+      }
+    });
+
     // Reset seed data endpoint
     app.post("/api/reset-seed", async (req, res) => {
       try {
