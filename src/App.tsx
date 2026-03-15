@@ -10961,13 +10961,24 @@ const MerchantTopupDashboard = () => {
                             setShowPaymentForm(false);
                             // Reload statement
                             setIsLoadingCustomerTransactions(true);
+                            console.log('🔄 Reloading statement for customer:', selectedCustomerStatement.id);
                             const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
+                            console.log('📡 Statement response status:', statementRes.status);
                             if (statementRes.ok) {
                               const data = await statementRes.json();
-                              console.log('📊 Statement data:', data);
-                              console.log('📊 Transactions:', data.transactions);
-                              setCustomerTransactions(Array.isArray(data.transactions) ? data.transactions : []);
+                              console.log('✅ Statement data received:', data);
+                              console.log('✅ Transactions array:', data.transactions);
+                              console.log('✅ Transactions count:', data.transactions?.length || 0);
+                              if (data.transactions && Array.isArray(data.transactions)) {
+                                console.log('✅ Setting transactions:', data.transactions.length, 'items');
+                                setCustomerTransactions(data.transactions);
+                              } else {
+                                console.error('❌ Transactions is not an array:', typeof data.transactions);
+                                setCustomerTransactions([]);
+                              }
                               setSelectedCustomerStatement(data.customer);
+                            } else {
+                              console.error('❌ Statement fetch failed:', statementRes.status);
                             }
                             setIsLoadingCustomerTransactions(false);
                           } else {
@@ -10996,6 +11007,8 @@ const MerchantTopupDashboard = () => {
               ) : !customerTransactions || customerTransactions.length === 0 ? (
                 <div className={cn("text-center py-8", isDarkMode ? "text-gray-400" : "text-gray-600")}>
                   <p className="text-sm">لا توجد معاملات</p>
+                  {!customerTransactions && <p className="text-xs text-red-500 mt-2">⚠️ customerTransactions is null/undefined</p>}
+                  {customerTransactions && customerTransactions.length === 0 && <p className="text-xs text-yellow-500 mt-2">⚠️ Transactions array is empty</p>}
                 </div>
               ) : (
                 <div className="overflow-x-auto">
