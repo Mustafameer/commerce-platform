@@ -1003,8 +1003,8 @@ async function startServer() {
       }
     });
 
-    // Create images table and add sample images
-    app.post("/api/setup/images-table", async (req, res) => {
+    // Create images table and add sample images (GET for easy browser access)
+    app.get("/api/setup/images-table", async (req, res) => {
       try {
         console.log('📸 Setting up images table...');
         
