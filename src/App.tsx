@@ -13223,15 +13223,14 @@ const TopupStorefront = () => {
               loading,
               hasImages: filteredProducts.some(p => Array.isArray(p.images) && p.images.length > 0)
             })}
-            <h2 className={cn("text-2xl font-normal mb-6", isDarkMode ? "text-white" : "text-gray-900")}>🖼️ صور المنتجات المتاحة</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4" key={`images-gallery-${products.length}-${Date.now()}`}>
-              {filteredProducts.flatMap((product) => {
-                // Get images for this product
+            <h2 className={cn("text-2xl font-normal mb-6", isDarkMode ? "text-white" : "text-gray-900")}>� المنتجات المتاحة للشراء</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" key={`products-list-${products.length}-${Date.now()}`}>
+              {filteredProducts.map((product) => {
+                // Get images count for this product
                 const productImages = Array.isArray(product.images) 
                   ? product.images.filter((img: any) => img && String(img).length > 0)
                   : [];
-
-                if (productImages.length === 0) return [];
+                const imagesCount = productImages.length;
 
                 // Calculate price based on customer type
                 const displayPrice = customer?.customer_type === 'reseller' && product.retail_price 
@@ -13241,83 +13240,120 @@ const TopupStorefront = () => {
                 const hasBulkPrice = product.retail_price && product.wholesale_price && product.retail_price !== product.wholesale_price;
                 const showBulkBadge = customer?.customer_type === 'reseller' && hasBulkPrice;
 
-                return productImages.map((imageUrl: string, imageIdx: number) => (
+                return (
                   <motion.div
-                    key={`product-image-${product.id}-${imageIdx}`}
+                    key={`product-${product.id}`}
                     whileHover={{ y: -4 }}
                     className={cn(
-                      "rounded-lg overflow-hidden border-2 cursor-pointer transition-all relative group",
-                      isDarkMode ? "border-green-700 hover:border-green-600 bg-gray-800" : "border-green-500 hover:border-green-600 bg-white"
+                      "rounded-lg border-2 p-4 transition-all relative",
+                      isDarkMode ? "border-indigo-700 hover:border-indigo-600 bg-gray-800" : "border-indigo-400 hover:border-indigo-500 bg-white"
                     )}
                   >
-                    {/* Image Container */}
-                    <div className="relative w-full h-40 overflow-hidden bg-gray-200">
-                      <img 
-                        src={imageUrl} 
-                        alt={`${product.company_name} - ${product.amount}`}
-                        className="w-full h-full object-cover"
-                      />
+                    {/* Company Badge */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="text-xs font-normal text-gray-500">{product.company_name || 'غير محدد'}</div>
                       {showBulkBadge && (
-                        <div className="absolute -top-2 -right-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs font-normal">
+                        <div className="bg-yellow-500 text-white px-2 py-1 rounded text-xs font-normal">
                           🎉 جملة
                         </div>
                       )}
                     </div>
 
-                    {/* Info Section */}
-                    <div className="p-3">
-                      <div className="text-xs font-normal text-gray-500 mb-1">{product.company_name || 'غير محدد'}</div>
-                      <div className="text-sm font-normal mb-2">{(product.amount || 0).toLocaleString('en-US')} دينار</div>
-                      
-                      <div className="space-y-1 mb-3">
-                        <div className={cn("text-base font-normal", isDarkMode ? "text-blue-400" : "text-indigo-600")}> 
-                          {(displayPrice || 0).toLocaleString('en-US')} د.ع
-                        </div>
-                        {showBulkBadge && (
-                          <div className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                            <del>{((product.wholesale_price || product.price) || 0).toLocaleString('en-US')} د.ع</del>
-                          </div>
-                        )}
+                    {/* Product Amount */}
+                    <div className="mb-3">
+                      <div className="text-lg font-bold mb-1">{(product.amount || 0).toLocaleString('en-US')} دينار</div>
+                      <div className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                        {imagesCount > 0 ? `${imagesCount} صورة متاحة` : 'بدون صور'}
                       </div>
-
-                      {/* Add to Cart Button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          
-                          console.log('🛒 Adding image to cart:', {
-                            productId: product.id,
-                            imageIndex: imageIdx,
-                            imageUrl: imageUrl.substring(0, 50) + '...',
-                            customerType: customer?.customer_type,
-                            price: displayPrice
-                          });
-                          
-                          addItem({ 
-                            ...product,
-                            price: displayPrice,
-                            image_url: imageUrl,
-                            product_image_index: imageIdx,
-                            store_type: 'topup',
-                            store_id: actualStoreId || parseInt(storeId || '0'),
-                            quantity: 1
-                          });
-                          playAddToCartSound();
-                        }}
-                        className={cn("w-full py-2 px-2 rounded text-sm font-normal transition-all flex items-center justify-center gap-1", isDarkMode ? "bg-green-900 hover:bg-green-800 text-green-200" : "bg-green-100 hover:bg-green-200 text-green-700")}
-                        title="إضافة للسلة"
-                      >
-                        <ShoppingCart size={14} />
-                        <span className="text-xs">إضافة</span>
-                      </button>
                     </div>
+
+                    {/* Price Section */}
+                    <div className="space-y-1 mb-4">
+                      <div className={cn("text-lg font-bold", isDarkMode ? "text-blue-400" : "text-indigo-600")}> 
+                        {(displayPrice || 0).toLocaleString('en-US')} د.ع
+                      </div>
+                      {showBulkBadge && (
+                        <div className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>
+                          <del>{((product.wholesale_price || product.price) || 0).toLocaleString('en-US')} د.ع</del>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Quantity Selector */}
+                    <div className="mb-4">
+                      <label className="block text-xs font-normal mb-2">الكمية المطلوبة:</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="number" 
+                          min="1" 
+                          max={imagesCount || 100}
+                          defaultValue="1"
+                          id={`qty-${product.id}`}
+                          className={cn(
+                            "flex-1 px-3 py-2 rounded text-sm border-2 transition-all",
+                            isDarkMode 
+                              ? "bg-gray-700 border-gray-600 text-white focus:border-indigo-500" 
+                              : "bg-white border-gray-300 text-gray-900 focus:border-indigo-500"
+                          )}
+                        />
+                        <span className={cn("text-xs font-normal leading-10 px-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                          {imagesCount > 0 ? `max: ${imagesCount}` : 'no limit'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Add to Cart Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        
+                        const qtyInput = document.getElementById(`qty-${product.id}`) as HTMLInputElement;
+                        const quantity = parseInt(qtyInput?.value || '1');
+                        
+                        // Get images for this quantity
+                        const imagesToAdd = productImages.slice(0, quantity);
+                        
+                        console.log('🛒 Adding product to cart:', {
+                          productId: product.id,
+                          quantity,
+                          imagesCount: imagesToAdd.length,
+                          customerType: customer?.customer_type,
+                          price: displayPrice
+                        });
+                        
+                        // Add item with images based on quantity
+                        addItem({ 
+                          ...product,
+                          price: displayPrice,
+                          images: imagesToAdd, // Add selected images
+                          quantity,
+                          store_type: 'topup',
+                          store_id: actualStoreId || parseInt(storeId || '0')
+                        });
+                        playAddToCartSound();
+                        
+                        // Reset quantity
+                        if (qtyInput) qtyInput.value = '1';
+                      }}
+                      disabled={imagesCount === 0}
+                      className={cn(
+                        "w-full py-2 px-3 rounded text-sm font-normal transition-all flex items-center justify-center gap-2",
+                        imagesCount === 0
+                          ? isDarkMode ? "bg-gray-700 text-gray-500 cursor-not-allowed" : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          : isDarkMode ? "bg-green-900 hover:bg-green-800 text-green-200" : "bg-green-100 hover:bg-green-200 text-green-700"
+                      )}
+                      title={imagesCount === 0 ? "لا توجد صور متاحة" : "إضافة للسلة"}
+                    >
+                      <ShoppingCart size={16} />
+                      <span>إضافة للسلة</span>
+                    </button>
                   </motion.div>
-                ));
+                );
               })}
             </div>
 
             {/* Empty State */}
-            {filteredProducts.every(p => !Array.isArray(p.images) || p.images.filter((img: any) => img && String(img).length > 0).length === 0) && (
+            {filteredProducts.length === 0 && (
               <div className={cn("text-center py-12", isDarkMode ? "text-gray-400" : "text-gray-500")}>
                 {loading ? (
                   <>
