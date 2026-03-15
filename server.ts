@@ -3563,12 +3563,31 @@ async function startServer() {
           }))
         ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         
-        // Opening balance is always 0 for new customers (no previous debt)
+        // Opening balance represents any previous debt when customer account was created
+        // For new customers, this is typically 0
         const openingBalance = 0;
         
-        // Calculate running balance starting from 0
-        let runningBalance = 0;
-        const itemsWithBalance = allItems.map((item, idx) => {
+        // Always add opening balance as first transaction for transparency
+        allItems.unshift({
+          id: 0,
+          created_at: customer.created_at,
+          type: 'opening',
+          description: 'رصيد افتتاحي',
+          amount: openingBalance,
+          is_payment: false,
+          source: 'opening'
+        });
+        
+        // Sort transactions chronologically
+        const allItemsSorted = allItems.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        
+        // Calculate running balance starting from opening balance
+        let runningBalance = openingBalance;
+        const itemsWithBalance = allItemsSorted.map((item, idx) => {
+          if (idx === 0 && item.type === 'opening') {
+            // Opening balance transaction - the starting point
+            return { ...item, balance: openingBalance };
+          }
           if (item.is_payment) {
             runningBalance -= item.amount;  // Payment reduces debt
           } else {
