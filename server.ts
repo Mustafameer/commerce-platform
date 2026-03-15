@@ -3756,20 +3756,7 @@ async function startServer() {
           return res.status(500).json({ error: "Failed to delete payment" });
         }
         
-        // Restore the starting_balance (add the payment amount back)
-        const customerRes = await pool.query(
-          `SELECT starting_balance FROM customers WHERE id = $1`,
-          [payment.customer_id]
-        );
-        
-        const restoredBalance = Number(customerRes.rows[0].starting_balance) + Number(payment.amount);
-        
-        await pool.query(
-          `UPDATE customers SET starting_balance = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
-          [restoredBalance, payment.customer_id]
-        );
-        
-        console.log(`✅ [DELETE PAYMENT] Payment deleted and balance restored. Customer: ${payment.customer_id}, Restored amount: ${payment.amount} د.ع`);
+        console.log(`✅ [DELETE PAYMENT] Payment deleted successfully. Customer: ${payment.customer_id}, Deleted amount: ${payment.amount} د.ع`);
         
         res.json({ 
           success: true, 
@@ -3805,29 +3792,13 @@ async function startServer() {
         const oldAmount = Number(payment.amount);
         const amountDifference = Number(newAmount) - oldAmount;
         
-        // Update payment amount
+        // Update payment amount only (starting_balance should never change!)
         await pool.query(
           `UPDATE customer_payments SET amount = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
           [newAmount, paymentId]
         );
         
-        // Adjust customer's starting_balance by the difference
-        // If newAmount > oldAmount: more was paid, so balance decreases more (subtract difference)
-        // If newAmount < oldAmount: less was paid, so balance increases (add difference back)
-        const customerRes = await pool.query(
-          `SELECT starting_balance FROM customers WHERE id = $1`,
-          [payment.customer_id]
-        );
-        
-        const currentBalance = Number(customerRes.rows[0].starting_balance);
-        const adjustedBalance = currentBalance - amountDifference;
-        
-        await pool.query(
-          `UPDATE customers SET starting_balance = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
-          [adjustedBalance, payment.customer_id]
-        );
-        
-        console.log(`✏️ [EDIT PAYMENT] Payment ${paymentId} updated. Customer: ${payment.customer_id}, Old amount: ${oldAmount}, New amount: ${newAmount}, Balance adjusted by: ${-amountDifference} د.ع`);
+        console.log(`✏️ [EDIT PAYMENT] Payment ${paymentId} updated. Customer: ${payment.customer_id}, Old amount: ${oldAmount}, New amount: ${newAmount}, Difference: ${amountDifference} د.ع`);
         
         res.json({ 
           success: true, 
