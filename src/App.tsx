@@ -9833,7 +9833,7 @@ const MerchantTopupDashboard = () => {
             )}
             <div>
               <h2 className={cn("font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>الإدارة</h2>
-              <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>متجر البطاقات</p>
+              <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>{storeInfo?.store_name || 'متجر البطاقات'}</p>
             </div>
           </div>
 
@@ -9875,12 +9875,6 @@ const MerchantTopupDashboard = () => {
               <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>أنت مسجل بصفة</p>
               <p className={cn("font-normal mb-4", isDarkMode ? "text-gray-100" : "text-gray-900")}>{user?.name || 'تاجر'}</p>
             </div>
-            <button
-              onClick={handleLogout}
-              className={cn("w-full px-4 py-3 rounded-lg font-normal flex items-center justify-center gap-2 transition-all", isDarkMode ? "bg-red-900/20 text-red-400 hover:bg-red-900/40" : "bg-red-50 text-red-600 hover:bg-red-100")}
-            >
-              <LogOut size={16} /> تسجيل خروج
-            </button>
           </div>
         </div>
       </motion.div>
@@ -11203,7 +11197,7 @@ const MerchantTopupDashboard = () => {
                   </div>
                   <div>
                     <h2 className={cn("font-normal text-sm", isDarkMode ? "text-gray-100" : "text-gray-900")}>الإدارة</h2>
-                    <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>متجر البطاقات</p>
+                    <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>{storeInfo?.store_name || 'متجر البطاقات'}</p>
                   </div>
                 </div>
                 <button
