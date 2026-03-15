@@ -9833,7 +9833,7 @@ const MerchantTopupDashboard = () => {
             )}
             <div>
               <h2 className={cn("font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>الإدارة</h2>
-              <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>{storeInfo?.store_name || 'متجر البطاقات'}</p>
+              <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>متجر البطاقات</p>
             </div>
           </div>
 
@@ -11197,7 +11197,7 @@ const MerchantTopupDashboard = () => {
                   </div>
                   <div>
                     <h2 className={cn("font-normal text-sm", isDarkMode ? "text-gray-100" : "text-gray-900")}>الإدارة</h2>
-                    <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>{storeInfo?.store_name || 'متجر البطاقات'}</p>
+                    <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>متجر البطاقات</p>
                   </div>
                 </div>
                 <button
