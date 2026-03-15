@@ -3500,7 +3500,7 @@ async function startServer() {
         
         // Get customer info
         const customerResult = await pool.query(
-          `SELECT id, name, phone, email, customer_type, credit_limit, created_at
+          `SELECT id, name, phone, email, customer_type, credit_limit, created_at, starting_balance
            FROM customers WHERE id = $1`,
           [customerId]
         );
