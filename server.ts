@@ -3600,8 +3600,8 @@ async function startServer() {
           return { ...item, balance: Math.max(0, runningBalance) };
         });
         
-        // Combine: opening balance FIRST (always fixed), then other transactions
-        const transactions = [openingBalanceRow, ...otherTransactionsWithBalance];
+        // Combine: opening balance FIRST (always fixed), then other transactions in REVERSE order (newest first)
+        const transactions = [openingBalanceRow, ...otherTransactionsWithBalance.reverse()];
         
         // Calculate final current balance
         const finalBalance = otherTransactionsWithBalance.length > 0 
@@ -3645,7 +3645,7 @@ async function startServer() {
           return res.status(400).json({ error: "customer_id, store_id, and amount are required" });
         }
 
-        // Get customer info including starting_balance
+        // Get customer info to verify they exist
         const customerResult = await pool.query(
           `SELECT id, starting_balance, credit_limit FROM customers WHERE id = $1`,
           [customer_id]
@@ -3658,23 +3658,15 @@ async function startServer() {
 
         const customer = customerResult.rows[0];
         const startingBalance = parseFloat(customer.starting_balance || 0);
-        const totalDebt = startingBalance; // For now, we reduce from starting_balance
         
-        if (amount > totalDebt) {
-          return res.status(400).json({ error: `المبلغ المدخل أكبر من الديون الحالية (${totalDebt} د.ع)` });
+        // Validate payment doesn't exceed starting balance
+        if (amount > startingBalance) {
+          return res.status(400).json({ error: `المبلغ المدخل أكبر من الديون الحالية (${startingBalance} د.ع)` });
         }
 
-        // Reduce starting_balance
-        const newStartingBalance = Math.max(0, startingBalance - amount);
-        
-        const updateResult = await pool.query(
-          `UPDATE customers SET starting_balance = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
-          [newStartingBalance, customer_id]
-        );
-
-        if (updateResult.rows.length === 0) {
-          return res.status(404).json({ error: "Failed to update payment" });
-        }
+        // ⚠️ IMPORTANT: DO NOT MODIFY starting_balance!
+        // It's immutable - the opening balance must stay constant!
+        // The statement endpoint will calculate current debt as: starting_balance - SUM(payments)
 
         // ✅ CRITICAL FIX: Insert payment record into customer_payments table
         // so it appears in the statement endpoint's transaction list
@@ -3694,16 +3686,15 @@ async function startServer() {
             detail: dbErr.detail,
             column: dbErr.column
           });
-          // Don't fail the API - the starting_balance was already updated
+          throw new Error("Failed to record payment");
         }
 
-        console.log(`💳 [TOPUP PAYMENT] Customer: ${customer_id} - Amount: ${amount} د.ع - New Balance: ${newStartingBalance} د.ع`);
+        console.log(`💳 [TOPUP PAYMENT] Customer: ${customer_id} - Amount: ${amount} د.ع - Payment recorded successfully`);
         
         res.json({ 
           success: true, 
           message: "تم تسديد المبلغ بنجاح",
-          customer: updateResult.rows[0],
-          newDebt: newStartingBalance
+          amount: amount
         });
       } catch (error) {
         console.error("❌ Payment error:", error);
