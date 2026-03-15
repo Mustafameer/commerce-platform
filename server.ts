@@ -804,7 +804,49 @@ async function ensureMissingTables() {
   try {
     console.log('📸 [SERVER] Ensuring topup_product_images table exists...');
     
-    // Create topup_product_images table if it doesn't exist
+    // First, check if the table already exists
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = 'topup_product_images'
+      )
+    `);
+    
+    if (tableCheck.rows[0].exists) {
+      console.log('✅ [SERVER] topup_product_images table already exists');
+      return;
+    }
+    
+    console.log('🔨 [SERVER] Creating topup_product_images table...');
+    
+    // Verify that referenced tables exist first
+    const storesCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = 'stores'
+      )
+    `);
+    
+    const productsCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = 'topup_products'
+      )
+    `);
+    
+    if (!storesCheck.rows[0].exists) {
+      console.warn('⚠️  [SERVER] stores table not found - skipping topup_product_images creation');
+      return;
+    }
+    
+    if (!productsCheck.rows[0].exists) {
+      console.warn('⚠️  [SERVER] topup_products table not found - skipping topup_product_images creation');
+      return;
+    }
+    
+    console.log('✓ [SERVER] Referenced tables exist, creating topup_product_images...');
+    
+    // Create topup_product_images table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS topup_product_images (
         id SERIAL PRIMARY KEY,
@@ -817,13 +859,21 @@ async function ensureMissingTables() {
       )
     `);
     
-    // Create indexes
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_topup_product_images_store_product ON topup_product_images(store_id, product_id)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_topup_product_images_created ON topup_product_images(created_at)`);
+    console.log('✓ [SERVER] Table created');
     
-    console.log('✅ [SERVER] topup_product_images table and indexes ensured');
+    // Create indexes
+    try {
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_topup_product_images_store_product ON topup_product_images(store_id, product_id)`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_topup_product_images_created ON topup_product_images(created_at)`);
+      console.log('✓ [SERVER] Indexes created');
+    } catch (idxErr) {
+      console.warn('⚠️  [SERVER] Index creation warning:', (idxErr as any).message.substring(0, 50));
+    }
+    
+    console.log('✅ [SERVER] topup_product_images table ensured successfully');
   } catch (error) {
-    console.error('⚠️  [SERVER] Error ensuring tables:', (error as any).message);
+    console.error('❌ [SERVER] Error ensuring tables:', (error as any).message);
+    console.error('    Details:', (error as any).detail || (error as any).toString().substring(0, 100));
   }
 }
 
@@ -914,6 +964,41 @@ async function startServer() {
           status: "error", 
           message: errorMessage,
           error: (error as any).code || 'UNKNOWN'
+        });
+      }
+    });
+
+    // Diagnostic endpoint for TopupStorefront
+    app.get("/api/diagnostic/topup", async (req, res) => {
+      try {
+        console.log("🔍 Running TopupStorefront diagnostic...");
+        
+        const store13 = await pool.query("SELECT * FROM stores WHERE id = 13");
+        const companies13 = await pool.query("SELECT * FROM topup_companies WHERE store_id = 13");
+        const products13 = await pool.query("SELECT id, amount, price, images FROM topup_products WHERE store_id = 13 LIMIT 5");
+        const imagesTable = await pool.query(`
+          SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables 
+            WHERE table_schema = 'public' AND table_name = 'topup_product_images'
+          ) as exists
+        `);
+        const imagesCount = await pool.query("SELECT COUNT(*) as count FROM topup_product_images");
+        
+        const result = {
+          store_13: store13.rows[0] || null,
+          companies_count: companies13.rows.length,
+          companies: companies13.rows,
+          products_count: products13.rows.length,
+          products_sample: products13.rows,
+          topup_product_images_table_exists: imagesTable.rows[0].exists,
+          topup_product_images_count: imagesCount.rows[0].count
+        };
+        
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({
+          error: (error as any).message,
+          details: (error as any).detail
         });
       }
     });
