@@ -3656,6 +3656,7 @@ async function startServer() {
         // ✅ CRITICAL FIX: Insert payment record into customer_payments table
         // so it appears in the statement endpoint's transaction list
         try {
+          console.log(`💾 [PAYMENT] Attempting to insert: customer_id=${customer_id}, amount=${amount}`);
           const paymentRes = await pool.query(
             `INSERT INTO customer_payments (customer_id, amount, payment_method, notes, created_at)
              VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
@@ -3663,8 +3664,13 @@ async function startServer() {
             [customer_id, amount, 'online', 'تسديد ديون من خلال متجر الشحن']
           );
           console.log(`✅ [PAYMENT] Recorded in customer_payments table - payment ID: ${paymentRes.rows[0]?.id}`);
-        } catch (dbErr) {
-          console.warn(`⚠️ [PAYMENT] Warning: Could not record payment in customer_payments:`, (dbErr as any).message);
+        } catch (dbErr: any) {
+          console.error(`❌ [PAYMENT] ERROR inserting payment:`, {
+            code: dbErr.code,
+            message: dbErr.message,
+            detail: dbErr.detail,
+            column: dbErr.column
+          });
           // Don't fail the API - the starting_balance was already updated
         }
 
