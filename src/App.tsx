@@ -4740,7 +4740,7 @@ const MerchantDashboard = () => {
             <Button 
               onClick={() => {
                 setIsEditingCustomer(null);
-                setCustomerForm({ name: '', phone: '', email: '', customer_type: 'cash', credit_limit: '', password: '', notes: '' });
+                setCustomerForm({ name: '', phone: '', email: '', customer_type: 'cash', credit_limit: '', password: '', notes: '', starting_balance: '' });
                 setShowCustomerModal(true);
               }}
               className={cn("px-4 py-2 rounded-xl text-sm font-normal transition-all shadow-sm", isDarkMode ? "bg-green-700 hover:bg-green-600 text-white" : "bg-green-600 hover:bg-green-700 text-white")}
@@ -10350,7 +10350,7 @@ const MerchantTopupDashboard = () => {
               <div className="flex gap-3">
                 <button
                   onClick={() => {
-                    setCustomerForm({ name: '', phone: '', email: '', password: '', customer_type: 'cash', credit_limit: '0', starting_balance: '' });
+                    setCustomerForm({ name: '', phone: '', email: '', password: '', customer_type: 'cash', credit_limit: '0', starting_balance: '', notes: '' });
                     setIsEditingCustomer(null);
                     setShowCustomerModal(true);
                   }}
