@@ -3490,6 +3490,7 @@ async function startServer() {
     app.get("/api/topup/customers/:customerId/statement", async (req, res) => {
       try {
         const { customerId } = req.params;
+        console.log(`📊 [STATEMENT] Fetching for customer ID: ${customerId}`);
         
         // Get customer info
         const customerResult = await pool.query(
@@ -3499,10 +3500,12 @@ async function startServer() {
         );
         
         if (customerResult.rows.length === 0) {
+          console.log(`❌ [STATEMENT] Customer ${customerId} not found`);
           return res.status(404).json({ error: "Customer not found" });
         }
         
         const customer = customerResult.rows[0];
+        console.log(`✅ [STATEMENT] Customer found: ${customer.name}`);
         
         // Get customer's topup orders (purchases/debits) from orders table
         // Use topup_customer_id OR customer_id since some orders use either
@@ -3515,6 +3518,7 @@ async function startServer() {
            ORDER BY o.created_at ASC`,
           [customerId]
         );
+        console.log(`📦 [STATEMENT] Orders found: ${ordersResult.rows.length}`);
         
         // Get customer's payments (credits)
         const paymentsResult = await pool.query(
@@ -3523,6 +3527,7 @@ async function startServer() {
            ORDER BY created_at ASC`,
           [customerId]
         );
+        console.log(`💳 [STATEMENT] Payments found: ${paymentsResult.rows.length}`);
         
         // Combine all transactions and build statement
         const allItems = [
@@ -3568,6 +3573,8 @@ async function startServer() {
           ? itemsWithBalance[itemsWithBalance.length - 1].balance 
           : 0;
         
+        console.log(`📊 [STATEMENT] Final: ${transactions.length} transactions, final debt: ${finalBalance} د.ع`);
+        
         res.json({
           customer: {
             id: customer.id,
@@ -3592,6 +3599,8 @@ async function startServer() {
       try {
         const { customer_id, store_id, amount } = req.body;
         
+        console.log(`💳 [PAYMENT REQUEST] Customer: ${customer_id}, Amount: ${amount}, Store: ${store_id}`);
+        
         if (!customer_id || !store_id || !amount || amount <= 0) {
           return res.status(400).json({ error: "customer_id, store_id, and amount are required" });
         }
@@ -3603,6 +3612,7 @@ async function startServer() {
         );
 
         if (customerResult.rows.length === 0) {
+          console.log(`❌ [PAYMENT] Customer ${customer_id} not found`);
           return res.status(404).json({ error: "Customer not found" });
         }
 
@@ -3629,14 +3639,15 @@ async function startServer() {
         // ✅ CRITICAL FIX: Insert payment record into customer_payments table
         // so it appears in the statement endpoint's transaction list
         try {
-          await pool.query(
+          const paymentRes = await pool.query(
             `INSERT INTO customer_payments (customer_id, amount, payment_method, notes, created_at)
-             VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`,
+             VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+             RETURNING id`,
             [customer_id, amount, 'online', 'تسديد ديون من خلال متجر الشحن']
           );
-          console.log(`✅ [TOPUP PAYMENT] Payment recorded in customer_payments table`);
+          console.log(`✅ [PAYMENT] Recorded in customer_payments table - payment ID: ${paymentRes.rows[0]?.id}`);
         } catch (dbErr) {
-          console.warn(`⚠️ [TOPUP PAYMENT] Warning: Could not record payment in customer_payments:`, (dbErr as any).message);
+          console.warn(`⚠️ [PAYMENT] Warning: Could not record payment in customer_payments:`, (dbErr as any).message);
           // Don't fail the API - the starting_balance was already updated
         }
 
