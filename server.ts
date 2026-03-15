@@ -3781,6 +3781,68 @@ async function startServer() {
       }
     });
 
+    // ✏️ Edit/Update Payment
+    app.put("/api/topup/payment/:paymentId", async (req, res) => {
+      try {
+        const { paymentId } = req.params;
+        const { newAmount } = req.body;
+        
+        if (!newAmount || isNaN(newAmount) || newAmount <= 0) {
+          return res.status(400).json({ error: "Invalid amount" });
+        }
+        
+        // Get current payment details
+        const paymentResult = await pool.query(
+          `SELECT id, customer_id, amount FROM customer_payments WHERE id = $1`,
+          [paymentId]
+        );
+        
+        if (paymentResult.rows.length === 0) {
+          return res.status(404).json({ error: "Payment not found" });
+        }
+        
+        const payment = paymentResult.rows[0];
+        const oldAmount = Number(payment.amount);
+        const amountDifference = Number(newAmount) - oldAmount;
+        
+        // Update payment amount
+        await pool.query(
+          `UPDATE customer_payments SET amount = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+          [newAmount, paymentId]
+        );
+        
+        // Adjust customer's starting_balance by the difference
+        // If newAmount > oldAmount: more was paid, so balance decreases more (subtract difference)
+        // If newAmount < oldAmount: less was paid, so balance increases (add difference back)
+        const customerRes = await pool.query(
+          `SELECT starting_balance FROM customers WHERE id = $1`,
+          [payment.customer_id]
+        );
+        
+        const currentBalance = Number(customerRes.rows[0].starting_balance);
+        const adjustedBalance = currentBalance - amountDifference;
+        
+        await pool.query(
+          `UPDATE customers SET starting_balance = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+          [adjustedBalance, payment.customer_id]
+        );
+        
+        console.log(`✏️ [EDIT PAYMENT] Payment ${paymentId} updated. Customer: ${payment.customer_id}, Old amount: ${oldAmount}, New amount: ${newAmount}, Balance adjusted by: ${-amountDifference} د.ع`);
+        
+        res.json({ 
+          success: true, 
+          message: "تم تحديث التسديد بنجاح",
+          payment: {
+            id: paymentId,
+            amount: newAmount
+          }
+        });
+      } catch (error) {
+        console.error("❌ Edit payment error:", error);
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
     // Check credit before purchase
     app.post("/api/customers/:customerId/check-credit", async (req, res) => {
       try {

@@ -11049,7 +11049,43 @@ const MerchantTopupDashboard = () => {
                                 {isPayment && tx.source !== 'opening' && (
                                   <>
                                     <button
-                                      onClick={() => alert('تحديث: قريباً')}
+                                      onClick={async () => {
+                                        try {
+                                          const newAmountStr = prompt(`أدخل المبلغ الجديد للتسديد (المبلغ الحالي: ${tx.amount}):`);
+                                          if (!newAmountStr) return;
+                                          
+                                          const newAmount = parseFloat(newAmountStr);
+                                          if (isNaN(newAmount) || newAmount <= 0) {
+                                            alert('❌ الرجاء إدخال مبلغ صحيح');
+                                            return;
+                                          }
+                                          
+                                          const res = await fetch(`/api/topup/payment/${tx.id}`, {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ newAmount })
+                                          });
+                                          
+                                          if (res.ok) {
+                                            alert('✓ تم التحديث بنجاح');
+                                            // Reload statement
+                                            setIsLoadingCustomerTransactions(true);
+                                            const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
+                                            if (statementRes.ok) {
+                                              const data = await statementRes.json();
+                                              setCustomerTransactions(Array.isArray(data.transactions) ? data.transactions : []);
+                                              setSelectedCustomerStatement(data.customer);
+                                            }
+                                            setIsLoadingCustomerTransactions(false);
+                                          } else {
+                                            const error = await res.json();
+                                            alert(`❌ ${error.error}`);
+                                          }
+                                        } catch (error) {
+                                          console.error('Edit error:', error);
+                                          alert('❌ حدث خطأ');
+                                        }
+                                      }}
                                       className={cn("p-1.5 rounded transition-all", isDarkMode ? "text-amber-400 hover:bg-amber-900/30" : "text-amber-600 hover:bg-amber-50")}
                                       title="تحديث"
                                     >
