@@ -8991,11 +8991,12 @@ const MerchantTopupDashboard = () => {
   const [logoRefreshKey, setLogoRefreshKey] = useState(0);
   const [storeInfo, setStoreInfo] = useState<any>(null);
 
-  // Store ID - from logged-in user
-  const topupStoreId = user?.store_id || user?.id || 13;
+  // Store ID - for topup system, always use store 1 (علي_الهادي - main topup store)
+  // This store has the topup companies and products
+  const topupStoreId = 1; // Always use store 1 for topup merchant dashboard
 
   useEffect(() => {
-    console.log('🔍 Store ID Determined:', { userId: user?.id, storeId: user?.store_id, finalStoreId: topupStoreId });
+    console.log('🔍 Store ID Determined for Topup:', { userId: user?.id, userStoreId: user?.store_id, finalStoreId: topupStoreId });
   }, [topupStoreId]);
 
   // Function to refresh dashboard data
@@ -9322,6 +9323,17 @@ const MerchantTopupDashboard = () => {
       
       // Always fetch fresh from API
       fetch(`/api/stores/${topupStoreId}`)
+        .then(r => {
+          if (!r.ok) {
+            // If store doesn't exist (404), try store 13
+            if (r.status === 404 && topupStoreId !== 13) {
+              console.warn(`⚠️ Store ${topupStoreId} not found, falling back to store 13`);
+              return fetch(`/api/stores/13`);
+            }
+            throw new Error(`Store fetch failed with status ${r.status}`);
+          }
+          return r;
+        })
         .then(r => r.json())
         .then(data => {
           if (data && !data.error) {
@@ -9342,6 +9354,12 @@ const MerchantTopupDashboard = () => {
         })
         .catch(err => {
           console.error('Failed to fetch store info:', err);
+          // Set default store info as fallback
+          setStoreInfo({ 
+            store_name: 'متجر البطاقات',
+            name: 'متجر البطاقات',
+            description: 'متجر البطاقات'
+          });
         });
     }
   }, [topupStoreId]);
@@ -11397,7 +11415,15 @@ const MerchantTopupDashboard = () => {
 // ========== TOP-UP SYSTEM COMPONENTS ==========
 
 const TopupStorefront = () => {
-  const { slug: storeId } = useParams();
+  const { slug: rawStoreId } = useParams();
+  // Normalize store ID: if store is 21 or 13 (non-existent), use store 1 (علي_الهادي) with slug "store"
+  let storeId = rawStoreId;
+  const storeNum = parseInt(rawStoreId || '0');
+  if (storeNum === 21 || storeNum === 13) {
+    storeId = 'store'; // Redirect to store 1
+    console.log(`🔄 Detected store ${storeNum} (doesn't exist), redirecting to store 1 (store slug)`);
+  }
+  
   const { isDarkMode } = useTheme();
   const { primaryColor } = useSettingsStore();
   const { addItem, items: cartItems } = useTopupCartStore();
@@ -11562,7 +11588,11 @@ const TopupStorefront = () => {
   }, [actualStoreId]);
 
   useEffect(() => {
-    if (!storeId) return;
+    if (!storeId) {
+      console.log(`⚠️ No storeId in URL, using default store 1 (علي_الهادي)`);
+      setActualStoreId(1); // Set default store 1 when no URL param
+      return;
+    }
     
     console.log(`🚀 TopupStorefront mount with storeId: ${storeId}`);
     console.log(`📡 API_BASE_URL: "${API_BASE_URL}"`);
@@ -11588,12 +11618,18 @@ const TopupStorefront = () => {
         // Try to parse as numeric ID first
         const numericAttempt = parseInt(storeId);
         if (!isNaN(numericAttempt) && numericAttempt > 0) {
-          actualStoreId = numericAttempt;
+          // Special case: force store 1 for non-existent stores (stores 21 and 13 don't exist)
+          if (numericAttempt === 21 || numericAttempt === 13) {
+            console.warn(`⚠️ Attempted access to non-existent store ${numericAttempt}, using store 1 (علي_الهادي) instead`);
+            actualStoreId = 1;
+          } else {
+            actualStoreId = numericAttempt;
+          }
           console.log(`✅ Parsed storeId as numeric directly: ${actualStoreId}`);
         } else if (storeId === 'store' || storeId === 'topup') {
-          // For generic slugs, use store 13 (topup store)
-          console.log(`⚠️ Generic slug detected (${storeId}), using topup store 13...`);
-          actualStoreId = 13; // اختبار الشاحن البديل - store 13
+          // For generic slugs, use store 1 (عل_الهادي - topup store)
+          console.log(`⚠️ Generic slug detected (${storeId}), using store 1...`);
+          actualStoreId = 1;
         } else {
           // Try to resolve via API
           const storeRes = await fetch(`/api/stores/slug/${storeId}`);
@@ -11609,13 +11645,13 @@ const TopupStorefront = () => {
                   actualStoreId = firstProduct[0].store_id;
                   console.log(`✅ Found store from first product: ${actualStoreId}`);
                 } else {
-                  actualStoreId = 13;
-                  console.log(`⚠️ No products found, using default store: 13`);
+                  actualStoreId = 1;
+                  console.log(`⚠️ No products found, using default store: 1`);
                 }
               }
             } catch (e) {
-              actualStoreId = 13;
-              console.log(`⚠️ Error in fallback search: ${e}, using default: 13`);
+              actualStoreId = 1;
+              console.log(`⚠️ Error in fallback search: ${e}, using default: 1`);
             }
           } else {
             const storeData = await storeRes.json();
@@ -11624,8 +11660,8 @@ const TopupStorefront = () => {
             
             actualStoreId = storeData.id;
             if (!actualStoreId || actualStoreId === undefined) {
-              console.error(`❌ No ID in store data! Using default: 21`);
-              actualStoreId = 21;
+              console.error(`❌ No ID in store data! Using default: 1`);
+              actualStoreId = 1;
             }
             
             // Store the info for later use - ensure store_name is available
@@ -11641,8 +11677,14 @@ const TopupStorefront = () => {
         // Ensure it's numeric
         actualStoreId = Number(actualStoreId);
         if (isNaN(actualStoreId) || actualStoreId <= 0) {
-          console.error(`❌ Could not resolve store ID, using default: 13`);
-          actualStoreId = 13;
+          console.error(`❌ Could not resolve store ID, using default: 1`);
+          actualStoreId = 1;
+        }
+        
+        // Normalize store IDs that don't exist
+        if (actualStoreId === 21 || actualStoreId === 13) {
+          console.warn(`⚠️ Store ${actualStoreId} not found, using store 1 instead`);
+          actualStoreId = 1;
         }
         
         console.log(`✅ Using store ID: ${actualStoreId}`);
@@ -11666,8 +11708,27 @@ const TopupStorefront = () => {
                 localStorage.setItem(`storeInfo_${actualStoreId}`, JSON.stringify(enrichedStoreData));
                 console.log(`✅ Saved store info to localStorage:`, enrichedStoreData.store_name);
               }
+            } else if (storeInfoRes.status === 404) {
+              // Store not found - fallback to store 1
+              console.warn(`⚠️ Store ${actualStoreId} returned 404, trying store 1...`);
+              const fallbackRes = await fetch(`/api/stores/1`);
+              if (fallbackRes.ok) {
+                const fallbackData = await fallbackRes.json();
+                const enrichedStoreData = {
+                  ...fallbackData,
+                  store_name: fallbackData.store_name || fallbackData.name || fallbackData.title || 'متجر البطاقات'
+                };
+                if (isMounted) {
+                  setStoreInfo(enrichedStoreData);
+                  setActualStoreId(1); // Update to store 1
+                  localStorage.setItem(`storeInfo_1`, JSON.stringify(enrichedStoreData));
+                  console.log(`✅ Fallback to store 1 successful`);
+                }
+              } else {
+                throw new Error('Store 1 also not found');
+              }
             } else {
-              console.warn(`⚠️ Could not fetch store info`);
+              console.warn(`⚠️ Could not fetch store info (status: ${storeInfoRes.status})`);
               // Try to load from localStorage as fallback
               const cachedInfo = localStorage.getItem(`storeInfo_${actualStoreId}`);
               if (cachedInfo) {
@@ -12690,8 +12751,10 @@ const TopupStorefront = () => {
                       localStorage.setItem('topupCustomer', JSON.stringify(purchaseForm));
                     }
                     // Store the topup store slug for navigation back after checkout
-                    localStorage.setItem('topupStoreSlug', storeId);
-                    console.log('✅ Saved topupStoreSlug:', storeId);
+                    // Always use store 1 (علي_الهادي) - the main topup store
+                    const safeStoreId = (parseInt(storeId || '0') === 21 || parseInt(storeId || '0') === 13) ? '1' : storeId;
+                    localStorage.setItem('topupStoreSlug', safeStoreId);
+                    console.log('✅ Saved topupStoreSlug:', safeStoreId);
                     navigate('/topup-cart');
                   }}
                   className="relative rounded-lg font-normal text-white transition-all hover:scale-105 flex items-center gap-2 shadow group"
@@ -13153,6 +13216,13 @@ const TopupStorefront = () => {
 
           {/* Product Images Gallery - 80% Width */}
           <div className="max-w-[80%] mx-auto">
+            {console.log('🔍 DEBUG TopupStorefront:', {
+              productsCount: products.length,
+              filteredProductsCount: filteredProducts.length,
+              selectedCompany,
+              loading,
+              hasImages: filteredProducts.some(p => Array.isArray(p.images) && p.images.length > 0)
+            })}
             <h2 className={cn("text-2xl font-normal mb-6", isDarkMode ? "text-white" : "text-gray-900")}>🖼️ صور المنتجات المتاحة</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4" key={`images-gallery-${products.length}-${Date.now()}`}>
               {filteredProducts.flatMap((product) => {
