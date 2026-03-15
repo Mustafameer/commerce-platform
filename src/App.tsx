@@ -11885,6 +11885,7 @@ const TopupStorefront = () => {
 
     setIsAuthenticating(true);
     try {
+      console.log('🔐 Auth attempt with:', { phone: authPhone, store_id: actualStoreId });
       const response = await fetch('/api/topup/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -11896,6 +11897,8 @@ const TopupStorefront = () => {
       });
 
       const data = await response.json();
+      console.log('🔐 Auth response:', { status: response.status, ok: response.ok, data });
+      
       if (response.ok) {
         const customerData = {
           customer_id: data.customer_id,

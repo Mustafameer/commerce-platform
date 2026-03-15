@@ -3278,34 +3278,58 @@ async function startServer() {
       try {
         const { phone, password, store_id } = req.body;
 
+        console.log('🔐 /api/topup/auth received:', { phone, store_id, passwordLength: password?.length });
+
         if (!phone || !password || !store_id) {
           return res.status(400).json({ error: "رقم الهاتف وكلمة المرور ومعرف المتجر مطلوبة" });
         }
 
         // Check if customer exists in the registered customers list for this topup store
         const customerResult = await pool.query(
-          `SELECT id as customer_id, store_id, name, phone, email, customer_type, credit_limit, current_debt, password
+          `SELECT id as customer_id, store_id, name, phone, email, customer_type, credit_limit, current_debt, password, is_active
            FROM customers 
-           WHERE store_id = $1 AND phone = $2 AND is_active = true
+           WHERE store_id = $1 AND phone = $2
            LIMIT 1`,
           [parseInt(store_id), phone]
         );
 
+        console.log('🔐 Customer lookup result:', { 
+          found: customerResult.rows.length > 0, 
+          store_id, 
+          phone,
+          rows: customerResult.rows.length 
+        });
+
         if (customerResult.rows.length === 0) {
           return res.status(403).json({ 
-            error: "❌ عذراً، رقم الهاتف غير مسجل في هذا المتجر. يرجى التواصل مع المتجر للتسجيل." 
+            error: `❌ عذراً، رقم الهاتف ${phone} غير مسجل في المتجر #${store_id}. يرجى التواصل مع المتجر للتسجيل.` 
           });
         }
 
         const customer = customerResult.rows[0];
 
+        console.log('🔐 Customer found:', { 
+          name: customer.name, 
+          is_active: customer.is_active,
+          has_password: !!customer.password,
+          stored_password: customer.password 
+        });
+
+        if (!customer.is_active) {
+          return res.status(403).json({ 
+            error: "❌ حسابك غير مفعّل. يرجى التواصل مع المتجر." 
+          });
+        }
+
         // Verify password matches
         if (!customer.password || customer.password !== password) {
+          console.log('🔐 Password mismatch:', { provided: password, stored: customer.password, match: customer.password === password });
           return res.status(403).json({ 
-            error: "❌ كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى." 
+            error: `❌ كلمة المرور غير صحيحة للرقم ${phone}. يرجى المحاولة مرة أخرى.` 
           });
         }
         
+        console.log('✅ Auth successful for:', customer.name);
         res.json({
           success: true,
           customer_id: customer.customer_id,
@@ -3318,6 +3342,7 @@ async function startServer() {
           message: "تم التحقق بنجاح ✓"
         });
       } catch (error) {
+        console.error('❌ /api/topup/auth error:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
