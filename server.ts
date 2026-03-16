@@ -1006,70 +1006,80 @@ async function startServer() {
     // Create images table and add sample images (GET for easy browser access)
     app.get("/api/setup/images-table", async (req, res) => {
       try {
-        console.log('📸 Setting up images table...');
+        console.log('📸 Setting up topup product images table (Store 13 only)...');
         
-        // Step 1: Create the table if it doesn't exist
-        console.log('   Creating table...');
+        // Step 1: Create the table if it doesn't exist - ONLY for topup products
+        console.log('   Creating topup_product_images table (Store 13 only)...');
         await pool.query(`
           CREATE TABLE IF NOT EXISTS topup_product_images (
             id SERIAL PRIMARY KEY,
-            store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
-            product_id INTEGER NOT NULL REFERENCES topup_products(id) ON DELETE CASCADE,
+            topup_product_id INTEGER NOT NULL UNIQUE REFERENCES topup_products(id) ON DELETE CASCADE,
             image_data TEXT NOT NULL,
             image_type VARCHAR(50) DEFAULT 'svg',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(store_id, product_id, image_data)
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `);
         console.log('   ✓ Table created');
         
         // Step 2: Create indexes
         console.log('   Creating indexes...');
-        await pool.query(`CREATE INDEX IF NOT EXISTS idx_topup_product_images_store_product ON topup_product_images(store_id, product_id)`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_topup_product_images_product_id ON topup_product_images(topup_product_id)`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_topup_product_images_created ON topup_product_images(created_at)`);
         console.log('   ✓ Indexes created');
         
-        // Step 3: Add sample images for each product in store 13
-        console.log('   Adding sample images to products...');
+        // Step 3: Add sample images for each product in store 13 ONLY
+        console.log('   Adding sample images to Store 13 products...');
         
         const svg1 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzQyODVGNCIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIyNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmb250LXdlaWdodD0iYm9sZCI+MzU8L3RleHQ+PC9zdmc+';
         const svg2 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2YxNDMyNyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIyNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmb250LXdlaWdodD0iYm9sZCI+MjU8L3RleHQ+PC9zdmc+';
         const svg3 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2ZkYzIwOCIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIyNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmb250LXdlaWdodD0iYm9sZCI+MTV4NTwvdGV4dD48L3N2Zz4=';
         
-        // Get all products from store 13
-        const products = await pool.query('SELECT id FROM topup_products WHERE store_id = 13');
+        // Get all products from store 13 ONLY
+        const products = await pool.query('SELECT id FROM topup_products WHERE store_id = 13 ORDER BY id');
+        
+        if (products.rows.length === 0) {
+          console.log('   ⚠️  No products found in store 13');
+          return res.json({
+            success: true,
+            message: '✅ Images table ready (no products in store 13)',
+            table_created: true,
+            total_images: 0,
+            products_updated: 0,
+            store: 13
+          });
+        }
         
         let insertedCount = 0;
-        const images = [svg1, svg2, svg3, svg1, svg2]; // 5 images to rotate
+        const images = [svg1, svg2, svg3]; // 3 different images
         
         for (const product of products.rows) {
-          // Add 5 images to each product
-          for (let i = 0; i < 5; i++) {
-            try {
-              await pool.query(`
-                INSERT INTO topup_product_images (store_id, product_id, image_data, image_type)
-                VALUES ($1, $2, $3, $4)
-                ON CONFLICT DO NOTHING
-              `, [13, product.id, images[i], 'svg']);
-              
-              insertedCount++;
-            } catch (err) {
-              // Ignore duplicates
-            }
+          try {
+            // Add ONE image per product
+            await pool.query(`
+              INSERT INTO topup_product_images (topup_product_id, image_data, image_type)
+              VALUES ($1, $2, $3)
+              ON CONFLICT DO NOTHING
+            `, [product.id, images[insertedCount % 3], 'svg']);
+            
+            insertedCount++;
+          } catch (err) {
+            console.error(`   Error adding image to product ${product.id}:`, (err as any).message);
           }
         }
         
-        console.log(`   ✓ Added ${insertedCount} images`);
+        console.log(`   ✓ Added ${insertedCount} images for ${products.rows.length} products`);
         
         // Step 4: Return status
         const imageCount = await pool.query('SELECT COUNT(*) as count FROM topup_product_images');
         
         res.json({
           success: true,
-          message: '✅ Images table setup complete',
+          message: '✅ Topup product images table setup complete',
           table_created: true,
           total_images: imageCount.rows[0].count,
-          products_updated: products.rows.length
+          products_updated: products.rows.length,
+          store: 13,
+          note: 'جدول مخصص فقط لصور منتجات متجر الشحن - Store 13'
         });
         
       } catch (error) {
@@ -2467,6 +2477,9 @@ async function startServer() {
     app.get("/api/products", async (req, res) => {
       try {
         const storeId = req.query.storeId as string;
+        // No cache for product data
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        
         let query = "SELECT products.*, wholesale_price AS bulk_price, stores.store_name, stores.primary_color, stores.store_type, categories.name as category_name FROM products LEFT JOIN stores ON products.store_id = stores.id LEFT JOIN categories ON products.category_id = categories.id WHERE products.is_active = true AND (stores.store_type IS NULL OR stores.store_type != 'topup') ORDER BY products.created_at DESC";
         let params: any[] = [];
         
@@ -2612,6 +2625,9 @@ async function startServer() {
     app.get("/api/categories", async (req, res) => {
       try {
         const storeId = req.query.storeId as string;
+        // No cache for categories
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        
         let query = "SELECT * FROM categories WHERE is_active = true";
         let params: any[] = [];
         
@@ -2632,6 +2648,9 @@ async function startServer() {
     app.delete("/api/products/:id", async (req, res) => {
       try {
         const { id } = req.params;
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        
         const result = await pool.query("DELETE FROM products WHERE id = $1 RETURNING id", [parseInt(id)]);
         
         if (result.rows.length === 0) {
@@ -2648,6 +2667,8 @@ async function startServer() {
     app.post("/api/products", async (req, res) => {
       try {
         const { store_id, category_id, name, price, stock, image_url, description, gallery = [] } = req.body;
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
         const result = await pool.query(
           "INSERT INTO products (store_id, category_id, name, price, stock, image_url, description, gallery, is_active) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true) RETURNING *",
@@ -2665,6 +2686,8 @@ async function startServer() {
       try {
         const { id } = req.params;
         const { category_id, name, price, stock, image_url, description, gallery = [] } = req.body;
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
         const result = await pool.query(
           "UPDATE products SET category_id = $1, name = $2, price = $3, stock = $4, image_url = $5, description = $6, gallery = $7 WHERE id = $8 RETURNING *",
@@ -2726,6 +2749,9 @@ async function startServer() {
     app.delete("/api/categories/:id", async (req, res) => {
       try {
         const { id } = req.params;
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        
         const result = await pool.query("DELETE FROM categories WHERE id = $1 RETURNING id", [parseInt(id)]);
         
         if (result.rows.length === 0) {
@@ -2736,12 +2762,14 @@ async function startServer() {
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
       }
-    });
+    });}
 
     // Create category
     app.post("/api/categories", async (req, res) => {
       try {
         const { store_id, name, image_url } = req.body;
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
         const result = await pool.query(
           "INSERT INTO categories (store_id, name, image_url, is_active) VALUES ($1, $2, $3, true) RETURNING *",
@@ -2759,6 +2787,8 @@ async function startServer() {
       try {
         const { id } = req.params;
         const { name, image_url } = req.body;
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
         const result = await pool.query(
           "UPDATE categories SET name = $1, image_url = $2 WHERE id = $3 RETURNING *",

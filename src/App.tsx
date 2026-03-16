@@ -3927,9 +3927,11 @@ const MerchantDashboard = () => {
         fetch(`/api/merchant/stats?storeId=${user.store_id}`).then(r => r.json()).catch(() => ({})),
         fetch(`/api/auctions/active`).then(r => r.json()).catch(() => [])
       ]).then(([products, categories, orders, customers, coupons, stats, auctions]) => {
+        console.log('✅ Data fetched:', { products: products?.length, categories: categories?.length });
         setProducts(Array.isArray(products) ? products : []);
         
         const validCategories = Array.isArray(categories) ? categories.filter(c => c && c.name) : [];
+        console.log('✅ Valid categories:', validCategories);
         setCategories(validCategories);
         
         setOrders(Array.isArray(orders) ? orders : []);
@@ -4106,7 +4108,13 @@ const MerchantDashboard = () => {
   };
 
   const handleCreateProduct = () => {
-    if (!categories.length) return alert("يرجى إضافة قسم واحد على الأقل قبل إضافة المنتجات");
+    console.log('🔵 BUTTON CLICKED - categories:', categories.length);
+    
+    if (!categories.length) {
+      alert('يرجى إضافة قسم واحد على الأقل قبل إضافة المنتجات');
+      return;
+    }
+    
     setProductForm({
       name: '',
       description: '',
@@ -4122,7 +4130,9 @@ const MerchantDashboard = () => {
     setTopupCodesFile(null);
     setTopupCodesMessage(null);
     setIsEditingProduct(null);
+    console.log('🔵 SETTING SHOW MODAL TO TRUE');
     setShowProductModal(true);
+    console.log('🔵 SET COMPLETE, modal should show now');
   };
 
   const handleEditProduct = (p: any) => {
@@ -4598,9 +4608,189 @@ const MerchantDashboard = () => {
     );
   }
 
-  // Stub - product modal is rendered directly in JSX below
+  // Product modal with all form fields
   const renderProductModal = () => {
-    return null;
+    if (!showProductModal) return null;
+    const isTopupStore = user?.store_type === 'topup';
+
+    return (
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto font-sans" dir="rtl">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          className={cn("rounded-[2rem] w-full max-w-2xl shadow-2xl border overflow-hidden max-h-[95vh] overflow-y-auto", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-white/20")}
+        >
+          <div className={cn("p-6 border-b flex justify-between items-center sticky top-0", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50/50 border-black/5")}>
+            <div>
+              <h3 className={cn("text-xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{isEditingProduct ? 'تعديل المنتج' : 'إضافة منتج جديد'}</h3>
+              <p className={cn("text-xs font-medium mt-0.5", isDarkMode ? "text-gray-400" : "text-gray-500")}>{isTopupStore ? 'منتج شحن' : 'منتج عادي'}</p>
+            </div>
+            <button onClick={() => setShowProductModal(false)} className={cn("p-2 rounded-full transition-colors", isDarkMode ? "hover:bg-gray-600 text-gray-400" : "hover:bg-black/5 text-gray-400")}>
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {/* Name */}
+            <div className="space-y-2">
+              <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>اسم المنتج *</label>
+              <input 
+                type="text" 
+                value={productForm.name}
+                onChange={(e) => setProductForm({...productForm, name: e.target.value})}
+                placeholder="مثال: شحن موبايل"
+                className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
+              />
+            </div>
+
+            {/* Description - only for regular stores */}
+            {!isTopupStore && (
+              <div className="space-y-2">
+                <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>الوصف (اختياري)</label>
+                <textarea 
+                  value={productForm.description}
+                  onChange={(e) => setProductForm({...productForm, description: e.target.value})}
+                  placeholder="اكتب وصفاً مفصلاً للمنتج"
+                  rows={3}
+                  className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none resize-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
+                />
+              </div>
+            )}
+
+            {/* Category */}
+            <div className="space-y-2">
+              <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>القسم *</label>
+              <select 
+                value={productForm.category_id}
+                onChange={(e) => setProductForm({...productForm, category_id: e.target.value})}
+                className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
+              >
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id.toString()}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Stock */}
+            <div className="space-y-2">
+              <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>الكمية المتاحة *</label>
+              <input 
+                type="number" 
+                value={productForm.stock}
+                onChange={(e) => setProductForm({...productForm, stock: e.target.value})}
+                placeholder="0"
+                min="0"
+                className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
+              />
+            </div>
+
+            {/* Price Fields Based on Store Type */}
+            {isTopupStore ? (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>سعر البيع *</label>
+                    <input 
+                      type="number" 
+                      value={productForm.retail_price}
+                      onChange={(e) => setProductForm({...productForm, retail_price: e.target.value})}
+                      placeholder="0"
+                      min="0"
+                      className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>سعر الجملة (اختياري)</label>
+                    <input 
+                      type="number" 
+                      value={productForm.wholesale_price}
+                      onChange={(e) => setProductForm({...productForm, wholesale_price: e.target.value})}
+                      placeholder="0"
+                      min="0"
+                      className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>السعر *</label>
+                  <input 
+                    type="number" 
+                    value={productForm.price}
+                    onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                    placeholder="0"
+                    min="0"
+                    className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
+                  />
+                </div>
+
+                {/* Image URL */}
+                <div className="space-y-2">
+                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>رابط الصورة (اختياري)</label>
+                  <input 
+                    type="text" 
+                    value={productForm.image_url}
+                    onChange={(e) => setProductForm({...productForm, image_url: e.target.value})}
+                    placeholder="https://..."
+                    className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Auction for Regular Stores */}
+            {!isTopupStore && (
+              <div className="space-y-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <label className={cn("flex items-center gap-2 cursor-pointer text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                  <input 
+                    type="checkbox" 
+                    checked={productForm.is_auction || false}
+                    onChange={(e) => setProductForm({...productForm, is_auction: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  هذا منتج مزاد
+                </label>
+                {productForm.is_auction && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <input 
+                      type="date" 
+                      value={productForm.auction_date}
+                      onChange={(e) => setProductForm({...productForm, auction_date: e.target.value})}
+                      className={cn("px-3 py-2 border rounded-lg text-xs font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-white border-black/10")}
+                    />
+                    <input 
+                      type="number" 
+                      value={productForm.auction_price}
+                      onChange={(e) => setProductForm({...productForm, auction_price: e.target.value})}
+                      placeholder="السعر الأساسي"
+                      min="0"
+                      className={cn("px-3 py-2 border rounded-lg text-xs font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-white border-black/10")}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className={cn("p-4 border-t flex gap-3", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
+            <Button 
+              onClick={saveProduct}
+              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg shadow-md text-sm font-normal transition-all hover:scale-[1.02] active:scale-95"
+            >
+              {isEditingProduct ? '💾 تحديث' : '➕ إضافة'} المنتج
+            </Button>
+            <Button 
+              onClick={() => setShowProductModal(false)}
+              className={cn("px-6 font-normal rounded-lg transition-all text-sm", isDarkMode ? "bg-gray-600 hover:bg-gray-500 text-gray-100" : "bg-gray-200 hover:bg-gray-300 text-gray-700")}
+            >
+              إلغاء
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    );
   };
 
   const renderCategoryModal = () => {
@@ -5275,6 +5465,13 @@ const MerchantDashboard = () => {
   };
 
   const renderProducts = () => {
+    console.log('📦 renderProducts called with:', {
+      categoriesCount: categories.length,
+      categories: categories,
+      filteredProductsCount: filteredProducts.length,
+      showProductModal: showProductModal
+    });
+    
     // Group filtered products by category
     const productsByCategory = filteredProducts.reduce((acc, product) => {
       const category = product.category_name || 'بدون قسم';
@@ -5285,7 +5482,7 @@ const MerchantDashboard = () => {
       return acc;
     }, {} as Record<string, typeof filteredProducts>);
 
-    const categories = Object.keys(productsByCategory).sort();
+    const categoryNames = Object.keys(productsByCategory).sort();
 
     return (
     <Card className={cn("rounded-[2.5rem] border-none shadow-xl overflow-hidden", isDarkMode ? "bg-gray-800" : "bg-white")}>
@@ -5310,7 +5507,7 @@ const MerchantDashboard = () => {
           </div>
         ) : (
           <div className="space-y-12">
-            {categories.map((category) => (
+            {categoryNames.map((category) => (
               <div key={category}>
                 {/* Category Name */}
                 <div className="mb-6 pb-4 border-b border-black/5">
