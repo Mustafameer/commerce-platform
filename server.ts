@@ -928,6 +928,9 @@ async function startServer() {
     // Increase JSON body size limit to allow base64 images (logos) in settings
     app.use(express.json({ limit: "10mb" }));
     
+    // Define distPath early so it's available for all routes
+    const distPath = path.join(__dirname, "dist");
+    
     // Health check endpoint
     app.get("/api/health", (req, res) => {
       res.json({ status: "ok", message: "Server is running" });
@@ -5772,9 +5775,6 @@ async function startServer() {
         res.status(500).json({ error: error.message });
       }
     });
-
-    // Define distPath here (will be served later, after API routes)
-    const distPath = path.join(__dirname, "dist");
 
     // Customer Payments APIs
     // Get all payments for a customer
