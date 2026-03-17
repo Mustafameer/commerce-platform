@@ -4292,14 +4292,8 @@ async function startServer() {
 
     app.get("/api/topup/companies", async (req, res) => {
       try {
-        // Default store ID is 1 (علي_الهادي - main topup store)
-        let storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 1;
-        
-        // Normalize non-existent stores to store 1
-        if (storeId === 21 || storeId === 13) {
-          console.log(`[API] Normalizing store ${storeId} → 1 in /api/topup/companies (default)`);
-          storeId = 1;
-        }
+        // Use store_id from query, default to 13 (topup store)
+        let storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 13;
         
         // No cache - always get fresh data
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -4514,14 +4508,8 @@ async function startServer() {
     // Get topup categories (default to store 1)
     app.get("/api/topup/categories", async (req, res) => {
       try {
-        // Default store ID is 1 (علي_الهادي - main topup store)
-        let storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 1;
-        
-        // Normalize non-existent stores to store 1
-        if (storeId === 21 || storeId === 13) {
-          console.log(`[API] Normalizing store ${storeId} → 1 in /api/topup/categories (default)`);
-          storeId = 1;
-        }
+        // Use store_id from query, default to 13 (topup store)
+        let storeId = req.query.store_id ? parseInt(req.query.store_id as string) : 13;
         
         // No cache - always get fresh data
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -4540,13 +4528,6 @@ async function startServer() {
     app.get("/api/topup/categories/:storeId", async (req, res) => {
       try {
         let { storeId } = req.params;
-        
-        // Normalize non-existent stores to store 1
-        const storeNum = parseInt(storeId);
-        if (storeNum === 21 || storeNum === 13) {
-          console.log(`[API] Normalizing store ${storeNum} → 1 in /api/topup/categories`);
-          storeId = '1';
-        }
         
         // No cache - always get fresh data
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
