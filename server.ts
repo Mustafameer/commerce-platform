@@ -44,7 +44,7 @@ console.log("📋 Environment Variables:");
 console.log("  DATABASE_URL:", process.env.DATABASE_URL ? "✓ Set" : "❌ Not set");
 console.log("  PORT:", process.env.PORT || "3000 (default)");
 console.log("  NODE_ENV:", process.env.NODE_ENV || "development (default)");
-console.log("  BUILD_ID: 2026-03-18-rebuild-cache-clear");
+console.log("  BUILD_TIMESTAMP: 2026-03-18T00:45:00Z-FULL-REBUILD");
 
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
