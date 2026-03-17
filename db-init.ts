@@ -8,17 +8,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export async function initializeDatabase(connectionString: string) {
-  // In production, always use the Railway internal URL if DATABASE_URL is not a valid remote URL
+  // 🔥 CRITICAL: In production, ALWAYS use Railway internal - never use passed parameter
   if (process.env.NODE_ENV === 'production') {
-    if (!connectionString || !connectionString.includes("@") || connectionString.includes("localhost")) {
-      connectionString = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway';
-      console.log('ℹ️  [DB-INIT] Using Railway hardcoded connection for Production');
-    }
+    connectionString = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway';
+    console.log('ℹ️  [DB-INIT] Production: Using Railway hardcoded connection (ignoring passed param)');
   } else {
     // For local development, use the provided string or a local default
     if (!connectionString || !connectionString.includes("@")) {
       connectionString = 'postgresql://postgres:12345@localhost:5432/postgres';
-      console.log('ℹ️  [DB-INIT] Using local default connection');
+      console.log('ℹ️  [DB-INIT] Development: Using local default connection');
     }
   }
   
