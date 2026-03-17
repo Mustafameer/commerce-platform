@@ -1,5 +1,10 @@
 // API Configuration - Uses environment variable or falls back to relative paths
-const API_URL = import.meta.env.VITE_API_URL || '';
+const DEFAULT_PRODUCTION_API_URL = 'https://web-production-9efff.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || (
+  typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app')
+    ? DEFAULT_PRODUCTION_API_URL
+    : ''
+);
 
 export const apiCall = async (path: string, options?: RequestInit) => {
   const url = API_URL ? `${API_URL}${path}` : path;

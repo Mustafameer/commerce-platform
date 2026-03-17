@@ -8,10 +8,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export async function initializeDatabase(connectionString: string) {
-  // If connectionString is empty or invalid, use Railway hardcoded connection
-  if (!connectionString || !connectionString.includes("@")) {
-    connectionString = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway';
-    console.log('ℹ️  [DB-INIT] Using Railway hardcoded connection');
+  // In production, always use the Railway internal URL if DATABASE_URL is not a valid remote URL
+  if (process.env.NODE_ENV === 'production') {
+    if (!connectionString || !connectionString.includes("@") || connectionString.includes("localhost")) {
+      connectionString = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway';
+      console.log('ℹ️  [DB-INIT] Using Railway hardcoded connection for Production');
+    }
+  } else {
+    // For local development, use the provided string or a local default
+    if (!connectionString || !connectionString.includes("@")) {
+      connectionString = 'postgresql://postgres:12345@localhost:5432/postgres';
+      console.log('ℹ️  [DB-INIT] Using local default connection');
+    }
   }
   
   const client = new Pool({
@@ -154,13 +162,26 @@ export async function initializeDatabase(connectionString: string) {
           id SERIAL PRIMARY KEY,
           store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
           product_id INTEGER NOT NULL REFERENCES topup_products(id) ON DELETE CASCADE,
-          image_data TEXT NOT NULL,
+          image_url TEXT,
+          image_hash VARCHAR(255) NOT NULL,
+          image_data TEXT,
           image_type VARCHAR(50) DEFAULT 'svg',
+          uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          UNIQUE(store_id, product_id, image_data)
+          UNIQUE(store_id, product_id, image_hash)
         )
       `);
       console.log('✅ [DB-INIT] topup_product_images table created/verified');
+
+      // Add missing columns if they don't exist
+      await client.query(`
+        ALTER TABLE topup_product_images
+        ADD COLUMN IF NOT EXISTS image_url TEXT,
+        ADD COLUMN IF NOT EXISTS image_hash VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      `).catch(() => {});
+
+      console.log('✅ [DB-INIT] topup_product_images columns verified');
     } catch (err: any) {
       if (!err.message.includes('already exists')) {
         console.warn('  ⚠️  [DB-INIT] Table creation warning:', err.message.substring(0, 50));
@@ -168,6 +189,37 @@ export async function initializeDatabase(connectionString: string) {
     }
     
     console.log('✅ [DB-INIT] Indexes created/verified');
+
+    // Ensure topup store (ID 13) exists
+    console.log('\n🔧 [DB-INIT] Ensuring Topup Store exists...');
+    try {
+      const storeCheck = await client.query('SELECT id, store_type FROM stores WHERE id = 13');
+      
+      if (storeCheck.rows.length === 0) {
+        // Check what the next available ID would be
+        const maxIdCheck = await client.query('SELECT MAX(id) as max_id FROM stores');
+        const nextId = Math.max(13, (maxIdCheck.rows[0].max_id || 0) + 1);
+        
+        console.log('  📝 [DB-INIT] Creating topup store...');
+        await client.query(`
+          INSERT INTO stores (store_name, slug, owner_name, owner_phone, category, status, is_active, store_type) 
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          ['Topup Store', 'topup-main', 'Topup Admin', '+964', 'شحن', 'approved', true, 'topup']
+        );
+        const newStore = await client.query('SELECT id FROM stores WHERE store_type = $1 AND store_name = $2', ['topup', 'Topup Store']);
+        if (newStore.rows.length > 0) {
+          console.log('  ✅ [DB-INIT] Topup store created with ID:', newStore.rows[0].id);
+        }
+      } else if (storeCheck.rows[0].store_type !== 'topup') {
+        console.log('  📝 [DB-INIT] Updating existing store 13 to topup type...');
+        await client.query('UPDATE stores SET store_type = $1 WHERE id = 13', ['topup']);
+        console.log('  ✅ [DB-INIT] Store 13 updated to topup type');
+      } else {
+        console.log('  ✅ [DB-INIT] Topup store 13 already exists and configured');
+      }
+    } catch (err: any) {
+      console.warn('  ⚠️  [DB-INIT] Warning ensuring topup store:', err.message.substring(0, 100));
+    }
 
     console.log(`\n\n✅ [DB-INIT] Database initialization complete!`);
     console.log(`📊 [DB-INIT] Statements: ${successCount} executed, ${skippedCount} skipped (already exist)`);

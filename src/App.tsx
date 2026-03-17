@@ -2523,6 +2523,25 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({ totalStores: 0, totalUsers: 0, totalCustomers: 0, totalRevenue: 0, totalOrders: 0, adminCommissionPercentage: 0, adminCommission: 0, merchantRevenue: 0 });
   const { section } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Fallback for section if useParams doesn't work
+  const effectiveSection = section || (() => {
+    const path = location.pathname;
+    // Try multiple methods to extract section
+    if (path.includes('/admin/')) {
+      const parts = path.split('/admin/')[1];
+      if (parts) {
+        return parts.split('/')[0];
+      }
+    } else if (path === '/admin' || path === '/admin/') {
+      return 'overview'; // default section when at /admin
+    }
+    return undefined;
+  })();
+  
+
+  
   const { appName, logoUrl, setSettings } = useSettingsStore();
   const { dashboardQuery } = useSearchStore();
   const adminLogoUploadRef = useRef<HTMLInputElement>(null);
@@ -2534,12 +2553,17 @@ const AdminDashboard = () => {
   const [dateToFilter, setDateToFilter] = useState('');
   const [subscriptionFilter, setSubscriptionFilter] = useState('all'); // 'all', 'paid', 'unpaid'
 
-  const filteredStores = stores.filter(s => 
-    ((s as any).store_name || s.name || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
+  const filteredStores = stores.filter(s => {
+    // If no search query, return all stores
+    if (!dashboardQuery || dashboardQuery.trim() === '') {
+      return true;
+    }
+    // Apply filters only if there's a query
+    return ((s as any).store_name || s.name || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
     (s.owner_name || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
     (s.owner_phone || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
-    ((s as any).slug || '').toLowerCase().includes(dashboardQuery.toLowerCase())
-  );
+    ((s as any).slug || '').toLowerCase().includes(dashboardQuery.toLowerCase());
+  });
 
   const filteredPendingStores = pendingStores.filter(s => 
     ((s as any).store_name || s.name || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
@@ -2601,13 +2625,21 @@ const AdminDashboard = () => {
       setLoading(true);
       try {
         const [storesRes, statsRes, usersRes, ordersRes, customersRes, adminUsersRes] = await Promise.all([
-          fetch('/api/stores').then(res => res.json()).catch(() => []),
+          fetch('/api/admin/stores').then(res => {
+            console.log('Admin stores response status:', res.status);
+            return res.json();
+          }).catch(err => {
+            console.error('Admin stores fetch error:', err);
+            return [];
+          }),
           fetch('/api/admin/stats').then(res => res.json()).catch(() => ({})),
           fetch('/api/admin/users').then(res => res.json()).catch(() => []),
           fetch('/api/admin/orders-report').then(res => res.json()).catch(() => []),
           fetch('/api/admin/customers').then(res => res.json()).catch(() => []),
           fetch('/api/admin/admin-users').then(res => res.json()).catch(() => [])
         ]);
+        
+        console.log('Stores data received:', storesRes, 'Type:', typeof storesRes, 'IsArray:', Array.isArray(storesRes));
         
         // Check if today is the 27th of the month
         const today = new Date();
@@ -2622,7 +2654,9 @@ const AdminDashboard = () => {
           }));
         }
         
-        setStores(Array.isArray(storesRes) ? storesRes : []);
+        const finalStores = Array.isArray(storesRes) ? storesRes : [];
+        console.log('Setting stores to:', finalStores.length);
+        setStores(finalStores);
         setStats(statsRes && typeof statsRes === 'object' && !statsRes.error ? statsRes : { totalStores: 0, totalUsers: 0, totalCustomers: 0, totalRevenue: 0, totalOrders: 0, adminCommissionPercentage: 0, adminCommission: 0, merchantRevenue: 0 });
         setUsers(Array.isArray(usersRes) ? usersRes : []);
         setCustomers(Array.isArray(customersRes) ? customersRes : []);
@@ -2635,14 +2669,14 @@ const AdminDashboard = () => {
       }
     };
     loadData();
-  }, [section]);
+  }, [effectiveSection]);
 
   // Auto-refresh data every 5 seconds
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
         const [storesRes, statsRes, usersRes, ordersRes, customersRes, adminUsersRes] = await Promise.all([
-          fetch('/api/stores').then(res => res.json()).catch(() => []),
+          fetch('/api/admin/stores').then(res => res.json()).catch(() => []),
           fetch('/api/admin/stats').then(res => res.json()).catch(() => ({})),
           fetch('/api/admin/users').then(res => res.json()).catch(() => []),
           fetch('/api/admin/orders-report').then(res => res.json()).catch(() => []),
@@ -2757,7 +2791,7 @@ const AdminDashboard = () => {
         alert("تم تحديث حالة المتجر وتفعيله بنجاح");
         // Keep dialog open so user can send WhatsApp message manually
         // Refresh
-        fetch('/api/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh stores error:', err));
+        fetch('/api/admin/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh stores error:', err));
         fetch('/api/admin/pending-stores').then(res => res.json()).then(setPendingStores).catch(err => console.error('Refresh pending stores error:', err));
         fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Refresh stats error:', err));
       } else {
@@ -2779,7 +2813,7 @@ const AdminDashboard = () => {
       
       if (res.ok) {
         alert("تم رفض طلب المتجر بنجاح");
-        fetch('/api/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
+        fetch('/api/admin/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
         fetch('/api/admin/pending-stores').then(res => res.json()).then(setPendingStores).catch(err => console.error('Refresh pending stores error:', err));
         fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Stats refresh error:', err));
       } else {
@@ -2799,7 +2833,7 @@ const AdminDashboard = () => {
       
       if (res.ok) {
         alert("تم إيقاف المتجر بنجاح");
-        fetch('/api/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
+        fetch('/api/admin/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
         fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Stats refresh error:', err));
       } else {
         alert("فشل إيقاف المتجر: " + (data.error || "خطأ غير معروف"));
@@ -2819,7 +2853,7 @@ const AdminDashboard = () => {
       if (res.ok) {
         const action = data.is_active ? 'تفعيل' : 'إيقاف';
         alert(`تم ${action} المتجر بنجاح`);
-        fetch('/api/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
+        fetch('/api/admin/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
         fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Stats refresh error:', err));
       } else {
         alert("فشل تغيير حالة المتجر: " + (data.error || "خطأ غير معروف"));
@@ -2840,7 +2874,7 @@ const AdminDashboard = () => {
       
       if (res.ok) {
         alert("تم حذف المتجر بنجاح");
-        fetch('/api/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
+        fetch('/api/admin/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
         fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Stats refresh error:', err));
       } else {
         alert("فشل حذف المتجر: " + (data.error || "خطأ غير معروف"));
@@ -2879,7 +2913,7 @@ const AdminDashboard = () => {
       
       if (res.ok) {
         alert("تم تحديث بيانات المتجر بنجاح");
-        fetch('/api/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
+        fetch('/api/admin/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
         fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Stats refresh error:', err));
       } else {
         alert("فشل التحديث: " + (data.error || "خطأ غير معروف"));
@@ -2895,22 +2929,24 @@ const AdminDashboard = () => {
     const name = prompt("أدخل اسم المتجر الجديد:");
     if (!name) return;
     const owner = prompt("اسم صاحب المتجر:");
+    if (!owner) return;
+    const phone = prompt("رقم هاتف صاحب المتجر:");
+    if (!phone) return;
     
     const res = await fetch('/api/stores', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         store_name: name, 
-        owner_name: owner || 'تاجر جديد',
-        description: 'متجر جديد تم إنشاؤه من لوحة الإدارة',
-        category: 'عام'
+        owner_name: owner,
+        owner_phone: phone
       }),
     });
 
     const data = await res.json();
     if (res.ok) {
       alert("تم إضافة المتجر بنجاح");
-      fetch('/api/stores').then(res => res.json()).then(setStores);
+      fetch('/api/admin/stores').then(res => res.json()).then(setStores);
       fetch('/api/admin/stats').then(res => res.json()).then(setStats);
     } else {
       alert("خطأ: " + (data.error || "فشل إضافة المتجر"));
@@ -3023,7 +3059,13 @@ const AdminDashboard = () => {
   };
 
   const renderStoresTable = (limit?: number) => {
-    const displayedStores = limit ? (dashboardQuery ? filteredStores.slice(0, limit) : stores.slice(0, limit)) : filteredStores;
+    console.log('renderStoresTable called - limit:', limit);
+    console.log('stores.length:', stores.length, 'dashboardQuery:', dashboardQuery, 'filteredStores:', filteredStores.length);
+    // Always show all stores if no search query, otherwise show filtered
+    const displayedStores = limit ? 
+      (dashboardQuery && dashboardQuery.trim() !== '' ? filteredStores.slice(0, limit) : stores.slice(0, limit)) 
+      : (dashboardQuery && dashboardQuery.trim() !== '' ? filteredStores : stores);
+    console.log('displayedStores.length:', displayedStores.length, 'showing:', displayedStores.map((s: any) => s.store_name || s.name).join(', '));
     return (
       <Card className={cn(isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5")}> 
         <div className={cn("p-6 border-b border-black/5 flex justify-between items-center", isDarkMode ? "bg-gray-900" : "bg-white")}> 
@@ -3738,11 +3780,12 @@ const AdminDashboard = () => {
       counts={sidebarCounts}
     >
       <>
-        {section === 'users' ? renderUsers() : 
-         section === 'approvals' ? renderApprovals() : 
-         section === 'stores' ? renderStoresTable() : 
-         section === 'stats' ? renderStats() : 
-         section === 'settings' ? renderSettings() : 
+        {console.log('AdminDashboard - section:', section, 'effectiveSection:', effectiveSection, 'stores count:', stores.length)}
+        {effectiveSection === 'users' ? renderUsers() : 
+         effectiveSection === 'approvals' ? renderApprovals() : 
+         (effectiveSection === 'stores' || effectiveSection === 'store') ? renderStoresTable() : 
+         effectiveSection === 'stats' ? renderStats() : 
+         effectiveSection === 'settings' ? renderSettings() : 
          renderOverview()}
          {renderApproveModal()}
       </>
@@ -9092,12 +9135,22 @@ function App() {
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           
           {/* Admin Routes */}
-          <Route path="/admin/*" element={user?.role === 'admin' ? (
-            <Routes>
-              <Route index element={<AdminDashboard />} />
-              <Route path=":section" element={<AdminDashboard />} />
-            </Routes>
-          ) : <Navigate to="/login" replace />} />
+          <Route path="/admin/*" element={
+            (() => {
+              console.log('Admin Route - user:', user, 'role:', user?.role, 'isAdmin:', user?.role === 'admin');
+              if (user?.role === 'admin') {
+                return (
+                  <Routes>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path=":section" element={<AdminDashboard />} />
+                  </Routes>
+                );
+              } else {
+                console.log('Not admin - redirecting to login');
+                return <Navigate to="/login" replace />;
+              }
+            })()
+          } />
 
           {/* Merchant Routes */}
           <Route path="/merchant/*" element={user?.role === 'merchant' ? (
@@ -9138,11 +9191,10 @@ const MerchantTopupDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showMobileDrawer, setShowMobileDrawer] = useState(false);
   
-  // Auth state
-  const [showLogin, setShowLogin] = useState(!user || user.role !== 'merchant');
-  const [loginUsername, setLoginUsername] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  // Redirect to login if not authenticated
+  if (!user || user.role !== 'merchant') {
+    return <Navigate to="/login" replace />;
+  }
 
   // Dashboard state
   const [companies, setCompanies] = useState<any[]>([]);
@@ -9151,6 +9203,7 @@ const MerchantTopupDashboard = () => {
   const [codes, setCodes] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0, totalCodes: 0, activeCodes: 0 });
+  const [isLoading, setIsLoading] = useState(true);
 
   // Modal states
   const [showCompanyModal, setShowCompanyModal] = useState(false);
@@ -9188,9 +9241,9 @@ const MerchantTopupDashboard = () => {
   const [logoRefreshKey, setLogoRefreshKey] = useState(0);
   const [storeInfo, setStoreInfo] = useState<any>(null);
 
-  // Store ID - for topup system, always use store 1 (علي_الهادي - main topup store)
+  // Store ID - for topup system, always use store 13 (علي_الهادي - main topup store)
   // This store has the topup companies and products
-  const topupStoreId = 1; // Always use store 1 for topup merchant dashboard
+  const topupStoreId = 13; // Always use store 13 for topup merchant dashboard
 
   useEffect(() => {
     console.log('🔍 Store ID Determined for Topup:', { userId: user?.id, userStoreId: user?.store_id, finalStoreId: topupStoreId });
@@ -9201,11 +9254,41 @@ const MerchantTopupDashboard = () => {
     try {
       console.log('🔄 Refreshing dashboard data for store:', topupStoreId);
       
+      // Add timeout to prevent hanging
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('API request timeout')), 10000)
+      );
+
+      const fetchWithTimeout = (url: string) => 
+        Promise.race([
+          fetch(url)
+            .then(r => {
+              if (!r.ok) {
+                console.error(`❌ API returned ${r.status}:`, r.statusText);
+                throw new Error(`HTTP ${r.status}`);
+              }
+              return r.json();
+            }),
+          timeout
+        ]);
+
       const [comp, prod, cust, ordersData] = await Promise.all([
-        fetch(`/api/topup/companies/${topupStoreId}`).then(r => r.json()),
-        fetch(`/api/topup/products/${topupStoreId}`).then(r => r.json()),
-        fetch(`/api/topup/customers/${topupStoreId}`).then(r => r.json()),
-        fetch(`/api/topup/orders?storeId=${topupStoreId}`).then(r => r.json()).catch(() => []),
+        fetchWithTimeout(`/api/topup/companies/${topupStoreId}`).catch((err) => {
+          console.error('❌ Companies fetch failed:', err.message);
+          return [];
+        }),
+        fetchWithTimeout(`/api/topup/products/${topupStoreId}`).catch((err) => {
+          console.error('❌ Products fetch failed:', err.message);
+          return [];
+        }),
+        fetchWithTimeout(`/api/topup/customers/${topupStoreId}`).catch((err) => {
+          console.error('❌ Customers fetch failed:', err.message);
+          return [];
+        }),
+        fetchWithTimeout(`/api/topup/orders?storeId=${topupStoreId}`).catch((err) => {
+          console.error('❌ Orders fetch failed:', err.message);
+          return [];
+        }),
       ]);
       
       console.log('📊 Dashboard Data Loaded:', {
@@ -9234,51 +9317,18 @@ const MerchantTopupDashboard = () => {
         totalCodes: calculatedStats.totalCodes,
         activeCodes: calculatedStats.totalCodes - calculatedStats.usedCodes
       });
+      
+      setIsLoading(false);
     } catch (error) {
       console.error('❌ Error refreshing dashboard data:', error);
-    }
-  };
-
-  const handleLogin = async () => {
-    if (!loginUsername || !loginPassword) {
-      alert('يرجى ملء بيانات الدخول');
-      return;
-    }
-
-    setIsLoggingIn(true);
-    try {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: loginUsername,
-          password: loginPassword,
-          role: 'merchant'
-        })
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        setUser(data);
-        setShowLogin(false);
-        alert('تم الدخول بنجاح! ✓');
-      } else {
-        alert(data.error || 'فشل الدخول');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      alert('حدث خطأ');
-    } finally {
-      setIsLoggingIn(false);
+      setIsLoading(false);
     }
   };
 
   const handleLogout = () => {
     setUser(null);
-    useSettingsStore.getState().resetSettings(); // Reset settings when logging out
-    setShowLogin(true);
-    setLoginUsername('');
-    setLoginPassword('');
+    useSettingsStore.getState().resetSettings();
+    navigate('/login');
   };
 
   const calculateStats = (prod: any[], ordersData: any[] = []) => {
@@ -9360,12 +9410,12 @@ const MerchantTopupDashboard = () => {
   };
 
   useEffect(() => {
-    if (showLogin || !topupStoreId) {
-      console.log('⏭️ Skipping refresh: showLogin=', showLogin, 'topupStoreId=', topupStoreId);
+    if (!topupStoreId || !user) {
+      console.log('⏭️ Skipping refresh: topupStoreId=', topupStoreId, 'user=', user?.id);
       return;
     }
 
-    console.log('✅ Starting data refresh for store:', topupStoreId);
+    console.log('✅ Starting data refresh for store:', topupStoreId, 'user:', user?.id);
     
     // Load data immediately
     refreshDashboardData();
@@ -9377,7 +9427,7 @@ const MerchantTopupDashboard = () => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [section, showLogin, topupStoreId]);
+  }, [section, topupStoreId, user, user?.id]);
 
   // Fetch store settings on mount
   useEffect(() => {
@@ -9730,6 +9780,13 @@ const MerchantTopupDashboard = () => {
     try {
       const method = isEditingCompany ? 'PUT' : 'POST';
       const url = isEditingCompany ? `/api/topup/companies/${isEditingCompany}` : '/api/topup/companies';
+      
+      console.log('📤 Sending company data:', {
+        store_id: topupStoreId,
+        name: companyForm.name,
+        logo_url: companyForm.logo_url
+      });
+      
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -9740,19 +9797,31 @@ const MerchantTopupDashboard = () => {
         })
       });
 
+      const responseText = await response.text();
+      let responseData;
+      
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        responseData = { error: responseText };
+      }
+
       if (response.ok) {
         alert(isEditingCompany ? 'تم التحديث بنجاح' : 'تمت الإضافة بنجاح');
         setShowCompanyModal(false);
+        setCompanyForm({ name: '', logo_url: '' });
         // Reload companies
         const res = await fetch(`/api/topup/companies/${topupStoreId}`);
         const data = await res.json();
         setCompanies(Array.isArray(data) ? data : []);
       } else {
-        alert('حدث خطأ');
+        console.error('❌ Server error response:', responseData);
+        const errorMsg = responseData?.error || responseData?.details || 'فشل الحفظ';
+        alert('خطأ من السيرفر: ' + errorMsg);
       }
     } catch (error) {
       console.error('Error saving company:', error);
-      alert('حدث خطأ في الاتصال');
+      alert('حدث خطأ في الاتصال: ' + (error as any).message);
     }
   };
 
@@ -9847,7 +9916,7 @@ const MerchantTopupDashboard = () => {
         // Upload NEW images first if any are selected
         const uploadedImageUrls: string[] = [];
         if (productImages.length > 0 && productId) {
-          console.log('📸 Uploading', productImages.length, 'new images...');
+          console.log('📸 Uploading', productImages.length, 'new images to Firebase...');
           
           const uploadPromises = productImages.map(imageFile => {
             return new Promise<void>((resolve, reject) => {
@@ -9856,7 +9925,8 @@ const MerchantTopupDashboard = () => {
                 try {
                   const imageData = e.target?.result as string;
                   
-                  const imageResponse = await fetch('/api/topup/upload-images', {
+                  // Use new Firebase endpoint
+                  const imageResponse = await fetch('/api/topup/upload-images-firebase', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -9868,10 +9938,10 @@ const MerchantTopupDashboard = () => {
 
                   if (!imageResponse.ok) {
                     const imgError = await imageResponse.json();
-                    console.warn('⚠️ Error uploading image:', imgError);
+                    console.warn('⚠️ Error uploading image to Firebase:', imgError);
                   } else {
                     const uploadResult = await imageResponse.json();
-                    console.log('✅ Image uploaded successfully');
+                    console.log('✅ Image uploaded to Firebase successfully');
                     // Track uploaded image URLs if API returns them
                     if (uploadResult.image_urls && Array.isArray(uploadResult.image_urls)) {
                       uploadedImageUrls.push(...uploadResult.image_urls);
@@ -9890,7 +9960,7 @@ const MerchantTopupDashboard = () => {
           
           try {
             await Promise.all(uploadPromises);
-            console.log('✅ All new images uploaded successfully');
+            console.log('✅ All new images uploaded to Firebase successfully');
           } catch (err) {
             console.error('❌ Error uploading images:', err);
           }
@@ -9962,13 +10032,58 @@ const MerchantTopupDashboard = () => {
     setIsUploadingImage(true);
     try {
       // Helper function to fetch with timeout
-      const fetchWithTimeout = (url: string, options: any, timeoutMs: number = 30000) => {
+      const fetchWithTimeout = (url: string, options: any, timeoutMs: number = 60000) => {
         return Promise.race([
           fetch(url, options),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error(`Request timeout after ${timeoutMs}ms`)), timeoutMs)
           )
         ]);
+      };
+
+      // Helper to compress image
+      const compressImage = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              let width = img.width;
+              let height = img.height;
+              
+              // Calculate dimensions to keep aspect ratio
+              const maxWidth = 1200;
+              const maxHeight = 1200;
+              if (width > height) {
+                if (width > maxWidth) {
+                  height *= maxWidth / width;
+                  width = maxWidth;
+                }
+              } else {
+                if (height > maxHeight) {
+                  width *= maxHeight / height;
+                  height = maxHeight;
+                }
+              }
+              
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(img, 0, 0, width, height);
+              }
+              
+              // Compress to JPEG with quality 0.7
+              const compressed = canvas.toDataURL('image/jpeg', 0.7);
+              resolve(compressed);
+            };
+            img.onerror = () => reject(new Error('Failed to load image'));
+            img.src = e.target?.result as string;
+          };
+          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.readAsDataURL(file);
+        });
       };
 
       // Helper to convert file to base64
@@ -9986,12 +10101,22 @@ const MerchantTopupDashboard = () => {
 
       console.log('📤 Starting upload for', uploadedFiles.length, 'images for product:', selectedProductForCodes);
       
-      // Convert all files to base64
+      // Convert all files to base64 with compression
       const imageDataList = await Promise.all(
-        uploadedFiles.map(file => fileToBase64(file).catch(err => {
-          console.warn('⚠️ Error converting file', file.name, ':', err);
-          return null;
-        }))
+        uploadedFiles.map(async (file) => {
+          try {
+            // Use compression if file is larger than 300KB
+            if (file.size > 300 * 1024) {
+              console.log(`📦 Compressing image: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
+              return await compressImage(file);
+            } else {
+              return await fileToBase64(file);
+            }
+          } catch (err) {
+            console.warn('⚠️ Error converting file', file.name, ':', err);
+            return null;
+          }
+        })
       );
 
       // Filter out any failed conversions
@@ -10012,7 +10137,7 @@ const MerchantTopupDashboard = () => {
           topup_product_id: selectedProductForCodes,
           images: validImages
         })
-      });
+      }, 60000); // 60 second timeout for large uploads
 
       const responseData = await response.json();
 
@@ -10045,58 +10170,23 @@ const MerchantTopupDashboard = () => {
     }
   };
 
-  // Render Login Screen
-  if (showLogin) {
+
+
+  const currentSection = section || 'overview';
+
+  // Show loading screen while data is being fetched
+  if (isLoading) {
     return (
-      <div className={cn("min-h-screen flex items-center justify-center p-4", isDarkMode ? "bg-gray-900" : "bg-gray-50")} dir="rtl">
-        <Card className={cn("w-full max-w-md p-8", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
-          <div className="text-center mb-8">
-            <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4", isDarkMode ? "bg-indigo-900" : "bg-indigo-100")}>
-              <CreditCard size={32} className="text-indigo-600" />
-            </div>
-            <h1 className="text-2xl font-normal">لوحة متجر البطاقات</h1>
-            <p className={cn("text-sm mt-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>دخول التاجر</p>
+      <div className={cn("min-h-screen flex items-center justify-center", isDarkMode ? "bg-gray-950" : "bg-gray-50")} dir="rtl">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-indigo-600/20 mb-4">
+            <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-normal mb-2">اسم المستخدم</label>
-              <input
-                type="text"
-                value={loginUsername}
-                onChange={(e) => setLoginUsername(e.target.value)}
-                placeholder="أدخل اسم المستخدم"
-                className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-normal mb-2">كلمة المرور</label>
-              <input
-                type="password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                placeholder="أدخل كلمة المرور"
-                className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}
-              />
-            </div>
-            <button
-              onClick={handleLogin}
-              disabled={isLoggingIn}
-              className="w-full py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700 transition-all"
-            >
-              {isLoggingIn ? 'جاري الدخول...' : 'دخول'}
-            </button>
-          </div>
-
-          <p className={cn("text-center text-xs mt-6", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-            👤 المستخدم الافتراضي: <strong>admin</strong> | كلمة المرور: <strong>password</strong>
-          </p>
-        </Card>
+          <p className={cn("text-lg font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>جاري تحميل البيانات...</p>
+        </div>
       </div>
     );
   }
-
-  const currentSection = section || 'overview';
 
   return (
     <div className={cn("min-h-screen flex", isDarkMode ? "bg-gray-950" : "bg-gray-50")} dir="rtl">
@@ -11080,10 +11170,10 @@ const MerchantTopupDashboard = () => {
                     let hasError = false;
 
                     for (const file of files) {
-                      // Check file size (max 5MB)
-                      const maxSize = 5 * 1024 * 1024; // 5MB
+                      // Check file size (max 500KB)
+                      const maxSize = 500 * 1024; // 500KB
                       if (file.size > maxSize) {
-                        alert(`حجم الملف "${file.name}" كبير جداً. الحد الأقصى: 5MB (الحجم الحالي: ${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+                        alert(`حجم الملف "${file.name}" كبير جداً. الحد الأقصى: 500KB (الحجم الحالي: ${(file.size / 1024).toFixed(1)}KB)\n\nسيتم ضغط الصور تلقائياً أثناء التحميل.`);
                         hasError = true;
                       } else if (!file.type.startsWith('image/')) {
                         alert(`الملف "${file.name}" ليس صورة. الرجاء اختيار ملفات صور فقط.`);
@@ -11818,13 +11908,7 @@ const TopupStorefront = () => {
         // Try to parse as numeric ID first
         const numericAttempt = parseInt(storeId);
         if (!isNaN(numericAttempt) && numericAttempt > 0) {
-          // Special case: force store 1 for non-existent stores (stores 21 and 13 don't exist)
-          if (numericAttempt === 21 || numericAttempt === 13) {
-            console.warn(`⚠️ Attempted access to non-existent store ${numericAttempt}, using store 1 (علي_الهادي) instead`);
-            actualStoreId = 1;
-          } else {
-            actualStoreId = numericAttempt;
-          }
+          actualStoreId = numericAttempt;
           console.log(`✅ Parsed storeId as numeric directly: ${actualStoreId}`);
         } else if (storeId === 'store' || storeId === 'topup') {
           // For generic slugs, use store 1 (عل_الهادي - topup store)
@@ -11878,12 +11962,6 @@ const TopupStorefront = () => {
         actualStoreId = Number(actualStoreId);
         if (isNaN(actualStoreId) || actualStoreId <= 0) {
           console.error(`❌ Could not resolve store ID, using default: 1`);
-          actualStoreId = 1;
-        }
-        
-        // Normalize store IDs that don't exist
-        if (actualStoreId === 21 || actualStoreId === 13) {
-          console.warn(`⚠️ Store ${actualStoreId} not found, using store 1 instead`);
           actualStoreId = 1;
         }
         

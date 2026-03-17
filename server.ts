@@ -5,11 +5,36 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { initializeDatabase } from "./db-init.ts";
+import fs from "fs";
+import { mkdir } from "fs/promises";
+import crypto from "crypto";
+import admin from "firebase-admin";
 
 // Fix: Ensure all admin endpoints use proper ID validation
 console.log("📡 [SERVER] Server module loading...");
 
 dotenv.config();
+
+// Initialize Firebase Admin SDK
+const serviceAccount = {
+  projectId: process.env.FIREBASE_PROJECT_ID || "your-project-id",
+  privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n") || "",
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL || "",
+};
+
+if (serviceAccount.projectId && serviceAccount.privateKey && serviceAccount.clientEmail) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "your-bucket.appspot.com",
+    });
+    console.log("✅ Firebase Admin SDK initialized successfully");
+  } catch (err) {
+    console.warn("⚠️ Firebase Admin SDK initialization failed:", err);
+  }
+} else {
+  console.warn("⚠️ Firebase credentials not configured - using local file storage");
+}
 
 console.log("📡 [SERVER] Dotenv loaded");
 
@@ -95,6 +120,27 @@ async function testConnection() {
 
 async function initDb() {
   try {
+    console.log("📋 Checking if core tables exist...");
+    
+    // Check if stores table exists
+    const storesCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = 'stores'
+      ) as exists
+    `);
+    
+    if (storesCheck.rows[0].exists) {
+      console.log("✅ Tables already exist - database is initialized");
+      console.log("🔄 Running migrations for any missing columns...");
+      try {
+        await runMigrations();
+      } catch (err: any) {
+        console.warn("⚠️  Migration warning (continuing):", err.message?.substring(0, 80));
+      }
+      return true;
+    }
+    
     console.log("📋 Creating tables...");
     
     await pool.query(`
@@ -664,6 +710,8 @@ async function runMigrations() {
 
 async function seedData() {
   try {
+    console.log("▶️  Initializing seed data...");
+    
     // Check if admin user already exists
     const adminCheck = await pool.query("SELECT id FROM users WHERE role = $1 LIMIT 1", ['admin']);
     
@@ -676,127 +724,19 @@ async function seedData() {
       console.log("✅ Admin user created: phone: admin, password: password");
     }
 
-    // Check if sample merchants exist
-    const merchantCheck = await pool.query("SELECT id FROM users WHERE role = $1", ['merchant']);
-    
-    if (merchantCheck.rows.length === 0) {
-      // Create sample merchant 1 (محمد)
-      const user1 = await pool.query(
-        "INSERT INTO users (name, phone, email, password, role, is_active) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-        ['محمد أحمد', '0771234567', 'merchant1@commerce.local', 'password', 'merchant', true]
-      );
-
-      // Create store for user1
-      await pool.query(
-        "INSERT INTO stores (owner_id, store_name, owner_name, owner_phone, slug, logo_url, commission_percentage, primary_color, status, is_active) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
-        [user1.rows[0].id, 'متجر محمد', 'محمد أحمد', '0771234567', 'mohamad-store', 'https://via.placeholder.com/150?text=محمد', 10, '#4F46E5', 'active', true]
-      );
-
-      // Create sample merchant 2
-      const user2 = await pool.query(
-        "INSERT INTO users (name, phone, email, password, role, is_active) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-        ['علي محسن', '0781234567', 'merchant2@commerce.local', 'password', 'merchant', true]
-      );
-
-      // Create store for user2
-      await pool.query(
-        "INSERT INTO stores (owner_id, store_name, owner_name, owner_phone, slug, logo_url, commission_percentage, primary_color, status, is_active) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
-        [user2.rows[0].id, 'متجر علي', 'علي محسن', '0781234567', 'ali-store', 'https://via.placeholder.com/150?text=علي', 10, '#EC4899', 'active', true]
-      );
-
-      console.log("✅ Sample merchants created");
-      console.log("  - Merchant 1: phone: 0771234567, password: password");
-      console.log("  - Merchant 2: phone: 0781234567, password: password");
-    }
-
     // Check if app settings exist
     const settingsCheck = await pool.query("SELECT id FROM app_settings LIMIT 1");
-    
     if (settingsCheck.rows.length === 0) {
-      // Create default app settings
       await pool.query(
-        "INSERT INTO app_settings (app_name, logo_url, primary_color, admin_commission_percentage) VALUES ($1, $2, $3, $4)",
-        ['منصتي - المتاجر الذكية', 'https://via.placeholder.com/150?text=منصتي', '#4F46E5', 5]
+        "INSERT INTO app_settings (app_name, logo_url, admin_commission_percentage) VALUES ($1, $2, $3)",
+        ['Commerce Platform', 'https://via.placeholder.com/150', 5]
       );
       console.log("✅ Default app settings created");
     }
 
-    // Create sample orders for testing commission calculation
-    const ordersCheck = await pool.query("SELECT COUNT(*) as count FROM orders");
-    if (parseInt(ordersCheck.rows[0].count) === 0) {
-      // Get a customer (create if needed)
-      let customerId = 1;
-      const customerCheck = await pool.query("SELECT id FROM users WHERE role = $1 LIMIT 1", ['customer']);
-      if (customerCheck.rows.length === 0) {
-        const customerResult = await pool.query(
-          "INSERT INTO users (name, phone, email, password, role, is_active) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-          ['Customer', 'customer', 'customer@commerce.local', 'password', 'customer', true]
-        );
-        customerId = customerResult.rows[0].id;
-      } else {
-        customerId = customerCheck.rows[0].id;
-      }
-
-      // Get store IDs
-      const storesResult = await pool.query("SELECT id FROM stores LIMIT 2");
-      if (storesResult.rows.length > 0) {
-        // Create sample orders
-        for (let i = 0; i < storesResult.rows.length; i++) {
-          const storeId = storesResult.rows[i].id;
-          const totalAmount = 500000 * (i + 1); // 500k, 1M, etc.
-          
-          const orderResult = await pool.query(
-            "INSERT INTO orders (customer_id, store_id, total_amount, discount_amount, phone, address, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
-            [customerId, storeId, totalAmount, 0, '0799999999', 'Baghdad - Test Address', 'completed']
-          );
-          
-          console.log(`✅ Sample order created: Store ${storeId}, Amount: ${totalAmount}`);
-        }
-      }
-    }
-
-    // Seed default topup companies and categories for topup stores
-    // ❌ DISABLED: Don't recreate companies, users manage them via API
-    /*
-    const topupStoresResult = await pool.query(
-      "SELECT id FROM stores WHERE store_type = 'topup' ORDER BY id ASC"
-    );
-
-    const defaultCompanies = [
-      { name: "Zain", logo_url: "https://via.placeholder.com/100?text=Zain" },
-      { name: "Asiacell", logo_url: "https://via.placeholder.com/100?text=Asiacell" },
-      { name: "Ooredoo", logo_url: "https://via.placeholder.com/100?text=Ooredoo" },
-      { name: "HaloTel", logo_url: "https://via.placeholder.com/100?text=HaloTel" }
-    ];
-
-    for (const store of topupStoresResult.rows) {
-      const storeId = store.id;
-      
-      // Check if this store already has companies
-      const companiesCheck = await pool.query(
-        "SELECT COUNT(*) as count FROM topup_companies WHERE store_id = $1",
-        [storeId]
-      );
-
-      if (parseInt(companiesCheck.rows[0].count) === 0) {
-        // Insert default companies
-        for (const company of defaultCompanies) {
-          await pool.query(
-            `INSERT INTO topup_companies (store_id, name, logo_url) VALUES ($1, $2, $3)`,
-            [storeId, company.name, company.logo_url]
-          );
-        }
-        console.log(`✅ Seeded ${defaultCompanies.length} companies for topup store ${storeId}`);
-      }
-    }
-    */
-
+    console.log("✅ Seed data initialization complete");
   } catch (error) {
-    const errorMsg = (error as any).message || '';
-    // Ignore duplicate key errors (data already exists)
-    if (!errorMsg.includes('duplicate key') && !errorMsg.includes('violates unique constraint')) {
-      console.warn("⚠️  Seed data warning:", error);
-    }
+    console.warn("⚠️  Seed data warning:", (error as any).message);
   }
 }
 
@@ -889,13 +829,25 @@ async function startServer() {
       
       // Load/restore data from backup if database is empty
       const dbUrl = process.env.DATABASE_URL || "postgresql://postgres:123@localhost:5432/multi_ecommerce";
-      await initializeDatabase(dbUrl);
+      try {
+        await initializeDatabase(dbUrl);
+      } catch (error: any) {
+        console.warn("⚠️  Database initialization warning (continuing):", error.message?.substring(0, 100));
+      }
       
       // Only initialize DB if connected
-      await initDb();
+      try {
+        await initDb();
+      } catch (error: any) {
+        console.warn("⚠️  Table creation warning (continuing):", error.message?.substring(0, 100));
+      }
       
       // Seed default data
-      await seedData();
+      try {
+        await seedData();
+      } catch (error: any) {
+        console.warn("⚠️  Seed data warning (continuing):", error.message?.substring(0, 100));
+      }
     }
     
     const app = express();
@@ -1105,7 +1057,7 @@ async function startServer() {
       }
     });
     
-    // Get stores
+    // Get stores (public - only active)
     app.get("/api/stores", async (req, res) => {
       try {
         const { limit = 50, offset = 0 } = req.query;
@@ -1123,6 +1075,34 @@ async function startServer() {
         res.set('Cache-Control', 'public, max-age=300'); // 5 minutes
         res.json(result.rows);
       } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Get ALL stores for admin dashboard (including inactive/suspended)
+    app.get("/api/admin/stores", async (req, res) => {
+      try {
+        const { limit = 100, offset = 0 } = req.query;
+        const limitNum = Math.min(parseInt(limit as string) || 100, 1000);
+        const offsetNum = Math.max(0, parseInt(offset as string) || 0);
+        
+        const result = await pool.query(`
+          SELECT id, store_name, slug, logo_url, primary_color, is_active, store_type, status, owner_name, owner_phone, owner_id, owner_email, percentage_enabled, subscription_paid, commission_percentage
+          FROM stores
+          ORDER BY 
+            CASE status 
+              WHEN 'pending' THEN 1 
+              WHEN 'approved' THEN 2 
+              WHEN 'suspended' THEN 3 
+              ELSE 4 
+            END,
+            created_at DESC
+          LIMIT $1 OFFSET $2
+        `, [limitNum, offsetNum]);
+        
+        res.json(result.rows);
+      } catch (error) {
+        console.error("Admin stores error:", error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -1198,8 +1178,11 @@ async function startServer() {
       try {
         const { store_name, owner_name, owner_phone, password } = req.body;
         
+        console.log('📝 Store creation request:', { store_name, owner_name, owner_phone });
+        
         // Validate required fields
         if (!store_name || !owner_name || !owner_phone) {
+          console.error('❌ Missing required fields');
           return res.status(400).json({ error: 'اسم المتجر واسم المالك ورقم الهاتف مطلوبة' });
         }
         
@@ -1209,6 +1192,7 @@ async function startServer() {
         
         if (userCheck.rows.length > 0) {
           userId = userCheck.rows[0].id;
+          console.log('✅ User exists:', userId);
           // Update user name if different
           await pool.query(
             "UPDATE users SET name = $1, role = $2 WHERE id = $3",
@@ -1221,6 +1205,7 @@ async function startServer() {
             [owner_name, owner_phone, password || 'password123', 'merchant', null]
           );
           userId = userResult.rows[0].id;
+          console.log('✅ New user created:', userId);
         }
         
         // 3. Create store slug
@@ -1239,6 +1224,7 @@ async function startServer() {
         );
         
         const storeId = result.rows[0].id;
+        console.log('✅ Store created with ID:', storeId, 'Status:', result.rows[0].status);
         
         // 5. Link user to store
         await pool.query(
@@ -1246,12 +1232,15 @@ async function startServer() {
           [storeId, userId]
         );
         
+        console.log('✅ Store creation complete. Returning:', { storeId, status: result.rows[0].status });
+        
         res.json({
           store: result.rows[0],
           user: { id: userId, name: owner_name, phone: owner_phone, role: 'merchant' },
           message: 'تم إنشاء المتجر والمستخدم بنجاح'
         });
       } catch (error) {
+        console.error('❌ Store creation error:', (error as any).message);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -2194,7 +2183,7 @@ async function startServer() {
     app.get("/api/admin/stats", async (req, res) => {
       try {
         const salesStatuses = ['pending', 'completed'];
-        const storesResult = await pool.query("SELECT COUNT(*) as count FROM stores WHERE is_active = true");
+        const storesResult = await pool.query("SELECT COUNT(*) as count FROM stores");
         const ordersResult = await pool.query("SELECT COUNT(*) as count FROM orders WHERE status = ANY($1::text[])", [salesStatuses]);
         const customersResult = await pool.query("SELECT COUNT(DISTINCT customer_id) as count FROM orders WHERE customer_id IS NOT NULL AND status = ANY($1::text[])", [salesStatuses]);
         const usersResult = await pool.query("SELECT COUNT(*) as count FROM users");
@@ -2765,7 +2754,7 @@ async function startServer() {
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
       }
-    });}
+    });
 
     // Create category
     app.post("/api/categories", async (req, res) => {
@@ -3579,7 +3568,7 @@ async function startServer() {
         const { storeId } = req.params;
         
         const result = await pool.query(
-          `SELECT id, store_id, name, phone, email, customer_type, credit_limit, starting_balance, is_active, created_at
+          `SELECT id, store_id, name, phone, COALESCE(starting_balance, 0) as starting_balance, is_active, created_at
            FROM customers 
            WHERE store_id = $1 AND is_active = true 
            ORDER BY created_at DESC`,
@@ -4179,6 +4168,68 @@ async function startServer() {
       }
     });
 
+    // DEBUG: Check stores mismatch between DB and API
+    app.get("/api/debug/stores-mismatch", async (req, res) => {
+      try {
+        console.log("\n🔍 DEBUG STORES MISMATCH CHECK");
+        
+        // Get ALL stores from database (regardless of is_active)
+        const allStoresResult = await pool.query(`
+          SELECT id, store_name, owner_id, owner_name, owner_phone, is_active, status, slug, created_at 
+          FROM stores 
+          ORDER BY id DESC
+        `);
+        
+        // Get active stores (what API returns)
+        const activeStoresResult = await pool.query(`
+          SELECT id, store_name, slug, logo_url, primary_color, is_active, store_type, status, owner_name, owner_phone
+          FROM stores
+          WHERE is_active = true
+          ORDER BY created_at DESC
+        `);
+        
+        // Get stores with their user info
+        const storesWithUsersResult = await pool.query(`
+          SELECT s.id, s.store_name, s.owner_id, s.owner_name, s.owner_phone, s.is_active, s.status,
+                 u.id as user_id, u.name as user_name, u.phone as user_phone, u.role
+          FROM stores s
+          LEFT JOIN users u ON s.owner_id = u.id
+          ORDER BY s.id DESC
+        `);
+        
+        console.log(`📊 ALL stores in DB: ${allStoresResult.rows.length}`);
+        allStoresResult.rows.forEach((s: any) => {
+          console.log(`   [${s.id}] ${s.store_name} (is_active: ${s.is_active}, status: ${s.status}, owner_id: ${s.owner_id})`);
+        });
+        
+        console.log(`\n📊 ACTIVE stores (is_active=true): ${activeStoresResult.rows.length}`);
+        activeStoresResult.rows.forEach((s: any) => {
+          console.log(`   [${s.id}] ${s.store_name} (owner_name: ${s.owner_name}, owner_phone: ${s.owner_phone})`);
+        });
+        
+        console.log(`\n📊 Stores with user info: ${storesWithUsersResult.rows.length}`);
+        storesWithUsersResult.rows.forEach((s: any) => {
+          console.log(`   [${s.id}] ${s.store_name} - Owner: ${s.owner_id} (${s.user_name}/${s.user_phone})`);
+        });
+        
+        res.json({
+          allStoresCount: allStoresResult.rows.length,
+          allStores: allStoresResult.rows,
+          activeStoresCount: activeStoresResult.rows.length,
+          activeStores: activeStoresResult.rows,
+          storesWithUsersCount: storesWithUsersResult.rows.length,
+          storesWithUsers: storesWithUsersResult.rows,
+          mismatchDetected: allStoresResult.rows.length !== activeStoresResult.rows.length,
+          mismatchReason: allStoresResult.rows.length > activeStoresResult.rows.length ? 
+            'Some stores have is_active=false' : 
+            'No mismatch detected'
+        });
+      } catch (error) {
+        console.error("Stores mismatch debug error:", error);
+        res.json({ error: (error as any).message });
+      }
+    });
+
     app.get("/api/topup/orders", async (req, res) => {
       try {
         const storeId = req.query.storeId as string;
@@ -4268,13 +4319,6 @@ async function startServer() {
       try {
         let { storeId } = req.params;
         
-        // Normalize non-existent stores to store 1
-        const storeNum = parseInt(storeId);
-        if (storeNum === 21 || storeNum === 13) {
-          console.log(`[API] Normalizing store ${storeNum} → 1 in /api/topup/companies`);
-          storeId = '1';
-        }
-        
         // No cache - always get fresh data
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
@@ -4292,23 +4336,77 @@ async function startServer() {
     // Create topup company
     app.post("/api/topup/companies", async (req, res) => {
       try {
-        const { store_id, name, logo_url } = req.body;
+        let { store_id, name, logo_url } = req.body;
         
-        if (!store_id || !name) {
-          return res.status(400).json({ error: "store_id and name are required" });
+        console.log('\n📦 POST /api/topup/companies received');
+        console.log('   Payload:', { store_id, name });
+        
+        if (!name || typeof name !== 'string' || name.trim().length === 0) {
+          console.warn('❌ Invalid or missing company name');
+          return res.status(400).json({ error: "Company name is required" });
         }
         
-        // No cache for modifications
+        // Default to store 13 if not provided
+        if (!store_id) {
+          console.log('   ℹ️  No store_id provided, defaulting to 13');
+          store_id = 13;
+        }
+        
+        store_id = parseInt(store_id);
+        if (isNaN(store_id)) {
+          return res.status(400).json({ error: "store_id must be a valid number" });
+        }
+        
+        // Set cache headers
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
+        // Check if store exists
+        console.log(`   🔍 Checking if store ${store_id} exists...`);
+        let storeExists = await pool.query('SELECT id FROM stores WHERE id = $1', [store_id]);
+        
+        if (storeExists.rows.length === 0) {
+          console.log(`   ⚠️  Store ${store_id} does not exist, creating it...`);
+          
+          try {
+            // Create the store if it doesn't exist
+            const createResult = await pool.query(
+              `INSERT INTO stores (store_name, slug, owner_name, owner_phone, category, status, is_active, store_type) 
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+              ['Topup Store', 'topup-store', 'Admin', '+964', 'شحن', 'approved', true, 'topup']
+            );
+            
+            console.log('   ✅ Store created with ID:', createResult.rows[0].id);
+            store_id = createResult.rows[0].id;
+          } catch (storeCreateErr: any) {
+            console.error('   ❌ Failed to create store:', storeCreateErr.message);
+            return res.status(500).json({ 
+              error: "Cannot create store",
+              details: storeCreateErr.message
+            });
+          }
+        } else {
+          console.log(`   ✅ Store ${store_id} exists`);
+        }
+        
+        // Now insert the company
+        console.log(`   📝 Inserting company "${name}" for store ${store_id}...`);
         const result = await pool.query(
           `INSERT INTO topup_companies (store_id, name, logo_url) VALUES ($1, $2, $3) RETURNING *`,
-          [store_id, name, logo_url || '']
+          [store_id, name.trim(), logo_url || null]
         );
         
+        console.log('   ✅ Company inserted successfully');
         res.status(201).json(result.rows[0]);
-      } catch (error) {
-        res.status(500).json({ error: (error as any).message });
+        
+      } catch (error: any) {
+        console.error('\n❌ ERROR in POST /api/topup/companies:', error.message);
+        console.error('   Code:', error.code);
+        console.error('   Detail:', error.detail);
+        
+        res.status(500).json({ 
+          error: error.message || "Failed to create company",
+          details: error.detail || ""
+        });
       }
     });
 
@@ -4527,12 +4625,6 @@ async function startServer() {
       try {
         let { storeId } = req.params;
         
-        // Normalize non-existent stores to store 1
-        const storeNum = parseInt(storeId);
-        if (storeNum === 21 || storeNum === 13) {
-          console.log(`[API] Normalizing store ${storeNum} → 1 in /api/topup/products`);
-          storeId = '1';
-        }
         const limit = req.query.limit ? parseInt(req.query.limit as string) : 500;
         const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
         
@@ -4544,23 +4636,19 @@ async function startServer() {
             tp.id,
             tp.store_id,
             tp.company_id,
-            tp.category_id,
             tp.amount,
             tp.price,
             tp.retail_price,
             tp.wholesale_price,
             tp.wholesale_price AS bulk_price,
-            tp.available_codes,
             tp.images,
             tp.codes,
             tp.is_active,
-            tc.name as company_name,
-            tpc.name as category_name
+            tc.name as company_name
           FROM topup_products tp
           LEFT JOIN topup_companies tc ON tp.company_id = tc.id
-          LEFT JOIN topup_product_categories tpc ON tp.category_id = tpc.id
           WHERE tp.store_id = $1
-          ORDER BY tp.created_at DESC
+          ORDER BY tp.id DESC
           LIMIT $2 OFFSET $3`,
           [storeId, limit, offset]
         );
@@ -4924,6 +5012,152 @@ async function startServer() {
         res.json({ success: true, message, product: result.rows[0] });
       } catch (error) {
         console.error('❌ Error uploading images:', error);
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Upload images to Firebase Storage
+    app.post("/api/topup/upload-images-firebase", async (req, res) => {
+      try {
+        console.log('📤 Starting Firebase image upload request...');
+        const { store_id, topup_product_id, images } = req.body;
+
+        // No cache for modifications
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+
+        if (!store_id || !topup_product_id || !images || !Array.isArray(images)) {
+          console.warn('⚠️ Missing required fields for Firebase upload');
+          return res.status(400).json({ error: "Missing required fields or invalid images format" });
+        }
+
+        // Get existing images from database
+        const existingResult = await pool.query(
+          `SELECT image_urls FROM topup_products WHERE id = $1 AND store_id = $2`,
+          [topup_product_id, store_id]
+        );
+
+        if (existingResult.rows.length === 0) {
+          console.warn('⚠️ Product not found');
+          return res.status(404).json({ error: "Product not found" });
+        }
+
+        const existingImageUrls: string[] = existingResult.rows[0].image_urls || [];
+        const uploadedUrls: string[] = [];
+        const duplicateUrls: string[] = [];
+
+        // Try to use Firebase if available, otherwise use local storage
+        const useFirebase = admin.apps.length > 0 && admin.storage;
+
+        if (useFirebase) {
+          console.log('🔥 Using Firebase Storage to upload images...');
+          
+          for (const imageData of images) {
+            try {
+              // Convert base64 to buffer
+              const base64Data = imageData.split(',')[1] || imageData;
+              const buffer = Buffer.from(base64Data, 'base64');
+
+              // Generate unique filename
+              const timestamp = Date.now();
+              const randomStr = Math.random().toString(36).substring(7);
+              const fileName = `topup-products/${store_id}/${topup_product_id}/${timestamp}-${randomStr}.jpg`;
+
+              // Create MD5 hash of image for duplicate detection
+              const imageHash = crypto.createHash('md5').update(buffer).digest('hex');
+
+              // Check if this hash already exists in database
+              const hashCheckResult = await pool.query(
+                `SELECT id FROM topup_product_images 
+                 WHERE store_id = $1 AND product_id = $2 AND image_hash = $3 LIMIT 1`,
+                [store_id, topup_product_id, imageHash]
+              );
+
+              if (hashCheckResult.rows.length > 0) {
+                // Image already exists - don't upload
+                duplicateUrls.push(fileName);
+                console.log('⏭️ Image already exists (duplicate hash):', imageHash);
+                continue;
+              }
+
+              // Upload to Firebase Storage
+              const bucket = admin.storage().bucket();
+              const file = bucket.file(fileName);
+
+              const imageUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+
+              await file.save(buffer, {
+                metadata: {
+                  contentType: 'image/jpeg',
+                  metadata: {
+                    store_id: String(store_id),
+                    product_id: String(topup_product_id),
+                    hash: imageHash
+                  }
+                }
+              });
+
+              // Store reference in database
+              await pool.query(
+                `INSERT INTO topup_product_images (store_id, product_id, image_url, image_hash, uploaded_at)
+                 VALUES ($1, $2, $3, $4, NOW())`,
+                [store_id, topup_product_id, imageUrl, imageHash]
+              );
+
+              uploadedUrls.push(imageUrl);
+              console.log('✅ Image uploaded to Firebase:', fileName);
+            } catch (uploadErr) {
+              console.error('❌ Error uploading image to Firebase:', uploadErr);
+            }
+          }
+        } else {
+          console.log('💾 Firebase not configured, storing image references locally...');
+          
+          for (const imageData of images) {
+            // Create a hash of the image data for duplicate detection
+            const imageHash = crypto.createHash('md5').update(imageData).digest('hex');
+            
+            // Check if this hash already exists
+            const hashCheckResult = await pool.query(
+              `SELECT id FROM topup_product_images 
+               WHERE store_id = $1 AND product_id = $2 AND image_hash = $3 LIMIT 1`,
+              [store_id, topup_product_id, imageHash]
+            );
+
+            if (hashCheckResult.rows.length > 0) {
+              duplicateUrls.push(imageHash);
+              console.log('⏭️ Local image hash already exists');
+              continue;
+            }
+
+            // Store image data URL in database with hash
+            await pool.query(
+              `INSERT INTO topup_product_images (store_id, product_id, image_url, image_hash, uploaded_at)
+               VALUES ($1, $2, $3, $4, NOW())`,
+              [store_id, topup_product_id, imageData, imageHash]
+            );
+
+            uploadedUrls.push(imageData);
+          }
+        }
+
+        let message = `تم تحميل ${uploadedUrls.length} صورة جديدة بنجاح`;
+        if (duplicateUrls.length > 0) {
+          message += ` (تم تخطي ${duplicateUrls.length} صور مكررة)`;
+        }
+
+        console.log('✅ Firebase images uploaded successfully:', { 
+          product_id: topup_product_id, 
+          new_count: uploadedUrls.length, 
+          duplicate_count: duplicateUrls.length 
+        });
+
+        res.json({ 
+          success: true, 
+          message, 
+          image_urls: uploadedUrls
+        });
+      } catch (error) {
+        console.error('❌ Error uploading images to Firebase:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -6102,7 +6336,157 @@ async function startServer() {
       }
     });
 
+    // ==================== IMAGE UPLOAD ENDPOINTS ====================
+    
+    // Setup uploads directory
+    const uploadsDir = path.join(__dirname, 'public', 'uploads', 'products');
+    const uploadsPath = path.join(uploadsDir);
+    
+    try {
+      await mkdir(uploadsPath, { recursive: true });
+      console.log('✅ Upload directory ready:', uploadsPath);
+    } catch (e: any) {
+      if (e.code !== 'EEXIST') {
+        console.warn('⚠️ Warning: Could not create uploads directory:', e.message);
+      }
+    }
+    
+    // POST /api/products/:productId/images - Upload image for product
+    app.post("/api/products/:productId/images", async (req, res) => {
+      try {
+        const { productId } = req.params;
+        const { store_id, image_url, image_type = 'jpeg', file_size = 0 } = req.body;
+        
+        if (!productId || !store_id || !image_url) {
+          return res.status(400).json({ error: 'Missing required fields: productId, store_id, image_url' });
+        }
+        
+        // Extract base64 if provided
+        let finalImageUrl = image_url;
+        let savedFileName = '';
+        
+        // If image_url contains data:image, save to disk
+        if (image_url.startsWith('data:')) {
+          try {
+            const base64Data = image_url.replace(/^data:image\/[^;]+;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+            savedFileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${image_type === 'png' ? 'png' : 'jpg'}`;
+            const filePath = path.join(uploadsPath, savedFileName);
+            
+            fs.writeFileSync(filePath, buffer);
+            finalImageUrl = `/uploads/products/${savedFileName}`;
+            console.log(`✅ Image saved to disk: ${finalImageUrl}`);
+          } catch (e) {
+            console.warn('⚠️ Could not save image to disk, using base64 in DB:', e);
+          }
+        }
+        
+        // Insert into database
+        const result = await pool.query(
+          `INSERT INTO product_images (product_id, store_id, image_url, image_type, file_size)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING id, image_url, uploaded_at`,
+          [productId, store_id, finalImageUrl, image_type, file_size || 0]
+        );
+        
+        res.status(201).json({
+          success: true,
+          image_id: result.rows[0].id,
+          image_url: result.rows[0].image_url,
+          uploaded_at: result.rows[0].uploaded_at
+        });
+        
+        res.status(201).json({
+          success: true,
+          image_id: result.rows[0].id,
+          image_url: result.rows[0].image_url,
+          created_at: result.rows[0].created_at
+        });
+      } catch (error: any) {
+        console.error('Image upload error:', error.message);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // GET /api/products/:productId/images - Get all images for product
+    app.get("/api/products/:productId/images", async (req, res) => {
+      try {
+        const { productId } = req.params;
+        const { store_id } = req.query;
+        
+        if (!productId) {
+          return res.status(400).json({ error: 'productId required' });
+        }
+        
+        let query = `SELECT * FROM product_images WHERE product_id = $1`;
+        let params: any[] = [productId];
+        
+        if (store_id) {
+          query += ` AND store_id = $2`;
+          params.push(store_id);
+        }
+        
+        query += ` ORDER BY id DESC`;
+        
+        const result = await pool.query(query, params);
+        
+        res.json({
+          count: result.rows.length,
+          images: result.rows
+        });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // DELETE /api/products/:productId/images/:imageId - Delete image
+    app.delete("/api/products/:productId/images/:imageId", async (req, res) => {
+      try {
+        const { productId, imageId } = req.params;
+        
+        // Get image first to delete file if exists
+        const getResult = await pool.query(
+          `SELECT image_url FROM product_images WHERE id = $1 AND product_id = $2`,
+          [imageId, productId]
+        );
+        
+        if (getResult.rows.length === 0) {
+          return res.status(404).json({ error: 'Image not found' });
+        }
+        
+        const imageUrl = getResult.rows[0].image_url;
+        
+        // Delete from database
+        await pool.query(
+          `DELETE FROM product_images WHERE id = $1`,
+          [imageId]
+        );
+        
+        // Try to delete file if it's a local file
+        if (imageUrl.startsWith('/uploads/')) {
+          const filePath = path.join(__dirname, 'public', imageUrl);
+          try {
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+              console.log(`✅ Deleted file: ${filePath}`);
+            }
+          } catch (e: any) {
+            console.warn('⚠️ Could not delete file:', e.message);
+          }
+        }
+        
+        res.json({ success: true, message: 'Image deleted' });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // IMPORTANT: Serve static files AFTER all API routes to avoid conflicts
+    // Serve uploads directory
+    app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'), {
+      maxAge: '30d'
+    }));
+    
     // Serve assets with caching
     app.use('/assets', express.static(path.join(distPath, "assets"), {
       maxAge: '1y',
