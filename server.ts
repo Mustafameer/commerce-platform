@@ -77,8 +77,8 @@ let connectionString = process.env.DATABASE_URL;
 
 // 🔥 CRITICAL: In production, ALWAYS prefer Railway internal
 if (process.env.NODE_ENV === 'production') {
-  connectionString = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway';
-  console.log("ℹ️  [SERVER] Production Mode: Using Railway internal connection");
+  connectionString = process.env.DATABASE_URL; // Railway sets this variable automatically
+  console.log("ℹ️  [SERVER] Production Mode: Using Railway connection from environment");
 } else {
   // Development: try DATABASE_URL, then build from env vars, then use localhost
   if (!connectionString || !connectionString.includes("@")) {
