@@ -10553,10 +10553,24 @@ const MerchantTopupDashboard = () => {
                               onClick={() => {
                                 setProductForm({ company_id: product.company_id.toString(), amount: product.amount.toString(), price: product.price.toString(), bulk_price: product.bulk_price?.toString() || '', category_id: '', quantity_type: product.quantity_type || 'unit' });
                                 setProductImages([]);
-                                // Load existing images from product
-                                const existingImages = Array.isArray(product.images) 
-                                  ? product.images.filter((img: any) => img && String(img).length > 0)
-                                  : [];
+                                // Load existing images from product - parse JSON if needed
+                                let existingImages: string[] = [];
+                                if (product.images) {
+                                  if (Array.isArray(product.images)) {
+                                    existingImages = product.images.filter((img: any) => img && String(img).length > 0);
+                                  } else if (typeof product.images === 'string') {
+                                    try {
+                                      const parsed = JSON.parse(product.images);
+                                      existingImages = Array.isArray(parsed) 
+                                        ? parsed.filter((img: any) => img && String(img).length > 0)
+                                        : [];
+                                    } catch (e) {
+                                      console.warn('⚠️ Could not parse images JSON:', e);
+                                      existingImages = [];
+                                    }
+                                  }
+                                }
+                                console.log('🖼️ Loaded existing images:', existingImages);
                                 setExistingProductImages(existingImages);
                                 setIsEditingProduct(product.id);
                                 setShowProductModal(true);
