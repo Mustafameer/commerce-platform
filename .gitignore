@@ -17,6 +17,9 @@ check_*.cjs
 check_*.mjs
 check_*.ts
 check_*.js
+check_*.bat
+check_*.sql
+check_*.py
 add_*.cjs
 add_*.mjs
 add_*.ts
@@ -25,6 +28,9 @@ test_*.cjs
 test_*.mjs
 test_*.ts
 test_*.js
+test_*.bat
+test_*.ps1
+test_*.py
 analyze_*.cjs
 analyze_*.mjs
 analyze_*.ts
@@ -35,6 +41,7 @@ backup_*.ts
 backup_*.js
 *_diagnostic.*
 *_setup_*.*
+*_setup_*.mjs
 browser_test.*
 call_*.mjs
 fix_*.mjs
@@ -47,7 +54,13 @@ create_product_*.mjs
 create_table_*.mjs
 admin_login_info.*
 ANALYSIS_*.md
+TEST_*.md
 LOCAL_DATABASE_SETUP.md
+load_data.*
+migrate_to_*.mjs
+restore_*.cjs
+sync_*.mjs
+railway_*.mjs
 load_data.*
 migrate_to_*.mjs
 restore_*.cjs
