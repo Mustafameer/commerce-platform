@@ -75,18 +75,20 @@ console.log("📡 [SERVER] Creating database pool...");
 
 let connectionString = process.env.DATABASE_URL;
 
-// 🔥 CRITICAL: In production, MUST use DATABASE_URL from environment
+// 🔥 CRITICAL: In production, MUST use DATABASE_URL from Railway
 if (process.env.NODE_ENV === 'production') {
-  if (!connectionString) {
-    throw new Error('❌ [SERVER] FATAL: DATABASE_URL environment variable is not set in production!');
+  const railwayDb = process.env.DATABASE_URL;
+  if (!railwayDb) {
+    throw new Error('❌ [SERVER] FATAL: DATABASE_URL environment variable not set in production!');
   }
-  console.log("ℹ️  [SERVER] Production Mode: Using Railway connection from environment");
+  connectionString = railwayDb;
+  console.log("✅ [SERVER] Production Mode: Using Railway DATABASE_URL");
 } else {
-  // Development: Must use DATABASE_URL from environment - no fallbacks for security
+  // Development: Must use DATABASE_URL from environment
   if (!connectionString) {
-    throw new Error('❌ [SERVER] DATABASE_URL must be set in environment. Use .env file or export DATABASE_URL before running.');
+    throw new Error('❌ [SERVER] DATABASE_URL must be set in development environment.');
   }
-  console.log("ℹ️  [SERVER] Development Mode: Using DATABASE_URL from environment");
+  console.log("ℹ️  [SERVER] Development Mode: Using DATABASE_URL");
 }
 
 const pool = new Pool({

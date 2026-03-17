@@ -8,18 +8,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export async function initializeDatabase(connectionString: string) {
-  // 🔥 CRITICAL: In production, MUST use DATABASE_URL from environment
+  // 🔥 CRITICAL: In production, ALWAYS override with DATABASE_URL
+  // NEVER use passed parameter in production - it could be localhost from dev
   if (process.env.NODE_ENV === 'production') {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('❌ [DB-INIT] FATAL: DATABASE_URL environment variable is not set in production!');
+    const railwayDb = process.env.DATABASE_URL;
+    if (!railwayDb) {
+      throw new Error('❌ [DB-INIT] FATAL: DATABASE_URL not found in Railway environment!');
     }
-    connectionString = process.env.DATABASE_URL;
-    console.log('ℹ️  [DB-INIT] Production: Using DATABASE_URL from environment');
+    connectionString = railwayDb;
+    console.log('✅ [DB-INIT] Production Mode: Using Railway DATABASE_URL');
   } else {
-    // Development: Must use provided connection string or DATABASE_URL from environment
+    // Development: use provided string
     if (!connectionString) {
-      throw new Error('❌ [DB-INIT] Connection string must be provided or DATABASE_URL set in environment.');
+      throw new Error('❌ [DB-INIT] No connection string provided');
     }
+    console.log('ℹ️  [DB-INIT] Development Mode: Using provided connection string');
   }
   
   const client = new Pool({
