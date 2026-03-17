@@ -5187,14 +5187,18 @@ async function startServer() {
           }
         }
 
-        // 🔥 Update topup_products table with image URLs
+        // 🔥 Update topup_products table with image URLs - APPEND to existing images
         if (uploadedUrls.length > 0) {
           try {
+            // Combine existing images + newly uploaded images
+            const finalImages = [...existingImageUrls, ...uploadedUrls];
+            console.log('🔗 Combining images: existing=', existingImageUrls.length, '+ new=', uploadedUrls.length, '= total', finalImages.length);
+            
             await pool.query(
               `UPDATE topup_products SET images = $1 WHERE id = $2 AND store_id = $3`,
-              [JSON.stringify(uploadedUrls), topup_product_id, store_id]
+              [JSON.stringify(finalImages), topup_product_id, store_id]
             );
-            console.log('✅ Product images updated in database:', uploadedUrls.length, 'images');
+            console.log('✅ Product images updated in database:', finalImages.length, 'total images');
           } catch (updateErr) {
             console.error('⚠️ Warning: Could not update product images in database:', updateErr);
           }
