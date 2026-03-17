@@ -75,9 +75,11 @@ console.log("📡 [SERVER] Creating database pool...");
 
 let connectionString = process.env.DATABASE_URL;
 
-// 🔥 CRITICAL: In production, ALWAYS prefer Railway internal
+// 🔥 CRITICAL: In production, MUST use DATABASE_URL from environment
 if (process.env.NODE_ENV === 'production') {
-  connectionString = process.env.DATABASE_URL; // Railway sets this variable automatically
+  if (!connectionString) {
+    throw new Error('❌ [SERVER] FATAL: DATABASE_URL environment variable is not set in production!');
+  }
   console.log("ℹ️  [SERVER] Production Mode: Using Railway connection from environment");
 } else {
   // Development: try DATABASE_URL, then build from env vars, then use localhost

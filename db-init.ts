@@ -8,11 +8,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export async function initializeDatabase(connectionString: string) {
-  // 🔥 CRITICAL: In production, ALWAYS use Railway internal - never use passed parameter
+  // 🔥 CRITICAL: In production, MUST use DATABASE_URL from environment
   if (process.env.NODE_ENV === 'production') {
-    // Use environment variable for Railway connection (Railway sets DATABASE_URL)
-    connectionString = process.env.DATABASE_URL || 'postgresql://postgres.railway.internal:5432/railway';
-    console.log('ℹ️  [DB-INIT] Production: Using Railway connection from environment');
+    if (!process.env.DATABASE_URL) {
+      throw new Error('❌ [DB-INIT] FATAL: DATABASE_URL environment variable is not set in production!');
+    }
+    connectionString = process.env.DATABASE_URL;
+    console.log('ℹ️  [DB-INIT] Production: Using DATABASE_URL from environment');
   } else {
     // For local development, use the provided string or a local default
     if (!connectionString || !connectionString.includes("@")) {
