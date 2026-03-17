@@ -6,9 +6,10 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { initializeDatabase } from "./db-init.ts";
 import fs from "fs";
-import { mkdir } from "fs/promises";
+import { mkdir, unlink } from "fs/promises";
 import crypto from "crypto";
 import admin from "firebase-admin";
+import archiver from "archiver";
 
 // Fix: Ensure all admin endpoints use proper ID validation
 console.log("📡 [SERVER] Server module loading...");
@@ -5049,78 +5050,29 @@ async function startServer() {
         const uploadedUrls: string[] = [];
         const duplicateUrls: string[] = [];
 
-        // Try to use Firebase if available, otherwise use local storage
-        const useFirebase = admin.apps.length > 0 && admin.storage;
+        // 🎯 ALWAYS save to Railway (not Firebase)
+        console.log('💾 Saving images to Railway storage...');
+        
+        // Create uploads directory if needed
+        const uploadsDir = path.join(__dirname, 'uploads', 'topup', String(store_id), String(topup_product_id));
+        await mkdir(uploadsDir, { recursive: true });
+        
+        for (const imageData of images) {
+          try {
+            // Convert base64 to buffer
+            const base64Data = imageData.split(',')[1] || imageData;
+            const buffer = Buffer.from(base64Data, 'base64');
 
-        if (useFirebase) {
-          console.log('🔥 Using Firebase Storage to upload images...');
-          
-          for (const imageData of images) {
-            try {
-              // Convert base64 to buffer
-              const base64Data = imageData.split(',')[1] || imageData;
-              const buffer = Buffer.from(base64Data, 'base64');
+            // Generate unique filename
+            const timestamp = Date.now();
+            const randomStr = Math.random().toString(36).substring(7);
+            const fileName = `image-${timestamp}-${randomStr}.jpg`;
+            const filePath = path.join(uploadsDir, fileName);
 
-              // Generate unique filename
-              const timestamp = Date.now();
-              const randomStr = Math.random().toString(36).substring(7);
-              const fileName = `topup-products/${store_id}/${topup_product_id}/${timestamp}-${randomStr}.jpg`;
+            // Create MD5 hash of image for duplicate detection
+            const imageHash = crypto.createHash('md5').update(buffer).digest('hex');
 
-              // Create MD5 hash of image for duplicate detection
-              const imageHash = crypto.createHash('md5').update(buffer).digest('hex');
-
-              // Check if this hash already exists in database
-              const hashCheckResult = await pool.query(
-                `SELECT id FROM topup_product_images 
-                 WHERE store_id = $1 AND product_id = $2 AND image_hash = $3 LIMIT 1`,
-                [store_id, topup_product_id, imageHash]
-              );
-
-              if (hashCheckResult.rows.length > 0) {
-                // Image already exists - don't upload
-                duplicateUrls.push(fileName);
-                console.log('⏭️ Image already exists (duplicate hash):', imageHash);
-                continue;
-              }
-
-              // Upload to Firebase Storage
-              const bucket = admin.storage().bucket();
-              const file = bucket.file(fileName);
-
-              const imageUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
-
-              await file.save(buffer, {
-                metadata: {
-                  contentType: 'image/jpeg',
-                  metadata: {
-                    store_id: String(store_id),
-                    product_id: String(topup_product_id),
-                    hash: imageHash
-                  }
-                }
-              });
-
-              // Store reference in database
-              await pool.query(
-                `INSERT INTO topup_product_images (store_id, product_id, image_url, image_hash, uploaded_at)
-                 VALUES ($1, $2, $3, $4, NOW())`,
-                [store_id, topup_product_id, imageUrl, imageHash]
-              );
-
-              uploadedUrls.push(imageUrl);
-              console.log('✅ Image uploaded to Firebase:', fileName);
-            } catch (uploadErr) {
-              console.error('❌ Error uploading image to Firebase:', uploadErr);
-            }
-          }
-        } else {
-          console.log('💾 Firebase not configured, storing image references locally...');
-          
-          for (const imageData of images) {
-            // Create a hash of the image data for duplicate detection
-            const imageHash = crypto.createHash('md5').update(imageData).digest('hex');
-            
-            // Check if this hash already exists
+            // Check if this hash already exists in database
             const hashCheckResult = await pool.query(
               `SELECT id FROM topup_product_images 
                WHERE store_id = $1 AND product_id = $2 AND image_hash = $3 LIMIT 1`,
@@ -5128,19 +5080,28 @@ async function startServer() {
             );
 
             if (hashCheckResult.rows.length > 0) {
-              duplicateUrls.push(imageHash);
-              console.log('⏭️ Local image hash already exists');
+              // Image already exists - don't upload
+              duplicateUrls.push(fileName);
+              console.log('⏭️ Image already exists (duplicate hash):', imageHash);
               continue;
             }
 
-            // Store image data URL in database with hash
+            // Save to Railway filesystem
+            fs.writeFileSync(filePath, buffer);
+            console.log('✅ Image saved to Railway:', filePath);
+
+            // Store reference in database with local path
+            const imageUrl = `/uploads/topup/${store_id}/${topup_product_id}/${fileName}`;
             await pool.query(
               `INSERT INTO topup_product_images (store_id, product_id, image_url, image_hash, uploaded_at)
                VALUES ($1, $2, $3, $4, NOW())`,
-              [store_id, topup_product_id, imageData, imageHash]
+              [store_id, topup_product_id, imageUrl, imageHash]
             );
 
-            uploadedUrls.push(imageData);
+            uploadedUrls.push(imageUrl);
+            console.log('✅ Image saved to Railway:', fileName);
+          } catch (uploadErr) {
+            console.error('❌ Error saving image to Railway:', uploadErr);
           }
         }
 
@@ -5622,6 +5583,144 @@ async function startServer() {
           count: allCodes.length
         });
       } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // 🎁 Download order package with codes and images - DELETE AFTER DOWNLOAD
+    app.get("/api/topup/download-package/:orderId", async (req, res) => {
+      try {
+        const { orderId } = req.params;
+        console.log(`📦 Starting download package for order: ${orderId}`);
+
+        // جلب بيانات الطلب
+        const orderResult = await pool.query(
+          `SELECT id, store_id, status FROM orders WHERE id = $1`,
+          [orderId]
+        );
+
+        if (orderResult.rows.length === 0) {
+          return res.status(404).json({ error: "Order not found" });
+        }
+
+        const order = orderResult.rows[0];
+
+        // جلب المنتجات والأكواد
+        const itemsResult = await pool.query(
+          `SELECT topup_product_id, quantity FROM order_items WHERE order_id = $1`,
+          [orderId]
+        );
+
+        let allCodes: string[] = [];
+        let imageUrls: string[] = [];
+
+        for (const item of itemsResult.rows) {
+          // Get product codes
+          const productResult = await pool.query(
+            `SELECT codes, image_urls FROM topup_products WHERE id = $1`,
+            [item.topup_product_id]
+          );
+
+          if (productResult.rows.length > 0) {
+            const product = productResult.rows[0];
+            if (product.codes && Array.isArray(product.codes)) {
+              const codesToAdd = product.codes.slice(0, item.quantity);
+              allCodes = [...allCodes, ...codesToAdd];
+            }
+            // جمع روابط الصور
+            if (product.image_urls && Array.isArray(product.image_urls)) {
+              imageUrls = [...imageUrls, ...product.image_urls];
+            }
+          }
+        }
+
+        // إنشاء ZIP file
+        const fileName = `order-${orderId}-${Date.now()}`;
+        const zipPath = path.join(__dirname, 'uploads', `${fileName}.zip`);
+        
+        // تأكد من وجود مجلد uploads
+        await mkdir(path.join(__dirname, 'uploads'), { recursive: true });
+
+        const output = fs.createWriteStream(zipPath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+
+        // إضافة ملف الأكواد
+        if (allCodes.length > 0) {
+          const codesText = `🎁 أكواد الطلب #${orderId}\n━━━━━━━━━━━━━━━━━\n${allCodes.join('\n')}\n\n📋 عدد الأكواد: ${allCodes.length}`;
+          archive.append(codesText, { name: `codes-${orderId}.txt` });
+        }
+
+        // إضافة الصور
+        let imagesAdded = 0;
+        for (const imageUrl of imageUrls) {
+          try {
+            // إذا كانت صورة من Railway (uploads/)
+            if (imageUrl.includes('/uploads/') || fs.existsSync(imageUrl)) {
+              const fileName = path.basename(imageUrl);
+              archive.file(imageUrl, { name: `images/${fileName}` });
+              imagesAdded++;
+            }
+          } catch (err) {
+            console.warn(`⚠️ Could not add image: ${imageUrl}`);
+          }
+        }
+
+        archive.on('error', (err) => {
+          console.error('❌ Archive error:', err);
+          res.status(500).json({ error: 'Failed to create download package' });
+        });
+
+        output.on('close', async () => {
+          console.log(`✅ ZIP created: ${archive.pointer()} bytes`);
+          
+          // إرسال الملف
+          res.download(zipPath, `order-${orderId}.zip`, async (err) => {
+            if (err) {
+              console.error('❌ Download error:', err);
+            } else {
+              console.log(`✅ Download started for order ${orderId}`);
+            }
+            
+            // حذف الملف والصور بعد 5 ثوان من البدء (التنزيل عادة ينتهي في ثانية)
+            setTimeout(async () => {
+              try {
+                // حذف ZIP
+                await unlink(zipPath);
+                console.log(`🧹 ZIP deleted: ${zipPath}`);
+                
+                // حذف صور المنتجات من الخادم (بعد التنزيل)
+                for (const imageUrl of imageUrls) {
+                  if (imageUrl.includes('/uploads/') && fs.existsSync(imageUrl)) {
+                    try {
+                      await unlink(imageUrl);
+                      console.log(`🧹 Image deleted: ${imageUrl}`);
+                    } catch (unlinkErr) {
+                      console.warn(`⚠️ Could not delete image: ${imageUrl}`);
+                    }
+                  }
+                }
+                
+                // تحديث قاعدة البيانات - تنظيف صور المنتج إذا كانت كل صوره تم حذفها
+                for (const item of itemsResult.rows) {
+                  await pool.query(
+                    `UPDATE topup_products SET image_urls = '{}' WHERE id = $1`,
+                    [item.topup_product_id]
+                  );
+                }
+                
+                console.log(`✅ Cleanup completed for order ${orderId}`);
+              } catch (cleanupErr) {
+                console.error('❌ Cleanup error:', cleanupErr);
+              }
+            }, 5000);
+          });
+        });
+
+        archive.pipe(output);
+        archive.finalize();
+
+      } catch (error) {
+        console.error('❌ ERROR in download-package:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -6486,9 +6585,13 @@ async function startServer() {
     });
 
     // IMPORTANT: Serve static files AFTER all API routes to avoid conflicts
-    // Serve uploads directory
-    app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'), {
-      maxAge: '30d'
+    // Serve uploads directory (for product images and downloads)
+    app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+      maxAge: '1d',
+      setHeaders: (res) => {
+        // Images accessed for download - no cache
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      }
     }));
     
     // Serve assets with caching
