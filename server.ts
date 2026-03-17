@@ -4342,17 +4342,29 @@ async function startServer() {
         
         name = name.trim();
         
-        // Priority logic for store_id:
-        // 1. Use provided store_id if valid
-        // 2. Find first topup store
-        // 3. Default to 13
+        // Set cache headers
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
-        let finalStoreId = store_id ? parseInt(store_id) : null;
+        // CRITICAL: Always find a valid store that actually exists in the database
+        let finalStoreId = null;
         
-        if (!finalStoreId || isNaN(finalStoreId)) {
-          console.log('   🔍 No valid store_id provided, finding topup store...');
-          
-          // Try to find an existing topup store
+        // Step 1: If store_id provided, verify it exists first
+        if (store_id) {
+          const providedStoreId = parseInt(store_id);
+          if (!isNaN(providedStoreId)) {
+            const storeCheck = await pool.query('SELECT id FROM stores WHERE id = $1', [providedStoreId]);
+            if (storeCheck.rows.length > 0) {
+              finalStoreId = providedStoreId;
+              console.log(`   ✅ Using provided store ID: ${finalStoreId}`);
+            } else {
+              console.log(`   ⚠️  Provided store ID ${providedStoreId} does not exist, searching for alternative...`);
+            }
+          }
+        }
+        
+        // Step 2: If store_id not valid, find first topup store
+        if (!finalStoreId) {
+          console.log('   🔍 Finding topup store...');
           const topupStores = await pool.query(
             'SELECT id FROM stores WHERE store_type = $1 LIMIT 1',
             ['topup']
@@ -4360,71 +4372,35 @@ async function startServer() {
           
           if (topupStores.rows.length > 0) {
             finalStoreId = topupStores.rows[0].id;
-            console.log(`   ✅ Found existing topup store ID: ${finalStoreId}`);
-          } else {
-            finalStoreId = 13;
-            console.log('   ℹ️  No topup store found, will try to use/create store 13');
+            console.log(`   ✅ Found topup store: ${finalStoreId}`);
           }
         }
         
-        // Set cache headers
-        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-        
-        // Verify store exists, if not create it
-        console.log(`   🔍 Checking store ${finalStoreId}...`);
-        let storeCheck = await pool.query('SELECT id FROM stores WHERE id = $1', [finalStoreId]);
-        
-        if (storeCheck.rows.length === 0) {
-          console.log(`   ⚠️  Store ${finalStoreId} doesn't exist, creating it...`);
+        // Step 3: If still no store, find ANY store
+        if (!finalStoreId) {
+          console.log('   🔍 Finding any available store...');
+          const anyStore = await pool.query('SELECT id FROM stores LIMIT 1');
           
-          try {
-            // Try with explicit ID
-            const createResult = await pool.query(`
-              INSERT INTO stores (id, store_name, slug, owner_name, owner_phone, category, status, is_active, store_type) 
-              VALUES ($1, 'Topup Store', 'topup-store', 'Admin', '+964', 'شحن', 'approved', true, 'topup')
-              RETURNING id
-            `, [finalStoreId]);
-            
-            console.log(`   ✅ Created store ${finalStoreId}`);
-          } catch (createErr: any) {
-            console.error(`   ⚠️  Cannot create store ${finalStoreId}:`, createErr.message);
-            
-            // Fallback: find ANY topup store
-            const anyTopup = await pool.query(
-              'SELECT id FROM stores WHERE store_type = $1 LIMIT 1',
-              ['topup']
-            );
-            
-            if (anyTopup.rows.length > 0) {
-              finalStoreId = anyTopup.rows[0].id;
-              console.log(`   ✅ Falling back to existing topup store ${finalStoreId}`);
-            } else {
-              // Fallback: find ANY store
-              const anyStore = await pool.query(
-                'SELECT id FROM stores LIMIT 1'
-              );
-              
-              if (anyStore.rows.length > 0) {
-                finalStoreId = anyStore.rows[0].id;
-                console.log(`   ⚠️  Using any store: ${finalStoreId}`);
-              } else {
-                return res.status(500).json({ 
-                  error: "No stores available in database",
-                  details: "Database is empty or corrupted"
-                });
-              }
-            }
+          if (anyStore.rows.length > 0) {
+            finalStoreId = anyStore.rows[0].id;
+            console.log(`   ⚠️  Using first available store: ${finalStoreId}`);
+          } else {
+            console.log('   ❌ No stores found in database!');
+            return res.status(500).json({ 
+              error: "No stores available in database",
+              details: "Database is empty or corrupted. Please create a store first."
+            });
           }
-        } else {
-          console.log(`   ✅ Store ${finalStoreId} exists`);
         }
         
-        // Final verification
+        // Final verification before insert
+        console.log(`   🔍 Final verification: checking store ${finalStoreId}...`);
         const finalCheck = await pool.query('SELECT id FROM stores WHERE id = $1', [finalStoreId]);
         if (finalCheck.rows.length === 0) {
+          console.error(`   ❌ CRITICAL: Store ${finalStoreId} disappeared during transaction!`);
           return res.status(500).json({
-            error: "Could not verify store existence",
-            details: `Store ${finalStoreId} verification failed`
+            error: "Store verification failed",
+            details: `Store ${finalStoreId} not found in database`
           });
         }
         
