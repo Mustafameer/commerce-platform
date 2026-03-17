@@ -10719,11 +10719,49 @@ const MerchantTopupDashboard = () => {
                                 />
                                 <button
                                   type="button"
-                                  onClick={(e) => {
+                                  onClick={async (e) => {
                                     e.preventDefault();
-                                    setExistingProductImages(prev => prev.filter((_, i) => i !== index));
+                                    
+                                    if (!isEditingProduct) {
+                                      console.warn('⚠️ Cannot delete image for new product');
+                                      return;
+                                    }
+
+                                    // Confirm deletion
+                                    if (!confirm('هل تريد حذف هذه الصورة؟')) {
+                                      return;
+                                    }
+
+                                    try {
+                                      console.log('🗑️ Deleting image:', imageUrl);
+                                      
+                                      const deleteRes = await fetch(`/api/topup/products/${isEditingProduct}/remove-image`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          store_id: topupStoreId,
+                                          image_url: imageUrl
+                                        })
+                                      });
+
+                                      const deleteData = await deleteRes.json();
+
+                                      if (deleteRes.ok) {
+                                        console.log('✅ Image deleted successfully');
+                                        // Update local state
+                                        setExistingProductImages(prev => prev.filter((_, i) => i !== index));
+                                        // Update UI feedback
+                                        alert('✅ تم حذف الصورة بنجاح');
+                                      } else {
+                                        console.error('❌ Delete failed:', deleteData.error);
+                                        alert('❌ فشل حذف الصورة: ' + deleteData.error);
+                                      }
+                                    } catch (err) {
+                                      console.error('❌ Error deleting image:', err);
+                                      alert('❌ خطأ في حذف الصورة');
+                                    }
                                   }}
-                                  className={cn("absolute top-1 right-1 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity", isDarkMode ? "bg-red-900 text-red-200" : "bg-red-600 text-white")}
+                                  className={cn("absolute top-1 right-1 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity", isDarkMode ? "bg-red-900 text-red-200 hover:bg-red-800" : "bg-red-600 text-white hover:bg-red-700")}
                                   title="حذف الصورة"
                                 >
                                   <X size={16} />

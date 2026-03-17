@@ -4856,6 +4856,80 @@ async function startServer() {
       }
     });
 
+    // Delete product image by URL
+    app.post("/api/topup/products/:productId/remove-image", async (req, res) => {
+      try {
+        const { productId } = req.params;
+        const { store_id, image_url } = req.body;
+
+        if (!store_id || !image_url) {
+          return res.status(400).json({ error: "Missing store_id or image_url" });
+        }
+
+        console.log(`🗑️ Deleting image: ${image_url}`);
+
+        // Get current images array from product
+        const productResult = await pool.query(
+          `SELECT images FROM topup_products WHERE id = $1 AND store_id = $2`,
+          [productId, store_id]
+        );
+
+        if (productResult.rows.length === 0) {
+          return res.status(404).json({ error: "Product not found" });
+        }
+
+        const currentImages = productResult.rows[0].images || [];
+        
+        // Remove this image from the array
+        const updatedImages = currentImages.filter((img: string) => img !== image_url);
+
+        // Delete the file from filesystem if it's from our uploads
+        if (image_url.includes('/uploads/')) {
+          try {
+            const filePath = path.join(__dirname, image_url);
+            if (fs.existsSync(filePath)) {
+              await unlink(filePath);
+              console.log(`✅ File deleted from filesystem: ${filePath}`);
+            }
+          } catch (fileErr) {
+            console.warn(`⚠️ Could not delete file: ${image_url}`, fileErr);
+            // Continue even if file delete fails
+          }
+        }
+
+        // Delete from topup_product_images table
+        try {
+          await pool.query(
+            `DELETE FROM topup_product_images WHERE product_id = $1 AND image_url = $2`,
+            [productId, image_url]
+          );
+          console.log(`✅ Deleted from topup_product_images: ${image_url}`);
+        } catch (dbErr) {
+          console.warn(`⚠️ Could not delete from database: ${image_url}`, dbErr);
+        }
+
+        // Update product with new images array
+        await pool.query(
+          `UPDATE topup_products SET images = $1 WHERE id = $2 AND store_id = $3`,
+          [JSON.stringify(updatedImages), productId, store_id]
+        );
+
+        console.log(`✅ Product images updated. Remaining: ${updatedImages.length}`);
+
+        res.json({
+          success: true,
+          message: "Image deleted successfully",
+          remaining_images: updatedImages
+        });
+      } catch (error) {
+        console.error('❌ Error deleting image:', error);
+        res.status(500).json({ 
+          success: false, 
+          error: (error as any).message 
+        });
+      }
+    });
+
     // Delete an image (after customer downloads it)
     app.delete("/api/topup/product-images/:imageId", async (req, res) => {
       try {
