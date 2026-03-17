@@ -4338,81 +4338,121 @@ async function startServer() {
       try {
         let { store_id, name, logo_url } = req.body;
         
-        console.log('\n📦 POST /api/topup/companies received');
-        console.log('   Payload:', { store_id, name });
+        console.log('\n📦 POST /api/topup/companies');
+        console.log('   Payload:', { store_id, name, logo_url });
         
         if (!name || typeof name !== 'string' || name.trim().length === 0) {
-          console.warn('❌ Invalid or missing company name');
+          console.warn('❌ Invalid name');
           return res.status(400).json({ error: "Company name is required" });
         }
         
-        // Default to store 13 if not provided
-        if (!store_id) {
-          console.log('   ℹ️  No store_id provided, defaulting to 13');
-          store_id = 13;
-        }
+        name = name.trim();
         
-        store_id = parseInt(store_id);
-        if (isNaN(store_id)) {
-          return res.status(400).json({ error: "store_id must be a valid number" });
+        // Priority logic for store_id:
+        // 1. Use provided store_id if valid
+        // 2. Find first topup store
+        // 3. Default to 13
+        
+        let finalStoreId = store_id ? parseInt(store_id) : null;
+        
+        if (!finalStoreId || isNaN(finalStoreId)) {
+          console.log('   🔍 No valid store_id provided, finding topup store...');
+          
+          // Try to find an existing topup store
+          const topupStores = await pool.query(
+            'SELECT id FROM stores WHERE store_type = $1 LIMIT 1',
+            ['topup']
+          );
+          
+          if (topupStores.rows.length > 0) {
+            finalStoreId = topupStores.rows[0].id;
+            console.log(`   ✅ Found existing topup store ID: ${finalStoreId}`);
+          } else {
+            finalStoreId = 13;
+            console.log('   ℹ️  No topup store found, will try to use/create store 13');
+          }
         }
         
         // Set cache headers
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
-        // Check if store exists
-        console.log(`   🔍 Checking if store ${store_id} exists...`);
-        let storeExists = await pool.query('SELECT id FROM stores WHERE id = $1', [store_id]);
+        // Verify store exists, if not create it
+        console.log(`   🔍 Checking store ${finalStoreId}...`);
+        let storeCheck = await pool.query('SELECT id FROM stores WHERE id = $1', [finalStoreId]);
         
-        if (storeExists.rows.length === 0) {
-          console.log(`   ⚠️  Store ${store_id} does not exist, creating it...`);
+        if (storeCheck.rows.length === 0) {
+          console.log(`   ⚠️  Store ${finalStoreId} doesn't exist, creating it...`);
           
           try {
-            // Create the store with explicit ID = 13
-            const createResult = await pool.query(
-              `INSERT INTO stores (id, store_name, slug, owner_name, owner_phone, category, status, is_active, store_type) 
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
-              [store_id, 'Topup Store', 'topup-store', 'Admin', '+964', 'شحن', 'approved', true, 'topup']
+            // Try with explicit ID
+            const createResult = await pool.query(`
+              INSERT INTO stores (id, store_name, slug, owner_name, owner_phone, category, status, is_active, store_type) 
+              VALUES ($1, 'Topup Store', 'topup-store', 'Admin', '+964', 'شحن', 'approved', true, 'topup')
+              RETURNING id
+            `, [finalStoreId]);
+            
+            console.log(`   ✅ Created store ${finalStoreId}`);
+          } catch (createErr: any) {
+            console.error(`   ⚠️  Cannot create store ${finalStoreId}:`, createErr.message);
+            
+            // Fallback: find ANY topup store
+            const anyTopup = await pool.query(
+              'SELECT id FROM stores WHERE store_type = $1 LIMIT 1',
+              ['topup']
             );
             
-            console.log('   ✅ Store created with ID:', createResult.rows[0].id);
-            store_id = createResult.rows[0].id;
-          } catch (storeCreateErr: any) {
-            console.error('   ❌ Failed to create store:', storeCreateErr.message);
-            // Fallback: try to use any existing topup store
-            const fallbackStore = await pool.query('SELECT id FROM stores WHERE store_type = $1 LIMIT 1', ['topup']);
-            if (fallbackStore.rows.length > 0) {
-              console.log('   ✅ Falling back to existing topup store ID:', fallbackStore.rows[0].id);
-              store_id = fallbackStore.rows[0].id;
+            if (anyTopup.rows.length > 0) {
+              finalStoreId = anyTopup.rows[0].id;
+              console.log(`   ✅ Falling back to existing topup store ${finalStoreId}`);
             } else {
-              return res.status(500).json({ 
-                error: "Cannot create or find topup store",
-                details: storeCreateErr.message
-              });
+              // Fallback: find ANY store
+              const anyStore = await pool.query(
+                'SELECT id FROM stores LIMIT 1'
+              );
+              
+              if (anyStore.rows.length > 0) {
+                finalStoreId = anyStore.rows[0].id;
+                console.log(`   ⚠️  Using any store: ${finalStoreId}`);
+              } else {
+                return res.status(500).json({ 
+                  error: "No stores available in database",
+                  details: "Database is empty or corrupted"
+                });
+              }
             }
           }
         } else {
-          console.log(`   ✅ Store ${store_id} exists`);
+          console.log(`   ✅ Store ${finalStoreId} exists`);
         }
         
-        // Now insert the company
-        console.log(`   📝 Inserting company "${name}" for store ${store_id}...`);
+        // Final verification
+        const finalCheck = await pool.query('SELECT id FROM stores WHERE id = $1', [finalStoreId]);
+        if (finalCheck.rows.length === 0) {
+          return res.status(500).json({
+            error: "Could not verify store existence",
+            details: `Store ${finalStoreId} verification failed`
+          });
+        }
+        
+        // Insert the company
+        console.log(`   📝 Inserting company "${name}" into store ${finalStoreId}...`);
         const result = await pool.query(
-          `INSERT INTO topup_companies (store_id, name, logo_url) VALUES ($1, $2, $3) RETURNING *`,
-          [store_id, name.trim(), logo_url || null]
+          `INSERT INTO topup_companies (store_id, name, logo_url) 
+           VALUES ($1, $2, $3) RETURNING *`,
+          [finalStoreId, name, logo_url || null]
         );
         
-        console.log('   ✅ Company inserted successfully');
+        console.log('   ✅ Company added successfully');
         res.status(201).json(result.rows[0]);
         
       } catch (error: any) {
-        console.error('\n❌ ERROR in POST /api/topup/companies:', error.message);
+        console.error('\n❌ ERROR in POST /api/topup/companies');
+        console.error('   Message:', error.message);
         console.error('   Code:', error.code);
-        console.error('   Detail:', error.detail);
         
         res.status(500).json({ 
-          error: error.message || "Failed to create company",
-          details: error.detail || ""
+          error: error.message || "Failed to add company",
+          code: error.code
         });
       }
     });
