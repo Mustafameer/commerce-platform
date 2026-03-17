@@ -67,30 +67,35 @@ const __dirname = path.dirname(__filename);
 
 console.log("📡 [SERVER] Creating database pool...");
 
-// Build connection string from various sources
+// Build connection string with clear priority:
+// 1. Use Railway internal if in production
+// 2. Fallback to environment DATABASE_URL
+// 3. Build from individual environment variables
+// 4. Finally use localhost defaults (dev only)
+
 let connectionString = process.env.DATABASE_URL;
 
-// If DATABASE_URL not set, try Railway hardcoded connection (production)
-if (!connectionString || !connectionString.includes("@")) {
+// 🔥 CRITICAL: In production, ALWAYS prefer Railway internal
+if (process.env.NODE_ENV === 'production') {
   connectionString = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway';
-  console.log("ℹ️  [SERVER] Using Railway hardcoded connection");
-}
-
-// Fallback to localhost if not Railway (development only)
-if (!connectionString.includes('postgres.railway.internal') && !connectionString.includes('localhost')) {
-  const pgHost = process.env.PGHOST || process.env.DB_HOST || "localhost";
-  const pgPort = process.env.PGPORT || process.env.DB_PORT || "5432";
-  const pgUser = process.env.PGUSER || process.env.DB_USER || "postgres";
-  const pgPassword = process.env.PGPASSWORD || process.env.DB_PASSWORD || "123";
-  const pgDatabase = process.env.PGDATABASE || process.env.DB_NAME || "multi_ecommerce";
-  
-  if (pgPassword) {
-    connectionString = `postgresql://${pgUser}:${pgPassword}@${pgHost}:${pgPort}/${pgDatabase}`;
-  } else {
-    connectionString = `postgresql://${pgUser}@${pgHost}:${pgPort}/${pgDatabase}`;
+  console.log("ℹ️  [SERVER] Production Mode: Using Railway internal connection");
+} else {
+  // Development: try DATABASE_URL, then build from env vars, then use localhost
+  if (!connectionString || !connectionString.includes("@")) {
+    const pgHost = process.env.PGHOST || process.env.DB_HOST || "localhost";
+    const pgPort = process.env.PGPORT || process.env.DB_PORT || "5432";
+    const pgUser = process.env.PGUSER || process.env.DB_USER || "postgres";
+    const pgPassword = process.env.PGPASSWORD || process.env.DB_PASSWORD || "123";
+    const pgDatabase = process.env.PGDATABASE || process.env.DB_NAME || "multi_ecommerce";
+    
+    if (pgPassword) {
+      connectionString = `postgresql://${pgUser}:${pgPassword}@${pgHost}:${pgPort}/${pgDatabase}`;
+    } else {
+      connectionString = `postgresql://${pgUser}@${pgHost}:${pgPort}/${pgDatabase}`;
+    }
+    
+    console.log("ℹ️  [SERVER] Development Mode: Built connection from environment");
   }
-  
-  console.log("ℹ️  [SERVER] Using environment variables");
 }
 
 const pool = new Pool({
@@ -106,8 +111,7 @@ console.log("🔌 Database connection string:", connectionString.substring(0, 50
 async function testConnection() {
   try {
     console.log("🔄 Testing database connection...");
-    const dbUrl = process.env.DATABASE_URL || "postgresql://postgres:123@localhost:5432/multi_ecommerce";
-    console.log("🔌 Using DATABASE_URL:", dbUrl.substring(0, 50) + "...");
+    console.log("🔌 Using connection string:", connectionString.substring(0, 50) + "...");
     
     const result = await pool.query("SELECT NOW()");
     console.log("✅ Database connection successful!");
