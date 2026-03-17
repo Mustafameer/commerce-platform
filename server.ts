@@ -5116,7 +5116,7 @@ async function startServer() {
 
         // Get existing images from database
         const existingResult = await pool.query(
-          `SELECT image_urls FROM topup_products WHERE id = $1 AND store_id = $2`,
+          `SELECT images FROM topup_products WHERE id = $1 AND store_id = $2`,
           [topup_product_id, store_id]
         );
 
@@ -5125,7 +5125,10 @@ async function startServer() {
           return res.status(404).json({ error: "Product not found" });
         }
 
-        const existingImageUrls: string[] = existingResult.rows[0].image_urls || [];
+        const existingImageUrls: string[] = existingResult.rows[0].images ? 
+          (Array.isArray(existingResult.rows[0].images) ? existingResult.rows[0].images : 
+           (typeof existingResult.rows[0].images === 'string' ? JSON.parse(existingResult.rows[0].images) : [])) 
+          : [];
         const uploadedUrls: string[] = [];
         const duplicateUrls: string[] = [];
 
