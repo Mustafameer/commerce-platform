@@ -829,9 +829,9 @@ async function startServer() {
       await ensureMissingTables();
       
       // Load/restore data from backup if database is empty
-      const dbUrl = process.env.DATABASE_URL || "postgresql://postgres:123@localhost:5432/multi_ecommerce";
+      // 🔥 CRITICAL: Use the same connection string used for pool!
       try {
-        await initializeDatabase(dbUrl);
+        await initializeDatabase(connectionString);
       } catch (error: any) {
         console.warn("⚠️  Database initialization warning (continuing):", error.message?.substring(0, 100));
       }
