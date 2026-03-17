@@ -196,19 +196,21 @@ export async function initializeDatabase(connectionString: string) {
       const storeCheck = await client.query('SELECT id, store_type FROM stores WHERE id = 13');
       
       if (storeCheck.rows.length === 0) {
-        // Check what the next available ID would be
-        const maxIdCheck = await client.query('SELECT MAX(id) as max_id FROM stores');
-        const nextId = Math.max(13, (maxIdCheck.rows[0].max_id || 0) + 1);
-        
-        console.log('  📝 [DB-INIT] Creating topup store...');
-        await client.query(`
-          INSERT INTO stores (store_name, slug, owner_name, owner_phone, category, status, is_active, store_type) 
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          ['Topup Store', 'topup-main', 'Topup Admin', '+964', 'شحن', 'approved', true, 'topup']
-        );
-        const newStore = await client.query('SELECT id FROM stores WHERE store_type = $1 AND store_name = $2', ['topup', 'Topup Store']);
-        if (newStore.rows.length > 0) {
-          console.log('  ✅ [DB-INIT] Topup store created with ID:', newStore.rows[0].id);
+        console.log('  📝 [DB-INIT] Creating topup store with explicit ID 13...');
+        try {
+          await client.query(`
+            INSERT INTO stores (id, store_name, slug, owner_name, owner_phone, category, status, is_active, store_type) 
+            VALUES (13, $1, $2, $3, $4, $5, $6, $7, $8)`,
+            ['Topup Store', 'topup-main', 'Topup Admin', '+964', 'شحن', 'approved', true, 'topup']
+          );
+          console.log('  ✅ [DB-INIT] Topup store 13 created successfully');
+        } catch (insertErr: any) {
+          // If ID 13 conflicts, just log it - store exists
+          if (insertErr.code === '23505') { // unique_violation
+            console.log('  ℹ️  [DB-INIT] Store 13 already exists');
+          } else {
+            throw insertErr;
+          }
         }
       } else if (storeCheck.rows[0].store_type !== 'topup') {
         console.log('  📝 [DB-INIT] Updating existing store 13 to topup type...');

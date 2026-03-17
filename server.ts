@@ -4368,21 +4368,28 @@ async function startServer() {
           console.log(`   ⚠️  Store ${store_id} does not exist, creating it...`);
           
           try {
-            // Create the store if it doesn't exist
+            // Create the store with explicit ID = 13
             const createResult = await pool.query(
-              `INSERT INTO stores (store_name, slug, owner_name, owner_phone, category, status, is_active, store_type) 
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-              ['Topup Store', 'topup-store', 'Admin', '+964', 'شحن', 'approved', true, 'topup']
+              `INSERT INTO stores (id, store_name, slug, owner_name, owner_phone, category, status, is_active, store_type) 
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+              [store_id, 'Topup Store', 'topup-store', 'Admin', '+964', 'شحن', 'approved', true, 'topup']
             );
             
             console.log('   ✅ Store created with ID:', createResult.rows[0].id);
             store_id = createResult.rows[0].id;
           } catch (storeCreateErr: any) {
             console.error('   ❌ Failed to create store:', storeCreateErr.message);
-            return res.status(500).json({ 
-              error: "Cannot create store",
-              details: storeCreateErr.message
-            });
+            // Fallback: try to use any existing topup store
+            const fallbackStore = await pool.query('SELECT id FROM stores WHERE store_type = $1 LIMIT 1', ['topup']);
+            if (fallbackStore.rows.length > 0) {
+              console.log('   ✅ Falling back to existing topup store ID:', fallbackStore.rows[0].id);
+              store_id = fallbackStore.rows[0].id;
+            } else {
+              return res.status(500).json({ 
+                error: "Cannot create or find topup store",
+                details: storeCreateErr.message
+              });
+            }
           }
         } else {
           console.log(`   ✅ Store ${store_id} exists`);
