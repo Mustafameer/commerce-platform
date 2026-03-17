@@ -5105,6 +5105,19 @@ async function startServer() {
           }
         }
 
+        // 🔥 Update topup_products table with image URLs
+        if (uploadedUrls.length > 0) {
+          try {
+            await pool.query(
+              `UPDATE topup_products SET images = $1 WHERE id = $2 AND store_id = $3`,
+              [JSON.stringify(uploadedUrls), topup_product_id, store_id]
+            );
+            console.log('✅ Product images updated in database:', uploadedUrls.length, 'images');
+          } catch (updateErr) {
+            console.error('⚠️ Warning: Could not update product images in database:', updateErr);
+          }
+        }
+
         let message = `تم تحميل ${uploadedUrls.length} صورة جديدة بنجاح`;
         if (duplicateUrls.length > 0) {
           message += ` (تم تخطي ${duplicateUrls.length} صور مكررة)`;
