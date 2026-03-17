@@ -4,6 +4,10 @@ dist/
 coverage/
 .DS_Store
 *.log
-.env*
-!.env.example
-!.env.production
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+.secrets/
+credentials/
