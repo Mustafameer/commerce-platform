@@ -82,22 +82,11 @@ if (process.env.NODE_ENV === 'production') {
   }
   console.log("ℹ️  [SERVER] Production Mode: Using Railway connection from environment");
 } else {
-  // Development: try DATABASE_URL, then build from env vars, then use localhost
-  if (!connectionString || !connectionString.includes("@")) {
-    const pgHost = process.env.PGHOST || process.env.DB_HOST || "localhost";
-    const pgPort = process.env.PGPORT || process.env.DB_PORT || "5432";
-    const pgUser = process.env.PGUSER || process.env.DB_USER || "postgres";
-    const pgPassword = process.env.PGPASSWORD || process.env.DB_PASSWORD || "123";
-    const pgDatabase = process.env.PGDATABASE || process.env.DB_NAME || "multi_ecommerce";
-    
-    if (pgPassword) {
-      connectionString = `postgresql://${pgUser}:${pgPassword}@${pgHost}:${pgPort}/${pgDatabase}`;
-    } else {
-      connectionString = `postgresql://${pgUser}@${pgHost}:${pgPort}/${pgDatabase}`;
-    }
-    
-    console.log("ℹ️  [SERVER] Development Mode: Built connection from environment");
+  // Development: Must use DATABASE_URL from environment - no fallbacks for security
+  if (!connectionString) {
+    throw new Error('❌ [SERVER] DATABASE_URL must be set in environment. Use .env file or export DATABASE_URL before running.');
   }
+  console.log("ℹ️  [SERVER] Development Mode: Using DATABASE_URL from environment");
 }
 
 const pool = new Pool({

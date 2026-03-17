@@ -16,10 +16,9 @@ export async function initializeDatabase(connectionString: string) {
     connectionString = process.env.DATABASE_URL;
     console.log('ℹ️  [DB-INIT] Production: Using DATABASE_URL from environment');
   } else {
-    // For local development, use the provided string or a local default
-    if (!connectionString || !connectionString.includes("@")) {
-      connectionString = 'postgresql://postgres:12345@localhost:5432/postgres';
-      console.log('ℹ️  [DB-INIT] Development: Using local default connection');
+    // Development: Must use provided connection string or DATABASE_URL from environment
+    if (!connectionString) {
+      throw new Error('❌ [DB-INIT] Connection string must be provided or DATABASE_URL set in environment.');
     }
   }
   
