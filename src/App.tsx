@@ -10025,11 +10025,14 @@ const MerchantTopupDashboard = () => {
           }
         }
         
-        // After uploading new images, update product with combined images if this is an edit
-        if (isEditingProduct) {
-          try {
-            // Combine existing images + newly uploaded images
-            const allImages = [...existingProductImages, ...uploadedImageUrls];
+        // After uploading new images, update product with images (for both new and edited products)
+        try {
+          // Combine existing images + newly uploaded images
+          const allImages = isEditingProduct 
+            ? [...existingProductImages, ...uploadedImageUrls]
+            : uploadedImageUrls; // For new products, use only newly uploaded images
+          
+          if (allImages.length > 0 || isEditingProduct) {
             console.log('🔄 Updating product with combined images:', allImages.length, 'total');
             
             const updateImageResponse = await fetch(`/api/topup/products/${productId}`, {
@@ -10048,10 +10051,12 @@ const MerchantTopupDashboard = () => {
             
             if (updateImageResponse.ok) {
               console.log('✅ Product images updated successfully');
+            } else {
+              console.warn('⚠️ Failed to update product images, status:', updateImageResponse.status);
             }
-          } catch (err) {
-            console.warn('⚠️ Error updating product images:', err);
           }
+        } catch (err) {
+          console.warn('⚠️ Error updating product images:', err);
         }
 
         alert(isEditingProduct ? 'تم التحديث بنجاح' : 'تمت الإضافة بنجاح');

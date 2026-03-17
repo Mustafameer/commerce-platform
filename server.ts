@@ -4725,7 +4725,7 @@ async function startServer() {
     app.put("/api/topup/products/:id", async (req, res) => {
       try {
         const { id } = req.params;
-        const { amount, price, bulk_price, retail_price, wholesale_price, available_codes } = req.body;
+        const { amount, price, bulk_price, retail_price, wholesale_price, available_codes, images } = req.body;
         
         // No cache for modifications
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -4762,6 +4762,13 @@ async function startServer() {
           values.push(available_codes);
         }
         
+        // Handle images array - convert to JSON
+        if (images !== undefined && Array.isArray(images)) {
+          console.log('📸 Updating product images:', images.length, 'images');
+          updates.push(`images = $${paramCount++}`);
+          values.push(JSON.stringify(images)); // Store as JSON
+        }
+        
         updates.push(`updated_at = NOW()`);
         values.push(id);
         
@@ -4772,6 +4779,7 @@ async function startServer() {
           return res.status(404).json({ error: "Product not found" });
         }
         
+        console.log('✅ Product updated:', result.rows[0].id);
         res.json(result.rows[0]);
       } catch (error) {
         console.error('Error updating product:', error);
