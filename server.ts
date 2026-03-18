@@ -14,7 +14,15 @@ import archiver from "archiver";
 // Fix: Ensure all admin endpoints use proper ID validation
 console.log("📡 [SERVER] Server module loading...");
 
-dotenv.config();
+// 🔥 CRITICAL: Only load .env file if DATABASE_URL is NOT set
+// On Railway, DATABASE_URL comes from environment variables, NOT .env file
+// If we load .env file unconditionally, it overwrites Railway's DATABASE_URL
+if (!process.env.DATABASE_URL) {
+  console.log("ℹ️  [SERVER] DATABASE_URL not in environment, checking .env file...");
+  dotenv.config();
+} else {
+  console.log("✅ [SERVER] DATABASE_URL already set in environment (Railway), skipping .env file");
+}
 
 // Initialize Firebase Admin SDK
 const serviceAccount = {
