@@ -5194,15 +5194,20 @@ async function startServer() {
             // Combine existing images + newly uploaded images
             const finalImages = [...existingImageUrls, ...uploadedUrls];
             console.log('🔗 Combining images: existing=', existingImageUrls.length, '+ new=', uploadedUrls.length, '= total', finalImages.length);
+            console.log('📋 Final images array:', finalImages);
+            console.log('📝 JSON before DB save:', JSON.stringify(finalImages));
             
-            await pool.query(
-              `UPDATE topup_products SET images = $1 WHERE id = $2 AND store_id = $3`,
+            const updateResult = await pool.query(
+              `UPDATE topup_products SET images = $1 WHERE id = $2 AND store_id = $3 RETURNING images`,
               [JSON.stringify(finalImages), topup_product_id, store_id]
             );
             console.log('✅ Product images updated in database:', finalImages.length, 'total images');
+            console.log('📊 DB returned:', updateResult.rows[0]?.images);
           } catch (updateErr) {
             console.error('⚠️ Warning: Could not update product images in database:', updateErr);
           }
+        } else {
+          console.warn('⚠️ No images uploaded, uploadedUrls is empty:', { uploadedUrls, images: images.length });
         }
 
         let message = `تم تحميل ${uploadedUrls.length} صورة جديدة بنجاح`;

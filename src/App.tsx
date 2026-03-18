@@ -10001,9 +10001,13 @@ const MerchantTopupDashboard = () => {
                   } else {
                     const uploadResult = await imageResponse.json();
                     console.log('✅ Image uploaded to Firebase successfully');
+                    console.log('📥 Server response:', JSON.stringify(uploadResult, null, 2));
                     // Track uploaded image URLs if API returns them
                     if (uploadResult.image_urls && Array.isArray(uploadResult.image_urls)) {
+                      console.log('🔗 URLs received from server:', uploadResult.image_urls);
                       uploadedImageUrls.push(...uploadResult.image_urls);
+                    } else {
+                      console.warn('⚠️ No image_urls in response. Response keys:', Object.keys(uploadResult));
                     }
                   }
                   resolve();
@@ -10031,6 +10035,11 @@ const MerchantTopupDashboard = () => {
           const allImages = isEditingProduct 
             ? [...existingProductImages, ...uploadedImageUrls]
             : uploadedImageUrls; // For new products, use only newly uploaded images
+          
+          console.log('📦 Before PUT request:');
+          console.log('  existingProductImages:', existingProductImages.length, existingProductImages);
+          console.log('  uploadedImageUrls:', uploadedImageUrls.length, uploadedImageUrls);
+          console.log('  allImages:', allImages.length, allImages);
           
           if (allImages.length > 0 || isEditingProduct) {
             console.log('🔄 Updating product with combined images:', allImages.length, 'total');
