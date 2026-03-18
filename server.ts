@@ -17,6 +17,9 @@ console.log("📡 [SERVER] Server module loading...");
 // 🔥 CRITICAL: Only load .env file if DATABASE_URL is NOT set
 // On Railway, DATABASE_URL comes from environment variables, NOT .env file
 // If we load .env file unconditionally, it overwrites Railway's DATABASE_URL
+console.log("🔍 [STARTUP] Checking DATABASE_URL environment variable...");
+console.log("   Current value:", process.env.DATABASE_URL ? "EXISTS" : "MISSING");
+
 if (!process.env.DATABASE_URL) {
   console.log("ℹ️  [SERVER] DATABASE_URL not in environment, checking .env file...");
   dotenv.config();
