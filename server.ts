@@ -14,10 +14,18 @@ import archiver from "archiver";
 // Fix: Ensure all admin endpoints use proper ID validation
 console.log("📡 [SERVER] Server module loading...");
 
-// 🔥 CRITICAL: On production (Railway), DATABASE_URL is in environment
-// Do NOT load .env file - it will override Railway variables
-if (process.env.NODE_ENV !== 'production') {
+// 🔥 CRITICAL: Check if DATABASE_URL exists in environment BEFORE loading dotenv
+const hasRailwayDb = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('railway');
+console.log("🔍 [STARTUP] DATABASE_URL check:");
+console.log("   Exists:", !!process.env.DATABASE_URL);
+console.log("   Is Railway:", hasRailwayDb);
+
+// Only load .env if DATABASE_URL doesn't exist (local development only)
+if (!process.env.DATABASE_URL) {
+  console.log("⚠️  [STARTUP] No DATABASE_URL in environment, loading from .env...");
   dotenv.config();
+} else {
+  console.log("✅ [STARTUP] DATABASE_URL found in environment, skipping .env");
 }
 
 // Initialize Firebase Admin SDK
@@ -72,28 +80,13 @@ const __dirname = path.dirname(__filename);
 
 console.log("📡 [SERVER] Creating database pool...");
 
-// Build connection string with clear priority:
-// 1. Use Railway internal if in production
-// 2. Fallback to environment DATABASE_URL
-// 3. Build from individual environment variables
-// 4. Finally use localhost defaults (dev only)
-
 let connectionString = process.env.DATABASE_URL;
 
-// 🔥 CRITICAL: In production, MUST use DATABASE_URL from Railway
-if (process.env.NODE_ENV === 'production') {
-  const railwayDb = process.env.DATABASE_URL;
-  if (!railwayDb) {
-    throw new Error('❌ [SERVER] FATAL: DATABASE_URL environment variable not set in production!');
-  }
-  connectionString = railwayDb;
-  console.log("✅ [SERVER] Production Mode: Using Railway DATABASE_URL");
+// 🔥 CRITICAL: Use DATABASE_URL if it exists, whether or not NODE_ENV says so
+if (connectionString) {
+  console.log("✅ [SERVER] Using DATABASE_URL from environment:", connectionString.substring(0, 60) + "...");
 } else {
-  // Development: Must use DATABASE_URL from environment
-  if (!connectionString) {
-    throw new Error('❌ [SERVER] DATABASE_URL must be set in development environment.');
-  }
-  console.log("ℹ️  [SERVER] Development Mode: Using DATABASE_URL");
+  throw new Error('❌ [SERVER] FATAL: DATABASE_URL not set! Please set it in Railway Variables.');
 }
 
 const pool = new Pool({
