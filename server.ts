@@ -4763,11 +4763,21 @@ async function startServer() {
           values.push(available_codes);
         }
         
-        // Handle images array - convert to JSON
+        // Handle images array - convert to JSON (ONLY URLs, NO base64!)
         if (images !== undefined && Array.isArray(images)) {
-          console.log('📸 Updating product images:', images.length, 'images');
+          // 🔥 CRITICAL: Filter out base64/JSON - keep ONLY valid URLs
+          const validImages = images.filter((img: any) => {
+            const isValidUrl = typeof img === 'string' && (img.startsWith('/uploads/') || img.startsWith('http'));
+            const isBase64OrJson = typeof img === 'string' && (img.startsWith('data:') || img.startsWith('{'));
+            if (isBase64OrJson) {
+              console.warn('⚠️ [PUT] Rejecting base64/JSON data from request:', img.substring(0, 50));
+            }
+            return isValidUrl;
+          });
+          console.log('📸 [PUT] Updating product images:', validImages.length, 'valid URLs (filtered from', images.length, 'total)');
+          console.log('📋 [PUT] Valid images to save:', validImages);
           updates.push(`images = $${paramCount++}`);
-          values.push(JSON.stringify(images)); // Store as JSON
+          values.push(JSON.stringify(validImages)); // Store ONLY URLs as JSON
         }
         
         updates.push(`updated_at = NOW()`);

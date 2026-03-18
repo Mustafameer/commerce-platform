@@ -10044,6 +10044,17 @@ const MerchantTopupDashboard = () => {
           if (allImages.length > 0 || isEditingProduct) {
             console.log('🔄 Updating product with combined images:', allImages.length, 'total');
             
+            // 🔥 CRITICAL: Filter out any base64 data URLs - send ONLY actual URLs
+            const validImages = allImages.filter((img: any) => {
+              const isUrl = typeof img === 'string' && (img.startsWith('/uploads/') || img.startsWith('http'));
+              const isBase64 = typeof img === 'string' && (img.startsWith('data:') || img.startsWith('{'));
+              if (isBase64) {
+                console.warn('⚠️ Filtering out base64/JSON data:', img.substring(0, 50) + '...');
+              }
+              return isUrl;
+            });
+            console.log('✅ After filtering - valid URLs only:', validImages.length, validImages);
+            
             const updateImageResponse = await fetch(`/api/topup/products/${productId}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
@@ -10054,7 +10065,7 @@ const MerchantTopupDashboard = () => {
                 price: parseInt(productForm.price),
                 bulk_price: productForm.bulk_price ? parseInt(productForm.bulk_price) : parseInt(productForm.price),
                 quantity_type: productForm.quantity_type,
-                images: allImages // Send all images (existing + newly uploaded)
+                images: validImages // Send ONLY valid URLs (no base64!)
               })
             });
             
