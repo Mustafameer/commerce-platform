@@ -16,15 +16,13 @@ console.log("📡 [SERVER] Server module loading...");
 
 // 🔥 CRITICAL: Only load .env file if DATABASE_URL is NOT set
 // On Railway, DATABASE_URL comes from environment variables, NOT .env file
-// If we load .env file unconditionally, it overwrites Railway's DATABASE_URL
-console.log("🔍 [STARTUP] Checking DATABASE_URL environment variable...");
-console.log("   Current value:", process.env.DATABASE_URL ? "EXISTS" : "MISSING");
+const hasRailwayDb = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('railway');
 
-if (!process.env.DATABASE_URL) {
-  console.log("ℹ️  [SERVER] DATABASE_URL not in environment, checking .env file...");
+if (!hasRailwayDb) {
+  console.log("ℹ️  [SERVER] DATABASE_URL not set or not Railway, loading .env file...");
   dotenv.config();
 } else {
-  console.log("✅ [SERVER] DATABASE_URL already set in environment (Railway), skipping .env file");
+  console.log("✅ [SERVER] Railway DATABASE_URL detected, skipping .env file");
 }
 
 // Initialize Firebase Admin SDK
