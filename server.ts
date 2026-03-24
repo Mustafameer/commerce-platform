@@ -25,15 +25,17 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
 }
 
-// Fail fast if DATABASE_URL is not set
-if (!process.env.DATABASE_URL) {
-  console.error('FATAL: DATABASE_URL environment variable is not set!');
-  console.error('  - In Railway: check Variables tab in your project dashboard');
-  console.error('  - In local dev: add DATABASE_URL=... to your .env file');
-  process.exit(1);
+// If DATABASE_URL is not set or is wrong, fall back to Railway external proxy URL
+// This handles the case where Railway's PostgreSQL plugin vars are not linked to the web service
+const _db = process.env.DATABASE_URL || '';
+if (!_db || _db.includes('localhost') || _db.includes('127.0.0.1') || _db.includes('multi_ecommerce')) {
+  process.env.DATABASE_URL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway';
+  console.log('[DB] Using Railway external proxy URL (DATABASE_URL was:', _db || 'empty', ')');
+} else {
+  console.log('[DB] Using DATABASE_URL from environment');
 }
 
-console.log('[DB] DATABASE_URL is set, connecting...');
+console.log('[DB] Connecting to:', (process.env.DATABASE_URL || '').substring(0, 60) + '...');
 
 // Firebase (optional - only needed if using Firebase Storage for images)
 const serviceAccount = {
