@@ -1419,10 +1419,9 @@ async function startServer() {
     
     // Define distPath early so it's available for all routes
     const distPath = path.join(__dirname, "dist");
-    const isDev = !fs.existsSync(distPath);
     
     if (isDev) {
-      console.log("🔧 Development mode detected - dist folder not found");
+      console.log("🔧 Development mode detected - NODE_ENV is not 'production'");
       console.log("⚠️  Using Vite dev server for frontend");
     }
     
