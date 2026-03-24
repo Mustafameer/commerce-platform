@@ -12,74 +12,26 @@ import admin from "firebase-admin";
 import archiver from "archiver";
 import multer from "multer";
 import sharp from "sharp";
-
-// IMMEDIATE FIX: Override DATABASE_URL before ANY other code runs
-// If Railway Dashboard has wrong DATABASE_URL (localhost), this corrects it
-// dotenv.config() will NOT override this because we set it first
-const _envDbUrl = process.env.DATABASE_URL || "";
-if (!_envDbUrl || _envDbUrl.includes("localhost") || _envDbUrl.includes("127.0.0.1") || _envDbUrl.includes("multi_ecommerce")) {
+// Force Railway internal URL if DATABASE_URL is wrong/missing
+const _rawUrl = process.env.DATABASE_URL || "";
+if (!_rawUrl || _rawUrl.includes("localhost") || _rawUrl.includes("127.0.0.1") || _rawUrl.includes("multi_ecommerce")) {
   process.env.DATABASE_URL = "postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway";
-  console.log("[BOOT] DATABASE_URL set to Railway internal URL (was: " + (_envDbUrl || "empty") + ")");
+  console.log("[BOOT] DATABASE_URL set to Railway internal URL (was: " + (_rawUrl || "empty") + ")");
 } else {
-  console.log("[BOOT] DATABASE_URL already valid: " + _envDbUrl.substring(0, 50));
+  console.log("[BOOT] DATABASE_URL already valid");
 }
 
-// Fix: Ensure all admin endpoints use proper ID validation
-console.log("ًں“، [SERVER] Server module loading...");
-
-// ï؟½ PRODUCTION MODE: Railway ONLY - NO LOCAL FALLBACK!
-console.log('\nًںڑ€ [STARTUP] PRODUCTION MODE - Railway PostgreSQL ONLY!');
-console.log('   LOCAL CONNECTIONS DISABLED - This must run on Railway\n');
-
-// CRITICAL: In production (Railway), variables are set by platform
-// DO NOT override with .env files
-if (process.env.NODE_ENV === 'production') {
-  console.log("âœ… [PRODUCTION MODE] Using Railway environment ONLY - loading NO .env files");
-} else {
-  console.log("ًں“‌ [DEVELOPMENT MODE] Loading .env for local development...");
+// Load .env only in development (Railway injects env vars directly in production)
+if (process.env.NODE_ENV !== "production") {
   dotenv.config();
 }
 
-console.log("âœ… [STARTUP] Environment configuration ready");
+console.log("[SERVER] Starting - NODE_ENV:", process.env.NODE_ENV || "development");
+console.log("[SERVER] DB:", (process.env.DATABASE_URL || "").substring(0, 55) + "...");
 
-// ًں”´ CRITICAL: Validate DATABASE_URL immediately - MUST be set before any database operations
-console.log('\nًں”چ [STARTUP] Validating required environment variables...');
-const requiredEnvVars = {
-  'DATABASE_URL': 'Cloud PostgreSQL connection string'
-};
-
-const missingVars = [];
-for (const [varName, description] of Object.entries(requiredEnvVars)) {
-  if (!process.env[varName] || process.env[varName].trim() === '') {
-    missingVars.push(`  â‌Œ ${varName}: ${description}`);
-  } else {
-    console.log(`  âœ… ${varName}: Set (${process.env[varName].substring(0, 40)}...)`);
-  }
-}
-
-if (missingVars.length > 0) {
-  console.error('\n' + '='.repeat(60));
-  console.error('ًںڑ¨ FATAL: Missing required environment variables!');
-  console.error('='.repeat(60));
-  console.error('\nMissing:');
-  missingVars.forEach(m => console.error(m));
-  console.error('\nًں“‹ Railway Setup Checklist:');
-  console.error('  1. Go to https://railway.app/project/YOUR_PROJECT_ID/plugins');
-  console.error('  2. Add PostgreSQL plugin (if not already added)');
-  console.error('  3. DATABASE_URL will be auto-set by Railway PostgreSQL plugin');
-  console.error('  4. Redeploy: git push (if using GitHub)');
-  console.error('\nًں”— References:');
-  console.error('  - Railway PostgreSQL: https://docs.railway.app/plugins/postgresql');
-  console.error('  - Environment Variables: https://docs.railway.app/develop/variables');
-  console.error('='.repeat(60) + '\n');
-  process.exit(1);
-}
-
-console.log('âœ… [STARTUP] All required environment variables are set\n');
-
-// Initialize Firebase Admin SDK
+// Firebase Admin SDK (optional - only needed for cloud image storage)
 const serviceAccount = {
-  projectId: process.env.FIREBASE_PROJECT_ID || "your-project-id",
+  projectId: process.env.FIREBASE_PROJECT_ID || "",
   privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n") || "",
   clientEmail: process.env.FIREBASE_CLIENT_EMAIL || "",
 };
@@ -90,24 +42,13 @@ if (serviceAccount.projectId && serviceAccount.privateKey && serviceAccount.clie
       credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
       storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "your-bucket.appspot.com",
     });
-    console.log("âœ… Firebase Admin SDK initialized successfully");
+    console.log("[SERVER] Firebase Admin SDK initialized");
   } catch (err) {
-    console.warn("âڑ ï¸ڈ Firebase Admin SDK initialization failed:", err);
+    console.warn("[SERVER] Firebase initialization failed:", err);
   }
 } else {
-  console.warn("âڑ ï¸ڈ Firebase credentials not configured - using local file storage");
+  console.log("[SERVER] Firebase not configured - using local file storage");
 }
-
-console.log("ًں“، [SERVER] Dotenv loaded");
-
-// Log environment variables (at this point DATABASE_URL is guaranteed to be set)
-console.log("ًں“‹ Environment Variables:");
-console.log("  DATABASE_URL:", process.env.DATABASE_URL?.substring(0, 50) + "... âœ…");
-console.log("  PORT:", process.env.PORT || "3000 (default)");
-console.log("  NODE_ENV:", process.env.NODE_ENV || "development (default)");
-console.log("  FIREBASE_PROJECT_ID:", process.env.FIREBASE_PROJECT_ID ? "âœ“ Set" : "â‌Œ Not set (local uploads only)");
-console.log("  FIREBASE_CLIENT_EMAIL:", process.env.FIREBASE_CLIENT_EMAIL ? "âœ“ Set" : "â‌Œ Not set");
-
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 
