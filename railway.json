@@ -6,7 +6,7 @@
   },
   "deploy": {
     "numReplicas": 1,
-    "startCommand": "npm start",
+    "startCommand": "node_modules/.bin/tsx server.ts",
     "restartPolicyMaxRetries": 3
   }
 }
