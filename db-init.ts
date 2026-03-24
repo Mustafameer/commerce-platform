@@ -7,18 +7,18 @@ const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const RAILWAY_INTERNAL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway';
+
 export async function initializeDatabase(connectionString: string) {
-  // 🔥 CRITICAL: Always use DATABASE_URL from environment if it exists
-  // Don't rely on NODE_ENV - Railway may not set it, or it may be wrong
-  const railwayDb = process.env.DATABASE_URL;
-  
-  if (railwayDb) {
+  // In production: always use Railway internal URL
+  if (process.env.NODE_ENV === 'production') {
+    console.log('✅ [DB-INIT] PRODUCTION: Using Railway internal URL');
+    connectionString = RAILWAY_INTERNAL;
+  } else if (process.env.DATABASE_URL) {
     console.log('✅ [DB-INIT] Using DATABASE_URL from environment');
-    connectionString = railwayDb;
+    connectionString = process.env.DATABASE_URL;
   } else if (!connectionString) {
-    throw new Error('❌ [DB-INIT] FATAL: No connection string provided and DATABASE_URL not in environment!');
-  } else {
-    console.log('ℹ️  [DB-INIT] Using provided connection string (local development)');
+    throw new Error('❌ [DB-INIT] FATAL: No connection string provided!');
   }
   
   const client = new Pool({

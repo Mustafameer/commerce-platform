@@ -119,47 +119,44 @@ const __dirname = path.dirname(__filename);
 
 console.log("📡 [SERVER] Creating database pool...");
 
-// 🚀 Railway PostgreSQL ONLY - No local fallback ever
-const RAILWAY_DB_PROXY = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway';
+// ==============================================================
+// 🚀 RAILWAY DATABASE CONNECTION - INTERNAL URL (PRODUCTION)
+// ==============================================================
+// Using internal Railway URL for connection from INSIDE Railway container
+// External proxy (gondola) only works from OUTSIDE Railway
 const RAILWAY_INTERNAL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway';
+const RAILWAY_EXTERNAL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway';
 
-let connectionString = process.env.DATABASE_URL;
+// Determine correct connection string:
+// ALWAYS override to Railway internal URL if running in production
+// or if DATABASE_URL points to localhost (misconfigured Railway dashboard)
+let rawDbUrl = process.env.DATABASE_URL || '';
 
-console.log('🔍 [DB] Type of DATABASE_URL:', typeof connectionString);
-console.log('🔍 [DB] DATABASE_URL first 50 chars:', connectionString ? connectionString.substring(0, 50) : 'UNDEFINED');
+let connectionString: string;
 
-// MUST use Railway - reject absolutely everything else
-if (!connectionString) {
-  console.log('🚨 [FATAL] DATABASE_URL is not set in environment!');
-  throw new Error('FATAL: DATABASE_URL must be set by Railway environment. Check Railway dashboard variables.');
+if (process.env.NODE_ENV === 'production') {
+  // PRODUCTION: Always use Railway internal URL
+  // This bypasses any incorrect DATABASE_URL variable in Railway dashboard
+  connectionString = RAILWAY_INTERNAL;
+  console.log('🚀 [DB] PRODUCTION MODE: Using Railway INTERNAL URL');
+  console.log('🔗 [DB] Host: postgres.railway.internal:5432');
+} else {
+  // DEVELOPMENT: Use local DATABASE_URL or external Railway for testing
+  connectionString = rawDbUrl || 'postgresql://postgres:123@localhost:5432/multi_ecommerce';
+  console.log('🛠️  [DB] DEVELOPMENT MODE: Using local connection');
 }
 
-if (connectionString.includes('localhost') || connectionString.includes('127.0.0.1') || connectionString.includes('multi_ecommerce')) {
-  console.log('🚨 [CRITICAL ERROR] Attempted to use LOCAL database!');
-  console.log('   DATABASE_URL:', connectionString.substring(0, 80));
-  throw new Error('FATAL: LOCAL DATABASE NOT ALLOWED. Remove localhost/127.0.0.1/multi_ecommerce from DATABASE_URL. Use only Railway!');
-}
-
-if (!connectionString.includes('railway') && !connectionString.includes('gondola')) {
-  console.log('🚨 [CRITICAL ERROR] DATABASE_URL does NOT appear to be from Railway!');
-  console.log('   DATABASE_URL:', connectionString.substring(0, 80));
-  throw new Error('FATAL: DATABASE_URL must be from Railway PostgreSQL. Expected "railway" or "gondola" in connection string.');
-}
-
-console.log('✅ [SERVER] DATABASE_URL validated - using Railway PostgreSQL');
+console.log('✅ [DB] Connection configured for:', process.env.NODE_ENV === 'production' ? 'Railway (internal)' : 'Local dev');
 
 const pool = new Pool({
   connectionString,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: 10000,
   idleTimeoutMillis: 30000,
-  max: 20,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  max: 10,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-console.log("✅ [SERVER] Database pool created with Railway connection");
-console.log("🔌 [SERVER] Connecting to:", connectionString.includes('gondola') ? 'Railway (external proxy)' : 'Railway (internal)');
+console.log("✅ [SERVER] Database pool created");
 
 // ✅ LOCAL IMAGE COMPRESSION & STORAGE (NO FIREBASE)
 async function uploadAndCompressImageLocally(base64Data: string, filename: string): Promise<string> {
