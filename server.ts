@@ -13,29 +13,30 @@ import archiver from "archiver";
 import multer from "multer";
 import sharp from "sharp";
 // ============================================================
-// DATABASE CONNECTION - CLEAN AND SIMPLE
+// DATABASE CONNECTION - LOCAL ONLY
 // ============================================================
-// In production (Railway): DATABASE_URL is set in Railway Dashboard
-// In development (local): DATABASE_URL is loaded from .env file
-// No hardcoded URLs. No overrides. No fallbacks to localhost.
+// Always load local environment variables for this workspace.
+dotenv.config();
 
-// Load .env for local development only
-// (Railway sets env vars directly - no .env file needed in production)
-if (process.env.NODE_ENV !== 'production') {
-  dotenv.config();
+const DEFAULT_LOCAL_DATABASE_URL = 'postgresql://postgres:123@localhost:5432/multi_ecommerce';
+
+function isLocalDatabaseUrl(connectionString: string): boolean {
+  return connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
 }
 
-// If DATABASE_URL is not set or is wrong, fall back to Railway external proxy URL
-// This handles the case where Railway's PostgreSQL plugin vars are not linked to the web service
-const _db = process.env.DATABASE_URL || '';
-if (!_db || _db.includes('localhost') || _db.includes('127.0.0.1') || _db.includes('multi_ecommerce')) {
-  process.env.DATABASE_URL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway';
-  console.log('[DB] Using Railway external proxy URL (DATABASE_URL was:', _db || 'empty', ')');
-} else {
-  console.log('[DB] Using DATABASE_URL from environment');
+const configuredDbUrl = process.env.DATABASE_URL || '';
+const resolvedLocalDbUrl = isLocalDatabaseUrl(configuredDbUrl)
+  ? configuredDbUrl
+  : DEFAULT_LOCAL_DATABASE_URL;
+
+if (!isLocalDatabaseUrl(configuredDbUrl)) {
+  console.log('[DB] Ignoring non-local DATABASE_URL and forcing local PostgreSQL');
 }
 
-console.log('[DB] Connecting to:', (process.env.DATABASE_URL || '').substring(0, 60) + '...');
+process.env.DATABASE_URL = resolvedLocalDbUrl;
+
+console.log('[DB] Local PostgreSQL only');
+console.log('[DB] Connecting to:', process.env.DATABASE_URL);
 
 // Firebase (optional - only needed if using Firebase Storage for images)
 const serviceAccount = {
@@ -61,11 +62,10 @@ const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Create database pool using DATABASE_URL directly
-// SSL is required for Railway cloud PostgreSQL
+// Create database pool using the resolved local connection string.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: false,
   connectionTimeoutMillis: 15000,
   idleTimeoutMillis: 30000,
   max: 10,
@@ -1307,22 +1307,15 @@ async function startServer() {
     }
     
     const app = express();
-    
-    // Configure CORS: CLOUD ONLY (no localhost connections)
     const isDev = process.env.NODE_ENV !== 'production';
-    const allowedOrigins = isDev 
-      ? [
-          // Development local ports only when NODE_ENV != production
-          'http://localhost:5173',
-          'http://localhost:3000',
-          'http://127.0.0.1:5173',
-          'http://127.0.0.1:3000',
-        ]
-      : [
-          // Production: Only cloud domain(s)
-          'https://web-production-9efff.up.railway.app',
-          // Add other production domains here if needed
-        ];
+    
+    // Configure CORS for local development only.
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:3000',
+    ];
     
     console.log('ًں”’ [CORS] Allowed origins:', allowedOrigins);
     
