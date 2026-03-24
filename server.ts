@@ -262,7 +262,7 @@ async function syncStoreAuctionSalesTotal(storeId: number): Promise<number> {
 async function testConnection() {
   try {
     console.log("ًں”„ Testing database connection...");
-    console.log("ًں”Œ Using connection string:", connectionString.substring(0, 50) + "...");
+    console.log("ًں”Œ Using connection string:", (process.env.DATABASE_URL || "").substring(0, 50) + "...");
     
     const result = await pool.query("SELECT NOW()");
     console.log("âœ… Database connection successful!");
@@ -1286,7 +1286,7 @@ async function startServer() {
       // Load/restore data from backup if database is empty
       // ًں”¥ CRITICAL: Use the same connection string used for pool!
       try {
-        await initializeDatabase(connectionString);
+        await initializeDatabase(process.env.DATABASE_URL || "");
       } catch (error: any) {
         console.warn("âڑ ï¸ڈ  Database initialization warning (continuing):", error.message?.substring(0, 100));
       }
