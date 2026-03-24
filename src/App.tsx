@@ -45,8 +45,10 @@ import {
   ArrowRight,
   Zap,
   Power,
-  PowerOff
+  PowerOff,
+  Save
 } from 'lucide-react';
+import JSZip from 'jszip';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuthStore, useRegularCartStore, useSettingsStore, useSearchStore, useRefreshStore, useTopupCartStore } from './store';
 import type { User, Store, Product, Order } from './types';
@@ -93,6 +95,32 @@ const formatCurrency = (amount: number | string) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'IQD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(rounded);
 };
 
+// Format number without decimals and with thousands separator
+const formatNumber = (num: number | string) => {
+  const n = typeof num === 'string' ? parseFloat(num) : num;
+  if (isNaN(n)) return '0';
+  return Math.floor(n).toLocaleString('en-US');
+};
+
+// Format date as DD/MM/YYYY
+const formatDateOnly = (dateStr: string | Date) => {
+  try {
+    // If it's already a string in YYYY-MM-DD format, parse it directly
+    if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [year, month, day] = dateStr.split('-');
+      return `${day}/${month}/${year}`;
+    }
+    
+    const date = new Date(dateStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch (e) {
+    return dateStr.toString();
+  }
+};
+
 // --- Sound Notification ---
 const playAddToCartSound = () => {
   try {
@@ -121,41 +149,113 @@ const playAddToCartSound = () => {
     oscillator2.start(audioContext.currentTime + 0.1);
     oscillator2.stop(audioContext.currentTime + 0.25);
   } catch (error) {
-    console.log('صوت التنبيه غير متوفر');
+    // Ignore audio errors on browsers that block autoplay.
   }
 };
 
-// --- Theme Context ---
-const ThemeContext = React.createContext<{ isDarkMode: boolean; setIsDarkMode: (value: boolean) => void }>({ isDarkMode: false, setIsDarkMode: () => {} });
+// --- Clear All Data Function ---
+const clearAllData = async () => {
+  try {
+    // Call API to clear database
+    const response = await fetch('/api/clear-all', { method: 'POST' });
+    const result = await response.json();
 
+    if (result.success) {
+      // Clear localStorage
+      localStorage.clear();
+
+      // Clear sessionStorage
+      sessionStorage.clear();
+
+      // Clear all cookies
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+
+      console.log('✅ تم مسح جميع البيانات بنجاح!');
+
+      // Redirect to home
+      window.location.href = '/';
+    }
+  } catch (error) {
+    console.error('❌ خطأ في مسح البيانات:', error);
+    alert('حدث خطأ أثناء مسح البيانات');
+  }
+}
+
+// --- Theme Context ---
+const ThemeContext = React.createContext<{ isDarkMode: boolean; setIsDarkMode: (value: boolean) => void }>({ isDarkMode: true, setIsDarkMode: () => {} });
 const useTheme = () => React.useContext(ThemeContext);
 
-const ThemeProvider = ({ children, isDarkMode, setIsDarkMode }: { children: React.ReactNode; isDarkMode: boolean; setIsDarkMode: (value: boolean) => void }) => (
-  <ThemeContext.Provider value={{ isDarkMode, setIsDarkMode }}>
-    {children}
-  </ThemeContext.Provider>
-);
+const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
+  // Load theme preference from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('themeMode');
+    if (savedTheme !== null) {
+      setIsDarkMode(JSON.parse(savedTheme));
+    }
+  }, []);
+
+  // Save theme preference to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('themeMode', JSON.stringify(isDarkMode));
+  }, [isDarkMode]);
+
+  return (
+    <ThemeContext.Provider value={{ isDarkMode, setIsDarkMode }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+// --- Constants ---
+// Local SVG placeholder instead of external resources
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" font-size="14" fill="%239ca3af" text-anchor="middle" dominant-baseline="middle" font-family="system-ui"%3Eاضافة صورة%3C/text%3E%3Cpath d="M80 120 L100 100 L120 120" stroke="%239ca3af" stroke-width="2" fill="none"/%3E%3C/svg%3E';
+
+// Helper to get safe image URL (fallback only for broken placeholder hosts)
+const getSafeImageUrl = (url: string | null | undefined): string => {
+  if (!url) return PLACEHOLDER_IMAGE;
+
+  // If it's a data URL or local, use it directly
+  if (url.startsWith('data:') || url.startsWith('/') || url.startsWith('http')) {
+    return url;
+  }
+
+  // Replace known placeholder hosts that fail in this environment
+  if (url.includes('via.placeholder')) {
+    return PLACEHOLDER_IMAGE;
+  }
+
+  return url;
+};
 
 // --- Components ---
 
 const Button = ({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
-  <button 
+  <button
     className={cn(
       "px-4 py-2 rounded-lg font-medium transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none",
       className
-    )} 
-    {...props} 
+    )}
+    {...props}
   />
 );
 
-const Card = ({ children, className, ...props }: { children: React.ReactNode; className?: string; [key: string]: any }) => {
+const Card = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
   const { isDarkMode } = useTheme();
   return (
-    <div className={cn(
-      "rounded-2xl border shadow-sm overflow-hidden transition-colors",
-      isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5",
-      className
-    )} {...props}>
+    <div
+      className={cn(
+        "rounded-2xl border shadow-sm overflow-hidden transition-colors",
+        isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5",
+        className
+      )}
+      {...props}
+    >
       {children}
     </div>
   );
@@ -167,22 +267,21 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
   const { user, logout } = useAuthStore();
   const { appName, logoUrl } = useSettingsStore();
   const { dashboardQuery, setDashboardQuery } = useSearchStore();
-  const navigate = useNavigate();
   const location = useLocation();
   const [settings, setSettings] = useState({ app_name: appName, logo_url: logoUrl });
   const { isDarkMode, setIsDarkMode } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  // Handle window resize to detect mobile/desktop
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
+    handleResize();
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleResize);
-    
+
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
@@ -190,25 +289,21 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
   }, []);
 
   useEffect(() => {
-    // Only fetch settings once when user role changes or on mount
-    const storeId = user?.role === 'merchant' ? user.store_id : ''; 
+    const storeId = user?.role === 'merchant' ? user.store_id : '';
     const roleParam = user?.role || '';
     console.log("🔄 DashboardLayout fetching settings:", { storeId, roleParam });
-    
+
     fetch(`/api/settings${storeId ? `?storeId=${storeId}&role=${roleParam}` : `?role=${roleParam}`}`)
       .then(res => res.json())
       .then(data => {
         console.log("📥 DashboardLayout received settings:", data);
-        if (data && typeof data === 'object' && !data.error && data.app_name) {
-          // Update both local state AND Zustand store together
+        if (data && !data.error) {
           const settingsData = {
-            app_name: data.app_name,
+            app_name: data.app_name || appName,
             logo_url: data.logo_url || '',
-            primary_color: data.primary_color || '#4F46E5'
           };
-          
+
           setSettings(settingsData);
-          // Update the global settings store so it's available everywhere
           useSettingsStore.getState().setSettings(settingsData);
           console.log("✅ Settings updated in both local and Zustand store:", settingsData);
         }
@@ -216,32 +311,31 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
       .catch((err) => {
         console.error("❌ Failed to fetch settings:", err);
       });
-  }, [user?.role, user?.store_id]);
+  }, [appName, user?.role, user?.store_id]);
 
   const handleLogout = () => {
     logout();
-    useSettingsStore.getState().resetSettings(); // Reset settings when logging out
-    setDashboardQuery(''); // reset search on logout
-    navigate('/login');
+    useSettingsStore.getState().resetSettings();
+    setDashboardQuery('');
   };
 
-  const navItems = role === 'admin' ? [
-    { icon: LayoutDashboard, label: 'نظرة عامة', path: '/admin' },
-    { icon: BarChart3, label: 'الإحصائيات', path: '/admin/stats' },
-    { icon: StoreIcon, label: 'المتاجر', path: '/admin/stores', count: counts?.stores },
-    { icon: CheckCircle, label: 'طلبات الانضمام', path: '/admin/approvals', count: counts?.approvals },
-    { icon: Users, label: 'المستخدمون', path: '/admin/users', count: counts?.users },
-    { icon: Settings, label: 'الإعدادات', path: '/admin/settings' },
-  ] : [
-    { icon: LayoutDashboard, label: 'لوحة التحكم', path: '/merchant' },
-    { icon: Package, label: 'المنتجات', path: '/merchant/products', count: counts?.products },
-    { icon: Layout, label: 'الأقسام', path: '/merchant/categories', count: counts?.categories },
-    { icon: Zap, label: 'المزادات', path: '/merchant/auctions', count: counts?.auctions },
-    { icon: ShoppingCart, label: 'الطلبات', path: '/merchant/orders', count: counts?.orders },
-    { icon: Ticket, label: 'قسائم الخصم', path: '/merchant/coupons', count: counts?.coupons },
-    { icon: Users, label: 'العملاء', path: '/merchant/customers', count: counts?.customers },
-    { icon: Settings, label: 'إعدادات المتجر', path: '/merchant/settings' },
-  ];
+  const navItems = role === 'admin'
+    ? [
+        { icon: LayoutDashboard, label: 'لوحة التحكم', path: '/admin' },
+        { icon: Users, label: 'المستخدمون', path: '/admin/users' },
+        { icon: StoreIcon, label: 'المتاجر', path: '/admin/stores', count: counts?.stores },
+        { icon: BarChart3, label: 'الإحصائيات', path: '/admin/stats' },
+      ]
+    : [
+        { icon: LayoutDashboard, label: 'لوحة التحكم', path: '/merchant' },
+        { icon: Package, label: 'المنتجات', path: '/merchant/products', count: counts?.products },
+        { icon: Layout, label: 'الأقسام', path: '/merchant/categories', count: counts?.categories },
+        { icon: Zap, label: 'المزادات', path: '/merchant/auctions', count: counts?.auctions },
+        { icon: ShoppingCart, label: 'الطلبات', path: '/merchant/orders', count: counts?.orders },
+        { icon: Ticket, label: 'قسائم الخصم', path: '/merchant/coupons', count: counts?.coupons },
+        { icon: Users, label: 'العملاء', path: '/merchant/customers', count: counts?.customers },
+        { icon: Settings, label: 'إعدادات المتجر', path: '/merchant/settings' },
+      ];
 
   const isNavItemActive = (path: string) => {
     const rootPath = role === 'admin' ? '/admin' : '/merchant';
@@ -531,6 +625,8 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [orderConfirmation, setOrderConfirmation] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
   const [customerType, setCustomerType] = useState<'cash' | 'reseller' | null>(null);
   const [isVerifyingCustomer, setIsVerifyingCustomer] = useState(false);
   const [selectedForQuantity, setSelectedForQuantity] = useState<any>(null);
@@ -538,6 +634,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
   const [verificationModal, setVerificationModal] = useState<any>(null);
   const [isConfirmingOrder, setIsConfirmingOrder] = useState(false);
   const navigate = useNavigate();
+  const isTopupProduct = (item: any) => item?.store_type === 'topup' || !!item?.retail_price || !!item?.wholesale_price || !!item?.topup_codes;
 
   // حفظ واسترجاع الأكواد من localStorage
   useEffect(() => {
@@ -570,37 +667,41 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
         return;
       }
 
-      let regularProducts: any[] = []; // Define outside try block
       try {
-        // جلب المنتجات العادية
-        const productsRes = await fetch('/api/products');
-        const productsData = await productsRes.json();
-        regularProducts = Array.isArray(productsData) ? productsData : [];
+        let productMap = new Map<number, any>();
 
-        // جلب منتجات الشحن
-        let topupProducts: any[] = [];
-        const storeId = items[0]?.store_id;
-        if (storeId) {
-          try {
-            const topupRes = await fetch(`/api/topup/products/${storeId}`);
-            const topupData = await topupRes.json();
-            topupProducts = Array.isArray(topupData) ? topupData.map((p: any) => ({
-              ...p,
-              store_name: p.company_name,
-              name: `${p.amount}`,
-              topup_codes: p.codes
-            })) : [];
-          } catch (err) {
-            console.error('Error loading topup products:', err);
+        if (isTopupCart) {
+          const storeId = items[0]?.store_id;
+          if (storeId) {
+            try {
+              const topupRes = await fetch(`/api/topup/products/${storeId}`);
+              const topupData = await topupRes.json();
+              const topupProducts = Array.isArray(topupData) ? topupData.map((p: any) => ({
+                ...p,
+                store_name: p.company_name,
+                name: `${p.amount}`,
+                topup_codes: p.codes,
+                store_type: 'topup'
+              })) : [];
+              productMap = new Map(topupProducts.map((p: any) => [p.id, p]));
+            } catch (err) {
+              console.error('Error loading topup products:', err);
+            }
           }
+        } else {
+          const productsRes = await fetch('/api/products');
+          const productsData = await productsRes.json();
+          const regularProducts = Array.isArray(productsData) ? productsData.map((p: any) => ({
+            ...p,
+            store_type: 'regular'
+          })) : [];
+          productMap = new Map(regularProducts.map((p: any) => [p.id, p]));
         }
 
-        // دمج البيانات
-        const allProducts = [...regularProducts, ...topupProducts];
-        const productMap = new Map(allProducts.map((p: any) => [p.id, p]));
-
         // إثراء بيانات السلة
-        const enriched = items.map(cartItem => {
+        const enriched = items
+          .filter(cartItem => isTopupCart ? isTopupProduct(cartItem) : !isTopupProduct(cartItem))
+          .map(cartItem => {
           const fullProduct = productMap.get(cartItem.id);
           if (fullProduct) {
             return {
@@ -610,21 +711,25 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               company_name: fullProduct.company_name,
               category_name: fullProduct.category_name,
               image_url: fullProduct.image_url || cartItem.image_url,
+              store_type: isTopupCart ? 'topup' : 'regular'
             };
           }
-          return cartItem;
+          return {
+            ...cartItem,
+            store_type: isTopupCart ? 'topup' : 'regular'
+          };
         });
 
         setEnrichedItems(enriched);
         console.log('✅ Enriched items:', enriched);
       } catch (err) {
         console.error('Error enriching items:', err);
-        setEnrichedItems(items);
+        setEnrichedItems(items.filter(cartItem => isTopupCart ? isTopupProduct(cartItem) : !isTopupProduct(cartItem)));
       }
     };
 
     enrichItems();
-  }, [items]);
+  }, [items, isTopupCart]);
 
   // تحقق فوري من localStorage عند تحميل الصفحة
   useEffect(() => {
@@ -827,18 +932,29 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
   const handleApplyCoupon = async () => {
     setCouponError('');
     try {
+      if (!items[0]) {
+        setCouponError('لا توجد عناصر في السلة');
+        return;
+      }
+      
       const res = await fetch(`/api/coupons/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          storeId: items[0]?.store_id,
-          code: couponCode,
-          orderValue: subtotal
+          code: couponCode.toUpperCase(),
+          store_id: items[0].store_id,
+          order_amount: subtotal
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setAppliedCoupon(data);
+      setCouponCode('');
+      
+      // Increment coupon usage
+      if (data.id) {
+        await fetch(`/api/coupons/${data.id}/use`, { method: 'POST' });
+      }
     } catch (err: any) {
       setCouponError(err.message);
       setAppliedCoupon(null);
@@ -950,7 +1066,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
         if (!acc[storeId]) {
           acc[storeId] = {
             items: [],
-            store_type: item.store_type || 'regular'
+            store_type: isTopupCart ? 'topup' : 'regular'
           };
         }
         acc[storeId].items.push({
@@ -1018,7 +1134,8 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                 customer_type: customerType || user?.customer_type || 'cash',
                 phone: phone.trim(),
                 address: address.trim(),
-                total_amount: itemAmount - itemDiscount
+                total_amount: itemAmount - itemDiscount,
+                selected_images: item.selectedImagesForPurchase || item.images || []
               })
             });
 
@@ -1027,29 +1144,49 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               throw new Error(data.error || 'فشل إنشاء طلب الشحن');
             }
 
-            // Fetch topup codes for this order
-            let itemCodes: string[] = [];
-            try {
-              const codesRes = await fetch(`/api/topup/order-codes/${data.order_id}`);
-              const codesData = await codesRes.json();
-              
-              if (Array.isArray(codesData)) {
-                itemCodes = codesData;
-              } else if (codesData.codes && Array.isArray(codesData.codes)) {
-                itemCodes = codesData.codes;
-              } else if (codesData.data && Array.isArray(codesData.data)) {
-                itemCodes = codesData.data;
+            // Get images directly from response or fetch if needed
+            let itemImages: any[] = data.images || [];
+            let productImages: any[] = [];
+            
+            // Fallback: Fetch images if not in response
+            if (itemImages.length === 0) {
+              try {
+                const imagesRes = await fetch(`/api/topup/order-images/${data.order_id}`);
+                const imagesData = await imagesRes.json();
+                
+                if (imagesData.images && Array.isArray(imagesData.images)) {
+                  itemImages = imagesData.images;
+                } else if (Array.isArray(imagesData)) {
+                  itemImages = imagesData;
+                }
+                
+                console.log('🖼️ Fetched images from API (fallback):', {
+                  orderId: data.order_id,
+                  imagesCount: itemImages.length,
+                  grouped: imagesData.grouped_by_product
+                });
+              } catch (err) {
+                console.error('Failed to fetch topup images:', err);
               }
-              
-              console.log('📨 Fetched codes from API:', {
+            } else {
+              console.log('🖼️ Got images from purchase response:', {
                 orderId: data.order_id,
-                codesCount: itemCodes.length
+                imagesCount: itemImages.length
               });
-            } catch (err) {
-              console.error('Failed to fetch topup codes:', err);
             }
 
-            allCodes = [...allCodes, ...itemCodes];
+            // Filter images for this product only
+            productImages = itemImages.filter((img: any) => {
+              const productId = typeof img === 'string' ? item.product_id : img.product_id;
+              return img.product_id === item.product_id || typeof img === 'string';
+            });
+
+            // If productImages is empty and itemImages contains strings, use item.images directly
+            if (productImages.length === 0 && Array.isArray(itemImages) && itemImages.length > 0 && typeof itemImages[0] === 'string') {
+              productImages = itemImages.slice(0, item.quantity).map((url: string) => ({ image_url: url }));
+            }
+
+            allCodes = [...allCodes, ...productImages];
             confirmationItems.push({
               ...item,
               product_name: (item.product_name && item.product_name !== 'undefined') 
@@ -1057,7 +1194,8 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                 : (item.name || 'منتج'),
               company_name: (item.company_name && item.company_name !== 'undefined') 
                 ? item.company_name 
-                : 'غير محدد'
+                : 'غير محدد',
+              product_images: productImages
             });
           }
 
@@ -1065,7 +1203,8 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
           orderConfirmations.push({
             orderId: `${storeId}-${Date.now()}`,
             items: confirmationItems,
-            codes: allCodes
+            codes: allCodes,
+            images: allCodes
           });
           
           console.log('📦 Order confirmation created for store:', {
@@ -1141,13 +1280,18 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
           <div className="space-y-4 md:hidden">
             {orderConfirmation.confirmations.map((conf: any, idx: number) => 
               conf.items.map((item: any, itemIdx: number) => {
-                let codes = conf.codes;
-                if (!Array.isArray(codes)) {
-                  codes = [];
+                // Use product-specific images if available, otherwise fall back to codes
+                let availableCodes = item.product_images || [];
+                
+                if (!Array.isArray(availableCodes) || availableCodes.length === 0) {
+                  // Fallback to old logic
+                  let codes = conf.codes;
+                  if (!Array.isArray(codes)) {
+                    codes = [];
+                  }
+                  const displayQuantity = item.quantity || 0;
+                  availableCodes = codes.slice(0, displayQuantity);
                 }
-
-                const displayQuantity = item.quantity || 0;
-                const availableCodes = codes.slice(0, displayQuantity);
 
                 let displayName = '';
                 if (item.product_name && item.product_name !== 'undefined') {
@@ -1164,18 +1308,21 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                   <div key={`${idx}-${itemIdx}`} className={cn("rounded-2xl border p-4", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50")}>
                     <div className="mb-3">
                       <h3 className={cn("font-normal text-sm leading-6 break-words", isDarkMode ? "text-gray-100" : "text-gray-900")}>{displayName}</h3>
-                      <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>الكمية: {displayQuantity}</p>
+                      <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>الكمية: {item.quantity || 0}</p>
                     </div>
                     {availableCodes.length > 0 ? (
-                      <div className="flex flex-col gap-2">
-                        {availableCodes.map((code: string, cIdx: number) => (
-                          <div key={cIdx} className={cn("px-3 py-2 rounded-xl font-mono text-sm text-center break-all", isDarkMode ? "bg-gray-700 text-gray-100" : "bg-white text-gray-900 border border-gray-200")}>
-                            {code}
-                          </div>
-                        ))}
+                      <div className="flex flex-wrap gap-2">
+                        {availableCodes.map((imageObj: any, cIdx: number) => {
+                          const imageUrl = imageObj.image_url || imageObj;
+                          return (
+                            <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImage(imageUrl); setShowImageModal(true); }}>
+                              <img src={imageUrl} alt={`صورة ${cIdx + 1}`} className="w-16 h-16 object-cover rounded-lg border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(e: any) => e.target.style.display = 'none'} />
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
-                      <span className="text-gray-500 text-sm">لا توجد أكواد متاحة</span>
+                      <span className="text-gray-500 text-sm">لا توجد صور متاحة</span>
                     )}
                   </div>
                 );
@@ -1196,17 +1343,18 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               <tbody>
                 {orderConfirmation.confirmations.map((conf: any, idx: number) => 
                   conf.items.map((item: any, itemIdx: number) => {
-                    // الحصول على الأكواد والتأكد من أنها array
-                    let codes = conf.codes;
-                    if (!Array.isArray(codes)) {
-                      codes = [];
+                    // Use product-specific images if available
+                    let availableCodes = item.product_images || [];
+                    
+                    if (!Array.isArray(availableCodes) || availableCodes.length === 0) {
+                      // Fallback to old logic
+                      let codes = conf.codes;
+                      if (!Array.isArray(codes)) {
+                        codes = [];
+                      }
+                      const displayQuantity = item.quantity || 0;
+                      availableCodes = codes.slice(0, displayQuantity);
                     }
-                    
-                    // الكمية المطلوبة
-                    const displayQuantity = item.quantity || 0;
-                    
-                    // الأكواد المتاحة حسب الكمية
-                    const availableCodes = codes.slice(0, displayQuantity);
                     
                     // بناء اسم المنتج - تأكد من عدم معاملة undefined
                     let displayName = '';
@@ -1225,10 +1373,8 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                       company_name: item.company_name,
                       name: item.name,
                       displayName: displayName,
-                      quantity: displayQuantity,
-                      totalCodesAvailable: codes.length,
-                      availableCodesCount: availableCodes.length,
-                      codes: codes
+                      quantity: item.quantity || 0,
+                      product_images_count: availableCodes.length
                     });
                     
                     return (
@@ -1237,19 +1383,22 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                           <div className="font-normal text-sm break-words">{displayName}</div>
                         </td>
                         <td className={cn("px-6 py-4 text-center align-top", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                          <div className="font-semibold text-lg">{displayQuantity}</div>
+                          <div className="font-semibold text-lg">{item.quantity || 0}</div>
                         </td>
                         <td className={cn("px-6 py-4 text-right align-top", isDarkMode ? "text-gray-300" : "text-gray-700")}>
                           {availableCodes.length > 0 ? (
-                            <div className="flex flex-col gap-2">
-                              {availableCodes.map((code: string, cIdx: number) => (
-                                <div key={cIdx} className={cn("px-3 py-2 rounded font-mono text-sm text-center", isDarkMode ? "bg-gray-700 text-gray-100" : "bg-gray-200 text-gray-900")}>
-                                  {code}
-                                </div>
-                              ))}
+                            <div className="flex flex-wrap gap-2">
+                              {availableCodes.map((imageObj: any, cIdx: number) => {
+                                const imageUrl = imageObj.image_url || imageObj;
+                                return (
+                                  <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImage(imageUrl); setShowImageModal(true); }}>
+                                    <img src={imageUrl} alt={`صورة ${cIdx + 1}`} className="w-12 h-12 object-cover rounded border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(e: any) => e.target.style.display = 'none'} />
+                                  </div>
+                                );
+                              })}
                             </div>
                           ) : (
-                            <span className="text-gray-500 text-sm">لا توجد أكواد متاحة</span>
+                            <span className="text-gray-500 text-sm">لا توجد صور متاحة</span>
                           )}
                         </td>
                       </tr>
@@ -1260,28 +1409,78 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             </table>
           </div>
 
-          {/* أزرار النسخ والعودة */}
+          {/* أزرار التحكم والعودة */}
           <div className={cn("mt-8 flex flex-col sm:flex-row gap-4 justify-center")}>
             <button
-              onClick={() => {
-                navigator.clipboard.writeText(
-                  orderConfirmation.confirmations
-                    .map((conf: any) => 
-                      conf.items
-                        .map((item: any, idx: number) => {
-                          const codes = conf.codes?.slice(0, item.quantity) || [];
-                          return `${item.product_name}:\n${codes.join('\n')}`;
-                        })
-                        .join('\n\n')
-                    )
-                    .join('\n\n---\n\n')
-                );
-                alert('✅ تم نسخ الأكواد!');
+              onClick={async () => {
+                // حفظ الصور في ملف ZIP
+                try {
+                  const zip = new JSZip();
+                  
+                  // collection صور حسب المنتج
+                  let imageIndex = 0;
+                  let hasImages = false;
+                  
+                  for (const conf of orderConfirmation.confirmations) {
+                    for (const item of conf.items) {
+                      const productImages = item.product_images || [];
+                      
+                      if (productImages.length > 0) {
+                        hasImages = true;
+                        
+                        // إنشاء فولدر للمنتج
+                        const productName = item.product_name || item.name || `منتج_${item.product_id}`;
+                        const productFolder = zip.folder(productName.replace(/[\/\\:*?"<>|]/g, '_'));
+                        
+                        // إضافة الصور للفولدر
+                        for (let i = 0; i < productImages.length; i++) {
+                          const imageUrl = productImages[i].image_url || productImages[i];
+                          if (imageUrl) {
+                            try {
+                              const response = await fetch(imageUrl, { mode: 'cors' });
+                              const blob = await response.blob();
+                              
+                              // الحصول على نوع الملف
+                              const contentType = blob.type;
+                              const ext = contentType.split('/')[1]?.split(';')[0] || 'jpg';
+                              
+                              productFolder?.file(`صورة_${i + 1}.${ext}`, blob);
+                              imageIndex++;
+                            } catch (err) {
+                              console.warn(`تحذير: لم يتم تحميل صورة من ${productName}`, err);
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                  
+                  if (!hasImages) {
+                    alert('❌ لا توجد صور للحفظ');
+                    return;
+                  }
+                  
+                  // إنشاء ملف ZIP وتحميله
+                  const zipBlob = await zip.generateAsync({ type: 'blob' });
+                  const zipUrl = URL.createObjectURL(zipBlob);
+                  const link = document.createElement('a');
+                  link.href = zipUrl;
+                  link.download = `صور_الطلب_${new Date().toISOString().slice(0, 10)}.zip`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(zipUrl);
+                  
+                  alert(`✅ تم حفظ ${imageIndex} صورة في ملف ZIP!`);
+                } catch (err) {
+                  console.error('خطأ في حفظ الصور:', err);
+                  alert(`❌ خطأ: ${(err as any).message || 'فشل حفظ الصور'}`);
+                }
               }}
               className="px-8 py-3 rounded-lg text-white font-normal transition-all"
               style={{ backgroundColor: primaryColor }}
             >
-              📋 نسخ الأكواد
+              💾 حفظ الصور في فولدر
             </button>
 
             <button
@@ -1302,6 +1501,21 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               ← العودة {isTopupCart ? 'للمتجر' : 'للرئيسية'}
             </button>
           </div>
+
+          {/* Image Lightbox Modal */}
+          {showImageModal && selectedImage && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setShowImageModal(false)}>
+              <div className="relative max-w-2xl max-h-screen" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => setShowImageModal(false)}
+                  className="absolute -top-10 right-0 text-white text-2xl font-bold hover:text-gray-300"
+                >
+                  ✕
+                </button>
+                <img src={selectedImage} alt="صورة كاملة" className="w-full h-full object-contain rounded-lg" onError={(e: any) => e.target.style.display = 'none'} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1960,11 +2174,11 @@ const MobileFooterNav = () => {
             </Link>
           ))}
           
-          {/* Dashboard Button */}
+          {/* Dashboard Button - Hidden */}
           <button
             onClick={handleDashboardClick}
             className={cn(
-              "relative min-w-[72px] flex-1 rounded-2xl px-2 py-2 text-center transition-colors",
+              "relative min-w-[72px] flex-1 rounded-2xl px-2 py-2 text-center transition-colors hidden",
               (isDarkMode ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100")
             )}
           >
@@ -2546,7 +2760,7 @@ const AdminDashboard = () => {
   const { dashboardQuery } = useSearchStore();
   const adminLogoUploadRef = useRef<HTMLInputElement>(null);
 
-  const [adminConfig, setAdminConfig] = useState({ app_name: appName, logo_url: logoUrl, admin_commission_percentage: 0 });
+  const [adminConfig, setAdminConfig] = useState({ app_name: '', logo_url: '', admin_commission_percentage: 0 });
   
   // Filter states
   const [dateFromFilter, setDateFromFilter] = useState('');
@@ -2620,6 +2834,32 @@ const AdminDashboard = () => {
     }
   }, [section]);
 
+  // Load initial data on component mount
+  useEffect(() => {
+    console.log('🚀 AdminDashboard mounted - loading initial data');
+    const loadInitialData = async () => {
+      try {
+        const storesRes = await fetch('/api/admin/stores').then(res => {
+          console.log('Response status:', res.status);
+          return res.json();
+        }).catch(err => {
+          console.error('Fetch error:', err);
+          return [];
+        });
+        console.log('✅ Initial stores response:', storesRes);
+        console.log('   Type:', typeof storesRes);
+        console.log('   Is Array:', Array.isArray(storesRes));
+        console.log('   Length:', storesRes?.length || 0);
+        const finalStores = Array.isArray(storesRes) ? storesRes : [];
+        console.log('   Setting stores to:', finalStores.length, 'items');
+        setStores(finalStores);
+      } catch (err) {
+        console.error("Failed to load initial stores:", err);
+      }
+    };
+    loadInitialData();
+  }, []);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -2639,7 +2879,7 @@ const AdminDashboard = () => {
           fetch('/api/admin/admin-users').then(res => res.json()).catch(() => [])
         ]);
         
-        console.log('Stores data received:', storesRes, 'Type:', typeof storesRes, 'IsArray:', Array.isArray(storesRes));
+        console.log('🔄 تحديث البيانات - Stores data received:', storesRes?.length || 0, 'store(s)');
         
         // Check if today is the 27th of the month
         const today = new Date();
@@ -2655,7 +2895,7 @@ const AdminDashboard = () => {
         }
         
         const finalStores = Array.isArray(storesRes) ? storesRes : [];
-        console.log('Setting stores to:', finalStores.length);
+        console.log('✅ Setting stores to:', finalStores.length, 'stores');
         setStores(finalStores);
         setStats(statsRes && typeof statsRes === 'object' && !statsRes.error ? statsRes : { totalStores: 0, totalUsers: 0, totalCustomers: 0, totalRevenue: 0, totalOrders: 0, adminCommissionPercentage: 0, adminCommission: 0, merchantRevenue: 0 });
         setUsers(Array.isArray(usersRes) ? usersRes : []);
@@ -2668,8 +2908,11 @@ const AdminDashboard = () => {
         setLoading(false);
       }
     };
+    
+    // Load data whenever section changes or component mounts
+    console.log('📍 AdminDashboard effect triggered - section:', section, 'effectiveSection:', effectiveSection);
     loadData();
-  }, [effectiveSection]);
+  }, [section]);
 
   // Auto-refresh data every 5 seconds
   useEffect(() => {
@@ -2788,12 +3031,25 @@ const AdminDashboard = () => {
       const data = await res.json();
       
       if (res.ok) {
-        alert("تم تحديث حالة المتجر وتفعيله بنجاح");
-        // Keep dialog open so user can send WhatsApp message manually
-        // Refresh
-        fetch('/api/admin/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh stores error:', err));
-        fetch('/api/admin/pending-stores').then(res => res.json()).then(setPendingStores).catch(err => console.error('Refresh pending stores error:', err));
-        fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Refresh stats error:', err));
+        console.log('✅ Store approved successfully:', approveDialog.store.store_name);
+        
+        // Refresh all lists
+        await Promise.all([
+          fetch('/api/admin/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh stores error:', err)),
+          fetch('/api/admin/pending-stores').then(res => res.json()).then(setPendingStores).catch(err => console.error('Refresh pending stores error:', err)),
+          fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Refresh stats error:', err))
+        ]);
+        
+        // Close the approval dialog
+        setApproveDialog({ store: null, customPhone: '' });
+        
+        // Show success alert
+        alert("تم تحديث حالة المتجر وتفعيله بنجاح! انتقل إلى قائمة المتاجر لرؤيته");
+        
+        // Navigate to stores section after a short delay to ensure data is refreshed
+        setTimeout(() => {
+          navigate('/admin/stores');
+        }, 500);
       } else {
         const errorMsg = data.error || "خطأ غير معروف عند تفعيل المتجر";
         alert("فشل في تفعيل المتجر: " + errorMsg);
@@ -2812,10 +3068,14 @@ const AdminDashboard = () => {
       const data = await res.json();
       
       if (res.ok) {
+        // Refresh all lists with Promise.all to wait for completion
+        await Promise.all([
+          fetch('/api/admin/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err)),
+          fetch('/api/admin/pending-stores').then(res => res.json()).then(setPendingStores).catch(err => console.error('Refresh pending stores error:', err)),
+          fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Stats refresh error:', err))
+        ]);
+        
         alert("تم رفض طلب المتجر بنجاح");
-        fetch('/api/admin/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
-        fetch('/api/admin/pending-stores').then(res => res.json()).then(setPendingStores).catch(err => console.error('Refresh pending stores error:', err));
-        fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Stats refresh error:', err));
       } else {
         alert("فشل رفض المتجر: " + (data.error || "خطأ غير معروف"));
         console.error('Reject error:', data);
@@ -3493,6 +3753,18 @@ const AdminDashboard = () => {
         >
           💾 حفظ الإعدادات
         </button>
+
+        {/* زر مسح جميع البيانات */}
+        <button 
+          onClick={() => {
+            if (window.confirm('⚠️ هل أنت متأكد من رغبتك في مسح جميع البيانات من قاعدة البيانات؟\nهذا الإجراء لا يمكن التراجع عنه!')) {
+              clearAllData();
+            }
+          }}
+          className="w-full py-3 rounded-lg text-white font-normal text-base shadow-lg hover:shadow-xl transition-all active:scale-95 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
+        >
+          🗑️ مسح جميع البيانات
+        </button>
       </div>
     </Card>
     );
@@ -3796,7 +4068,7 @@ const AdminDashboard = () => {
 const MerchantDashboard = () => {
   const { isDarkMode } = useTheme();
   const { user, setUser } = useAuthStore();
-  const { dashboardQuery } = useSearchStore();
+  const { dashboardQuery, setDashboardQuery } = useSearchStore();
   const { primaryColor } = useSettingsStore();
   const [products, setProducts] = useState<(Product & { category_name?: string })[]>([]);
   const [categories, setCategories] = useState<{ id: number; name: string; image_url?: string }[]>([]);
@@ -3809,6 +4081,7 @@ const MerchantDashboard = () => {
   const [merchantStats, setMerchantStats] = useState<any>({
     totalRevenue: 0,
     orderStats: { total: 0, pending: 0, completed: 0 },
+    fulfillmentStats: { total: 0, pending: 0, completed: 0 },
     topProducts: []
   });
   const { section } = useParams();
@@ -3817,34 +4090,34 @@ const MerchantDashboard = () => {
   console.log('🔧 MerchantDashboard - section:', section, 'orders length:', orders.length);
   const logoUploadRef = useRef<HTMLInputElement>(null);
 
-  const filteredProducts = products.filter(p => 
+  const filteredProducts = Array.isArray(products) ? products.filter(p => 
     (p.name && p.name.toLowerCase().includes(dashboardQuery.toLowerCase())) ||
     (p.description && p.description.toLowerCase().includes(dashboardQuery.toLowerCase())) ||
     (p.category_name && p.category_name.toLowerCase().includes(dashboardQuery.toLowerCase()))
-  );
+  ) : [];
 
-  const filteredCategories = categories.filter(c => 
+  const filteredCategories = Array.isArray(categories) ? categories.filter(c => 
     c.name && c.name.toLowerCase().includes(dashboardQuery.toLowerCase())
-  );
+  ) : [];
 
-  const filteredOrders = orders.filter(o => true);
+  const filteredOrders = Array.isArray(orders) ? orders.filter(o => true) : [];
 
-  const filteredCustomers = customers.filter(c => 
+  const filteredCustomers = Array.isArray(customers) ? customers.filter(c => 
     (c.name && c.name.toLowerCase().includes(dashboardQuery.toLowerCase())) ||
     (c.phone || '').includes(dashboardQuery)
-  );
+  ) : [];
 
-  const filteredCoupons = coupons.filter(c => 
+  const filteredCoupons = Array.isArray(coupons) ? coupons.filter(c => 
     (c.code && c.code.toLowerCase().includes(dashboardQuery.toLowerCase()))
-  );
+  ) : [];
 
   const sidebarCounts = {
-    products: products.length,
-    categories: categories.length,
-    orders: orders.filter(o => o.status === 'pending').length,
-    customers: customers.length,
-    coupons: coupons.filter(c => c.is_active).length,
-    auctions: auctions.filter(a => a.status !== 'ended').length
+    products: Array.isArray(products) ? products.length : 0,
+    categories: Array.isArray(categories) ? categories.length : 0,
+    orders: Array.isArray(orders) ? orders.filter(o => o.status === 'pending').length : 0,
+    customers: Array.isArray(customers) ? customers.length : 0,
+    coupons: Array.isArray(coupons) ? coupons.filter(c => c.is_active).length : 0,
+    auctions: Array.isArray(auctions) ? auctions.filter(a => !a.sold_at).length : 0
   };
 
   const [merchantConfig, setMerchantConfig] = useState({ app_name: '', logo_url: '', primary_color: '#4F46E5' });
@@ -3859,9 +4132,26 @@ const MerchantDashboard = () => {
   const [salesData, setSalesData] = useState<any>({
     daily: [],
     weekly: [],
-    monthly: []
+    monthly: [],
+    summary: {
+      totalRevenue: 0,
+      totalOrders: 0,
+      averageOrder: 0,
+      from: null,
+      to: null
+    }
   });
   const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
+  const [salesDateFrom, setSalesDateFrom] = useState('');
+  const [salesDateTo, setSalesDateTo] = useState('');
+  const [salesTypeFilter, setSalesTypeFilter] = useState<'all' | 'order' | 'auction'>('all');
+  const [isLoadingSalesData, setIsLoadingSalesData] = useState(false);
+  const [salesReportError, setSalesReportError] = useState('');
+
+  // Auction Save Modal
+  const [showAuctionSaveModal, setShowAuctionSaveModal] = useState(false);
+  const [selectedAuctionForSave, setSelectedAuctionForSave] = useState<any>(null);
+  const [finalSalePrice, setFinalSalePrice] = useState('');
 
   // Modal states
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -3876,12 +4166,11 @@ const MerchantDashboard = () => {
   const [customerForm, setCustomerForm] = useState({
     name: '',
     phone: '',
-    email: '',
-    customer_type: 'cash' as 'cash' | 'reseller',
-    credit_limit: '',
     password: '',
+    starting_balance: '',
+    credit_limit: '',
     notes: '',
-    starting_balance: ''
+    customer_type: 'cash'
   });
   const [productForm, setProductForm] = useState({
     name: '',
@@ -3895,11 +4184,80 @@ const MerchantDashboard = () => {
     gallery: [] as string[],
     topup_codes_text: '',
     auction_date: '',
-    auction_start_time: '09:00',
-    auction_end_time: '18:00',
+    auction_start_time: '',
+    auction_end_time: '',
     auction_price: '',
     is_auction: false
   });
+  const updateProductForm = (patch: Partial<typeof productForm>) => {
+    setProductForm(prev => ({ ...prev, ...patch }));
+  };
+  const syncAuctionPriceFields = (nextValue: string) => {
+    updateProductForm({
+      price: nextValue,
+      auction_price: nextValue
+    });
+  };
+  const filterAuctionsForStore = (allAuctions: any[], storeId?: number | string | null) => {
+    if (!Array.isArray(allAuctions) || !storeId) return [];
+    return allAuctions.filter((auction: any) => Number(auction.store_id) === Number(storeId));
+  };
+  const fetchMerchantAuctions = async (storeId?: number | string | null) => {
+    if (!storeId) {
+      setAuctions([]);
+      return [];
+    }
+
+    const auctionsRes = await fetch('/api/auctions/active?includeSold=true');
+    const auctionsData = await auctionsRes.json();
+    const merchantAuctions = filterAuctionsForStore(Array.isArray(auctionsData) ? auctionsData : [], storeId);
+    setAuctions(merchantAuctions);
+    return merchantAuctions;
+  };
+  const fetchMerchantStatsData = async (storeId?: number | string | null) => {
+    if (!storeId) return null;
+
+    const statsRes = await fetch(`/api/merchant/stats?storeId=${storeId}`);
+    const statsData = await statsRes.json();
+    if (statsData && !statsData.error) {
+      setMerchantStats(statsData);
+      return statsData;
+    }
+
+    return null;
+  };
+  const fetchAuctionBidders = async (auctionId?: number | string | null) => {
+    if (!auctionId) {
+      setBidders([]);
+      return [];
+    }
+
+    const res = await fetch(`/api/auctions/${auctionId}/bidders`);
+    const data = await res.json();
+    const nextBidders = Array.isArray(data) ? data : [];
+    setBidders(nextBidders);
+    return nextBidders;
+  };
+  const refreshMerchantAuctionState = async (auctionId?: number | string | null) => {
+    const updatedAuctions = await fetchMerchantAuctions(user?.store_id);
+    await fetchMerchantStatsData(user?.store_id);
+
+    if (!auctionId) return updatedAuctions;
+
+    const refreshedAuction = Array.isArray(updatedAuctions)
+      ? updatedAuctions.find((auction: any) => Number(auction.id) === Number(auctionId))
+      : null;
+
+    if (refreshedAuction) {
+      setSelectedAuctionForBidders(refreshedAuction);
+      await fetchAuctionBidders(refreshedAuction.id);
+    } else {
+      setSelectedAuctionForBidders(null);
+      setBidders([]);
+    }
+
+    return updatedAuctions;
+  };
   const [topupCodesFile, setTopupCodesFile] = useState<File | null>(null);
   const [topupCodesPreview, setTopupCodesPreview] = useState<string[]>([]);
   const [topupCodesMessage, setTopupCodesMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -3954,7 +4312,7 @@ const MerchantDashboard = () => {
 
   useEffect(() => {
     if (user?.store_id) {
-      console.log('📥 MerchantDashboard - Fetching data for store:', user.store_id, 'Type:', user?.store_type);
+      console.log('📥 MerchantDashboard - Fetching data for store:', user.store_id, 'Type:', user?.store_type, '❗ Type check:', user?.store_type === 'topup' ? 'TOPUP' : 'REGULAR');
       
       // Fetch all data in parallel for faster loading
       const ordersEndpoint = user?.store_type === 'topup'
@@ -3968,9 +4326,13 @@ const MerchantDashboard = () => {
         fetch(`/api/merchant/customers?storeId=${user.store_id}`).then(r => r.json()).catch(() => []),
         fetch(`/api/coupons?storeId=${user.store_id}`).then(r => r.json()).catch(() => []),
         fetch(`/api/merchant/stats?storeId=${user.store_id}`).then(r => r.json()).catch(() => ({})),
-        fetch(`/api/auctions/active`).then(r => r.json()).catch(() => [])
+        fetch(`/api/auctions/active?includeSold=true`).then(r => r.json()).catch(() => [])
       ]).then(([products, categories, orders, customers, coupons, stats, auctions]) => {
         console.log('✅ Data fetched:', { products: products?.length, categories: categories?.length });
+        console.log('📦 RAW PRODUCTS FROM API:', {
+          count: Array.isArray(products) ? products.length : 'NOT_ARRAY',
+          products: Array.isArray(products) ? products.map((p: any) => ({ id: p.id, name: p.name, category_name: p.category_name })) : products
+        });
         setProducts(Array.isArray(products) ? products : []);
         
         const validCategories = Array.isArray(categories) ? categories.filter(c => c && c.name) : [];
@@ -3984,10 +4346,11 @@ const MerchantDashboard = () => {
         setMerchantStats(stats && !stats.error ? stats : {
           totalRevenue: 0,
           orderStats: { total: 0, pending: 0, completed: 0 },
+          fulfillmentStats: { total: 0, pending: 0, completed: 0 },
           topProducts: []
         });
         
-        const merchantAuctions = Array.isArray(auctions) ? auctions.filter((a: any) => a.store_id === user.store_id) : [];
+        const merchantAuctions = filterAuctionsForStore(Array.isArray(auctions) ? auctions : [], user.store_id);
         setAuctions(merchantAuctions);
       });
     }
@@ -4006,13 +4369,20 @@ const MerchantDashboard = () => {
       Promise.all([
         fetch(`/api/products?storeId=${user.store_id}`).then(r => r.json()).catch(() => []),
         fetch(ordersEndpoint).then(r => r.json()).catch(() => []),
-        fetch(`/api/merchant/stats?storeId=${user.store_id}`).then(r => r.json()).catch(() => ({}))
-      ]).then(([products, orders, stats]) => {
+        fetch(`/api/merchant/stats?storeId=${user.store_id}`).then(r => r.json()).catch(() => ({})),
+        fetch('/api/auctions/active?includeSold=true').then(r => r.json()).catch(() => [])
+      ]).then(([products, orders, stats, auctions]) => {
+        console.log('🔄 AUTO-REFRESH products from API:', {
+          count: Array.isArray(products) ? products.length : 'NOT_ARRAY',
+          products: Array.isArray(products) ? products.map((p: any) => ({ id: p.id, name: p.name })) : products
+        });
         setProducts(Array.isArray(products) ? products : []);
         setOrders(Array.isArray(orders) ? orders : []);
+        setAuctions(filterAuctionsForStore(Array.isArray(auctions) ? auctions : [], user.store_id));
         setMerchantStats(stats && !stats.error ? stats : {
           totalRevenue: 0,
           orderStats: { total: 0, pending: 0, completed: 0 },
+          fulfillmentStats: { total: 0, pending: 0, completed: 0 },
           topProducts: []
         });
       });
@@ -4136,28 +4506,56 @@ const MerchantDashboard = () => {
     }
   };
 
-  const handleOpenSalesModal = async () => {
+  const fetchSalesReport = async (filters?: { from?: string; to?: string; saleType?: 'all' | 'order' | 'auction' }) => {
     if (!user?.store_id) return;
-    setShowSalesModal(true);
+
+    const params = new URLSearchParams({ storeId: String(user.store_id) });
+    if (filters?.from) params.set('from', filters.from);
+    if (filters?.to) params.set('to', filters.to);
+    params.set('saleType', filters?.saleType || salesTypeFilter);
+
+    setIsLoadingSalesData(true);
+    setSalesReportError('');
+
     try {
-      const res = await fetch(`/api/merchant/sales-report?storeId=${user.store_id}`);
+      const res = await fetch(`/api/merchant/sales-report?${params.toString()}`);
       const data = await res.json();
       if (res.ok) {
         setSalesData(data);
+      } else {
+        setSalesReportError(data.error || 'تعذر تحميل تقرير المبيعات');
       }
     } catch (error) {
       console.error("Failed to fetch sales data:", error);
+      setSalesReportError('تعذر تحميل تقرير المبيعات');
+    } finally {
+      setIsLoadingSalesData(false);
     }
   };
 
+  const handleOpenSalesModal = async () => {
+    if (!user?.store_id) return;
+    setShowSalesModal(true);
+    await fetchSalesReport({ from: salesDateFrom, to: salesDateTo, saleType: salesTypeFilter });
+  };
+
+  const handleApplySalesFilters = async () => {
+    await fetchSalesReport({ from: salesDateFrom, to: salesDateTo, saleType: salesTypeFilter });
+  };
+
+  const handleResetSalesFilters = async () => {
+    setSalesDateFrom('');
+    setSalesDateTo('');
+    setSalesTypeFilter('all');
+    await fetchSalesReport({ saleType: 'all' });
+  };
+
   const handleCreateProduct = () => {
-    console.log('🔵 BUTTON CLICKED - categories:', categories.length);
-    
-    if (!categories.length) {
-      alert('يرجى إضافة قسم واحد على الأقل قبل إضافة المنتجات');
+    if (!user?.store_id) {
+      alert("عذراً، لم يتم العثور على معرّف المتجر!");
       return;
     }
-    
+    console.log('🎯 handleCreateProduct triggered');
     setProductForm({
       name: '',
       description: '',
@@ -4166,42 +4564,111 @@ const MerchantDashboard = () => {
       wholesale_price: '',
       stock: '',
       image_url: '',
-      category_id: categories[0].id.toString(),
+      category_id: categories.length > 0 ? categories[0].id.toString() : '',
       gallery: [],
-      topup_codes_text: ''
+      topup_codes_text: '',
+      auction_date: '',
+      auction_start_time: '',
+      auction_end_time: '',
+      auction_price: '',
+      is_auction: false
     });
-    setTopupCodesFile(null);
-    setTopupCodesMessage(null);
     setIsEditingProduct(null);
-    console.log('🔵 SETTING SHOW MODAL TO TRUE');
+    console.log('🎯 About to setShowProductModal(true)');
     setShowProductModal(true);
-    console.log('🔵 SET COMPLETE, modal should show now');
+    console.log('🎯 setShowProductModal called');
   };
 
-  const handleEditProduct = (p: any) => {
-    const isTopupStore = user?.store_type === 'topup';
-    
-    setProductForm({
-      name: p.name,
-      description: p.description || '',
-      price: isTopupStore ? '' : (p.price?.toString() || ''),
-      retail_price: isTopupStore ? (p.retail_price?.toString() || '') : '',
-      wholesale_price: isTopupStore ? (p.wholesale_price?.toString() || '') : '',
-      stock: (p.stock || 0).toString(),
-      image_url: p.image_url || '',
-      category_id: p.category_id?.toString() || (categories.length > 0 ? categories[0].id.toString() : ''),
-      gallery: p.gallery || [],
-      topup_codes_text: '',
-      auction_date: p.auction_date || '',
-      auction_start_time: p.auction_start_time || '09:00',
-      auction_end_time: p.auction_end_time || '18:00',
-      auction_price: p.auction_price || '',
-      is_auction: p.is_auction || false
-    });
-    setTopupCodesFile(null);
-    setTopupCodesMessage(null);
-    setIsEditingProduct(p.id);
-    setShowProductModal(true);
+  const handleEditProduct = async (p: any) => {
+    try {
+      const isTopupStore = user?.store_type === 'topup';
+      
+      // Parse gallery
+      let parsedGallery: string[] = [];
+      if (p.gallery) {
+        if (Array.isArray(p.gallery)) {
+          parsedGallery = p.gallery;
+        } else if (typeof p.gallery === 'string') {
+          try {
+            parsedGallery = JSON.parse(p.gallery);
+            if (!Array.isArray(parsedGallery)) parsedGallery = [];
+          } catch (e) {
+            parsedGallery = [];
+          }
+        }
+      }
+      
+      // Initialize base form data
+      let formData = {
+        name: p.name,
+        description: p.description || '',
+        price: isTopupStore ? '' : (p.price?.toString() || ''),
+        retail_price: isTopupStore ? (p.retail_price?.toString() || '') : '',
+        wholesale_price: isTopupStore ? (p.wholesale_price?.toString() || '') : '',
+        stock: (p.stock || 0).toString(),
+        image_url: p.image_url || '',
+        category_id: p.category_id?.toString() || (categories.length > 0 ? categories[0].id.toString() : ''),
+        gallery: parsedGallery,
+        topup_codes_text: '',
+        auction_date: '',
+        auction_start_time: '',
+        auction_end_time: '',
+        auction_price: '',
+        is_auction: false
+      };
+      
+      console.log('✅ Base form data initialized');
+      
+      // Check if product is auction
+      const isAuction = p.is_auction === true || p.is_auction === 'true' || p.is_auction === 1;
+      console.log('🔍 Product is_auction raw:', p.is_auction, '| Determined as:', isAuction);
+      
+      formData.is_auction = isAuction;
+      
+      // If auction product, read auction data directly from product columns (NEW: No API call needed!)
+      if (isAuction && p.id) {
+        // ✅ SIMPLE: Data now comes as strings from API (converted by TO_CHAR in SQL)
+        let parsedDate = String(p.auction_date || '').trim();
+        let parsedStartTime = String(p.auction_start_time || '').trim();
+        let parsedEndTime = String(p.auction_end_time || '').trim();
+        let parsedPrice = String(p.auction_price || '').trim();
+        
+        console.log('✨ Auction data from API (already formatted as strings):');
+        console.log('   - auction_date:', parsedDate, '(type:', typeof parsedDate + ')');
+        console.log('   - auction_start_time:', parsedStartTime);
+        console.log('   - auction_end_time:', parsedEndTime);
+        console.log('   - auction_price:', parsedPrice);
+        
+        // Update formData
+        formData.auction_date = parsedDate;
+        formData.auction_start_time = parsedStartTime;
+        formData.auction_end_time = parsedEndTime;
+        formData.auction_price = parsedPrice;
+        
+        console.log('🔍 FORM DATA AFTER LOAD:');
+        console.log('   auction_date:', formData.auction_date);
+        console.log('   auction_start_time:', formData.auction_start_time);
+        console.log('   auction_end_time:', formData.auction_end_time);
+        console.log('   auction_price:', formData.auction_price);
+      } else {
+        console.log('ℹ️ Not an auction product');
+      }
+      
+      console.log('🔹 FINAL formData:', formData);
+      
+      // Set all state at once
+      setProductForm(formData);
+      setTopupCodesFile(null);
+      setTopupCodesMessage(null);
+      setIsEditingProduct(p.id);
+      setShowProductModal(true);
+      
+      console.log('✅✅✅ Modal opened with data!');
+      
+    } catch (err: any) {
+      console.error('💥 ERROR:', err.message, err);
+      alert('❌ خطأ: ' + (err?.message || 'فشل تحميل بيانات المنتج'));
+    }
   };
 
   const handleDeleteProduct = async (id: number) => {
@@ -4212,12 +4679,45 @@ const MerchantDashboard = () => {
     }
   };
 
-  const saveProduct = async () => {
-    if (!user?.store_id) {
-      alert("❌ خطأ: لم يتم العثور على معرّف المتجر الخاص بك");
-      return;
-    }
+  const closeProductModal = () => {
+    setShowProductModal(false);
+    setIsEditingProduct(null);
+  };
 
+  const normalizeAuctionDate = (value: string) => {
+    const trimmed = String(value || '').trim();
+    if (!trimmed) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+    const slashMatch = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (slashMatch) {
+      const [, day, month, year] = slashMatch;
+      return `${year}-${month}-${day}`;
+    }
+    return trimmed;
+  };
+
+  const saveProduct = async () => {
+    console.log('🚀 SAVE PRODUCT CLICKED');
+    console.log('productForm:', JSON.stringify(productForm, null, 2));
+    const isTopupStore = user?.store_type === 'topup';
+    
+    // Check if it's auction
+    console.log('✅ is_auction:', productForm.is_auction);
+    console.log('✅ auction_date:', productForm.auction_date);
+    console.log('✅ auction_start_time:', productForm.auction_start_time);
+    console.log('✅ auction_end_time:', productForm.auction_end_time);
+    console.log('✅ auction_price:', productForm.auction_price);
+    
+    console.log('🚀 SAVE PRODUCT - productForm:', {
+      name: productForm.name,
+      is_auction: productForm.is_auction,
+      auction_date: productForm.auction_date,
+      auction_price: productForm.auction_price,
+      auction_start_time: productForm.auction_start_time,
+      auction_end_time: productForm.auction_end_time,
+      isTopupStore: user?.store_type === 'topup'
+    });
+    
     // Validate required fields
     if (!productForm.name?.trim()) {
       alert("❌ يرجى إدخال اسم المنتج");
@@ -4234,42 +4734,105 @@ const MerchantDashboard = () => {
       return;
     }
     
-    const isTopupStore = user?.store_type === 'topup';
-    const method = isEditingProduct ? 'PUT' : 'POST';
-    const url = isEditingProduct ? `/api/products/${isEditingProduct}` : '/api/products';
-    
-    // Build the request body based on store type
-    const body: any = { 
-       store_id: user.store_id, 
-       stock: parseInt(productForm.stock),
-       category_id: productForm.category_id ? parseInt(productForm.category_id) : null,
+    if (!productForm.image_url && !isEditingProduct) {
+      alert("❌ يرجى اختيار صورة للمنتج");
+      return;
+    }
+
+    // ✅ Initialize body and URL
+    const body: any = {
+      store_id: user.store_id,
+      category_id: productForm.category_id ? parseInt(productForm.category_id) : null
     };
     
+    const url = isEditingProduct ? `/api/products/${isEditingProduct}` : '/api/products';
+    const method = isEditingProduct ? 'PUT' : 'POST';
+
     if (isTopupStore) {
-      // For topup store: use retail and wholesale prices
-      body.name = productForm.name;
-      body.description = productForm.name; // Use name as description for topup
-      body.price = Math.max(
-        Math.floor(parseFloat(productForm.retail_price) || 0),
-        Math.floor(parseFloat(productForm.wholesale_price) || 0)
-      ); // Use higher price as main price
-      body.retail_price = Math.floor(parseFloat(productForm.retail_price) || 0);
-      body.wholesale_price = Math.floor(parseFloat(productForm.wholesale_price) || 0);
-      body.image_url = ''; // No image for topup products
-      body.gallery = []; // No gallery for topup products
+      // For topup store: send company_id, amount, and prices
+      if (!productForm.company_id) {
+        alert('❌ يرجى اختيار الشركة');
+        return;
+      }
+      if (!productForm.amount) {
+        alert('❌ يرجى إدخال المبلغ');
+        return;
+      }
+      
+      body.company_id = parseInt(productForm.company_id);
+      body.amount = parseInt(productForm.amount);
+      body.price = Math.floor(parseFloat(productForm.price) || 0);
+      body.bulk_price = Math.floor(parseFloat(productForm.wholesale_price) || 0);
+      body.quantity_type = productForm.quantity_type || 'riyal';
     } else {
+      const auctionDateInput = document.querySelector('input[name="auction_date"]') as HTMLInputElement | null;
+      const auctionStartInput = document.querySelector('input[name="auction_start_time"]') as HTMLInputElement | null;
+      const auctionEndInput = document.querySelector('input[name="auction_end_time"]') as HTMLInputElement | null;
+      const auctionPriceInput = document.querySelector('input[name="auction_price"]') as HTMLInputElement | null;
+
+      const auctionDateValue = normalizeAuctionDate(auctionDateInput?.value || productForm.auction_date || '');
+      const auctionStartValue = String(auctionStartInput?.value || productForm.auction_start_time || '').trim();
+      const auctionEndValue = String(auctionEndInput?.value || productForm.auction_end_time || '').trim();
+      const auctionPriceValue = String(auctionPriceInput?.value || productForm.auction_price || '').trim();
+
       // For regular store: use regular price
+      body.stock = parseInt(productForm.stock);
       body.name = productForm.name;
       body.description = productForm.description;
       body.price = Math.floor(parseFloat(productForm.price) || 0);
       body.image_url = productForm.image_url;
       body.gallery = productForm.gallery;
       
-      // Add auction flag if applicable
-      if (productForm.is_auction) {
-        body.is_auction = true;
+      // ✅ ALWAYS include is_auction flag and auction data (even if false)
+      body.is_auction = productForm.is_auction === true;
+      body.auction_date = auctionDateValue;
+      body.auction_start_time = auctionStartValue;
+      body.auction_end_time = auctionEndValue;
+      body.auction_price = auctionPriceValue;
+      
+      // Add auction flag and data if applicable
+      if (productForm.is_auction === true) {
+        // ✅ CRITICAL VALIDATION: Ensure all auction fields are provided
+        // Check without trim() because date/time inputs return clean values
+        if (!auctionDateValue || !auctionStartValue || !auctionEndValue || !auctionPriceValue) {
+          const missingFields = [];
+          if (!auctionDateValue) missingFields.push('التاريخ');
+          if (!auctionStartValue) missingFields.push('وقت البداية');
+          if (!auctionEndValue) missingFields.push('وقت النهاية');
+          if (!auctionPriceValue) missingFields.push('السعر الأساسي');
+          
+          console.warn('❌ VALIDATION FAILED - Missing fields:', missingFields);
+          alert(`❌ يرجى ملء جميع حقول المزاد:\n${missingFields.join('\n')}`);
+          return;
+        }
+        
+        console.log('✅ AUCTION FIELDS VALIDATED AND WILL BE SENT:');
+        console.log('   is_auction:', body.is_auction);
+        console.log('   auction_date:', body.auction_date);
+        console.log('   auction_start_time:', body.auction_start_time);
+        console.log('   auction_end_time:', body.auction_end_time);
+        console.log('   auction_price:', body.auction_price);
       }
     }
+    
+    console.log('📝 FULL BODY BEING SENT:', { 
+      store_id: body.store_id,
+      name: body.name,
+      price: body.price,
+      stock: body.stock,
+      is_auction: body.is_auction,
+      auction_date: body.auction_date,
+      auction_price: body.auction_price,
+      auction_start_time: body.auction_start_time,
+      auction_end_time: body.auction_end_time,
+      image_url: body.image_url?.substring(0, 100),
+      is_base64: !!body.image_url?.startsWith('data:'),
+      body_keys: Object.keys(body)
+    });
+    
+    console.log('📤 SENDING FETCH REQUEST TO:', url);
+    console.log('📤 METHOD:', method);
+    console.log('📤 FULL BODY JSON:', JSON.stringify(body, null, 2));
     
     try {
       const res = await fetch(url, {
@@ -4277,11 +4840,30 @@ const MerchantDashboard = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
+      
+      // Log response status
+      console.log(`📡 API Response Status: ${res.status} ${res.statusText}`);
+      
       if (res.ok) {
-        const savedProduct = await res.json();
+        const responseData = await res.json();
+        const savedProduct = responseData?.product || responseData;
+        const savedProductId = savedProduct?.id;
+        console.log('✅ PRODUCT SAVED:', { id: savedProductId, name: savedProduct?.name || productForm.name });
+        
+        // ✅ Reload products from API to ensure data is synced
+        try {
+          const productsRes = await fetch(`/api/products?storeId=${user.store_id}`);
+          if (productsRes.ok) {
+            const productsData = await productsRes.json();
+            setProducts(Array.isArray(productsData) ? productsData : []);
+            console.log('✅ Products reloaded from API after save');
+          }
+        } catch (e) {
+          console.error('⚠️ Error reloading products:', e);
+        }
         
         // Save topup codes if provided (only for topup stores)
-        if (isTopupStore && (productForm.topup_codes_text.trim() || topupCodesFile) && savedProduct.id) {
+        if (isTopupStore && (productForm.topup_codes_text.trim() || topupCodesFile) && savedProductId) {
           let codes: string[] = [];
           
           if (topupCodesFile) {
@@ -4296,7 +4878,7 @@ const MerchantDashboard = () => {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                product_id: savedProduct.id,
+                product_id: savedProductId,
                 codes: codes
               })
             });
@@ -4313,40 +4895,40 @@ const MerchantDashboard = () => {
           }
         }
         
-        // Create auction if enabled (only for regular stores)
-        if (!isTopupStore && productForm.is_auction && savedProduct.id) {
-          // Validate auction data
-          if (!productForm.auction_date || !productForm.auction_price) {
-            alert('⚠️ يرجى إدخال تاريخ المزاد والسعر الأساسي');
-            return;
-          }
-          
+        // 🔴 DEBUG: Log conditions BEFORE auction check
+        const debugCondition = {
+          isTopupStore,
+          productFormIsAuction: productForm.is_auction,
+          savedProductId,
+          notTopupStore: !isTopupStore,
+          hasAuction: productForm.is_auction,
+          hasSavedProductId: !!savedProductId,
+          finalCondition: !isTopupStore && productForm.is_auction && savedProductId
+        };
+        console.log('🔴 SAVE CONDITIONS:', debugCondition);
+        console.log('🔴 AFTER PRODUCT SAVED - AUCTION DATA:', {
+          is_auction: productForm.is_auction,
+          auction_was_created_at_backend: true,
+          product_saved: productForm.name
+        });
+        
+        // ✅ Reload auctions after product save (product creation already handled auction creation)
+        if (productForm.is_auction) {
           try {
-            const auctionRes = await fetch('/api/auctions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                product_id: savedProduct.id,
-                store_id: user.store_id,
-                auction_date: productForm.auction_date,
-                auction_start_time: productForm.auction_start_time,
-                auction_end_time: productForm.auction_end_time,
-                starting_price: parseFloat(productForm.auction_price)
-              })
-            });
-            
-            if (auctionRes.ok) {
-              const auctionData = await auctionRes.json();
-              console.log('✅ تم إنشاء المزاد بنجاح:', auctionData);
-            } else {
-              const errData = await auctionRes.json();
-              console.warn('⚠️ خطأ في إنشاء المزاد:', errData.error);
-            }
-          } catch (auctionErr) {
-            console.error('❌ خطأ أثناء إنشاء المزاد:', auctionErr);
+            const merchantAuctions = await fetchMerchantAuctions(user?.store_id);
+            console.log('✅ Auctions reloaded:', merchantAuctions.length);
+          } catch (e) {
+            console.error('⚠️ Error reloading auctions:', e);
+          }
+        } else {
+          try {
+            await fetchMerchantAuctions(user?.store_id);
+          } catch (e) {
+            console.error('⚠️ Error syncing auctions after save:', e);
           }
         }
         
+        setIsEditingProduct(null);
         setShowProductModal(false);
         setTopupCodesFile(null);
         setTopupCodesPreview([]);
@@ -4362,28 +4944,39 @@ const MerchantDashboard = () => {
           gallery: [],
           topup_codes_text: '',
           auction_date: '',
-          auction_start_time: '09:00',
-          auction_end_time: '18:00',
+          auction_start_time: '',
+          auction_end_time: '',
           auction_price: '',
           is_auction: false
         });
+        
+        // Reload products
         const updated = await fetch(`/api/products?storeId=${user.store_id}`).then(r => r.json());
         setProducts(Array.isArray(updated) ? updated : []);
+        
+        // ✨ Trigger refresh for CustomerStorefront to see new products
+        const { triggerProductsRefresh } = useRefreshStore.getState();
+        triggerProductsRefresh();
+        console.log('✅ Products refresh triggered for CustomerStorefront');
+        
+        // Show success message
+        alert(isEditingProduct ? '✅ تم التعديل بنجاح' : '✅ تمت الإضافة بنجاح');
       } else {
+        console.error('❌ SAVE FAILED - Response status:', res.status);
         const errText = await res.text();
         let errMsg = "فشل الحفظ";
         try {
           const errObj = JSON.parse(errText);
           errMsg = errObj.error || errMsg;
         } catch (e) {
-
           errMsg = errText || errMsg;
         }
-        alert("خطأ من السيرفر: " + errMsg);
+        console.error('❌ Error details:', errMsg);
+        alert("❌ خطأ من السيرفر: " + errMsg);
       }
     } catch (err) {
-      console.error(err);
-      alert("حدث خطأ أثناء الاتصال بالسيرفر. تأكد أن حجم الصورة ليس كبيراً جداً.");
+      console.error('❌ EXCEPTION CAUGHT:', err);
+      alert("❌ حدث خطأ أثناء الاتصال بالسيرفر. تأكد أن حجم الصورة ليس كبيراً جداً.");
     }
   };
 
@@ -4486,21 +5079,20 @@ const MerchantDashboard = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           store_id: user.store_id,
-          name: customerForm.name,
-          phone: customerForm.phone,
-          email: customerForm.email,
-          customer_type: customerForm.customer_type,
+          name: customerForm.name.trim(),
+          phone: customerForm.phone.trim(),
+          password: customerForm.password || customerForm.phone,
+          starting_balance: parseFloat(customerForm.starting_balance) || 0,
           credit_limit: parseFloat(customerForm.credit_limit) || 0,
-          password: customerForm.password,
-          notes: customerForm.notes,
-          starting_balance: parseFloat(customerForm.starting_balance) || 0
+          customer_type: customerForm.customer_type || 'cash',
+          notes: customerForm.notes || ''
         })
       });
 
       if (res.ok) {
         alert("✅ تمت إضافة العميل بنجاح");
         setShowCustomerModal(false);
-        setCustomerForm({ name: '', phone: '', email: '', customer_type: 'cash', credit_limit: '', password: '', notes: '', starting_balance: '' });
+        setCustomerForm({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
         
         // Refresh customers list
         const updated = await fetch(`/api/merchant/customers?storeId=${user.store_id}`).then(r => r.json());
@@ -4532,14 +5124,13 @@ const MerchantDashboard = () => {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: customerForm.name,
-          phone: customerForm.phone,
-          email: customerForm.email,
-          customer_type: customerForm.customer_type,
-          credit_limit: parseFloat(customerForm.credit_limit) || 0,
+          name: customerForm.name.trim(),
+          phone: customerForm.phone.trim(),
           password: customerForm.password,
-          notes: customerForm.notes,
-          starting_balance: parseFloat(customerForm.starting_balance) || 0
+          starting_balance: parseFloat(customerForm.starting_balance) || 0,
+          credit_limit: parseFloat(customerForm.credit_limit) || 0,
+          customer_type: customerForm.customer_type || 'cash',
+          notes: customerForm.notes || ''
         })
       });
 
@@ -4547,7 +5138,7 @@ const MerchantDashboard = () => {
         alert("✅ تم تحديث بيانات العميل بنجاح");
         setShowCustomerModal(false);
         setIsEditingCustomer(null);
-        setCustomerForm({ name: '', phone: '', email: '', customer_type: 'cash', credit_limit: '', password: '', notes: '', starting_balance: '' });
+        setCustomerForm({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
         
         // Refresh customers list
         const updated = await fetch(`/api/merchant/customers?storeId=${user.store_id}`).then(r => r.json());
@@ -4564,6 +5155,11 @@ const MerchantDashboard = () => {
 
   // Handle Delete Customer
   const handleDeleteCustomer = async (customerId: number) => {
+    if (user?.store_type !== 'topup') {
+      alert("هذه الشاشة تعرض بيانات مشتقة من الطلبات، لذلك لا يتوفر حذف عميل منها.");
+      return;
+    }
+
     if (!confirm("⚠️ هل أنت متأكد من حذف هذا العميل؟")) return;
 
     try {
@@ -4583,7 +5179,7 @@ const MerchantDashboard = () => {
       if (res.ok) {
         const data = await res.json();
         console.log(`✅ Server response:`, data);
-        alert("✅ تم حذف العميل بنجاح");
+        alert(`✅ ${data.message || 'تمت العملية بنجاح'}`);
         
         // Remove from local state immediately
         setCustomers(customers.filter(c => c.id !== customerId));
@@ -4653,134 +5249,251 @@ const MerchantDashboard = () => {
 
   // Product modal with all form fields
   const renderProductModal = () => {
+    console.log('[MODAL] renderProductModal check:', showProductModal);
     if (!showProductModal) return null;
     const isTopupStore = user?.store_type === 'topup';
 
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto font-sans" dir="rtl">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 font-sans" dir="rtl">
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          className={cn("rounded-[2rem] w-full max-w-2xl shadow-2xl border overflow-hidden max-h-[95vh] overflow-y-auto", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-white/20")}
+          className={cn("rounded-[2.5rem] w-full max-w-lg shadow-2xl border overflow-hidden", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-white/20")}
         >
-          <div className={cn("p-6 border-b flex justify-between items-center sticky top-0", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50/50 border-black/5")}>
+          <div className={cn("p-8 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50/50 border-black/5")}>
             <div>
-              <h3 className={cn("text-xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{isEditingProduct ? 'تعديل المنتج' : 'إضافة منتج جديد'}</h3>
-              <p className={cn("text-xs font-medium mt-0.5", isDarkMode ? "text-gray-400" : "text-gray-500")}>{isTopupStore ? 'منتج شحن' : 'منتج عادي'}</p>
+              <h3 className={cn("text-2xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{isEditingProduct ? 'تعديل المنتج' : 'إضافة منتج جديد'}</h3>
+              <p className={cn("text-sm font-medium mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>{isTopupStore ? 'منتج شحن' : 'منتج عادي'}</p>
             </div>
-            <button onClick={() => setShowProductModal(false)} className={cn("p-2 rounded-full transition-colors", isDarkMode ? "hover:bg-gray-600 text-gray-400" : "hover:bg-black/5 text-gray-400")}>
+            <button onClick={closeProductModal} className={cn("p-2 rounded-full transition-colors", isDarkMode ? "hover:bg-gray-600 text-gray-400" : "hover:bg-black/5 text-gray-400")}>
               <X size={24} />
             </button>
           </div>
 
-          <div className="p-6 space-y-4">
-            {/* Name */}
-            <div className="space-y-2">
-              <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>اسم المنتج *</label>
-              <input 
-                type="text" 
-                value={productForm.name}
-                onChange={(e) => setProductForm({...productForm, name: e.target.value})}
-                placeholder="مثال: شحن موبايل"
-                className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
-              />
-            </div>
-
-            {/* Description - only for regular stores */}
-            {!isTopupStore && (
+          <div className="p-8 space-y-6 max-h-[calc(100vh-300px)] overflow-y-auto">
+            {/* Name & Category in one row */}
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>الوصف (اختياري)</label>
-                <textarea 
-                  value={productForm.description}
-                  onChange={(e) => setProductForm({...productForm, description: e.target.value})}
-                  placeholder="اكتب وصفاً مفصلاً للمنتج"
-                  rows={3}
-                  className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none resize-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
+                <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>اسم المنتج *</label>
+                <input 
+                  type="text" 
+                  value={productForm.name}
+                  onChange={(e) => updateProductForm({ name: e.target.value })}
+                  placeholder="مثال: شحن موبايل"
+                  className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
                 />
               </div>
-            )}
-
-            {/* Category */}
-            <div className="space-y-2">
-              <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>القسم *</label>
-              <select 
-                value={productForm.category_id}
-                onChange={(e) => setProductForm({...productForm, category_id: e.target.value})}
-                className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
-              >
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id.toString()}>{cat.name}</option>
-                ))}
-              </select>
+              <div className="space-y-2">
+                <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>القسم *</label>
+                <select 
+                  value={productForm.category_id}
+                  onChange={(e) => updateProductForm({ category_id: e.target.value })}
+                  className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
+                >
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id.toString()}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Stock */}
             <div className="space-y-2">
-              <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>الكمية المتاحة *</label>
-              <input 
-                type="number" 
-                value={productForm.stock}
-                onChange={(e) => setProductForm({...productForm, stock: e.target.value})}
-                placeholder="0"
-                min="0"
-                className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
+              <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>وصف المنتج</label>
+              <textarea
+                value={productForm.description || ''}
+                onChange={(e) => updateProductForm({ description: e.target.value })}
+                placeholder="أضف وصفاً مختصراً للمنتج يظهر للزبائن"
+                rows={3}
+                className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none resize-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 border-black/5 placeholder-gray-400")}
               />
             </div>
 
-            {/* Price Fields Based on Store Type */}
+            {/* Stock & Price in one row */}
             {isTopupStore ? (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>سعر البيع *</label>
-                    <input 
-                      type="number" 
-                      value={productForm.retail_price}
-                      onChange={(e) => setProductForm({...productForm, retail_price: e.target.value})}
-                      placeholder="0"
-                      min="0"
-                      className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>سعر الجملة (اختياري)</label>
-                    <input 
-                      type="number" 
-                      value={productForm.wholesale_price}
-                      onChange={(e) => setProductForm({...productForm, wholesale_price: e.target.value})}
-                      placeholder="0"
-                      min="0"
-                      className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
-                    />
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>السعر *</label>
+                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>الكمية المتاحة *</label>
                   <input 
                     type="number" 
-                    value={productForm.price}
-                    onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                    value={productForm.stock}
+                    onChange={(e) => updateProductForm({ stock: e.target.value })}
                     placeholder="0"
                     min="0"
                     className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
                   />
                 </div>
-
-                {/* Image URL */}
                 <div className="space-y-2">
-                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>رابط الصورة (اختياري)</label>
+                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>سعر البيع *</label>
                   <input 
-                    type="text" 
-                    value={productForm.image_url}
-                    onChange={(e) => setProductForm({...productForm, image_url: e.target.value})}
-                    placeholder="https://..."
+                    type="number" 
+                    value={productForm.retail_price}
+                    onChange={(e) => updateProductForm({ retail_price: e.target.value })}
+                    placeholder="0"
+                    min="0"
                     className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
                   />
                 </div>
-              </>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>الكمية المتاحة *</label>
+                  <input 
+                    type="number" 
+                    value={productForm.stock}
+                    onChange={(e) => updateProductForm({ stock: e.target.value })}
+                    placeholder="0"
+                    min="0"
+                    className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>السعر *</label>
+                  <input 
+                    type="number" 
+                    value={productForm.price}
+                    onChange={(e) => {
+                      const nextValue = e.target.value;
+                      if (productForm.is_auction) {
+                        syncAuctionPriceFields(nextValue);
+                        return;
+                      }
+
+                      updateProductForm({ price: nextValue });
+                    }}
+                    readOnly={productForm.is_auction}
+                    placeholder="0"
+                    min="0"
+                    className={cn("w-full px-4 py-3 border rounded-xl transition-all font-normal outline-none", productForm.is_auction ? (isDarkMode ? "bg-gray-800 border-gray-600 text-gray-400 cursor-not-allowed" : "bg-gray-100 border-black/5 text-gray-500 cursor-not-allowed") : (isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" : "bg-gray-50 border-black/5 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"))}
+                  />
+                  {productForm.is_auction && (
+                    <p className={cn("text-xs mt-2", isDarkMode ? "text-amber-300" : "text-amber-700")}>
+                      يتم التحكم بهذا الحقل تلقائياً من خلال "السعر الأساسي" للمزاد.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Additional prices for topup */}
+            {isTopupStore && (
+              <div className="space-y-2">
+                <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>سعر الجملة (اختياري)</label>
+                <input 
+                  type="number" 
+                  value={productForm.wholesale_price}
+                  onChange={(e) => updateProductForm({ wholesale_price: e.target.value })}
+                  placeholder="0"
+                  min="0"
+                  className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
+                />
+              </div>
+            )}
+
+            {/* Image Upload - for regular stores only */}
+            {!isTopupStore && (
+              <div className="space-y-4">
+                <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`صور المنتج (يمكن اختيار عدة صور)`}</label>
+                <div className="flex flex-col gap-4">
+                  {/* Main Image Upload */}
+                  <div>
+                    <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>الصورة الرئيسية:</p>
+                    <label className="cursor-pointer group relative">
+                      <div className={cn("w-full h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all overflow-hidden", isDarkMode ? "border-gray-600 bg-gray-700 group-hover:bg-gray-600 group-hover:border-gray-500" : "border-indigo-100 bg-gray-50 group-hover:bg-indigo-50/50 group-hover:border-indigo-300")}>
+                        {productForm.image_url ? (
+                          <div className="relative w-full h-full">
+                            <img src={getSafeImageUrl(productForm.image_url)} className="w-full h-full object-cover" alt="Preview" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <Upload size={24} className="text-white" />
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <Plus size={24} className="text-indigo-500 mb-1" />
+                            <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-400")}>اختر الصورة الرئيسية</p>
+                          </>
+                        )}
+                      </div>
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => updateProductForm({ image_url: reader.result as string });
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                    <input 
+                      type="text" 
+                      value={productForm.image_url.startsWith('data:') ? '' : productForm.image_url}
+                      onChange={(e) => updateProductForm({ image_url: e.target.value })}
+                      placeholder="أو ضع رابطاً مباشراً..."
+                      className={cn("w-full px-5 py-3 border rounded-xl font-normal outline-none text-xs mt-2", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 border-black/5 placeholder-gray-400")}
+                    />
+                  </div>
+
+                  {/* Gallery Images */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>صور إضافية:</p>
+                      <span className={cn("text-[10px] font-normal px-2 py-1 rounded", isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600")}>{(productForm.gallery || []).length} صور</span>
+                    </div>
+                    <label className="cursor-pointer group relative">
+                      <div className={cn("w-full h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all", isDarkMode ? "border-gray-600 bg-gray-700 group-hover:bg-gray-600 group-hover:border-gray-500" : "border-blue-100 bg-blue-50/30 group-hover:bg-blue-50 group-hover:border-blue-300")}>
+                        <Plus size={24} className={isDarkMode ? "text-gray-400 mb-1" : "text-blue-400 mb-1"} />
+                        <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-blue-600")}>أضف صور إضافية (اختياري)</p>
+                      </div>
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        multiple
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          const gallery = [...(productForm.gallery || [])];
+                          for (const file of files) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              gallery.push(reader.result as string);
+                              setProductForm(prev => ({...prev, gallery: [...gallery]}));
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Gallery Preview */}
+                  {(productForm.gallery || []).length > 0 && (
+                    <div className="space-y-2">
+                      <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>معاينة الصور الإضافية:</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(productForm.gallery || []).map((img, idx) => (
+                          <div key={idx} className="relative group">
+                            <img src={img} className="w-full h-24 object-cover rounded-lg" alt={`gallery-${idx}`} />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newGallery = productForm.gallery.filter((_, i) => i !== idx);
+                                setProductForm(prev => ({...prev, gallery: newGallery}));
+                              }}
+                              className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
 
             {/* Auction for Regular Stores */}
@@ -4790,43 +5503,116 @@ const MerchantDashboard = () => {
                   <input 
                     type="checkbox" 
                     checked={productForm.is_auction || false}
-                    onChange={(e) => setProductForm({...productForm, is_auction: e.target.checked})}
+                    onChange={(e) => {
+                      const isAuction = e.target.checked;
+
+                      if (isAuction) {
+                        const syncedPrice = String(productForm.price || productForm.auction_price || '').trim();
+                        updateProductForm({
+                          is_auction: true,
+                          price: syncedPrice,
+                          auction_price: syncedPrice
+                        });
+                        return;
+                      }
+
+                      updateProductForm({ is_auction: false });
+                    }}
                     className="w-4 h-4"
                   />
                   هذا منتج مزاد
                 </label>
                 {productForm.is_auction && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <input 
-                      type="date" 
-                      value={productForm.auction_date}
-                      onChange={(e) => setProductForm({...productForm, auction_date: e.target.value})}
-                      className={cn("px-3 py-2 border rounded-lg text-xs font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-white border-black/10")}
-                    />
-                    <input 
-                      type="number" 
-                      value={productForm.auction_price}
-                      onChange={(e) => setProductForm({...productForm, auction_price: e.target.value})}
-                      placeholder="السعر الأساسي"
-                      min="0"
-                      className={cn("px-3 py-2 border rounded-lg text-xs font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-white border-black/10")}
-                    />
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className={cn("text-xs font-normal block mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>📅 تاريخ المزاد</label>
+                        <input 
+                          type="date" 
+                          name="auction_date"
+                          value={productForm.auction_date || ''}
+                          onChange={(e) => {
+                            console.log('📅 Date changed to:', e.target.value);
+                            updateProductForm({ auction_date: e.target.value });
+                          }}
+                          onFocus={() => {
+                            console.log('📅 DATE FIELD FOCUSED - Current value:', productForm.auction_date, 'Type:', typeof productForm.auction_date);
+                          }}
+                          placeholder="yyyy-mm-dd"
+                          required
+                          className={cn("w-full px-3 py-2 border rounded-lg text-xs font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-white border-black/10")}
+                        />
+                        {productForm.auction_date && <p className="text-xs text-blue-500 mt-1">✓ محفوظ: {productForm.auction_date}</p>}
+                      </div>
+                      <div>
+                        <label className={cn("text-xs font-normal block mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>💰 السعر الأساسي</label>
+                        <input 
+                          type="number" 
+                          name="auction_price"
+                          value={productForm.auction_price || ''}
+                          onChange={(e) => {
+                            console.log('💰 Price changed to:', e.target.value);
+                            syncAuctionPriceFields(e.target.value);
+                          }}
+                          placeholder="السعر الأساسي"
+                          min="0"
+                          required
+                          className={cn("w-full px-3 py-2 border rounded-lg text-xs font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-white border-black/10")}
+                        />
+                        {productForm.auction_price && <p className="text-xs text-blue-500 mt-1">✓ {productForm.auction_price}</p>}
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className={cn("text-xs font-normal block mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>⏱️ وقت البداية</label>
+                        <input 
+                          type="time" 
+                          name="auction_start_time"
+                          value={productForm.auction_start_time || ''}
+                          onChange={(e) => {
+                            console.log('⏱️ Start time changed to:', e.target.value);
+                            updateProductForm({ auction_start_time: e.target.value });
+                          }}
+                          placeholder="09:00"
+                          required
+                          className={cn("w-full px-3 py-2 border rounded-lg text-xs font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-white border-black/10")}
+                        />
+                        {productForm.auction_start_time && <p className="text-xs text-blue-500 mt-1">✓ {productForm.auction_start_time}</p>}
+                      </div>
+                      <div>
+                        <label className={cn("text-xs font-normal block mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>⏲️ وقت النهاية</label>
+                        <input 
+                          type="time" 
+                          name="auction_end_time"
+                          value={productForm.auction_end_time || ''}
+                          onChange={(e) => {
+                            console.log('⏲️ End time changed to:', e.target.value);
+                            updateProductForm({ auction_end_time: e.target.value });
+                          }}
+                          placeholder="18:00"
+                          required
+                          className={cn("w-full px-3 py-2 border rounded-lg text-xs font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-white border-black/10")}
+                        />
+                        {productForm.auction_end_time && <p className="text-xs text-blue-500 mt-1">✓ {productForm.auction_end_time}</p>}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          <div className={cn("p-4 border-t flex gap-3", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
+          <div className={cn("p-8 border-t flex gap-4", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50/50 border-black/5")}>
             <Button 
               onClick={saveProduct}
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg shadow-md text-sm font-normal transition-all hover:scale-[1.02] active:scale-95"
+              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl shadow-xl shadow-indigo-200 text-lg font-normal transition-all hover:scale-[1.02] active:scale-95 font-sans"
             >
-              {isEditingProduct ? '💾 تحديث' : '➕ إضافة'} المنتج
+              {isEditingProduct ? 'تحديث' : 'إضافة'} المنتج
             </Button>
             <Button 
-              onClick={() => setShowProductModal(false)}
-              className={cn("px-6 font-normal rounded-lg transition-all text-sm", isDarkMode ? "bg-gray-600 hover:bg-gray-500 text-gray-100" : "bg-gray-200 hover:bg-gray-300 text-gray-700")}
+              onClick={closeProductModal}
+              className={cn("px-8 border-2 font-normal rounded-2xl transition-all font-sans", isDarkMode ? "bg-gray-600 border-gray-500 text-gray-100 hover:bg-gray-500" : "bg-white border-black/5 text-gray-600 hover:bg-gray-100/50")}
             >
               إلغاء
             </Button>
@@ -4973,7 +5759,7 @@ const MerchantDashboard = () => {
             <Button 
               onClick={() => {
                 setIsEditingCustomer(null);
-                setCustomerForm({ name: '', phone: '', email: '', customer_type: 'cash', credit_limit: '', password: '', notes: '', starting_balance: '' });
+                setCustomerForm({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
                 setShowCustomerModal(true);
               }}
               className={cn("px-4 py-2 rounded-xl text-sm font-normal transition-all shadow-sm", isDarkMode ? "bg-green-700 hover:bg-green-600 text-white" : "bg-green-600 hover:bg-green-700 text-white")}
@@ -4989,19 +5775,19 @@ const MerchantDashboard = () => {
             <tr className={cn(isDarkMode ? "bg-gray-800" : "bg-white")}> 
               {isTopupStore ? (
                 <>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>حد الائتمان</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الاسم</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الهاتف</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>ديون سابقة</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الحد الائتماني</th>
                   <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الديون الحالية</th>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الرصيد المتاح</th>
                   <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الإجراءات</th>
                 </>
               ) : (
                 <>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-400" : "text-gray-400")}>الاسم</th>
                   <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-400" : "text-gray-400")}>رقم الهاتف</th>
                   <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-400" : "text-gray-400")}>العنوان</th>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-400" : "text-gray-400")}>المنتجات المشتراة</th>
                   <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>إجمالي الطلبات</th>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الإجراءات</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>إجمالي مبلغ الطلبات</th>
                 </>
               )}
             </tr>
@@ -5009,29 +5795,31 @@ const MerchantDashboard = () => {
           <tbody className={cn(isDarkMode ? "divide-gray-800" : "divide-gray-50")}> 
             {customers.length === 0 ? (
               <tr>
-                <td colSpan={isTopupStore ? 4 : 6} className="px-6 py-12 text-center">
-                  <div className="text-gray-400 text-sm font-normal">لا توجد عملاء بعد. أضف عميلاً جديداً</div>
+                <td colSpan={isTopupStore ? 6 : 4} className="px-6 py-12 text-center">
+                  <div className="text-gray-400 text-sm font-normal">{isTopupStore ? 'لا توجد عملاء بعد. أضف عميلاً جديداً' : 'لا توجد طلبات عملاء لعرضها بعد'}</div>
                 </td>
               </tr>
             ) : customers.map((cust) => {
               if (isTopupStore) {
                 // Topup Store View
-                const availableCredit = (cust.credit_limit || 0) - (cust.current_debt || 0);
-                const debtPercentage = cust.credit_limit ? ((cust.current_debt || 0) / cust.credit_limit) * 100 : 0;
-                
                 return (
                   <tr key={cust.id} className={cn("transition-colors group", isDarkMode ? "hover:bg-gray-700/50" : "hover:bg-indigo-50/30")}>
                     <td className="px-6 py-4 text-center">
-                      <span className={cn("text-sm font-normal font-mono", isDarkMode ? "text-gray-300" : "text-gray-700")}>{formatCurrency(cust.credit_limit || 0)}</span>
+                      <span className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>{cust.name}</span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <div className={cn("px-3 py-1 rounded-lg text-sm font-normal font-mono", creditStatusBg(cust.current_debt || 0, cust.credit_limit || 0), creditStatusColor(cust.current_debt || 0, cust.credit_limit || 0))}>
+                      <span className={cn("text-sm font-normal font-mono", isDarkMode ? "text-gray-400" : "text-gray-600")}>{cust.phone}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={cn("text-sm font-normal font-mono", isDarkMode ? "text-gray-300" : "text-gray-700")}>{formatCurrency(cust.starting_balance || 0)}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={cn("text-sm font-normal font-mono px-2 py-1 rounded-lg", isDarkMode ? "bg-blue-900/30 text-blue-400" : "bg-blue-100 text-blue-700")}>{formatCurrency(0)}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className={cn("px-3 py-1 rounded-lg text-sm font-normal font-mono inline-block", isDarkMode ? "bg-red-900/30 text-red-400" : "bg-red-100 text-red-700")}>
                         {formatCurrency(cust.current_debt || 0)}
-                        {cust.credit_limit > 0 && <span className="text-xs"> ({Math.round(debtPercentage)}%)</span>}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={cn("text-sm font-normal font-mono px-2 py-1 rounded-lg", availableCredit > 0 ? (isDarkMode ? "bg-green-900/30 text-green-400" : "bg-green-100 text-green-700") : (isDarkMode ? "bg-red-900/30 text-red-400" : "bg-red-100 text-red-700"))}>{formatCurrency(availableCredit)}</span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-1">
@@ -5058,12 +5846,11 @@ const MerchantDashboard = () => {
                             setCustomerForm({
                               name: cust.name,
                               phone: cust.phone,
-                              email: cust.email || '',
-                              customer_type: cust.customer_type || 'cash',
-                              credit_limit: String(cust.credit_limit || 0),
                               password: cust.password || '',
+                              starting_balance: String(cust.starting_balance || 0),
+                              credit_limit: String(cust.credit_limit || 0),
                               notes: cust.notes || '',
-                              starting_balance: String(cust.starting_balance || 0)
+                              customer_type: cust.customer_type || 'cash'
                             });
                             setShowCustomerModal(true);
                           }}
@@ -5088,35 +5875,16 @@ const MerchantDashboard = () => {
                 return (
                   <tr key={cust.id} className={cn("transition-colors group", isDarkMode ? "hover:bg-gray-700/50" : "hover:bg-indigo-50/30")}>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center text-sm font-normal", isDarkMode ? "bg-indigo-900/30 text-indigo-400" : "bg-indigo-100 text-indigo-600")}>
-                          {cust.name?.charAt(0)}
-                        </div>
-                        <div className={cn("text-sm font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{cust.name}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
                       <span className={cn("text-xs font-normal px-2 py-1 rounded-lg border", isDarkMode ? "bg-gray-700 text-gray-300 border-gray-600" : "bg-gray-50 text-gray-600 border-gray-100")}>{cust.phone}</span>
                     </td>
                     <td className="px-6 py-4">
                       <span className={cn("text-xs font-normal px-2 py-1 rounded-lg", isDarkMode ? "text-gray-300" : "text-gray-600")}>{cust.address || '-'}</span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={cn("text-xs font-normal px-2 py-1 rounded-lg", isDarkMode ? "bg-purple-900/20 text-purple-300" : "bg-purple-50 text-purple-700")}>{cust.total_items || 0} منتج</span>
-                    </td>
                     <td className="px-6 py-4 text-center">
                       <span className={cn("text-sm font-normal font-mono px-3 py-1 rounded-lg", isDarkMode ? "bg-indigo-900/20 text-indigo-300" : "bg-indigo-50 text-indigo-700")}>{cust.total_orders || 0}</span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button 
-                          onClick={() => handleDeleteCustomer(cust.id)}
-                          title="حذف"
-                          className={cn("p-2.5 rounded-lg transition-all shadow-sm hover:scale-110", isDarkMode ? "bg-red-900/30 text-red-400 hover:bg-red-600 hover:text-white" : "bg-red-50 text-red-600 hover:bg-red-600 hover:text-white")}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                      <span className={cn("text-sm font-normal font-mono px-3 py-1 rounded-lg", isDarkMode ? "bg-emerald-900/20 text-emerald-300" : "bg-emerald-50 text-emerald-700")}>{formatCurrency(cust.total_spent || 0)}</span>
                     </td>
                   </tr>
                 );
@@ -5129,141 +5897,7 @@ const MerchantDashboard = () => {
     );
   };
 
-  const renderCustomerModal = () => {
-    if (!showCustomerModal) return null;
-    
-    return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-y-auto font-sans" dir="rtl">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          className={cn("rounded-[2rem] w-full max-w-lg shadow-2xl border overflow-hidden max-h-[95vh] overflow-y-auto", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-white/20")}
-        >
-          <div className={cn("p-5 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50/50 border-black/5")}>
-            <div>
-              <h3 className={cn("text-lg font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{isEditingCustomer ? 'تعديل بيانات العميل' : 'إضافة عميل جديد'}</h3>
-              <p className={cn("text-xs font-medium mt-0.5", isDarkMode ? "text-gray-400" : "text-gray-500")}>أدخل البيانات بدقة</p>
-            </div>
-            <button onClick={() => setShowCustomerModal(false)} className="p-1.5 hover:bg-black/5 rounded-full transition-colors text-gray-400">
-              <X size={18} />
-            </button>
-          </div>
 
-          <div className="p-5 space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <label className={cn("text-xs font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>📝 الاسم</label>
-                <input 
-                  type="text"
-                  value={customerForm.name}
-                  onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})}
-                  placeholder="أدخل اسم العميل"
-                  className={cn("w-full px-2.5 py-1.5 rounded-md border border-black/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-normal", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 text-gray-900 placeholder-gray-400")}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className={cn("text-xs font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>📱 رقم الهاتف</label>
-                <input 
-                  type="text"
-                  value={customerForm.phone}
-                  onChange={(e) => setCustomerForm({...customerForm, phone: e.target.value})}
-                  placeholder="07800000000"
-                  className={cn("w-full px-2.5 py-1.5 rounded-md border border-black/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-normal", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 text-gray-900 placeholder-gray-400")}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <label className={cn("text-xs font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>📧 البريد</label>
-                <input 
-                  type="email"
-                  value={customerForm.email}
-                  onChange={(e) => setCustomerForm({...customerForm, email: e.target.value})}
-                  placeholder=""
-                  className={cn("w-full px-2.5 py-1.5 rounded-md border border-black/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-normal", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 text-gray-900 placeholder-gray-400")}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className={cn("text-xs font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>🏪 النوع</label>
-                <select 
-                  value={customerForm.customer_type}
-                  onChange={(e) => setCustomerForm({...customerForm, customer_type: e.target.value as 'cash' | 'reseller'})}
-                  className={cn("w-full px-2.5 py-1.5 rounded-md border border-black/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-normal", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 text-gray-900")}
-                >
-                  <option value="cash">نقدي</option>
-                  <option value="reseller">بيع</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <label className={cn("text-xs font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>💰 حد الائتمان</label>
-                <input 
-                  type="number"
-                  value={customerForm.credit_limit}
-                  onChange={(e) => setCustomerForm({...customerForm, credit_limit: e.target.value})}
-                  placeholder="0"
-                  min="0"
-                  className={cn("w-full px-2.5 py-1.5 rounded-md border border-black/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-normal", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 text-gray-900 placeholder-gray-400")}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className={cn("text-xs font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>💵 ديون سابقة</label>
-                <input 
-                  type="number"
-                  value={customerForm.starting_balance}
-                  onChange={(e) => setCustomerForm({...customerForm, starting_balance: e.target.value})}
-                  placeholder="0"
-                  min="0"
-                  className={cn("w-full px-2.5 py-1.5 rounded-md border border-black/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-normal", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 text-gray-900 placeholder-gray-400")}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <label className={cn("text-xs font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>🔐 كلمة المرور</label>
-                <input 
-                  type="password"
-                  value={customerForm.password}
-                  onChange={(e) => setCustomerForm({...customerForm, password: e.target.value})}
-                  placeholder="أدخل كلمة المرور"
-                  className={cn("w-full px-2.5 py-1.5 rounded-md border border-black/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-normal", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 text-gray-900 placeholder-gray-400")}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className={cn("text-xs font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>📝 ملاحظات</label>
-                <textarea 
-                  value={customerForm.notes}
-                  onChange={(e) => setCustomerForm({...customerForm, notes: e.target.value})}
-                  placeholder="ملاحظات إضافية"
-                  rows={1}
-                  className={cn("w-full px-2.5 py-1.5 rounded-md border border-black/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-xs font-normal resize-none outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 text-gray-900 placeholder-gray-400")}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className={cn("p-3 border-t flex gap-2", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
-            <Button 
-              onClick={isEditingCustomer ? handleEditCustomer : handleCreateCustomer}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white py-1.5 px-3 rounded-md shadow-md text-xs font-normal transition-all hover:scale-[1.02] active:scale-95 font-sans"
-            >
-              {isEditingCustomer ? '💾 تحديث' : '➕ إضافة'}
-            </Button>
-            <Button 
-              onClick={() => setShowCustomerModal(false)}
-              className="px-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-normal rounded-md transition-all font-sans text-xs py-1.5"
-            >
-              إلغاء
-            </Button>
-          </div>
-        </motion.div>
-      </div>
-    );
-  };
 
   const renderCoupons = () => {
     return (
@@ -5273,7 +5907,7 @@ const MerchantDashboard = () => {
           <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-100">
             <Ticket size={20} />
           </div>
-          <h2 className="text-xl font-normal text-gray-800">قسائم الخصم</h2>
+          <h2 className={cn("text-xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-800")}>قسائم الخصم</h2>
         </div>
         <Button 
           onClick={() => {
@@ -5287,88 +5921,173 @@ const MerchantDashboard = () => {
             });
             setShowCouponModal(true);
           }}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg py-3 px-6 rounded-2xl text-sm font-normal flex items-center gap-2 transform transition-all hover:scale-105"
+          className={cn("bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg py-3 px-6 rounded-2xl text-sm font-normal flex items-center gap-2 transform transition-all hover:scale-105", isMobile && "py-2 px-4 text-xs")}
         >
-          <Plus size={20} /> إنشاء قسيمة جديدة
+          <Plus size={isMobile ? 16 : 20} /> {!isMobile && "إنشاء قسيمة جديدة"}
         </Button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-right border-collapse">
-          <thead>
-            <tr className={cn(isDarkMode ? "bg-gray-800" : "bg-gray-50/30")}>
-              <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-300" : "text-gray-400")}>الرمز</th>
-              <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>نوع الخصم</th>
-              <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>الخصم</th>
-              <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>الاستخدام</th>
-              <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>تنتهي في</th>
-              <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>الإجراءات</th>
-            </tr>
-          </thead>
-          <tbody className={cn("divide-y", isDarkMode ? "divide-gray-700" : "divide-gray-50")}>
-            {filteredCoupons.map((coupon) => (
-              <tr key={coupon.id} className={cn("transition-colors group", isDarkMode ? "hover:bg-gray-700/50" : "hover:bg-indigo-50/30")}>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", isDarkMode ? "bg-indigo-900/50 text-indigo-400" : "bg-indigo-50 text-indigo-600")}>
-                       <Gift size={16} />
+
+      {/* Desktop View - Table */}
+      {!isMobile && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-right border-collapse">
+            <thead>
+              <tr className={cn(isDarkMode ? "bg-gray-800" : "bg-gray-50/30")}>
+                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-300" : "text-gray-400")}>الرمز</th>
+                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>نوع الخصم</th>
+                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>الخصم</th>
+                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>الاستخدام</th>
+                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>تنتهي في</th>
+                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody className={cn("divide-y", isDarkMode ? "divide-gray-700" : "divide-gray-50")}>
+              {filteredCoupons.map((coupon) => (
+                <tr key={coupon.id} className={cn("transition-colors group", isDarkMode ? "hover:bg-gray-700/50" : "hover:bg-indigo-50/30")}>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", isDarkMode ? "bg-indigo-900/50 text-indigo-400" : "bg-indigo-50 text-indigo-600")}>
+                         <Gift size={16} />
+                      </div>
+                      <span className={cn("text-sm font-normal group-hover:text-indigo-600 transition-colors", isDarkMode ? "text-gray-100 group-hover:text-indigo-400" : "text-gray-900 group-hover:text-indigo-600")}>{coupon.code}</span>
                     </div>
-                    <span className={cn("text-sm font-normal group-hover:text-indigo-600 transition-colors", isDarkMode ? "text-gray-100 group-hover:text-indigo-400" : "text-gray-900 group-hover:text-indigo-600")}>{coupon.code}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-center">
-                   <span className={cn(
-                     "px-3 py-1 rounded-full text-[10px] font-normal uppercase tracking-tighter",
-                     coupon.discount_type === 'percentage' ? (isDarkMode ? "bg-amber-900 text-amber-300 border border-amber-700" : "bg-amber-100 text-amber-700 border border-amber-200") : (isDarkMode ? "bg-emerald-900 text-emerald-300 border border-emerald-700" : "bg-emerald-100 text-emerald-700 border border-emerald-200")
-                   )}>
-                     {coupon.discount_type === 'percentage' ? 'نسبة مئوية %' : 'خصم ثابت'}
-                   </span>
-                </td>
-                <td className={cn("px-6 py-4 text-center font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                  {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : formatCurrency(coupon.discount_value)}
-                </td>
-                <td className="px-6 py-4 text-center">
-                   <div className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                      {coupon.usage_count} {coupon.usage_limit ? ` / ${coupon.usage_limit}` : ''}
-                   </div>
-                   {coupon.usage_limit && (
-                     <div className={cn("w-16 h-1 rounded-full mx-auto mt-1 overflow-hidden", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
-                       <div 
-                         className={cn("h-full rounded-full", isDarkMode ? "bg-indigo-600" : "bg-indigo-500")} 
-                         style={{ width: `${Math.min((coupon.usage_count / coupon.usage_limit) * 100, 100)}%` }}
-                       ></div>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                     <span className={cn(
+                       "px-3 py-1 rounded-full text-[10px] font-normal uppercase tracking-tighter",
+                       coupon.discount_type === 'percentage' ? (isDarkMode ? "bg-amber-900 text-amber-300 border border-amber-700" : "bg-amber-100 text-amber-700 border border-amber-200") : (isDarkMode ? "bg-emerald-900 text-emerald-300 border border-emerald-700" : "bg-emerald-100 text-emerald-700 border border-emerald-200")
+                     )}>
+                       {coupon.discount_type === 'percentage' ? 'نسبة مئوية %' : 'خصم ثابت'}
+                     </span>
+                  </td>
+                  <td className={cn("px-6 py-4 text-center font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                    {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : formatCurrency(coupon.discount_value)}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                     <div className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                        {coupon.usage_count} {coupon.usage_limit ? ` / ${coupon.usage_limit}` : ''}
                      </div>
-                   )}
-                </td>
-                <td className={cn("px-6 py-4 text-center text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                  {coupon.expiry_date ? new Date(coupon.expiry_date).toLocaleDateString('en-US') : 'بدون تاريخ'}
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <button 
+                     {coupon.usage_limit && (
+                       <div className={cn("w-16 h-1 rounded-full mx-auto mt-1 overflow-hidden", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
+                         <div 
+                           className={cn("h-full rounded-full", isDarkMode ? "bg-indigo-600" : "bg-indigo-500")} 
+                           style={{ width: `${Math.min((coupon.usage_count / coupon.usage_limit) * 100, 100)}%` }}
+                         ></div>
+                       </div>
+                     )}
+                  </td>
+                  <td className={cn("px-6 py-4 text-center text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>
+                    {coupon.valid_until ? new Date(coupon.valid_until).toLocaleDateString('ar-EG') : 'بدون تاريخ'}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button 
+                      onClick={async () => {
+                         if (confirm("هل أنت متأكد من حذف هذه القسيمة؟")) {
+                           const res = await fetch(`/api/coupons/${coupon.id}`, { method: 'DELETE' });
+                           if (res.ok) setCoupons(coupons.filter(c => c.id !== coupon.id));
+                         }
+                      }}
+                      className={cn("p-2.5 rounded-xl transition-all shadow-sm", isDarkMode ? "bg-red-900/30 text-red-400 hover:bg-red-600 hover:text-white" : "bg-red-50 text-red-600 hover:bg-red-600 hover:text-white")}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {filteredCoupons.length === 0 && (
+                <tr>
+                  <td colSpan={6} className={cn("p-20 text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>
+                    <Ticket size={48} className="mx-auto mb-4 opacity-10" />
+                    <p className="font-normal">لا توجد قسائم خصم حالياً</p>
+                    <p className="text-xs font-normal mt-1">ابدأ بإنشاء أول رمز ترويجي لمضاعفة مبيعاتك!</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Mobile View - Cards */}
+      {isMobile && (
+        <div className="p-4 space-y-3">
+          {filteredCoupons.length === 0 ? (
+            <div className={cn("p-12 text-center rounded-2xl", isDarkMode ? "bg-gray-700/50" : "bg-gray-50")}>
+              <Ticket size={40} className="mx-auto mb-3 opacity-20" />
+              <p className={cn("font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-600")}>لا توجد قسائم</p>
+            </div>
+          ) : (
+            filteredCoupons.map((coupon) => (
+              <div
+                key={coupon.id}
+                className={cn(
+                  "p-4 rounded-2xl border",
+                  isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-100"
+                )}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0", isDarkMode ? "bg-indigo-900/50 text-indigo-400" : "bg-indigo-100 text-indigo-600")}>
+                      <Gift size={16} />
+                    </div>
+                    <span className={cn("font-bold text-sm truncate", isDarkMode ? "text-gray-100" : "text-gray-900")}>{coupon.code}</span>
+                  </div>
+                  <button
                     onClick={async () => {
-                       if (confirm("هل أنت متأكد من حذف هذه القسيمة؟")) {
-                         const res = await fetch(`/api/coupons/${coupon.id}`, { method: 'DELETE' });
-                         if (res.ok) setCoupons(coupons.filter(c => c.id !== coupon.id));
-                       }
+                      if (confirm("حذف؟")) {
+                        const res = await fetch(`/api/coupons/${coupon.id}`, { method: 'DELETE' });
+                        if (res.ok) setCoupons(coupons.filter(c => c.id !== coupon.id));
+                      }
                     }}
-                    className={cn("p-2.5 rounded-xl transition-all shadow-sm", isDarkMode ? "bg-red-900/30 text-red-400 hover:bg-red-600 hover:text-white" : "bg-red-50 text-red-600 hover:bg-red-600 hover:text-white")}
+                    className={cn("p-2 rounded-lg transition-all", isDarkMode ? "text-red-400 hover:bg-red-900/30" : "text-red-600 hover:bg-red-100")}
                   >
                     <Trash2 size={16} />
                   </button>
-                </td>
-              </tr>
-            ))}
-            {filteredCoupons.length === 0 && (
-              <tr>
-                <td colSpan={6} className={cn("p-20 text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>
-                  <Ticket size={48} className="mx-auto mb-4 opacity-10" />
-                  <p className="font-normal">لا توجد قسائم خصم حالياً</p>
-                  <p className="text-xs font-normal mt-1">ابدأ بإنشاء أول رمز ترويجي لمضاعفة مبيعاتك!</p>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                </div>
+
+                {/* Details Grid */}
+                <div className="space-y-2 text-sm">
+                  {/* Discount Type & Value */}
+                  <div className="flex items-center justify-between">
+                    <span className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>نوع الخصم</span>
+                    <span className={cn(
+                      "px-2 py-1 rounded-lg text-[10px] font-normal",
+                      coupon.discount_type === 'percentage' ? (isDarkMode ? "bg-amber-900/40 text-amber-300" : "bg-amber-100 text-amber-700") : (isDarkMode ? "bg-emerald-900/40 text-emerald-300" : "bg-emerald-100 text-emerald-700")
+                    )}>
+                      {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : formatCurrency(coupon.discount_value)}
+                    </span>
+                  </div>
+
+                  {/* Usage Progress */}
+                  {coupon.usage_limit && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>الاستخدام</span>
+                        <span className={cn("text-xs font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>{coupon.usage_count} / {coupon.usage_limit}</span>
+                      </div>
+                      <div className={cn("w-full h-1.5 rounded-full overflow-hidden", isDarkMode ? "bg-gray-600" : "bg-gray-200")}>
+                        <div
+                          className={cn("h-full rounded-full transition-all", isDarkMode ? "bg-indigo-500" : "bg-indigo-600")}
+                          style={{ width: `${Math.min((coupon.usage_count / coupon.usage_limit) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Expiry Date */}
+                  <div className="flex items-center justify-between">
+                    <span className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>تنتهي في</span>
+                    <span className={cn("text-xs font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                      {coupon.valid_until ? new Date(coupon.valid_until).toLocaleDateString('ar-EG') : 'بدون تاريخ'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </Card>
   );
   };
@@ -5380,25 +6099,40 @@ const MerchantDashboard = () => {
       return;
     }
 
-    const res = await fetch('/api/coupons', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...couponForm,
-        store_id: user.store_id,
-        discount_value: Math.floor(parseFloat(String(couponForm.discount_value) || '0')),
-        min_order_value: Math.floor(parseFloat(couponForm.min_order_value || '0')),
-        usage_limit: couponForm.usage_limit ? parseInt(couponForm.usage_limit) : null
-      })
-    });
+    try {
+      const res = await fetch('/api/coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          store_id: user.store_id,
+          code: couponForm.code.toUpperCase(),
+          discount_type: couponForm.discount_type,
+          discount_value: parseFloat(String(couponForm.discount_value) || '0'),
+          min_order_value: parseFloat(couponForm.min_order_value || '0'),
+          usage_limit: couponForm.usage_limit ? parseInt(couponForm.usage_limit) : null,
+          expiry_date: couponForm.expiry_date || null
+        })
+      });
 
-    if (res.ok) {
-      const data = await res.json();
-      setCoupons([data, ...coupons]);
-      setShowCouponModal(false);
-    } else {
-      const err = await res.json();
-      alert(err.error || "فشل إنشاء القسيمة");
+      if (res.ok) {
+        const newCoupon = await res.json();
+        setCoupons([newCoupon, ...coupons]);
+        setShowCouponModal(false);
+        setCouponForm({
+          code: '',
+          discount_type: 'percentage',
+          discount_value: '',
+          min_order_value: '0',
+          expiry_date: '',
+          usage_limit: ''
+        });
+        alert("✓ تم إنشاء القسيمة بنجاح!");
+      } else {
+        const err = await res.json();
+        alert(err.error || "فشل إنشاء القسيمة");
+      }
+    } catch (error: any) {
+      alert("خطأ: " + error.message);
     }
   };
 
@@ -5508,7 +6242,12 @@ const MerchantDashboard = () => {
   };
 
   const renderProducts = () => {
-    console.log('📦 renderProducts called with:', {
+    console.log('✅✅ renderProducts EXECUTING NOW - Button should be visible on screen!');
+    console.log('✅✅ handleCreateProduct function exists?', typeof handleCreateProduct === 'function');
+    
+    if (!categories) console.warn('WARNING: categories is', categories);
+    console.log('�🔵🔵 renderProducts CALLED!!!');
+    console.log('�📦 renderProducts called with:', {
       categoriesCount: categories.length,
       categories: categories,
       filteredProductsCount: filteredProducts.length,
@@ -5516,6 +6255,11 @@ const MerchantDashboard = () => {
     });
     
     // Group filtered products by category
+    console.log('🔍 RENDER PRODUCTS DEBUG:', {
+      filteredProductsLength: filteredProducts.length,
+      filteredProducts: filteredProducts.map(p => ({ id: p.id, name: p.name, category_name: p.category_name, price: p.price }))
+    });
+    
     const productsByCategory = filteredProducts.reduce((acc, product) => {
       const category = product.category_name || 'بدون قسم';
       if (!acc[category]) {
@@ -5526,6 +6270,10 @@ const MerchantDashboard = () => {
     }, {} as Record<string, typeof filteredProducts>);
 
     const categoryNames = Object.keys(productsByCategory).sort();
+    console.log('📂 PRODUCTS BY CATEGORY:', {
+      categoryCount: categoryNames.length,
+      categories: categoryNames.map(cat => ({ name: cat, count: productsByCategory[cat].length }))
+    });
 
     return (
     <Card className={cn("rounded-[2.5rem] border-none shadow-xl overflow-hidden", isDarkMode ? "bg-gray-800" : "bg-white")}>
@@ -5534,14 +6282,57 @@ const MerchantDashboard = () => {
           <h3 className={cn("font-normal text-2xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>إدارة المنتجات</h3>
           <p className={cn("font-medium text-sm mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>أضف، عدل أو احذف المنتجات من متجرك</p>
         </div>
-        <Button 
-          onClick={handleCreateProduct}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg py-4 px-8 rounded-2xl text-sm font-normal flex items-center gap-2 transform transition-transform hover:scale-105"
+        <button 
+          type="button"
+          onClick={(e) => {
+            console.log('🎯 BUTTON CLICKED - Event:', e);
+            console.log('🎯 Target:', e.target);
+            console.log('🎯 showProductModal before:', showProductModal);
+            setShowProductModal(true);
+            console.log('🎯 showProductModal after setState call');
+          }}
+          style={{ 
+            zIndex: 50, 
+            pointerEvents: 'auto !important', 
+            cursor: 'pointer',
+            background: '#4F46E5',
+            color: 'white',
+            padding: '16px 32px',
+            borderRadius: '18px',
+            border: 'none',
+            fontSize: '14px',
+            fontWeight: 'normal',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
         >
           <Plus size={20} /> إضافة منتج جديد
-        </Button>
+        </button>
       </div>
       <div className={cn("p-8", isDarkMode ? "bg-gray-800" : "bg-white")}>
+        {/* Search Bar */}
+        <div className="mb-8 flex gap-3">
+          <div className="flex-1 relative">
+            <Search className={cn("absolute left-4 top-1/2 -translate-y-1/2", isDarkMode ? "text-gray-500" : "text-gray-400")} size={18} />
+            <input 
+              type="text" 
+              placeholder="ابحث عن المنتجات..." 
+              value={dashboardQuery}
+              onChange={(e) => setDashboardQuery(e.target.value)}
+              className={cn("w-full pl-12 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-colors font-normal", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-indigo-500/30 placeholder-gray-500" : "bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400")}
+            />
+          </div>
+          {dashboardQuery && (
+            <button
+              onClick={() => setDashboardQuery('')}
+              className={cn("px-4 py-3 rounded-xl transition-colors font-normal flex items-center gap-2", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-gray-300" : "bg-gray-100 hover:bg-gray-200 text-gray-600")}
+            >
+              <X size={18} /> مسح
+            </button>
+          )}
+        </div>
+
         {filteredProducts.length === 0 ? (
           <div className={cn("p-20 text-center", isDarkMode ? "text-gray-500" : "text-gray-400")}>
             <Package size={64} className="mx-auto mb-4 opacity-10" />
@@ -5569,20 +6360,18 @@ const MerchantDashboard = () => {
                         isDarkMode ? "bg-gray-700 border-green-700 hover:border-green-600" : "bg-gray-50 border-green-500 hover:border-green-600"
                       )}>
                         <div className={cn("relative h-24 overflow-hidden rounded-lg flex items-center justify-center", isDarkMode ? "bg-gradient-to-br from-green-600/20 to-green-800/20" : "bg-gradient-to-br from-green-50 to-emerald-50")}>
-                          {p.image_url && p.image_url.trim() ? (
+                          {/* Show Product Image if available */}
+                          {p.image_url ? (
                             <img 
-                              src={p.image_url} 
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
+                              src={getSafeImageUrl(p.image_url)} 
+                              alt={p.name}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                             />
-                          ) : null}
-                          
-                          {/* Default Card Icon */}
-                          <div className={cn("flex items-center justify-center text-5xl font-bold", !p.image_url || !p.image_url.trim() ? "block" : "hidden")}>
-                            💳
-                          </div>
+                          ) : (
+                            <div className="flex items-center justify-center text-5xl font-bold">
+                              💳
+                            </div>
+                          )}
                           
                           {p.stock <= 2 && (
                             <span className="absolute top-2 right-2 bg-red-500 text-white text-[8px] font-normal px-2 py-0.5 rounded-full shadow-lg">
@@ -5593,18 +6382,24 @@ const MerchantDashboard = () => {
                         </div>
 
                         {/* Edit & Delete Buttons - Overlay */}
-                        <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                        <div className="absolute top-2 left-2 flex gap-1 z-50 opacity-10 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-200">
+                          {console.log('🟢 RENDERING EDIT BUTTON for product:', p.id, p.name)}
                           <button 
-                            onClick={() => handleEditProduct(p)}
-                            className={cn("p-1.5 rounded-lg shadow-md transition-all", isDarkMode ? "bg-gray-600 hover:bg-indigo-600 text-gray-300" : "bg-white hover:bg-indigo-600 text-gray-600 hover:text-white")}
+                            onClick={() => {
+                              console.log('🔴 EDIT BUTTON CLICKED');
+                              handleEditProduct(p);
+                            }}
+                            className={cn("p-2 rounded-lg shadow-lg transition-all cursor-pointer", isDarkMode ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-blue-500 hover:bg-blue-600 text-white")}
+                            title="تعديل المنتج"
                           >
-                            <Edit2 size={14} />
+                            <Edit2 size={16} />
                           </button>
                           <button 
                             onClick={() => handleDeleteProduct(p.id)}
-                            className={cn("p-1.5 rounded-lg shadow-md transition-all", isDarkMode ? "bg-gray-600 hover:bg-red-600 text-gray-300" : "bg-white hover:bg-red-600 text-gray-600 hover:text-white")}
+                            className={cn("p-2 rounded-lg shadow-lg transition-all cursor-pointer", isDarkMode ? "bg-red-600 hover:bg-red-700 text-white" : "bg-red-500 hover:bg-red-600 text-white")}
+                            title="حذف المنتج"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={16} />
                           </button>
                         </div>
 
@@ -5649,13 +6444,15 @@ const MerchantDashboard = () => {
   };
 
   const renderOverview = () => {
+    const isRegularStore = user?.store_type !== 'topup';
+    const workflowStats = isRegularStore ? (merchantStats.fulfillmentStats || merchantStats.orderStats) : merchantStats.orderStats;
     return (
       <>
         {/* Main Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: 'إجمالي المبيعات', value: formatCurrency(merchantStats.totalRevenue), icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50', clickable: true },
-            { label: 'الطلبات المكتملة', value: merchantStats.orderStats.completed, icon: ShoppingCart, color: 'text-emerald-600', bg: 'bg-emerald-50', clickable: false },
+            { label: isRegularStore ? 'بانتظار التجهيز' : 'الطلبات المكتملة', value: isRegularStore ? workflowStats.pending : merchantStats.orderStats.completed, icon: ShoppingCart, color: isRegularStore ? 'text-amber-600' : 'text-emerald-600', bg: isRegularStore ? 'bg-amber-50' : 'bg-emerald-50', clickable: false },
             { label: 'المنتجات النشطة', value: products.length, icon: Package, color: 'text-indigo-600', bg: 'bg-indigo-50', clickable: false },
             { label: 'إجمالي العملاء', value: customers.length, icon: Users, color: 'text-orange-600', bg: 'bg-orange-50', clickable: false },
           ].map((stat) => (
@@ -5688,19 +6485,19 @@ const MerchantDashboard = () => {
             <div className={cn("p-6 border-b", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
               <h3 className={cn("font-normal text-lg flex items-center gap-2", isDarkMode ? "text-gray-200" : "text-gray-800")}>
                 <PieChart size={20} className="text-indigo-500" />
-                حالة الطلبات
+                {isRegularStore ? 'حالة التجهيز' : 'حالة الطلبات'}
               </h3>
             </div>
             <div className="p-6 space-y-6">
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-normal text-amber-600">بانتظار التجهيز</span>
-                  <span className={cn("text-lg font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{merchantStats.orderStats.pending}</span>
+                  <span className={cn("text-lg font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{workflowStats.pending}</span>
                 </div>
                 <div className={cn("w-full h-2 rounded-full overflow-hidden", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
                   <div 
                     className="h-full bg-amber-400 rounded-full transition-all duration-1000"
-                    style={{ width: `${(merchantStats.orderStats.pending / (merchantStats.orderStats.total || 1)) * 100}%` }}
+                    style={{ width: `${(workflowStats.pending / (workflowStats.total || 1)) * 100}%` }}
                   ></div>
                 </div>
               </div>
@@ -5708,19 +6505,19 @@ const MerchantDashboard = () => {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-normal text-emerald-600">مكتملة</span>
-                  <span className={cn("text-lg font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{merchantStats.orderStats.completed}</span>
+                  <span className={cn("text-lg font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{workflowStats.completed}</span>
                 </div>
                 <div className={cn("w-full h-2 rounded-full overflow-hidden", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
                   <div 
                     className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
-                    style={{ width: `${(merchantStats.orderStats.completed / (merchantStats.orderStats.total || 1)) * 100}%` }}
+                    style={{ width: `${(workflowStats.completed / (workflowStats.total || 1)) * 100}%` }}
                   ></div>
                 </div>
               </div>
               
               <div className={cn("mt-6 pt-6 border-t text-center", isDarkMode ? "border-gray-600" : "border-black/5")}>
                  <p className={cn("text-[10px] font-normal uppercase", isDarkMode ? "text-gray-500" : "text-gray-400")}>إجمالي</p>
-                 <p className={cn("text-2xl font-normal mt-1", isDarkMode ? "text-gray-300" : "text-gray-900")}>{merchantStats.orderStats.total}</p>
+                 <p className={cn("text-2xl font-normal mt-1", isDarkMode ? "text-gray-300" : "text-gray-900")}>{workflowStats.total}</p>
               </div>
             </div>
           </Card>
@@ -5789,7 +6586,7 @@ const MerchantDashboard = () => {
                       order.status === 'pending' ? "bg-amber-100 text-amber-700" : 
                       "bg-emerald-100 text-emerald-700"
                     )}>
-                      {order.status === 'pending' ? 'بانتظار' : 'مكتمل'}
+                      {order.status === 'pending' ? (isRegularStore ? 'غير مشحون' : 'بانتظار') : (isRegularStore ? 'تم الشحن' : 'مكتمل')}
                     </span>
                     <p className={cn("font-normal text-sm min-w-[80px] text-left", isDarkMode ? "text-gray-300" : "text-gray-900")}>{formatCurrency(order.total_amount || order.total)}</p>
                   </div>
@@ -5803,6 +6600,15 @@ const MerchantDashboard = () => {
   };
 
   const renderSalesModal = () => {
+    const currentSalesItems = salesData[selectedPeriod] || [];
+    const reportSummary = salesData.summary || {
+      totalRevenue: merchantStats.totalRevenue,
+      totalOrders: merchantStats.orderStats.total,
+      averageOrder: merchantStats.orderStats.total > 0 ? merchantStats.totalRevenue / merchantStats.orderStats.total : 0,
+      saleType: salesTypeFilter
+    };
+    const countLabel = reportSummary.saleType === 'auction' ? 'عدد المزادات' : reportSummary.saleType === 'order' ? 'عدد الطلبات' : 'عدد العمليات';
+
     return (
     <AnimatePresence>
       {showSalesModal && (
@@ -5818,95 +6624,186 @@ const MerchantDashboard = () => {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className={cn("rounded-3xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
+            className="rounded-3xl shadow-2xl max-w-5xl w-full overflow-hidden bg-slate-900 text-white"
           >
             {/* Header */}
-            <div className={cn("p-8 border-b flex justify-between items-center sticky top-0", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gradient-to-r from-blue-50 to-indigo-50 border-black/5")}>
+            <div className="p-5 md:p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800">
               <div>
-                <h2 className={cn("text-2xl font-normal flex items-center gap-2", isDarkMode ? "text-gray-100" : "text-gray-900")}>
-                  <CreditCard size={28} className="text-blue-600" />
+                <h2 className="text-xl md:text-2xl font-normal flex items-center gap-2 text-white">
+                  <CreditCard size={28} className="text-blue-400" />
                   تقرير المبيعات
                 </h2>
-                <p className={cn("text-sm mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>عرض تفصيلي للمبيعات خلال فترات مختلفة</p>
+                <p className="text-sm mt-1 text-slate-300">عرض تفصيلي للمبيعات خلال فترات مختلفة</p>
               </div>
               <button 
                 onClick={() => setShowSalesModal(false)}
-                className={cn("p-2 rounded-xl transition-colors", isDarkMode ? "text-gray-400 hover:text-gray-300 hover:bg-gray-600" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100")}
+                className="p-2 rounded-xl transition-colors text-slate-200 hover:text-white hover:bg-slate-700"
               >
                 <X size={24} />
               </button>
             </div>
 
             {/* Content */}
-            <div className="p-8 space-y-8">
-              {/* Period Selection */}
-              <div className="flex gap-3">
-                {(['daily', 'weekly', 'monthly'] as const).map((period) => (
-                  <button
-                    key={period}
-                    onClick={() => setSelectedPeriod(period)}
-                    className={cn(
-                      "px-6 py-2 rounded-xl font-normal text-sm transition-all",
-                      selectedPeriod === period
-                        ? "bg-blue-600 text-white shadow-lg"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    )}
-                  >
-                    {period === 'daily' ? 'يومي' : period === 'weekly' ? 'أسبوعي' : 'شهري'}
-                  </button>
-                ))}
-              </div>
-
-              {/* Sales Chart */}
-              <div className={cn("rounded-2xl p-6 border-2", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-black/5")}>
-                <h3 className={cn("font-normal text-lg mb-6", isDarkMode ? "text-gray-100" : "text-gray-800")}>بيانات المبيعات</h3>
-                <div className="space-y-3">
-                  {(salesData[selectedPeriod] || []).length === 0 ? (
-                    <div className={cn("text-center py-12", isDarkMode ? "text-gray-400" : "text-gray-400")}>
-                      <CreditCard size={40} className="mx-auto mb-3 opacity-20" />
-                      <p className="font-normal">لا توجد بيانات مبيعات لهذه الفترة</p>
+            <div className="p-4 md:p-5">
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-slate-700 bg-slate-800/90 p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 items-stretch">
+                    <div className="rounded-2xl border border-slate-700 bg-slate-900/70 p-4 min-h-[118px] flex flex-col justify-between">
+                      <p className="text-sm font-normal mb-3 text-white">فترة العرض</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(['daily', 'weekly', 'monthly'] as const).map((period) => (
+                          <button
+                            key={period}
+                            onClick={() => setSelectedPeriod(period)}
+                            className={cn(
+                              "px-3 py-2 rounded-xl font-normal text-sm transition-all",
+                              selectedPeriod === period
+                                ? "bg-blue-600 text-white shadow-lg"
+                                : "bg-slate-800 text-white hover:bg-slate-700"
+                            )}
+                          >
+                            {period === 'daily' ? 'يومي' : period === 'weekly' ? 'أسبوعي' : 'شهري'}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  ) : (
-                    (salesData[selectedPeriod] || []).map((item: any, idx: number) => {
-                      const maxAmount = Math.max(...(salesData[selectedPeriod] || []).map((i: any) => parseFloat(i.total) || 0), 1);
-                      const percentage = (parseFloat(item.total) / maxAmount) * 100;
-                      return (
-                        <div key={idx} className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className={cn("font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>{item.period}</span>
-                            <span className="font-normal text-lg text-blue-600">{formatCurrency(item.total)}</span>
-                          </div>
-                          <div className={cn("w-full h-3 rounded-full overflow-hidden", isDarkMode ? "bg-gray-600" : "bg-gray-200")}>
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${percentage}%` }}
-                              transition={{ duration: 0.8, ease: 'easeOut' }}
-                              className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full"
-                            ></motion.div>
-                          </div>
-                          <div className="flex justify-between text-[10px] text-gray-400 font-normal">
-                            <span>{item.order_count} طلب</span>
-                            <span>{(percentage).toFixed(1)}%</span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
 
-              {/* Summary Stats */}
-              <div className="grid grid-cols-3 gap-4">
-                {[
-                  { label: 'إجمالي المبيعات', value: formatCurrency(merchantStats.totalRevenue), icon: CreditCard, color: 'bg-blue-50' },
-                  { label: 'عدد الطلبات', value: merchantStats.orderStats.total, icon: ShoppingCart, color: 'bg-emerald-50' },
-                  { label: 'متوسط الطلب', value: formatCurrency(merchantStats.orderStats.total > 0 ? merchantStats.totalRevenue / merchantStats.orderStats.total : 0), icon: Package, color: 'bg-indigo-50' },
-                ].map((stat) => (
-                  <div key={stat.label} className={cn("p-4 rounded-xl border-2 border-black/5", stat.color)}>
-                    <p className="text-[10px] font-normal text-gray-600 uppercase mb-2">{stat.label}</p>
-                    <p className="text-lg font-normal text-gray-900">{stat.value}</p>
+                    {[
+                      { label: 'إجمالي المبيعات', value: formatCurrency(reportSummary.totalRevenue || 0), color: 'from-blue-500/25 to-blue-700/10' },
+                      { label: countLabel, value: reportSummary.totalOrders || 0, color: 'from-emerald-500/25 to-emerald-700/10' },
+                      { label: 'متوسط الطلب', value: formatCurrency(reportSummary.averageOrder || 0), color: 'from-indigo-500/25 to-indigo-700/10' },
+                    ].map((stat) => (
+                      <div key={stat.label} className={cn("p-4 rounded-2xl border border-slate-700 bg-gradient-to-br min-h-[118px] flex flex-col justify-center", stat.color)}>
+                        <p className="text-[11px] font-normal text-slate-200 mb-2">{stat.label}</p>
+                        <p className="text-lg font-normal text-white leading-tight">{stat.value}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-4 items-stretch">
+                <div className="h-full">
+                  <div className="rounded-2xl border border-slate-700 bg-slate-800/90 p-4 space-y-4 h-full">
+                    <div className="grid grid-cols-1 gap-3">
+                      <div>
+                        <label className="block text-sm font-normal mb-2 text-white">من</label>
+                        <input
+                          type="date"
+                          value={salesDateFrom}
+                          onChange={(e) => setSalesDateFrom(e.target.value)}
+                          className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-slate-900 border-slate-600 text-white"
+                          style={{ colorScheme: 'dark' }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-normal mb-2 text-white">إلى</label>
+                        <input
+                          type="date"
+                          value={salesDateTo}
+                          onChange={(e) => setSalesDateTo(e.target.value)}
+                          className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-slate-900 border-slate-600 text-white"
+                          style={{ colorScheme: 'dark' }}
+                        />
+                      </div>
+                      <div className="flex items-end gap-3">
+                        <button
+                          onClick={handleApplySalesFilters}
+                          disabled={isLoadingSalesData || (!!salesDateFrom && !!salesDateTo && salesDateFrom > salesDateTo)}
+                          className={cn(
+                            "px-5 py-2.5 rounded-xl font-normal text-sm transition-all",
+                            isLoadingSalesData || (!!salesDateFrom && !!salesDateTo && salesDateFrom > salesDateTo)
+                              ? "bg-slate-600 text-slate-300 cursor-not-allowed"
+                              : "bg-blue-600 text-white hover:bg-blue-700"
+                          )}
+                        >
+                          تطبيق الفلتر
+                        </button>
+                        <button
+                          onClick={handleResetSalesFilters}
+                          disabled={isLoadingSalesData}
+                          className="px-5 py-2.5 rounded-xl font-normal text-sm transition-all border border-slate-600 text-white hover:bg-slate-700"
+                        >
+                          مسح التاريخ
+                        </button>
+                      </div>
+                    </div>
+
+                    {!!salesDateFrom && !!salesDateTo && salesDateFrom > salesDateTo && (
+                      <p className="text-sm text-red-400">تاريخ البداية يجب أن يكون قبل أو يساوي تاريخ النهاية.</p>
+                    )}
+
+                    <div>
+                      <p className="text-sm font-normal mb-2 text-white">نوع المبيع</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { value: 'all', label: 'الكل' },
+                          { value: 'order', label: 'الطلبات' },
+                          { value: 'auction', label: 'المزادات' }
+                        ] as const).map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={() => setSalesTypeFilter(option.value)}
+                            className={cn(
+                              "px-3 py-2 rounded-xl font-normal text-sm transition-all border",
+                              salesTypeFilter === option.value
+                                ? "bg-emerald-600 text-white border-emerald-600"
+                                : "border-slate-600 text-white hover:bg-slate-700"
+                            )}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl p-5 border border-slate-700 bg-slate-800/90 h-full flex flex-col">
+                  <h3 className="font-normal text-lg mb-4 text-white">بيانات المبيعات</h3>
+                  <div className="space-y-3">
+                    {isLoadingSalesData ? (
+                      <div className="text-center py-12 text-slate-300">
+                        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                        <p className="font-normal">جاري تحميل بيانات المبيعات...</p>
+                      </div>
+                    ) : salesReportError ? (
+                      <div className="text-center py-12 text-red-400">
+                        <p className="font-normal">{salesReportError}</p>
+                      </div>
+                    ) : currentSalesItems.length === 0 ? (
+                      <div className="text-center py-12 text-slate-300">
+                        <CreditCard size={40} className="mx-auto mb-3 opacity-20" />
+                        <p className="font-normal">لا توجد بيانات مبيعات لهذه الفترة</p>
+                      </div>
+                    ) : (
+                      currentSalesItems.map((item: any, idx: number) => {
+                        const maxAmount = Math.max(...currentSalesItems.map((i: any) => parseFloat(i.total) || 0), 1);
+                        const percentage = (parseFloat(item.total) / maxAmount) * 100;
+                        return (
+                          <div key={idx} className="space-y-2 rounded-2xl bg-slate-900/70 border border-slate-700 p-3">
+                            <div className="flex justify-between items-center">
+                              <span className="font-normal text-sm text-white">{item.period}</span>
+                              <span className="font-normal text-lg text-blue-300">{formatCurrency(item.total)}</span>
+                            </div>
+                            <div className="w-full h-2.5 rounded-full overflow-hidden bg-slate-700">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${percentage}%` }}
+                                transition={{ duration: 0.8, ease: 'easeOut' }}
+                                className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full"
+                              ></motion.div>
+                            </div>
+                            <div className="flex justify-between text-[10px] text-slate-300 font-normal">
+                              <span>{item.order_count} عملية</span>
+                              <span>{(percentage).toFixed(1)}%</span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -5943,7 +6840,7 @@ const MerchantDashboard = () => {
               <div className="flex items-center gap-4">
                 <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden border border-black/5", isDarkMode ? "bg-indigo-900/40" : "bg-indigo-50")}>
                   {cat.image_url ? (
-                    <img src={cat.image_url} className="w-full h-full object-cover" />
+                    <img src={getSafeImageUrl(cat.image_url)} className="w-full h-full object-cover" />
                   ) : (
                     <Layout size={24} className={isDarkMode ? "text-indigo-400" : "text-indigo-300"} />
                   )}
@@ -5978,8 +6875,117 @@ const MerchantDashboard = () => {
   const renderAuctions = () => {
     return (
       <div className="space-y-6">
+        {/* Save Auction Sale Modal */}
+        {showAuctionSaveModal && selectedAuctionForSave && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 font-sans">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={cn("rounded-2xl w-full max-w-md shadow-2xl overflow-hidden", isDarkMode ? "bg-gray-800" : "bg-white")}
+            >
+              <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-900 border-gray-700" : "bg-gray-50 border-black/5")}>
+                <h3 className={cn("text-lg font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>
+                  حفظ مبيعة المزاد
+                </h3>
+                <button 
+                  onClick={() => {
+                    setShowAuctionSaveModal(false);
+                    setSelectedAuctionForSave(null);
+                    setFinalSalePrice('');
+                  }}
+                  className={cn("p-1 rounded-lg transition-colors", isDarkMode ? "hover:bg-gray-700 text-gray-400" : "hover:bg-gray-100 text-gray-500")}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className={cn("p-6 space-y-4", isDarkMode ? "bg-gray-800" : "bg-white")}>
+                <div>
+                  <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                    المنتج:
+                  </p>
+                  <p className={cn("text-base font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>
+                    {selectedAuctionForSave.product_name}
+                  </p>
+                </div>
+                <div>
+                  <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                    السعر النهائي (من أعلى عطاء):
+                  </p>
+                  <p className={cn("text-lg font-bold text-emerald-600", isDarkMode ? "text-emerald-400" : "")}>
+                    {formatCurrency(finalSalePrice ? parseFloat(finalSalePrice) : 0)}
+                  </p>
+                </div>
+                {(selectedAuctionForSave as any)?.selectedBidder && (
+                  <div className={cn("rounded-xl p-4 border", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-black/5")}>
+                    <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>المشتري المختار:</p>
+                    <p className={cn("text-base font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>
+                      {(selectedAuctionForSave as any).selectedBidder.customer_name || 'غير معروف'}
+                    </p>
+                    <p className={cn("text-sm mt-1", isDarkMode ? "text-indigo-300" : "text-indigo-600")}>
+                      {(selectedAuctionForSave as any).selectedBidder.customer_phone || '-'}
+                    </p>
+                  </div>
+                )}
+                <div className="pt-4 space-y-2">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/auctions/${selectedAuctionForSave.id}/finalize`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            final_sale_price: parseFloat(finalSalePrice),
+                            sold_bidder_bid_id: (selectedAuctionForSave as any)?.selectedBidder?.id || null,
+                            sold_bidder_name: (selectedAuctionForSave as any)?.selectedBidder?.customer_name || null,
+                            sold_bidder_phone: (selectedAuctionForSave as any)?.selectedBidder?.customer_phone || null
+                          })
+                        });
+                        const data = await res.json();
+                        if (!res.ok) {
+                          alert(data.error || 'خطأ في حفظ المبيعة');
+                        } else {
+                          alert('تم حفظ المبيعة بنجاح!');
+                          setShowAuctionSaveModal(false);
+                          setSelectedAuctionForSave(null);
+                          setFinalSalePrice('');
+                          await refreshMerchantAuctionState(selectedAuctionForBidders?.id || selectedAuctionForSave.id);
+                        }
+                      } catch (err) {
+                        console.error('Error finalizing auction:', err);
+                        alert('خطأ في حفظ المبيعة');
+                      }
+                    }}
+                    className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg font-normal text-sm hover:bg-emerald-700 transition-colors"
+                  >
+                    ✓ تأكيد البيع
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowAuctionSaveModal(false);
+                    }}
+                    className={cn("w-full px-4 py-2 rounded-lg font-normal text-sm transition-colors inline-flex items-center justify-center gap-2", isDarkMode ? "bg-indigo-900/30 text-indigo-300 hover:bg-indigo-900/50" : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100")}
+                  >
+                    <ChevronRight size={16} className="rotate-180" />
+                    رجوع
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowAuctionSaveModal(false);
+                      setSelectedAuctionForSave(null);
+                      setFinalSalePrice('');
+                    }}
+                    className={cn("w-full px-4 py-2 rounded-lg font-normal text-sm transition-colors", isDarkMode ? "bg-gray-700 text-gray-100 hover:bg-gray-600" : "bg-gray-100 text-gray-700 hover:bg-gray-200")}
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {/* Bidders Modal */}
-        {selectedAuctionForBidders && (
+        {selectedAuctionForBidders && !showAuctionSaveModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 font-sans">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
@@ -6021,6 +7027,7 @@ const MerchantDashboard = () => {
                         <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-300" : "text-gray-400")}>رقم الهاتف</th>
                         <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>قيمة العطاء</th>
                         <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>الوقت</th>
+                        <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>الإجراء</th>
                       </tr>
                     </thead>
                     <tbody className={cn("divide-y", isDarkMode ? "divide-gray-700" : "divide-gray-50")}>
@@ -6039,6 +7046,11 @@ const MerchantDashboard = () => {
                             <p className={cn("font-normal", isDarkMode ? "text-gray-200" : "text-gray-900")}>
                               {bidder.customer_name || 'غير معروف'}
                             </p>
+                            {bidder.is_confirmed_sale && (
+                              <p className={cn("text-xs mt-1 font-normal", isDarkMode ? "text-emerald-400" : "text-emerald-600")}>
+                                المشتري المؤكد حالياً
+                              </p>
+                            )}
                           </td>
                           <td className="px-6 py-4">
                             <a 
@@ -6053,6 +7065,52 @@ const MerchantDashboard = () => {
                           </td>
                           <td className={cn("px-6 py-4 text-center text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>
                             {new Date(bidder.bid_time).toLocaleString('ar-IQ')}
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            {bidder.is_confirmed_sale ? (
+                              <button
+                                onClick={async () => {
+                                  if (!confirm('هل تريد حذف المشتري المؤكد وإلغاء هذه المبيعة؟')) return;
+
+                                  try {
+                                    const res = await fetch(`/api/auctions/${selectedAuctionForBidders.id}/finalize`, {
+                                      method: 'DELETE',
+                                      headers: { 'Content-Type': 'application/json' }
+                                    });
+                                    const data = await res.json();
+                                    if (!res.ok) {
+                                      alert(data.error || 'فشل حذف المشتري المؤكد');
+                                      return;
+                                    }
+
+                                    alert('تم حذف المشتري المؤكد وتحديث إجمالي المبيعات');
+                                    await refreshMerchantAuctionState(selectedAuctionForBidders.id);
+                                  } catch (err) {
+                                    console.error('Failed to remove confirmed auction sale:', err);
+                                    alert('فشل حذف المشتري المؤكد');
+                                  }
+                                }}
+                                className={cn("px-3 py-2 rounded-lg font-normal text-xs transition-all inline-flex items-center gap-1", isDarkMode ? "bg-red-900/30 text-red-400 hover:bg-red-900/50" : "bg-red-50 text-red-600 hover:bg-red-100")}
+                                title="حذف المشتري المؤكد"
+                              >
+                                <Trash2 size={15} /> حذف المشتري
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setSelectedAuctionForSave({
+                                    ...selectedAuctionForBidders,
+                                    selectedBidder: bidder
+                                  });
+                                  setFinalSalePrice(String(bidder.bid_price || ''));
+                                  setShowAuctionSaveModal(true);
+                                }}
+                                className={cn("px-3 py-2 rounded-lg font-normal text-xs transition-all inline-flex items-center gap-1", isDarkMode ? "bg-green-900/30 text-green-400 hover:bg-green-900/50" : "bg-green-50 text-green-600 hover:bg-green-100")}
+                                title="تأكيد البيع لهذا المشارك"
+                              >
+                                <CheckCircle size={15} /> تأكيد البيع
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -6101,7 +7159,7 @@ const MerchantDashboard = () => {
                         <div className="flex items-center gap-3">
                           <div className={cn("w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center", isDarkMode ? "bg-amber-900/30" : "bg-amber-50")}>
                             {auction.image_url ? (
-                              <img src={auction.image_url} alt={auction.product_name} className="w-full h-full object-cover rounded-lg" />
+                              <img src={getSafeImageUrl(auction.image_url)} alt={auction.product_name} className="w-full h-full object-cover rounded-lg" />
                             ) : (
                               <Package size={20} className={isDarkMode ? "text-amber-400" : "text-amber-600"} />
                             )}
@@ -6124,11 +7182,12 @@ const MerchantDashboard = () => {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className={cn("px-3 py-1 rounded-full text-xs font-normal uppercase tracking-tighter",
+                          auction.status === 'sold' ? (isDarkMode ? "bg-amber-900/30 text-amber-400" : "bg-amber-100 text-amber-700") :
                           auction.status === 'active' ? (isDarkMode ? "bg-emerald-900/30 text-emerald-400" : "bg-emerald-100 text-emerald-700") :
                           auction.status === 'pending' ? (isDarkMode ? "bg-blue-900/30 text-blue-400" : "bg-blue-100 text-blue-700") :
                           (isDarkMode ? "bg-gray-700/30 text-gray-400" : "bg-gray-100 text-gray-600")
                         )}>
-                          {auction.status === 'active' ? 'نشط' : auction.status === 'pending' ? 'قريباً' : 'منتهي'}
+                          {auction.status === 'sold' ? 'تم البيع' : auction.status === 'active' ? 'نشط' : auction.status === 'pending' ? 'قريباً' : 'منتهي'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center space-x-2 flex justify-center items-center">
@@ -6136,9 +7195,7 @@ const MerchantDashboard = () => {
                           onClick={async () => {
                             setSelectedAuctionForBidders(auction);
                             try {
-                              const res = await fetch(`/api/auctions/${auction.id}/bidders`);
-                              const data = await res.json();
-                              setBidders(Array.isArray(data) ? data : []);
+                              await fetchAuctionBidders(auction.id);
                             } catch (err) {
                               console.error('Failed to fetch bidders:', err);
                               setBidders([]);
@@ -6167,9 +7224,7 @@ const MerchantDashboard = () => {
                                 } else {
                                   alert('تم حذف المزاد بنجاح');
                                   // Refresh auctions
-                                  const response = await fetch('/api/auctions/active');
-                                  const allAuctions = await response.json();
-                                  setAuctions(Array.isArray(allAuctions) ? allAuctions : []);
+                                  await fetchMerchantAuctions(user?.store_id);
                                 }
                               } catch (err) {
                                 console.error('Failed to delete auction:', err);
@@ -6261,6 +7316,21 @@ const MerchantDashboard = () => {
   };
 
   const renderOrders = () => {
+    const isRegularStore = user?.store_type !== 'topup';
+    const unshippedOrdersCount = filteredOrders.filter((order: any) => order.status === 'pending').length;
+    const refreshOrdersAndStats = async () => {
+      const ordersEndpoint = user?.store_type === 'topup'
+        ? `/api/topup/orders?storeId=${user?.store_id}`
+        : `/api/orders?storeId=${user?.store_id}`;
+      const updated = await fetch(ordersEndpoint).then(r => r.json());
+      setOrders(Array.isArray(updated) ? updated : []);
+
+      const statsRes = await fetch(`/api/merchant/stats?storeId=${user?.store_id}`);
+      const statsData = await statsRes.json();
+      if (statsData && !statsData.error) {
+        setMerchantStats(statsData);
+      }
+    };
     console.log('🔍 renderOrders - Orders:', orders);
     console.log('🔍 renderOrders - Filtered Orders:', filteredOrders);
     console.log('🔍 renderOrders - Dashboard Query:', dashboardQuery);
@@ -6272,6 +7342,7 @@ const MerchantDashboard = () => {
         <h3 className={cn("font-normal text-4xl", isDarkMode ? "text-white" : "text-gray-900")}>طلبات العملاء</h3>
         <p className={cn("text-base font-medium mt-2", isDarkMode ? "text-gray-300" : "text-gray-500")}>إدارة جميع الطلبات الواردة لمتجرك</p>
         {orders.length > 0 && <p className="text-xs text-gray-400 mt-2">📊 إجمالي الطلبات المحملة: {orders.length}</p>}
+        {isRegularStore && <p className="text-sm text-amber-500 mt-2">طلبات غير مشحونة: {unshippedOrdersCount}</p>}
       </div>
       <div className="divide-y divide-black/5">
         {filteredOrders.length === 0 ? (
@@ -6308,8 +7379,8 @@ const MerchantDashboard = () => {
                         order.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
                         "bg-gray-100 text-gray-600"
                       )}>
-                        {order.status === 'pending' ? 'بانتظار التجهيز' : 
-                         order.status === 'completed' ? 'تم التجهيز' : 'ملغي'}
+                        {order.status === 'pending' ? (isRegularStore ? 'لم يتم الشحن بعد' : 'بانتظار التجهيز') : 
+                         order.status === 'completed' ? (isRegularStore ? 'تم الشحن' : 'تم التجهيز') : 'ملغي'}
                       </span>
                     </div>
                     <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-500")}>
@@ -6337,103 +7408,87 @@ const MerchantDashboard = () => {
                     className={cn("overflow-hidden", isDarkMode ? "bg-gray-700" : "bg-gray-50/50")}
                   >
                     <div className={cn("p-6 border-t border-black/5 space-y-4", isDarkMode ? "bg-gray-800" : "bg-white")}>
-                      {orderItems.map((item: any) => (
-                        <div key={item.id} className="flex items-center justify-between">
+                      {orderItems.map((item: any, itemIndex: number) => (
+                        <div key={item.id} className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3">
-                            <img src={item.image_url} className="w-10 h-10 rounded-lg object-cover bg-white shadow-sm ring-1 ring-black/5" />
+                            <img src={getSafeImageUrl(item.image_url)} className="w-10 h-10 rounded-lg object-cover bg-white shadow-sm ring-1 ring-black/5" />
                             <div>
                                <p className={cn("font-normal text-base", isDarkMode ? "text-white" : "text-gray-800")}>{item.product_name}</p>
                                <span className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-400")}>{item.quantity} × {formatCurrency(item.price)}</span>
                             </div>
                           </div>
-                          <p className={cn("text-base font-normal", isDarkMode ? "text-white" : "text-gray-700")}>{formatCurrency(item.quantity * item.price)}</p>
+                          <div className="flex items-center gap-2">
+                            <p className={cn("text-base font-normal whitespace-nowrap", isDarkMode ? "text-white" : "text-gray-700")}>{formatCurrency(item.quantity * item.price)}</p>
+                            {itemIndex === 0 && (
+                              <div className="flex items-center gap-2">
+                                {order.status === 'pending' && (
+                                  <button
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      const res = await fetch(`/api/orders/${order.id}/status`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ status: 'completed' })
+                                      });
+                                      if (res.ok) {
+                                        await refreshOrdersAndStats();
+                                        alert(isRegularStore ? 'تم شحن الطلب وتأكيد البيع بنجاح!' : 'تم تجهيز الطلب بنجاح!');
+                                      }
+                                    }}
+                                    className="w-9 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-100 transition-all active:scale-95"
+                                    title={isRegularStore ? 'تأكيد الشحن والبيع' : 'تأكيد التجهيز'}
+                                  >
+                                    <CheckCircle size={16} />
+                                  </button>
+                                )}
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                      const res = await fetch(`/api/orders/${order.id}/invoice`);
+                                      const invoiceHtml = await res.text();
+                                      setInvoiceModal({
+                                        id: order.id,
+                                        html: invoiceHtml
+                                      });
+                                    } catch (err) {
+                                      console.error('خطأ في تحميل الفاتورة:', err);
+                                      alert('حدث خطأ في تحميل الفاتورة. يرجى المحاولة لاحقاً.');
+                                    }
+                                  }}
+                                  className={cn("w-9 h-9 rounded-xl border flex items-center justify-center transition-all", isDarkMode ? "bg-gray-700 border-gray-600 hover:bg-gray-600 text-white" : "bg-white border-black/5 hover:bg-gray-100 text-gray-600")}
+                                  title="تحميل الفاتورة"
+                                >
+                                  <FileText size={16} />
+                                </button>
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (confirm('هل أنت متأكد من حذف هذا الطلب؟ سيتم تحديث المخزون وإجمالي المبيعات بعد الحذف.')) {
+                                      const res = await fetch(`/api/orders/${order.id}`, {
+                                        method: 'DELETE',
+                                        headers: { 'Content-Type': 'application/json' }
+                                      });
+                                      if (res.ok) {
+                                        await refreshOrdersAndStats();
+                                        setExpandedOrder(null);
+                                        alert('تم حذف الطلب بنجاح!');
+                                      } else {
+                                        const data = await res.json().catch(() => ({}));
+                                        alert(data.error || 'فشل حذف الطلب');
+                                      }
+                                    }
+                                  }}
+                                  className="w-9 h-9 rounded-xl bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 flex items-center justify-center transition-all"
+                                  title="حذف الطلب"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))}
-                      
-                      <div className="pt-4 border-t border-black/5 flex gap-2">
-                        {order.status === 'pending' && (
-                          <Button 
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              const res = await fetch(`/api/orders/${order.id}/status`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ status: 'completed' })
-                              });
-                              if (res.ok) {
-                                // Update orders list using correct endpoint for store type
-                                const ordersEndpoint = user?.store_type === 'topup' 
-                                  ? `/api/topup/orders?storeId=${user?.store_id}`
-                                  : `/api/orders?storeId=${user?.store_id}`;
-                                const updated = await fetch(ordersEndpoint).then(r => r.json());
-                                setOrders(Array.isArray(updated) ? updated : []);
-                                
-                                // Update merchant stats
-                                const statsRes = await fetch(`/api/merchant/stats?storeId=${user?.store_id}`);
-                                const statsData = await statsRes.json();
-                                if (statsData && !statsData.error) {
-                                  setMerchantStats(statsData);
-                                }
-                                
-                                alert("تم تجهيز الطلب بنجاح!");
-                              }
-                            }}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-normal py-2 rounded-xl flex-1 shadow-lg shadow-emerald-100 transition-all active:scale-95"
-                          >
-                            تأكيد التجهيز
-                          </Button>
-                        )}
-                        <Button 
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            try {
-                              const res = await fetch(`/api/orders/${order.id}/invoice`);
-                              const invoiceHtml = await res.text();
-                              setInvoiceModal({
-                                id: order.id,
-                                html: invoiceHtml
-                              });
-                            } catch (err) {
-                              console.error('خطأ في تحميل الفاتورة:', err);
-                              alert('حدث خطأ في تحميل الفاتورة. يرجى المحاولة لاحقاً.');
-                            }
-                          }}
-                          className={cn("border-2 text-xs font-normal py-2 rounded-xl flex-1 transition-all", isDarkMode ? "bg-gray-700 border-gray-600 hover:bg-gray-600 text-white" : "bg-white border-black/5 hover:bg-gray-100 text-gray-600")}
-                        >
-                          تحميل الفاتورة
-                        </Button>
-                        <Button 
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (confirm('هل أنت متأكد من حذف هذا الطلب؟ لا يمكن استرجاع البيانات بعد ذلك')) {
-                              const res = await fetch(`/api/orders/${order.id}/return`, {
-                                method: 'PATCH'
-                              });
-                              if (res.ok) {
-                                // Update orders list using correct endpoint for store type
-                                const ordersEndpoint = user?.store_type === 'topup' 
-                                  ? `/api/topup/orders?storeId=${user?.store_id}`
-                                  : `/api/orders?storeId=${user?.store_id}`;
-                                const updated = await fetch(ordersEndpoint).then(r => r.json());
-                                setOrders(Array.isArray(updated) ? updated : []);
-                                
-                                // Update merchant stats
-                                const statsRes = await fetch(`/api/merchant/stats?storeId=${user?.store_id}`);
-                                const statsData = await statsRes.json();
-                                if (statsData && !statsData.error) {
-                                  setMerchantStats(statsData);
-                                }
-                                
-                                setExpandedOrder(null);
-                                alert("تم حذف الطلب بنجاح!");
-                              }
-                            }
-                          }}
-                          className="bg-orange-50 border-2 border-orange-200 hover:bg-orange-100 text-orange-600 text-xs font-normal py-2 rounded-xl flex-1 transition-all"
-                        >
-                          مرتجع
-                        </Button>
-                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -6455,6 +7510,7 @@ const MerchantDashboard = () => {
         section === 'auctions' ? "المزادات" :
         section === 'orders' ? "الطلبات" : 
         section === 'customers' ? "العملاء" :
+        section === 'coupons' ? "قسائم الخصم" :
         "لوحة التحكم"
       } 
       role="merchant"
@@ -6475,10 +7531,9 @@ const MerchantDashboard = () => {
         {renderProductModal()}
         {renderCategoryModal()}
         {renderCouponModal()}
-        {renderCustomerModal()}
 
-        {/* Customer Statement Modal */}
-        {showCustomerStatement && selectedCustomerStatement && (
+        {/* Customer Statement Modal - Topup Stores Only */}
+        {showCustomerStatement && selectedCustomerStatement && user?.store_type === 'topup' && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-3 overflow-y-auto font-sans" dir="rtl">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -6625,7 +7680,7 @@ const MerchantDashboard = () => {
                             });
                           }
                           
-                          console.log(`Frontend [${idx}] ${transaction.type}: amount=${amountValue}, balance=${balanceValue}, isPayment=${isPayment}`);
+                          console.log(`Frontend [${idx}] ${transaction.type}: amount=${amountValue}, balance=${balanceValue}, isPayment=${isPayment}, is_payment_field=${transaction.is_payment}`);
                           
                           return (
                           <tr key={`${transaction.id}-${transaction.type}-${idx}`} className={cn("border-b transition-colors", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-100 hover:bg-gray-50")}>
@@ -6652,30 +7707,87 @@ const MerchantDashboard = () => {
                             </td>
                             <td className={cn("px-2 md:px-4 py-2 md:py-3 text-center")}>
                               <div className="flex items-center justify-center gap-1">
-                                {transaction.is_payment && (
-                                  <>
-                                    <button
-                                      onClick={() => handleEditTransaction(transaction)}
-                                      disabled={isDeletingTransactionId === transaction.id || isEditingTransaction}
-                                      title="تعديل"
-                                      className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-blue-900/30 text-blue-400" : "hover:bg-blue-50 text-blue-600", (isDeletingTransactionId === transaction.id || isEditingTransaction) && "opacity-50 cursor-not-allowed")}
-                                    >
-                                      <Edit2 size={14} />
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteTransaction(transaction.id)}
-                                      disabled={isDeletingTransactionId === transaction.id || isEditingTransaction}
-                                      title="حذف"
-                                      className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-red-900/30 text-red-400" : "hover:bg-red-50 text-red-600", (isDeletingTransactionId === transaction.id || isEditingTransaction) && "opacity-50 cursor-not-allowed")}
-                                    >
-                                      {isDeletingTransactionId === transaction.id ? (
-                                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                                      ) : (
-                                        <Trash2 size={14} />
-                                      )}
-                                    </button>
-                                  </>
-                                )}
+                                {/* Show edit/delete for all transactions - not just payments */}
+                                <>
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        const newAmountStr = prompt(`أدخل المبلغ الجديد (المبلغ الحالي: ${transaction.amount}):`);
+                                        if (!newAmountStr) return;
+                                        
+                                        const newAmount = parseFloat(newAmountStr);
+                                        if (isNaN(newAmount) || newAmount <= 0) {
+                                          alert('❌ الرجاء إدخال مبلغ صحيح');
+                                          return;
+                                        }
+                                        
+                                        console.log('Editing transaction:', { id: transaction.id, type: transaction.type, newAmount });
+                                        
+                                        let res = await fetch(`/api/topup/payment/${transaction.id}`, {
+                                          method: 'PUT',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ newAmount })
+                                        });
+                                        
+                                        if (res.ok) {
+                                          alert('✓ تم التحديث بنجاح');
+                                          setTimeout(async () => {
+                                            setIsLoadingCustomerTransactions(true);
+                                            const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
+                                            if (statementRes.ok) {
+                                              const data = await statementRes.json();
+                                              setCustomerTransactions(Array.isArray(data.transactions) ? data.transactions : []);
+                                              setSelectedCustomerStatement(data.customer);
+                                            }
+                                            setIsLoadingCustomerTransactions(false);
+                                          }, 300);
+                                        } else {
+                                          const error = await res.json();
+                                          alert(`❌ ${error.error}`);
+                                        }
+                                      } catch (error) {
+                                        console.error('Edit error:', error);
+                                        alert('❌ حدث خطأ');
+                                      }
+                                    }}
+                                    title="تعديل"
+                                    className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-amber-900/30 text-amber-400" : "hover:bg-amber-50 text-amber-600")}
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      if (!confirm('هل تريد حذف هذه المعاملة؟')) return;
+                                      try {
+                                        console.log('Deleting transaction:', { id: transaction.id, type: transaction.type });
+                                        let res = await fetch(`/api/topup/payment/${transaction.id}`, { method: 'DELETE' });
+                                        
+                                        if (res.ok) {
+                                          alert('✓ تم الحذف بنجاح');
+                                          setTimeout(async () => {
+                                            setIsLoadingCustomerTransactions(true);
+                                            const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
+                                            if (statementRes.ok) {
+                                              const data = await statementRes.json();
+                                              setCustomerTransactions(Array.isArray(data.transactions) ? data.transactions : []);
+                                              setSelectedCustomerStatement(data.customer);
+                                            }
+                                            setIsLoadingCustomerTransactions(false);
+                                          }, 300);
+                                        } else {
+                                          alert('فشل الحذف');
+                                        }
+                                      } catch (error) {
+                                        console.error('Delete error:', error);
+                                        alert('❌ حدث خطأ');
+                                      }
+                                    }}
+                                    title="حذف"
+                                    className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-red-900/30 text-red-400" : "hover:bg-red-50 text-red-600")}
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
                               </div>
                             </td>
                           </tr>
@@ -6844,6 +7956,8 @@ const CustomerStorefront = () => {
   const [isCustomerVerified, setIsCustomerVerified] = useState(false);
   const [verificationLoading, setVerificationLoading] = useState(true);
   const [verificationError, setVerificationError] = useState('');
+  const [auctionData, setAuctionData] = useState<any>(null);
+  const [auctionLoading, setAuctionLoading] = useState(false);
   
   const { isDarkMode } = useTheme();
   const { items, addItem } = useRegularCartStore();
@@ -6861,12 +7975,28 @@ const CustomerStorefront = () => {
   const availableCategories = ['الكل', ...Array.from(new Set(products.map((p: any) => (p as any).category_name).filter(Boolean)))];
 
   const filteredProducts = products.filter((p: any) => {
+    const isAuctionProduct = p.is_auction === true || p.is_auction === 'true' || p.is_auction === 1;
+    if (isAuctionProduct) return false;
+
     // Remove search filter requirement for initial display
     const matchesSearch = !searchQuery || (p.name && p.name.toLowerCase().includes(searchQuery.toLowerCase())) || 
       (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesCategory = selectedCategory === 'الكل' || (p.category_name === selectedCategory);
     const matchesNew = !showNewOnly || (p.created_at && new Date(p.created_at) > new Date(Date.now() - 7*24*60*60*1000));
     return matchesSearch && matchesCategory && matchesNew;
+  });
+
+  console.log('📊 AFTER FILTER - Filtered products count:', filteredProducts.length);
+  console.log('🔍 FILTERED PRODUCTS DEBUG:', filteredProducts.slice(0, 5).map(p => ({
+    id: p.id,
+    name: p.name,
+    image_url: p.image_url,
+    image_url_length: p.image_url ? String(p.image_url).length : 0,
+    has_image: !!p.image_url,
+    category_name: (p as any).category_name
+  })));
+  filteredProducts.slice(0, 3).forEach(p => {
+    console.log('  Product item:', { id: p.id, name: p.name, image_url: p.image_url, hasImage: !!p.image_url });
   });
 
   useEffect(() => {
@@ -6888,6 +8018,7 @@ const CustomerStorefront = () => {
 
     const loadStoreAndProducts = async () => {
       try {
+        console.log('🔄 Loading store and products for slug:', storeId);
         const storeRes = await fetch(`/api/stores/slug/${storeId}`).then(r => r.json());
         
         if (storeRes && storeRes.error) {
@@ -6895,6 +8026,8 @@ const CustomerStorefront = () => {
           setProducts([]);
           return;
         }
+        
+        console.log('✅ Store loaded:', { id: storeRes.id, name: storeRes.store_name, type: storeRes.store_type });
         
         // If this is a regular (non-topup) store, clear topup customer data
         if (storeRes.store_type !== 'topup') {
@@ -6917,12 +8050,25 @@ const CustomerStorefront = () => {
           })) : [];
         } else {
           // Regular store: Use /api/products endpoint
-          productsRes = await fetch(`/api/products?storeId=${actualStoreId}`).then(r => r.json());
+          const productsData = await fetch(`/api/products?storeId=${actualStoreId}`).then(r => r.json());
+          console.log('📦 API RESPONSE (raw):', { count: Array.isArray(productsData) ? productsData.length : 0, data: productsData });
           // Ensure regular products have store_type
-          productsRes = Array.isArray(productsRes) ? productsRes.map((p: any) => ({
-            ...p,
-            store_type: 'regular'
-          })) : [];
+          productsRes = Array.isArray(productsData) ? productsData.map((p: any) => {
+            const mapped = {
+              ...p,
+              store_type: 'regular',
+              image_url: p.image_url || ''
+            };
+            console.log('🔄 MAPPED Product:', { 
+              id: mapped.id, 
+              name: mapped.name, 
+              image_url: mapped.image_url,
+              image_url_exists: !!p.image_url,
+              original_p: p
+            });
+            return mapped;
+          }) : [];
+          console.log('✅ Final productsRes ready:', { count: productsRes.length, samples: productsRes.slice(0, 3) });
         }
 
         if (storeRes && !storeRes.error) {
@@ -6941,6 +8087,7 @@ const CustomerStorefront = () => {
         }
 
         const rows = Array.isArray(productsRes) ? productsRes : [];
+        console.log('✅ Products loaded:', { count: rows.length, samples: rows.slice(0, 2).map(p => ({ id: p.id, name: p.name, image_url: p.image_url })) });
         setProducts(rows);
         
         // Reset selectedProduct when products are loaded to avoid stale state
@@ -7023,6 +8170,26 @@ const CustomerStorefront = () => {
   useEffect(() => {
     if (selectedProduct) {
       setMainImage(selectedProduct.image_url);
+      
+      // Load auction details if this product is an auction
+      if ((selectedProduct as any).is_auction && (selectedProduct as any).auction_id) {
+        setAuctionLoading(true);
+        fetch(`/api/auctions/${(selectedProduct as any).auction_id}`)
+          .then(res => res.json())
+          .then(data => {
+            console.log('✅ Auction data loaded:', data);
+            setAuctionData(data.auction);
+          })
+          .catch(err => {
+            console.error('❌ Error loading auction:', err);
+            setAuctionData(null);
+          })
+          .finally(() => setAuctionLoading(false));
+      } else {
+        setAuctionData(null);
+      }
+    } else {
+      setAuctionData(null);
     }
   }, [selectedProduct]);
 
@@ -7044,8 +8211,15 @@ const CustomerStorefront = () => {
     const category = (product as any).category_name || 'منتجات أخرى';
     if (!acc[category]) acc[category] = [];
     acc[category].push(product);
+    console.log('➕ Adding to category:', { category, product_id: product.id, image_url: product.image_url });
     return acc;
   }, {});
+
+  console.log('🗂️ PRODUCTS BY CATEGORY FINAL:', Object.keys(productsByCategory).map(cat => ({
+    category: cat,
+    count: productsByCategory[cat].length,
+    samples: productsByCategory[cat].slice(0, 2).map(p => ({ id: p.id, name: p.name, image_url: p.image_url }))
+  })));
 
   // Sort categories alphabetically
   const sortedCategories = Object.keys(productsByCategory).sort();
@@ -7164,7 +8338,7 @@ const CustomerStorefront = () => {
               animate={{ opacity: 1, scale: 1 }}
               className="w-full aspect-square relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white"
             >
-              <img src={mainImage} className="w-full h-full object-cover" />
+              <img src={getSafeImageUrl(mainImage)} className="w-full h-full object-cover" />
               <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/20 to-transparent"></div>
             </motion.div>
             
@@ -7193,19 +8367,66 @@ const CustomerStorefront = () => {
                 <p className={cn("text-lg leading-relaxed font-medium", isDarkMode ? "text-gray-300" : "text-gray-600")}>{selectedProduct.description}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className={cn("p-4 rounded-2xl border", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
-                  <span className={cn("text-sm font-normal block mb-2", isDarkMode ? "text-gray-400" : "text-gray-500")}>المخزون</span>
-                  <span className={cn("font-bold text-xl", selectedProduct.stock === 0 ? "text-red-600" : selectedProduct.stock <= 2 ? "text-amber-600" : "text-green-600")}>{selectedProduct.stock} قطعة متوفرة</span>
+              {/* Auction Details */}
+              {(selectedProduct as any).is_auction && (
+                <div className={cn("p-4 rounded-2xl border", isDarkMode ? "bg-amber-900/30 border-amber-700" : "bg-amber-50/50 border-amber-200")}>
+                  {auctionLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+                      <span className={cn("mr-2 text-sm font-normal", isDarkMode ? "text-amber-400" : "text-amber-600")}>جاري تحميل تفاصيل المزاد...</span>
+                    </div>
+                  ) : auctionData ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-lg">🏆</span>
+                        <h4 className={cn("font-bold", isDarkMode ? "text-amber-300" : "text-amber-700")}>تفاصيل المزاد</h4>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className={cn("font-normal block text-[11px]", isDarkMode ? "text-amber-300" : "text-amber-600")}>📅 تاريخ المزاد</span>
+                          <span className={cn("font-bold", isDarkMode ? "text-amber-100" : "text-amber-900")} title={formatDateOnly(auctionData.auction_date)}>
+                            {formatDateOnly(auctionData.auction_date)}
+                          </span>
+                        </div>
+                        
+                        <div>
+                          <span className={cn("font-normal block text-[11px]", isDarkMode ? "text-amber-300" : "text-amber-600")}>⏱️ وقت البدء</span>
+                          <span className={cn("font-bold", isDarkMode ? "text-amber-100" : "text-amber-900")}>
+                            {auctionData.auction_start_time}
+                          </span>
+                        </div>
+                        
+                        <div>
+                          <span className={cn("font-normal block text-[11px]", isDarkMode ? "text-amber-300" : "text-amber-600")}>⏲️ وقت النهاية</span>
+                          <span className={cn("font-bold", isDarkMode ? "text-amber-100" : "text-amber-900")}>
+                            {auctionData.auction_end_time}
+                          </span>
+                        </div>
+                        
+                        <div>
+                          <span className={cn("font-normal block text-[11px]", isDarkMode ? "text-amber-300" : "text-amber-600")}>💰 السعر الأساسي</span>
+                          <span className={cn("font-bold", isDarkMode ? "text-amber-100" : "text-amber-900")}>
+                            {formatCurrency(auctionData.starting_price)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {auctionData.current_highest_price && (
+                        <div className={cn("mt-3 p-2 rounded border-l-4", isDarkMode ? "bg-purple-900/30 border-purple-500" : "bg-purple-50/50 border-purple-400")}>
+                          <span className={cn("text-[11px] font-normal block", isDarkMode ? "text-purple-300" : "text-purple-600")}>أعلى عرض حالياً</span>
+                          <span className={cn("font-bold text-lg", isDarkMode ? "text-purple-100" : "text-purple-900")}>
+                            {formatCurrency(auctionData.current_highest_price)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
-                <div className={cn("p-4 rounded-2xl border", isDarkMode ? "bg-green-900/50 border-green-700" : "bg-green-50/50 border-green-100")}>
-                  <span className={cn("text-[10px] font-normal block mb-1", isDarkMode ? "text-green-400" : "text-green-400")}>الضمان</span>
-                  <span className={cn("font-normal", isDarkMode ? "text-green-300" : "text-green-700")}>منتج أصلي 100%</span>
-                </div>
-              </div>
+              )}
             </div>
             
-            <div className="mt-12 space-y-4">
+            <div className="mt-8 space-y-4">
               <div className="flex justify-between items-end pb-8 border-b border-black/5">
                 <div>
                   <p className="text-[10px] text-gray-400 font-normal uppercase mb-1">السعر النهائي</p>
@@ -7390,61 +8611,78 @@ const CustomerStorefront = () => {
               {/* Products Grid - 8 columns */}
               <div className="w-full">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
-                  {productsByCategory[category].map((product) => (
-                  <motion.div 
-                    key={product.id}
-                    whileHover={{ y: -4 }}
-                  >
-                    <Card 
-                      onClick={() => setSelectedProduct(product)}
-                      className={cn(
-                      "h-full flex flex-col border-2 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer",
-                      isDarkMode ? "bg-gray-800 border-green-700 hover:border-green-600" : "bg-white border-green-500 hover:border-green-600"
-                    )}>
-                      {/* Product Image */}
-                      <div className={cn("aspect-square w-full overflow-hidden cursor-pointer", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
-                        {product.image_url ? (
-                          <img src={product.image_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt={product.name} />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Package size={28} className={cn(isDarkMode ? "text-gray-500" : "text-gray-300")} />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Product Info */}
-                      <div className="p-2 flex-1 flex flex-col justify-between gap-1.5">
-                        <div>
-                          <p className={cn("text-[8px] font-normal mb-0.5", isDarkMode ? "text-gray-400" : "text-gray-500")}>{displayAppName || ""}</p>
-                          <h3 className={cn("font-normal text-xs line-clamp-2", isDarkMode ? "text-white" : "text-gray-900")}>
-                            {(product.store_name && product.store_name !== 'undefined') ? `${product.store_name} - ${product.name}` : product.name}
-                          </h3>
-                        </div>
-
-                        {/* Price */}
-                        <div className="flex items-center justify-between pb-1.5 border-b" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
-                          <span className={cn("text-[8px] font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>السعر</span>
-                          {/* Display smart price based on customer type */}
-                          <div className="text-right">
-                            <span className={cn("text-xs font-bold", isDarkMode ? "text-white" : "text-gray-900")}>
-                              {formatCurrency(
-                                (user?.customer_type === 'reseller' && product.bulk_price)
-                                  ? product.bulk_price
-                                  : product.price
-                              )}
-                            </span>
-                            {/* Show original price if reseller sees bulk price */}
-                            {user?.customer_type === 'reseller' && product.bulk_price && product.bulk_price !== product.price && (
-                              <p className={cn("text-[7px] line-through", isDarkMode ? "text-gray-500" : "text-gray-400")}>
-                                {formatCurrency(product.price)}
-                              </p>
+                  {productsByCategory[category].map((product) => {
+                    const hasImage = !!product.image_url;
+                    console.log('🎨 RENDERING CARD:', { 
+                      id: product.id, 
+                      name: product.name, 
+                      image_url: product.image_url,
+                      image_url_type: typeof product.image_url,
+                      image_url_length: product.image_url ? String(product.image_url).length : 0,
+                      hasImage: hasImage,
+                      category: category,
+                      will_show_image: !!product.image_url ? 'YES ✅' : 'NO - WILL SHOW PACKAGE ❌'
+                    });
+                    return (
+                      <motion.div 
+                        key={product.id}
+                        whileHover={{ y: -4 }}
+                      >
+                        <Card 
+                          onClick={() => setSelectedProduct(product)}
+                          className={cn(
+                          "h-full flex flex-col border-2 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer",
+                          isDarkMode ? "bg-gray-800 border-green-700 hover:border-green-600" : "bg-white border-green-500 hover:border-green-600"
+                        )}>
+                          {/* Product Image */}
+                          <div className={cn("aspect-square w-full overflow-hidden cursor-pointer", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
+                            {product.image_url ? (
+                              <img 
+                                src={getSafeImageUrl(product.image_url)} 
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform" 
+                                alt={product.name}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Package size={28} className={cn(isDarkMode ? "text-gray-500" : "text-gray-300")} />
+                              </div>
                             )}
                           </div>
-                        </div>
-                      </div>
-                    </Card>
-                  </motion.div>
-                ))}
+
+                          {/* Product Info */}
+                          <div className="p-2 flex-1 flex flex-col justify-between gap-1.5">
+                            <div>
+                              <p className={cn("text-[8px] font-normal mb-0.5", isDarkMode ? "text-gray-400" : "text-gray-500")}>{displayAppName || ""}</p>
+                              <h3 className={cn("font-normal text-xs line-clamp-2", isDarkMode ? "text-white" : "text-gray-900")}>
+                                {(product.store_name && product.store_name !== 'undefined') ? `${product.store_name} - ${product.name}` : product.name}
+                              </h3>
+                            </div>
+
+                            {/* Price */}
+                            <div className="flex items-center justify-between pb-1.5 border-b" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
+                              <span className={cn("text-[8px] font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>السعر</span>
+                              {/* Display smart price based on customer type */}
+                              <div className="text-right">
+                                <span className={cn("text-xs font-bold", isDarkMode ? "text-white" : "text-gray-900")}>
+                                  {formatCurrency(
+                                    (user?.customer_type === 'reseller' && product.bulk_price)
+                                      ? product.bulk_price
+                                      : product.price
+                                  )}
+                                </span>
+                                {/* Show original price if reseller sees bulk price */}
+                                {user?.customer_type === 'reseller' && product.bulk_price && product.bulk_price !== product.price && (
+                                  <p className={cn("text-[7px] line-through", isDarkMode ? "text-gray-500" : "text-gray-400")}>
+                                    {formatCurrency(product.price)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </div>
             </section>
@@ -7489,6 +8727,17 @@ const MarketplacePage = () => {
   const [bidSubmitting, setBidSubmitting] = useState(false);
   const [bidMessage, setBidMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+  // Function to fetch auctions
+  const fetchAuctionsData = async () => {
+    try {
+      const auctionsRes = await fetch('/api/auctions/active');
+      const auctionsData = await auctionsRes.json();
+      setAuctions(Array.isArray(auctionsData) ? auctionsData : []);
+    } catch (auctionErr) {
+      console.warn('Failed to fetch auctions:', auctionErr);
+    }
+  };
+
   useEffect(() => {
     const load = async () => {
       let regularProducts: any[] = []; // Define outside try block
@@ -7503,14 +8752,7 @@ const MarketplacePage = () => {
         setProducts(regularProducts);
         
         // Fetch active auctions
-        try {
-          const auctionsRes = await fetch('/api/auctions/active');
-          const auctionsData = await auctionsRes.json();
-          setAuctions(Array.isArray(auctionsData) ? auctionsData : []);
-        } catch (auctionErr) {
-          console.warn('Failed to fetch auctions:', auctionErr);
-          setAuctions([]);
-        }
+        await fetchAuctionsData();
         
         // Initialize quantities to 1 for all products
         if (Array.isArray(regularProducts)) {
@@ -7528,6 +8770,13 @@ const MarketplacePage = () => {
       }
     };
     load();
+
+    // Poll auctions every 2 seconds for real-time bid updates
+    const auctionInterval = setInterval(() => {
+      fetchAuctionsData();
+    }, 2000);
+
+    return () => clearInterval(auctionInterval);
   }, []);
 
   const handleAddToCart = (product: any) => {
@@ -7609,7 +8858,7 @@ const MarketplacePage = () => {
 
     const bidPrice = parseFloat(auctionBidForm.bid_price);
     const minBidPrice = Math.max(
-      selectedAuction.current_highest_price || selectedAuction.starting_price,
+      selectedAuction.current_highest_price || selectedAuction.highest_bid || selectedAuction.starting_price,
       selectedAuction.starting_price
     );
 
@@ -7636,20 +8885,28 @@ const MarketplacePage = () => {
 
       if (res.ok) {
         const bidData = await res.json();
-        setBidMessage({ type: 'success', text: '✅ تم قبول عرضك! أنت الآن الفائز الأول.' });
+        setBidMessage({ type: 'success', text: '✅ تم قبول عرضك! سيتم تحديث البيانات تلقائياً...' });
         
-        // Update auction data
-        setSelectedAuction({
+        // Update both field names for compatibility
+        const updatedAuction = {
           ...selectedAuction,
           current_highest_price: bidPrice,
-          total_bids: (selectedAuction.total_bids || 0) + 1
-        });
+          highest_bid: bidPrice,
+          total_bids: Number(selectedAuction.total_bids || 0) + 1
+        };
+        setSelectedAuction(updatedAuction);
+        
+        // Refresh the auctions list to show updated bid
+        try {
+          const auctionsRes = await fetch('/api/auctions/active');
+          const auctionsData = await auctionsRes.json();
+          setAuctions(Array.isArray(auctionsData) ? auctionsData : []);
+        } catch (e) {
+          console.warn('Failed to refresh auctions:', e);
+        }
         
         // Clear form
         setAuctionBidForm({ bid_price: '', customer_name: '', customer_phone: '' });
-        
-        // Hide message after 3 seconds
-        setTimeout(() => setBidMessage(null), 3000);
       } else {
         const errData = await res.json();
         setBidMessage({ type: 'error', text: errData.error || 'فشل تقديم العرض' });
@@ -7662,8 +8919,11 @@ const MarketplacePage = () => {
     }
   };
 
-  // Filtered products based on search query
+  // Filtered products based on search query (excluding auctions)
   const filteredProducts = products.filter((p: any) => {
+    // Exclude products that are auctions
+    if (p.is_auction) return false;
+    
     const matchesSearch = !searchQuery || 
       (p.name && p.name.toLowerCase().includes(searchQuery.toLowerCase())) || 
       (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -7797,7 +9057,7 @@ const MarketplacePage = () => {
                           <li key={item.id + '-' + idx} className="flex items-center justify-between py-2">
                             <div className="flex items-center gap-3">
                               {item.image_url && (
-                                <img src={item.image_url} alt={item.name} className="w-12 h-12 rounded-lg object-cover border" />
+                                <img src={getSafeImageUrl(item.image_url)} alt={item.name} className="w-12 h-12 rounded-lg object-cover border" />
                               )}
                               <div>
                                 <div className="font-medium text-base">{(item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name}</div>
@@ -7954,12 +9214,12 @@ const MarketplacePage = () => {
                 const isEnded = timer.isEnded;
                 
                 return (
-                  <motion.div key={auction.id} whileHover={{ y: -4 }} onClick={() => setSelectedAuction(auction)} className="cursor-pointer">
-                    <Card className={cn('h-full overflow-hidden border-2 border-amber-300 shadow-md transition-all duration-300 hover:shadow-lg', isDarkMode ? 'bg-gray-800 border-amber-600' : 'bg-white border-amber-300')}>
+                  <motion.div key={auction.id} whileHover={{ y: -4 }} className="cursor-default">
+                    <Card className={cn('h-full overflow-hidden border-2 border-amber-300 shadow-md transition-all duration-300 hover:shadow-lg cursor-default', isDarkMode ? 'bg-gray-800 border-amber-600' : 'bg-white border-amber-300')}>
                       {/* Image */}
-                      <div className={cn('aspect-square w-full overflow-hidden relative', isDarkMode ? 'bg-gray-700' : 'bg-gray-100')}>
+                      <div className={cn('aspect-square w-full overflow-hidden relative cursor-pointer hover:opacity-80 transition-opacity', isDarkMode ? 'bg-gray-700' : 'bg-gray-100')} onClick={(e) => { e.stopPropagation(); auction.image_url && (setSelectedImage(getSafeImageUrl(auction.image_url)), setShowImageModal(true)); }}>
                         {auction.image_url ? (
-                          <img src={auction.image_url} className="w-full h-full object-cover" alt={auction.product_name} />
+                          <img src={getSafeImageUrl(auction.image_url)} className="w-full h-full object-cover" alt={auction.product_name} />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <Package size={40} className={cn(isDarkMode ? 'text-gray-500' : 'text-gray-300')} />
@@ -7980,7 +9240,7 @@ const MarketplacePage = () => {
                       </div>
 
                       {/* Info */}
-                      <div className="p-2 flex flex-col gap-2">
+                      <div className="p-2 flex flex-col gap-2 cursor-default" onClick={(e) => e.stopPropagation()}>
                         <div>
                           <p className={cn('text-[10px] font-normal mb-0.5 line-clamp-1', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>
                             {auction.store_name}
@@ -8001,13 +9261,13 @@ const MarketplacePage = () => {
                             </span>
                           </div>
                           
-                          {auction.current_highest_price && (
+                          {(auction.current_highest_price || auction.highest_bid) && (
                             <div className="flex justify-between items-center gap-1">
                               <span className={cn('text-[9px] font-normal', isDarkMode ? 'text-gray-400' : 'text-gray-600')}>
                                 أعلى:
                               </span>
                               <span className={cn('text-xs font-bold', isDarkMode ? 'text-green-400' : 'text-green-600')}>
-                                {formatCurrency(auction.current_highest_price)}
+                                {formatCurrency(auction.current_highest_price || auction.highest_bid)}
                               </span>
                             </div>
                           )}
@@ -8025,7 +9285,7 @@ const MarketplacePage = () => {
                         </div>
 
                         {/* Button */}
-                        <button className={cn('w-full py-1.5 rounded-lg font-bold text-xs transition-all mt-1', isDarkMode ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white')}>
+                        <button onClick={(e) => { e.stopPropagation(); setSelectedAuction(auction); }} className={cn('w-full py-1.5 rounded-lg font-bold text-xs transition-all mt-1 cursor-pointer', isDarkMode ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white')}>
                           عرض
                         </button>
                       </div>
@@ -8082,7 +9342,7 @@ const MarketplacePage = () => {
                     onClick={() => setSelectedProduct(p)}
                   >
                     {p.image_url ? (
-                      <img src={p.image_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt={p.name} />
+                      <img src={getSafeImageUrl(p.image_url)} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt={p.name} />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Package size={28} className={cn(isDarkMode ? 'text-gray-500' : 'text-gray-300')} />
@@ -8138,7 +9398,7 @@ const MarketplacePage = () => {
                 className={cn('w-full aspect-square rounded-2xl overflow-hidden shadow-lg border-4 border-white', isDarkMode ? 'bg-gray-600' : 'bg-gray-100')}
               >
                 {selectedProduct.image_url ? (
-                  <img src={selectedProduct.image_url} className="w-full h-full object-cover" alt={selectedProduct.name} />
+                  <img src={getSafeImageUrl(selectedProduct.image_url)} className="w-full h-full object-cover" alt={selectedProduct.name} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Package size={48} className={cn(isDarkMode ? 'text-gray-500' : 'text-gray-300')} />
@@ -8153,7 +9413,7 @@ const MarketplacePage = () => {
                   <div 
                     className="aspect-square rounded-lg overflow-hidden cursor-pointer ring-2 ring-indigo-500 ring-offset-1"
                   >
-                    <img src={selectedProduct.image_url} className="w-full h-full object-cover" alt="main" />
+                    <img src={getSafeImageUrl(selectedProduct.image_url)} className="w-full h-full object-cover" alt="main" />
                   </div>
 
                   {/* Other images */}
@@ -8297,9 +9557,9 @@ const MarketplacePage = () => {
             {/* Content */}
             <div className="p-3 space-y-2.5">
               {/* Image */}
-              <div className={cn('w-full max-h-48 rounded-lg overflow-hidden', isDarkMode ? 'bg-gray-700' : 'bg-gray-100')}>
+              <div className={cn('w-full max-h-48 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity', isDarkMode ? 'bg-gray-700' : 'bg-gray-100')} onClick={() => selectedAuction.image_url && (setSelectedImage(getSafeImageUrl(selectedAuction.image_url)), setShowImageModal(true))}>
                 {selectedAuction.image_url && (
-                  <img src={selectedAuction.image_url} className="w-full h-full object-cover" alt={selectedAuction.product_name} />
+                  <img src={getSafeImageUrl(selectedAuction.image_url)} className="w-full h-full object-cover" alt={selectedAuction.product_name} />
                 )}
               </div>
 
@@ -8319,7 +9579,7 @@ const MarketplacePage = () => {
                     أعلى عرض
                   </p>
                   <p className={cn('text-xs font-bold', isDarkMode ? 'text-blue-400' : 'text-blue-700')}>
-                    {selectedAuction.current_highest_price ? formatCurrency(selectedAuction.current_highest_price) : 'لا توجد عروض'}
+                    {(selectedAuction.current_highest_price || selectedAuction.highest_bid) ? formatCurrency(selectedAuction.current_highest_price || selectedAuction.highest_bid) : 'لا توجد عروض'}
                   </p>
                 </div>
 
@@ -8352,7 +9612,7 @@ const MarketplacePage = () => {
                 </h3>
                 <div className="space-y-0.5 text-[11px]">
                   <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
-                    <span className="font-semibold">التاريخ:</span> {selectedAuction.auction_date}
+                    <span className="font-semibold">التاريخ:</span> <span title={formatDateOnly(selectedAuction.auction_date)}>{formatDateOnly(selectedAuction.auction_date)}</span>
                   </p>
                   <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
                     <span className="font-semibold">من:</span> {selectedAuction.auction_start_time}
@@ -8418,7 +9678,7 @@ const MarketplacePage = () => {
                             type="number" 
                             value={auctionBidForm.bid_price}
                             onChange={(e) => setAuctionBidForm({ ...auctionBidForm, bid_price: e.target.value })}
-                                placeholder={`أكثر من ${formatCurrency(Math.max(selectedAuction.current_highest_price || selectedAuction.starting_price, selectedAuction.starting_price))}`}
+                                placeholder={`أكثر من ${formatCurrency(Math.max(selectedAuction.current_highest_price || selectedAuction.highest_bid || selectedAuction.starting_price, selectedAuction.starting_price))}`}
                                 disabled={bidSubmitting || isAuctionEnded}
                                 className={cn('w-full px-2 py-1.5 rounded-lg border outline-none font-normal text-xs pl-6', isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500', (bidSubmitting || isAuctionEnded) && 'opacity-50 cursor-not-allowed')}
                               />
@@ -8678,15 +9938,17 @@ const StoresPage = () => {
   useEffect(() => {
     const fetchStores = async () => {
       try {
+        console.log('🏪 Fetching stores from /api/stores...');
         const res = await fetch('/api/stores?limit=50');
         const data = await res.json();
+        console.log('🏪 STORES RESPONSE:', { count: Array.isArray(data) ? data.length : 0, data });
         // API now returns only active stores, no need to filter
         setStores(Array.isArray(data) ? data : []);
 
         setStoresWithLogos(buildStoreLogosMap(Array.isArray(data) ? data : []));
         setLoading(false);
       } catch (err) {
-        console.error("Fetch error:", err);
+        console.error("❌ Fetch error:", err);
         setStores([]);
         setLoading(false);
       }
@@ -8717,6 +9979,7 @@ const StoresPage = () => {
   const handleStoreClick = (store: any) => {
     // If topup store, show auth modal instead of navigating directly
     if (store.store_type === 'topup') {
+      console.log(`🏪 Store clicked: ID=${store.id}, Name=${store.name}, Slug=${store.slug}`);
       setSelectedTopupStore(store);
       setTopupAuthName('');
       setTopupAuthPhone('');
@@ -8755,18 +10018,24 @@ const StoresPage = () => {
       });
       const customersData = await res.json();
       
+      console.log(`🔎 VERIFICATION INPUT: Name="${topupAuthName}", Phone="${topupAuthPhone}"`);
+      console.log(`📦 API RESPONSE: ${Array.isArray(customersData) ? customersData.length : 0} customers`);
+      
       // Normalize input phone number
       const normalizedInputPhone = normalizePhone(topupAuthPhone);
+      console.log(`📱 Normalized Input Phone: "${normalizedInputPhone}"`);
       
       // Filter customers for the topup store
       const registeredCustomers = Array.isArray(customersData) ? customersData.filter((c: any) => {
         const normalizedDbPhone = normalizePhone(c.phone);
-        return (
-          c.name.toLowerCase().trim() === topupAuthName.toLowerCase().trim() &&
-          normalizedDbPhone === normalizedInputPhone
-        );
+        const nameMatch = c.name.toLowerCase().trim() === topupAuthName.toLowerCase().trim();
+        const phoneMatch = normalizedDbPhone === normalizedInputPhone;
+        console.log(`  ✓ Checking: Name="${c.name}" (match=${nameMatch}), Phone="${c.phone}" -> "${normalizedDbPhone}" (match=${phoneMatch})`);
+        return nameMatch && phoneMatch;
       }) : [];
 
+      console.log(`✅ Found ${registeredCustomers.length} matching customer(s)`);
+      
       if (registeredCustomers.length > 0) {
         // Customer verified - save data to localStorage
         const customer = registeredCustomers[0];
@@ -8775,7 +10044,6 @@ const StoresPage = () => {
           id: customer.id,
           name: customer.name,
           phone: customer.phone,
-          email: customer.email,
           customer_type: customer.customer_type,
           credit_limit: customer.credit_limit,
           current_debt: customer.current_debt
@@ -8930,7 +10198,7 @@ const StoresPage = () => {
         </div>
       )}
 
-      <main className="flex-1 max-w-7xl mx-auto px-4 py-6 sm:py-12">
+      <main className="flex-1 max-w-7xl mx-auto px-4 py-6 sm:py-12 w-full">
         {stores.length === 0 ? (
           <div className="text-center py-20">
             <StoreIcon size={64} className="mx-auto text-gray-400 mb-4" />
@@ -8938,7 +10206,8 @@ const StoresPage = () => {
             <p className="text-gray-300">تحقق لاحقاً للتسوق من متاجر جديدة</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
+          <div className="max-w-[75%] mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 auto-rows-max">
             {stores.map((store) => (
               <motion.div
                 key={store.id}
@@ -9001,6 +10270,7 @@ const StoresPage = () => {
                 </Card>
               </motion.div>
             ))}
+            </div>
           </div>
         )}
       </main>
@@ -9088,6 +10358,16 @@ function App() {
         });
     }
   }, [user?.id, logout]);
+
+  // Clear any persisted settings on app mount to force fresh data from API
+  useEffect(() => {
+    // Clear old persisted data that might be stale
+    const keysToCheck = ['settings-store', 'cart-store', 'regular-cart-store', 'topup-cart-store'];
+    keysToCheck.forEach(key => {
+      localStorage.removeItem(key);
+      console.log(`🧹 Cleared localStorage key: ${key}`);
+    });
+  }, []);
 
   // Load admin settings on app mount
   useEffect(() => {
@@ -9232,7 +10512,7 @@ const MerchantTopupDashboard = () => {
   const [existingProductImages, setExistingProductImages] = useState<string[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [customerForm, setCustomerForm] = useState({ name: '', phone: '', email: '', password: '', customer_type: 'cash', credit_limit: '0', starting_balance: '' });
+  const [customerForm, setCustomerForm] = useState({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
   const [storeSettings, setStoreSettings] = useState({ store_name: '', logo_url: '' });
   const [storeLogoBg, setStoreLogoFile] = useState<File | null>(null);
   const [logoUploadLoading, setLogoUploadLoading] = useState(false);
@@ -9257,40 +10537,49 @@ const MerchantTopupDashboard = () => {
   }, []);
   
   useEffect(() => {
-    // If user has a store, use it; otherwise try to find a topup store
-    if (user?.store_id) {
-      console.log('🔍 Using user store ID:', user.store_id);
-      setTopupStoreId(user.store_id);
-    } else {
-      // Find first topup store as fallback
-      fetch('/api/stores?page=1&pageSize=100')
-        .then(r => r.json())
-        .then(data => {
-          if (Array.isArray(data) && data.length > 0) {
-            // Prefer topup stores, but use any store if available
-            const topupStore = data.find((s: any) => s.store_type === 'topup');
-            const storeId = topupStore ? topupStore.id : data[0].id;
-            console.log('🔍 Using available store ID:', storeId, topupStore ? '(topup)' : '(regular)');
-            setTopupStoreId(storeId);
-          } else {
-            console.warn('⚠️ No stores found, using fallback ID 1');
-            setTopupStoreId(1);
-          }
-        })
-        .catch(err => {
-          console.error('Failed to fetch stores:', err);
-          // Use fallback but ensure we still have a store_id
-          console.warn('Using fallback store ID 1');
-          setTopupStoreId(1);
+    const resolveTopupStoreId = async () => {
+      try {
+        const response = await fetch('/api/stores?page=1&pageSize=100');
+        const data = await response.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          console.warn('⚠️ No stores found while resolving topup store');
+          setTopupStoreId(null);
+          return;
+        }
+
+        const userStore = user?.store_id
+          ? data.find((store: any) => Number(store.id) === Number(user.store_id))
+          : null;
+        const topupStore = data.find((store: any) => store.store_type === 'topup');
+        const resolvedStore = userStore || topupStore || data[0];
+        const resolvedStoreId = Number(resolvedStore?.id) || null;
+
+        console.log('🔍 Resolved topup store:', {
+          userStoreId: user?.store_id,
+          resolvedStoreId,
+          resolvedStoreType: resolvedStore?.store_type,
         });
-    }
+
+        setTopupStoreId(resolvedStoreId);
+
+        if (resolvedStoreId && user && Number(user.store_id) !== resolvedStoreId) {
+          setUser({ ...user, store_id: resolvedStoreId });
+        }
+      } catch (err) {
+        console.error('Failed to resolve topup store:', err);
+        setTopupStoreId(null);
+      }
+    };
+
+    resolveTopupStoreId();
   }, [user?.store_id]);
 
   // Function to refresh dashboard data
   const refreshDashboardData = async () => {
     try {
       // ⛔ CRITICAL: Validate topupStoreId before making ANY API calls
-      if (!topupStoreId || topupStoreId === null || topupStoreId === undefined || topupStoreId === 13) {
+      if (!topupStoreId || topupStoreId === null || topupStoreId === undefined) {
         console.warn('⛔ ABORT: Invalid topupStoreId:', topupStoreId);
         return;
       }
@@ -9379,23 +10668,15 @@ const MerchantTopupDashboard = () => {
     let usedCodes = 0;
     let totalRevenue = 0;
 
-    // Calculate codes statistics from products
+    // Calculate image count from products (matching sidebar logic)
     prod.forEach(p => {
-      let codeCount = 0;
-      
-      // First priority: use available_codes if it's a valid number > 0
-      if (typeof p.available_codes === 'number' && p.available_codes > 0) {
-        codeCount = p.available_codes;
-      } 
-      // Fallback: count actual codes array
-      else if (p.codes && Array.isArray(p.codes) && p.codes.length > 0) {
-        codeCount = p.codes.length;
-      }
-      
-      totalCodes += codeCount;
+      const count = (p.images && Array.isArray(p.images)) 
+        ? p.images.filter((img: any) => img && String(img).length > 0).length 
+        : 0;
+      totalCodes += count;
     });
 
-    // Calculate used codes from orders (each order = one code used)
+    // Calculate used codes from orders (each order = one image/code used)
     if (Array.isArray(ordersData) && ordersData.length > 0) {
       usedCodes = ordersData.length; // Each order uses at least one code
     }
@@ -9454,7 +10735,7 @@ const MerchantTopupDashboard = () => {
 
   useEffect(() => {
     // ⛔ CRITICAL: Never allow store ID 13 (doesn't exist in database)
-    if (!topupStoreId || !user || topupStoreId === 13 || topupStoreId === '13') {
+    if (!topupStoreId || !user) {
       console.log('⏭️ Skipping refresh: topupStoreId=', topupStoreId, 'user=', user?.id);
       return;
     }
@@ -9476,7 +10757,7 @@ const MerchantTopupDashboard = () => {
   // Fetch store settings on mount
   useEffect(() => {
     // ⛔ CRITICAL: Validate topupStoreId before any fetch
-    if (!topupStoreId || topupStoreId === null || topupStoreId === undefined || topupStoreId === 13 || topupStoreId === '13') {
+    if (!topupStoreId || topupStoreId === null || topupStoreId === undefined) {
       console.log('⏭️ topupStoreId not ready yet or invalid, skipping fetch:', topupStoreId);
       return;
     }
@@ -9600,7 +10881,7 @@ const MerchantTopupDashboard = () => {
   // Fetch store info for sidebar branding
   useEffect(() => {
     // ⛔ CRITICAL: Reject invalid store IDs before any fetch
-    if (!topupStoreId || topupStoreId === null || topupStoreId === undefined || topupStoreId === 13 || topupStoreId === '13') {
+    if (!topupStoreId || topupStoreId === null || topupStoreId === undefined) {
       console.log('⏭️ topupStoreId not ready yet or invalid:', topupStoreId);
       return;
     }
@@ -9869,8 +11150,12 @@ const MerchantTopupDashboard = () => {
         alert(isEditingCompany ? 'تم التحديث بنجاح' : 'تمت الإضافة بنجاح');
         setShowCompanyModal(false);
         setCompanyForm({ name: '', logo_url: '' });
+        const reloadStoreId = Number(responseData?.store_id || topupStoreId);
+        if (reloadStoreId && reloadStoreId !== topupStoreId) {
+          setTopupStoreId(reloadStoreId);
+        }
         // Reload companies
-        const res = await fetch(`/api/topup/companies/${topupStoreId}`);
+        const res = await fetch(`/api/topup/companies/${reloadStoreId}`);
         const data = await res.json();
         setCompanies(Array.isArray(data) ? data : []);
       } else {
@@ -9901,18 +11186,18 @@ const MerchantTopupDashboard = () => {
           store_id: topupStoreId,
           name: customerForm.name,
           phone: customerForm.phone,
-          email: customerForm.email || '',
-          password: customerForm.password,
-          customer_type: customerForm.customer_type,
+          password: customerForm.password || customerForm.phone,
+          starting_balance: parseInt(customerForm.starting_balance) || 0,
           credit_limit: parseInt(customerForm.credit_limit) || 0,
-          starting_balance: parseInt(customerForm.starting_balance) || 0
+          customer_type: customerForm.customer_type || 'cash',
+          notes: customerForm.notes || ''
         })
       });
 
       if (response.ok) {
         alert(isEditingCustomer ? 'تم التحديث بنجاح' : 'تمت الإضافة بنجاح');
         setShowCustomerModal(false);
-        setCustomerForm({ name: '', phone: '', email: '', password: '', customer_type: 'cash', credit_limit: '0', starting_balance: '' });
+        setCustomerForm({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
         // Reload customers
         const res = await fetch(`/api/topup/customers/${topupStoreId}`);
         const data = await res.json();
@@ -9925,6 +11210,57 @@ const MerchantTopupDashboard = () => {
       console.error('Error saving customer:', error);
       alert('حدث خطأ في الاتصال');
     }
+  };
+
+  // 🖼️ Compress image using Canvas API
+  const compressImage = (file: File, maxWidth: number = 1200, maxHeight: number = 1200, quality: number = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          // Calculate new dimensions
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width *= ratio;
+            height *= ratio;
+          }
+          
+          // Create canvas and compress
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          
+          if (!ctx) {
+            reject(new Error('Could not get canvas context'));
+            return;
+          }
+          
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convert to base64 with quality setting
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+          const originalSize = reader.result?.toString().length || 0;
+          const compressedSize = compressedDataUrl.length;
+          
+          console.log('🔧 Image Compression:');
+          console.log(`  Original: ${(originalSize / 1024).toFixed(2)} KB`);
+          console.log(`  Compressed: ${(compressedSize / 1024).toFixed(2)} KB`);
+          console.log(`  Ratio: ${((1 - compressedSize / originalSize) * 100).toFixed(1)}% reduction`);
+          console.log(`  Dimensions: ${img.width}x${img.height} → ${width}x${height}`);
+          
+          resolve(compressedDataUrl);
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+    });
   };
 
   const saveProduct = async () => {
@@ -9979,51 +11315,53 @@ const MerchantTopupDashboard = () => {
           
           const uploadPromises = productImages.map(imageFile => {
             return new Promise<void>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = async (e) => {
-                try {
-                  const imageData = e.target?.result as string;
-                  
-                  // Use new Firebase endpoint
-                  const imageResponse = await fetch('/api/topup/upload-images-firebase', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      store_id: topupStoreId,
-                      topup_product_id: productId,
-                      images: [imageData]
-                    })
-                  });
-
-                  if (!imageResponse.ok) {
-                    const imgError = await imageResponse.json();
-                    console.warn('⚠️ Error uploading image to Firebase:', imgError);
-                  } else {
-                    const uploadResult = await imageResponse.json();
-                    console.log('✅ Image uploaded to Firebase successfully');
-                    console.log('📥 Server response:', JSON.stringify(uploadResult, null, 2));
-                    // Track uploaded image URLs if API returns them
-                    if (uploadResult.image_urls && Array.isArray(uploadResult.image_urls)) {
-                      console.log('🔗 URLs received from server:', uploadResult.image_urls);
-                      uploadedImageUrls.push(...uploadResult.image_urls);
+              try {
+                // Create FormData for multipart/form-data upload (binary, not base64)
+                const formData = new FormData();
+                formData.append('store_id', topupStoreId.toString());
+                formData.append('topup_product_id', productId.toString());
+                formData.append('images', imageFile); // Append File object directly
+                
+                // Send as multipart/form-data (NOT JSON with base64)
+                fetch('/api/topup/upload-images-firebase', {
+                  method: 'POST',
+                  body: formData // FormData handles the multipart encoding
+                  // Don't set Content-Type header - browser will set it with boundary automatically
+                })
+                  .then(async (imageResponse) => {
+                    if (!imageResponse.ok) {
+                      const imgError = await imageResponse.json();
+                      console.warn('⚠️ Error uploading image to Firebase:', imgError);
                     } else {
-                      console.warn('⚠️ No image_urls in response. Response keys:', Object.keys(uploadResult));
+                      const uploadResult = await imageResponse.json();
+                      console.log('✅ Image uploaded successfully');
+                      console.log('📊 File:', imageFile.name, `(${(imageFile.size / 1024).toFixed(2)} KB)`);
+                      console.log('📥 Server response:', JSON.stringify(uploadResult, null, 2));
+                      
+                      // Track uploaded image URLs if API returns them
+                      if (uploadResult.image_urls && Array.isArray(uploadResult.image_urls)) {
+                        console.log('🔗 URLs received from server:', uploadResult.image_urls);
+                        uploadedImageUrls.push(...uploadResult.image_urls);
+                      } else {
+                        console.warn('⚠️ No image_urls in response. Response keys:', Object.keys(uploadResult));
+                      }
                     }
-                  }
-                  resolve();
-                } catch (err) {
-                  console.error('❌ Error processing image:', err);
-                  reject(err);
-                }
-              };
-              reader.onerror = () => reject(new Error('Failed to read file'));
-              reader.readAsDataURL(imageFile);
+                    resolve();
+                  })
+                  .catch((err) => {
+                    console.error('❌ Error uploading image:', err);
+                    reject(err);
+                  });
+              } catch (err) {
+                console.error('❌ Error creating FormData:', err);
+                reject(err);
+              }
             });
           });
           
           try {
             await Promise.all(uploadPromises);
-            console.log('✅ All new images uploaded to Firebase successfully');
+            console.log('✅ All new images uploaded successfully');
           } catch (err) {
             console.error('❌ Error uploading images:', err);
           }
@@ -10090,6 +11428,11 @@ const MerchantTopupDashboard = () => {
           const res = await fetch(`/api/topup/products/${topupStoreId}`);
           const data = await res.json();
           setProducts(Array.isArray(data) ? data : []);
+          
+          // ✨ Trigger refresh for TopupStorefront to see new products
+          const { triggerProductsRefresh } = useRefreshStore.getState();
+          triggerProductsRefresh();
+          console.log('✅ Products refresh triggered for TopupStorefront');
         }, 500);
       } else {
         const errorMsg = responseData.error || responseData.message || 'فشل حفظ المنتج';
@@ -10185,49 +11528,30 @@ const MerchantTopupDashboard = () => {
 
       console.log('📤 Starting upload for', uploadedFiles.length, 'images for product:', selectedProductForCodes);
       
-      // Convert all files to base64 with compression
-      const imageDataList = await Promise.all(
-        uploadedFiles.map(async (file) => {
-          try {
-            // Use compression if file is larger than 300KB
-            if (file.size > 300 * 1024) {
-              console.log(`📦 Compressing image: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
-              return await compressImage(file);
-            } else {
-              return await fileToBase64(file);
-            }
-          } catch (err) {
-            console.warn('⚠️ Error converting file', file.name, ':', err);
-            return null;
-          }
-        })
-      );
-
-      // Filter out any failed conversions
-      const validImages = imageDataList.filter((img): img is string => img !== null);
+      // Use FormData for multipart upload (binary files, no base64 conversion!)
+      const formData = new FormData();
+      formData.append('store_id', topupStoreId.toString());
+      formData.append('topup_product_id', selectedProductForCodes.toString());
       
-      if (validImages.length === 0) {
-        alert('فشل تحويل الصور. يرجى المحاولة مرة أخرى.');
-        return;
-      }
-
-      console.log('✔️ Converted', validImages.length, 'images successfully');
+      // Add all files directly (no compression, no base64)
+      uploadedFiles.forEach((file) => {
+        console.log(`📁 Adding file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+        formData.append('images', file);
+      });
       
-      const response = await fetchWithTimeout('/api/topup/upload-images', {
+      console.log('✅ FormData prepared with', uploadedFiles.length, 'files');
+
+      const response = await fetchWithTimeout('/api/topup/upload-images-firebase', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          store_id: topupStoreId,
-          topup_product_id: selectedProductForCodes,
-          images: validImages
-        })
-      }, 60000); // 60 second timeout for large uploads
+        body: formData
+        // Don't set Content-Type header - browser will set it automatically with boundary
+      }, 300000); // 5 minute timeout for large file uploads
 
       const responseData = await response.json();
 
       if (response.ok) {
         console.log('✅ All images uploaded successfully');
-        alert(responseData.message || `تم تحميل ${validImages.length} صورة بنجاح!`);
+        alert(responseData.message || `تم تحميل ${uploadedFiles.length} صورة بنجاح!`);
         setShowCodeUploadModal(false);
         setUploadedFiles([]);
         setSelectedProductForCodes(null);
@@ -10316,7 +11640,13 @@ const MerchantTopupDashboard = () => {
               { id: 'overview', label: 'ملخص المبيعات', icon: BarChart3, badge: null },
               { id: 'companies', label: 'الشركات', icon: StoreIcon, badge: companies.length },
               { id: 'products', label: 'المنتجات', icon: CreditCard, badge: products.length },
-              { id: 'codes', label: 'الأكواد', icon: Ticket, badge: products.reduce((sum: number, p: any) => sum + (typeof p.available_codes === 'number' ? p.available_codes : (p.codes?.length || 0)), 0) },
+              { id: 'codes', label: 'الأكواد', icon: Ticket, badge: products.reduce((sum: number, p: any) => {
+                // Count uploaded images from each product
+                const count = (p.images && Array.isArray(p.images)) 
+                  ? p.images.filter((img: any) => img && String(img).length > 0).length 
+                  : 0;
+                return sum + count;
+              }, 0) },
               { id: 'customers', label: 'العملاء', icon: Users, badge: customers.length },
               { id: 'orders', label: 'الطلبات', icon: ShoppingCart, badge: orders.filter((o: any) => o.status !== 'returned').length },
               { id: 'settings', label: 'الإعدادات', icon: Settings, badge: null },
@@ -10335,9 +11665,21 @@ const MerchantTopupDashboard = () => {
                   <item.icon size={18} />
                   {item.label}
                 </div>
-                {item.badge !== null && item.badge > 0 && (
-                  <span className={cn("text-xs font-semibold px-2 py-1 rounded-full", currentSection === item.id ? "bg-white/20" : isDarkMode ? "bg-gray-700 text-indigo-400" : "bg-indigo-100 text-indigo-700")}>
-                    {item.badge}
+                {item.badge !== null && (item.badge > 0 || item.id === 'codes') && (
+                  <span className={cn("text-sm font-bold px-3 py-1.5 rounded-full min-w-max", 
+                    item.id === 'codes' 
+                      ? currentSection === item.id ? "bg-yellow-400/30 text-yellow-200" : isDarkMode ? "bg-yellow-900/40 text-yellow-300" : "bg-yellow-100 text-yellow-800"
+                      : item.id === 'products'
+                      ? currentSection === item.id ? "bg-blue-400/30 text-blue-200" : isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-blue-100 text-blue-800"
+                      : item.id === 'orders'
+                      ? currentSection === item.id ? "bg-red-400/30 text-red-200" : isDarkMode ? "bg-red-900/40 text-red-300" : "bg-red-100 text-red-800"
+                      : item.id === 'companies'
+                      ? currentSection === item.id ? "bg-green-400/30 text-green-200" : isDarkMode ? "bg-green-900/40 text-green-300" : "bg-green-100 text-green-800"
+                      : item.id === 'customers'
+                      ? currentSection === item.id ? "bg-purple-400/30 text-purple-200" : isDarkMode ? "bg-purple-900/40 text-purple-300" : "bg-purple-100 text-purple-800"
+                      : currentSection === item.id ? "bg-white/20" : isDarkMode ? "bg-gray-700 text-indigo-400" : "bg-indigo-100 text-indigo-700"
+                  )}>
+                    {item.badge === 0 && item.id === 'codes' ? '0️⃣' : item.badge}
                   </span>
                 )}
               </Link>
@@ -10384,7 +11726,7 @@ const MerchantTopupDashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {[
                   { label: '📊 إجمالي الطلبات', value: stats.totalOrders.toString(), color: 'indigo' },
-                  { label: '💰 الإيرادات', value: `${Math.round(typeof stats.totalRevenue === 'number' ? stats.totalRevenue : parseFloat(String(stats.totalRevenue) || '0')).toLocaleString('en-US')} د.ع`, color: 'green' },
+                  { label: '💰 الإيرادات', value: `${formatNumber(typeof stats.totalRevenue === 'number' ? stats.totalRevenue : parseFloat(String(stats.totalRevenue) || '0'))} د.ع`, color: 'green' },
                   { label: '📦 الأكواد المتاحة', value: stats.totalCodes.toString(), color: 'blue' },
                   { label: '✅ الأكواد المستخدمة', value: ((stats.totalCodes || 0) - (stats.activeCodes || 0)).toString(), color: 'purple' },
                 ].map((stat, i) => (
@@ -10399,7 +11741,7 @@ const MerchantTopupDashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className={cn("p-6 border-none", isDarkMode ? "bg-gray-800" : "bg-white")}>
                   <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>📈 متوسط قيمة الطلب</p>
-                  <p className={cn("text-2xl font-normal text-blue-600")}>{stats.totalOrders > 0 ? Math.round(stats.totalRevenue / stats.totalOrders).toLocaleString('en-US') : '0'} د.ع</p>
+                  <p className={cn("text-2xl font-normal text-blue-600")}>{stats.totalOrders > 0 ? formatNumber(stats.totalRevenue / stats.totalOrders) : '0'} د.ع</p>
                 </Card>
                 <Card className={cn("p-6 border-none", isDarkMode ? "bg-gray-800" : "bg-white")}>
                   <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>📊 نسبة الاستخدام</p>
@@ -10419,17 +11761,24 @@ const MerchantTopupDashboard = () => {
                     <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>🔥 أعلى المنتجات</h3>
                   </div>
                   <div className="p-6">
-                    {products.slice(0, 5).length > 0 ? (
+                    {Array.isArray(products) && products.length > 0 ? (
                       <div className="space-y-3">
-                        {products.slice(0, 5).map((p, i) => (
-                          <div key={p.id} className="flex justify-between items-center pb-3 border-b last:border-b-0" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
-                            <div>
-                              <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{i + 1}. {p.company_name}</p>
-                              <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>المبلغ: {p.amount?.toLocaleString('en-US')}</p>
+                        {products
+                          .sort((a, b) => {
+                            const aRevenue = Number(a.amount) || 0;
+                            const bRevenue = Number(b.amount) || 0;
+                            return bRevenue - aRevenue;
+                          })
+                          .slice(0, 5)
+                          .map((p, i) => (
+                            <div key={p.id} className="flex justify-between items-center pb-3 border-b last:border-b-0" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
+                              <div>
+                                <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{i + 1}. {p.company_name}</p>
+                                <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>المبلغ: {formatNumber(p.amount || 0)} د.ع</p>
+                              </div>
+                              <span className={cn("text-sm font-normal font-mono", isDarkMode ? "text-green-400" : "text-green-600")}>{(p.images && Array.isArray(p.images)) ? p.images.filter((img: any) => img && String(img).length > 0).length : 0} صورة</span>
                             </div>
-                            <span className={cn("text-sm font-normal font-mono", isDarkMode ? "text-green-400" : "text-green-600")}>{typeof p.available_codes === 'number' ? p.available_codes : (p.codes ? p.codes.length : 0)} أكواد</span>
-                          </div>
-                        ))}
+                          ))}
                       </div>
                     ) : (
                       <p className={cn("text-center py-8", isDarkMode ? "text-gray-500" : "text-gray-400")}>لا توجد منتجات</p>
@@ -10443,14 +11792,25 @@ const MerchantTopupDashboard = () => {
                     <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>🏆 أعلى الشركات</h3>
                   </div>
                   <div className="p-6">
-                    {companies.length > 0 ? (
+                    {Array.isArray(companies) && companies.length > 0 ? (
                       <div className="space-y-3">
-                        {companies.slice(0, 5).map((c, i) => (
-                          <div key={c.id} className="flex justify-between items-center pb-3 border-b last:border-b-0" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
-                            <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{i + 1}. {c.name}</p>
-                            <span className={cn("text-xs px-2 py-1 rounded", isDarkMode ? "bg-indigo-900 text-indigo-300" : "bg-indigo-100 text-indigo-700")}>نشطة</span>
-                          </div>
-                        ))}
+                        {companies
+                          .map(c => {
+                            const companyProducts = products.filter(p => p.company_id === c.id);
+                            const companyRevenue = companyProducts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+                            return { ...c, totalRevenue: companyRevenue };
+                          })
+                          .sort((a, b) => b.totalRevenue - a.totalRevenue)
+                          .slice(0, 5)
+                          .map((c, i) => (
+                            <div key={c.id} className="flex justify-between items-center pb-3 border-b last:border-b-0" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
+                              <div>
+                                <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{i + 1}. {c.name}</p>
+                                <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>الإيرادات: {Number(c.totalRevenue || 0).toLocaleString('en-US')} د.ع</p>
+                              </div>
+                              <span className={cn("text-xs px-2 py-1 rounded", isDarkMode ? "bg-green-900 text-green-300" : "bg-green-100 text-green-700")}>نشطة</span>
+                            </div>
+                          ))}
                       </div>
                     ) : (
                       <p className={cn("text-center py-8", isDarkMode ? "text-gray-500" : "text-gray-400")}>لا توجد شركات</p>
@@ -10535,107 +11895,160 @@ const MerchantTopupDashboard = () => {
               <button
                 onClick={() => {
                   console.log('✅ Add Product button clicked!');
-                  console.log('🔍 Current states:', { showProductModal, productForm, isEditingProduct });
-                  setProductForm({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
-                  setProductImages([]);
-                  setExistingProductImages([]);
-                  setIsEditingProduct(null);
-                  setShowProductModal(true);
-                  console.log('✅ setShowProductModal called with true');
+                  // Use the proper handler instead of manual setProductForm
+                  handleCreateProduct();
                 }}
                 className="px-6 py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700 flex items-center gap-2"
               >
                 <Plus size={18} /> إضافة منتج جديد
               </button>
 
-              <Card className={cn("overflow-hidden", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
-                <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
-                  <table className="w-full">
-                    <thead>
-                      <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الشركة</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>المبلغ</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>السعر</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>سعر الجملة</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الإجراءات</th>
-                      </tr>
-                    </thead>
-                  <tbody>
-                    {products.map(product => (
-                      <tr key={product.id} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
-                        <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{product.company_name}</td>
-                        <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{product.amount?.toLocaleString('en-US')}</td>
-                        <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{product.price?.toLocaleString('en-US')}</td>
-                        <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{product.bulk_price ? product.bulk_price.toLocaleString('en-US') : '-'}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2">
-                            <button 
-                              onClick={() => {
-                                setProductForm({ company_id: product.company_id.toString(), amount: product.amount.toString(), price: product.price.toString(), bulk_price: product.bulk_price?.toString() || '', category_id: '', quantity_type: product.quantity_type || 'unit' });
-                                setProductImages([]);
-                                // Load existing images from product - parse JSON if needed
-                                let existingImages: string[] = [];
-                                if (product.images) {
-                                  if (Array.isArray(product.images)) {
-                                    existingImages = product.images.filter((img: any) => img && String(img).length > 0);
-                                  } else if (typeof product.images === 'string') {
-                                    try {
-                                      const parsed = JSON.parse(product.images);
-                                      existingImages = Array.isArray(parsed) 
-                                        ? parsed.filter((img: any) => img && String(img).length > 0)
-                                        : [];
-                                    } catch (e) {
-                                      console.warn('⚠️ Could not parse images JSON:', e);
-                                      existingImages = [];
+              {/* Group products by company */}
+              {Object.entries(
+                products.reduce((acc: any, product: any) => {
+                  const companyId = product.company_id;
+                  if (!acc[companyId]) {
+                    acc[companyId] = {
+                      company_name: product.company_name,
+                      products: []
+                    };
+                  }
+                  acc[companyId].products.push(product);
+                  return acc;
+                }, {})
+              ).map(([companyId, group]: [string, any]) => (
+                <div key={companyId} className="space-y-4">
+                  {/* Company Header */}
+                  <div className="flex items-center gap-3 px-2">
+                    <div className={cn("w-1 h-8 rounded-full", "bg-gradient-to-b from-indigo-500 to-purple-600")}></div>
+                    <h3 className={cn("text-xl font-semibold", isDarkMode ? "text-white" : "text-gray-900")}>
+                      {group.company_name}
+                    </h3>
+                    <span className={cn("ml-auto px-3 py-1 rounded-full text-sm font-medium", isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-700")}>
+                      {group.products.length} منتج
+                    </span>
+                  </div>
+
+                  {/* Products Grid - Modern Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {group.products.map((product: any) => {
+                      // Parse product images
+                      let productImages: string[] = [];
+                      if (product.images) {
+                        if (Array.isArray(product.images)) {
+                          productImages = product.images.filter((img: any) => img && String(img).length > 0);
+                        } else if (typeof product.images === 'string') {
+                          try {
+                            const parsed = JSON.parse(product.images);
+                            productImages = Array.isArray(parsed) 
+                              ? parsed.filter((img: any) => img && String(img).length > 0)
+                              : [];
+                          } catch (e) {
+                            productImages = [];
+                          }
+                        }
+                      }
+
+                      return (
+                        <motion.div
+                          key={product.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={cn(
+                            "rounded-xl overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group border",
+                            isDarkMode 
+                              ? "bg-gray-800 border-gray-700 hover:shadow-lg hover:shadow-indigo-500/20" 
+                              : "bg-white border-gray-200 hover:shadow-xl hover:shadow-indigo-500/20"
+                          )}
+                        >
+                          {/* Content Section */}
+                          <div className="p-4 space-y-3">
+                            {/* Amount - Main Value */}
+                            <div className={cn("py-2 px-3 rounded-lg text-center font-semibold text-lg", isDarkMode ? "bg-indigo-900/30 text-indigo-300" : "bg-indigo-50 text-indigo-700")}>
+                              {product.company_name} - {formatNumber(product.amount)}
+                            </div>
+
+                            {/* Price Info */}
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center text-sm">
+                                <span className={isDarkMode ? "text-gray-400" : "text-gray-700"}>السعر:</span>
+                                <span className={cn("font-semibold", isDarkMode ? "text-green-400" : "text-green-600")}>{formatNumber(product.price)} د.ع</span>
+                              </div>
+                              {product.bulk_price && (
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className={isDarkMode ? "text-gray-400" : "text-gray-700"}>سعر الجملة:</span>
+                                  <span className={cn("font-semibold", isDarkMode ? "text-orange-400" : "text-orange-600")}>{formatNumber(product.bulk_price)} د.ع</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-2 pt-2">
+                              <button 
+                                onClick={() => {
+                                  setProductForm({ 
+                                    company_id: product.company_id.toString(), 
+                                    amount: product.amount.toString(), 
+                                    price: product.price.toString(), 
+                                    bulk_price: product.bulk_price?.toString() || '', 
+                                    category_id: '', 
+                                    quantity_type: product.quantity_type || 'unit' 
+                                  });
+                                  setProductImages([]);
+                                  setExistingProductImages(productImages);
+                                  setIsEditingProduct(product.id);
+                                  setShowProductModal(true);
+                                }}
+                                className={cn("flex-1 p-2 rounded-lg transition-all flex items-center justify-center gap-1 text-sm font-medium", isDarkMode ? "bg-blue-900/40 text-blue-400 hover:bg-blue-900/60" : "bg-blue-50 text-blue-600 hover:bg-blue-100")}
+                              >
+                                <Edit2 size={14} /> تعديل
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  setSelectedProductForCodes(product.id);
+                                  setShowCodeUploadModal(true);
+                                }}
+                                className={cn("flex-1 p-2 rounded-lg transition-all flex items-center justify-center gap-1 text-sm font-medium", isDarkMode ? "bg-green-900/40 text-green-400 hover:bg-green-900/60" : "bg-green-50 text-green-600 hover:bg-green-100")}
+                              >
+                                <Upload size={14} /> أكواد ({product.images?.filter((img: any) => img && String(img).length > 0).length || 0})
+                              </button>
+                              <button 
+                                onClick={async () => {
+                                  if (!confirm('هل تريد حذف هذا المنتج؟')) return;
+                                  try {
+                                    const res = await fetch(`/api/topup/products/${product.id}`, { method: 'DELETE' });
+                                    if (res.ok) {
+                                      alert('تم الحذف بنجاح');
+                                      const updatedRes = await fetch(`/api/topup/products/${topupStoreId}`);
+                                      const data = await updatedRes.json();
+                                      setProducts(Array.isArray(data) ? data : []);
                                     }
+                                  } catch (error) {
+                                    console.error('Error deleting product:', error);
+                                    alert('حدث خطأ');
                                   }
-                                }
-                                console.log('🖼️ Loaded existing images:', existingImages);
-                                setExistingProductImages(existingImages);
-                                setIsEditingProduct(product.id);
-                                setShowProductModal(true);
-                              }}
-                              className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-blue-900/30 text-blue-400 hover:bg-blue-900/60" : "text-blue-600 hover:bg-blue-50")}
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button 
-                              onClick={() => {
-                                setSelectedProductForCodes(product.id);
-                                setShowCodeUploadModal(true);
-                              }}
-                              className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-green-900/30 text-green-400 hover:bg-green-900/60" : "text-green-600 hover:bg-green-50")}
-                            >
-                              <Upload size={16} />
-                            </button>
-                            <button 
-                              onClick={async () => {
-                                if (!confirm('هل تريد حذف هذا المنتج؟')) return;
-                                try {
-                                  const res = await fetch(`/api/topup/products/${product.id}`, { method: 'DELETE' });
-                                  if (res.ok) {
-                                    alert('تم الحذف بنجاح');
-                                    const updatedRes = await fetch(`/api/topup/products/${topupStoreId}`);
-                                    const data = await updatedRes.json();
-                                    setProducts(Array.isArray(data) ? data : []);
-                                  }
-                                } catch (error) {
-                                  console.error('Error deleting product:', error);
-                                  alert('حدث خطأ');
-                                }
-                              }}
-                              className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-red-900/30 text-red-400 hover:bg-red-900/60" : "text-red-600 hover:bg-red-50")}
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                                }}
+                                className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-red-900/40 text-red-400 hover:bg-red-900/60" : "bg-red-50 text-red-600 hover:bg-red-100")}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </Card>
+              ))}
+
+              {/* Empty State */}
+              {products.length === 0 && (
+                <div className={cn("rounded-xl border-2 border-dashed p-12 text-center", isDarkMode ? "border-gray-700" : "border-gray-200")}>
+                  <Package size={48} className={cn("mx-auto mb-4 opacity-50", isDarkMode ? "text-gray-600" : "text-gray-400")} />
+                  <p className={cn("text-lg font-medium mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>لا توجد منتجات</p>
+                  <p className={cn("text-sm", isDarkMode ? "text-gray-500" : "text-gray-500")}>ابدأ بإضافة منتج جديد لعرضه هنا</p>
+                </div>
+              )}
 
               {/* Product Modal with Image Upload - MOVED INSIDE TOPUP SCOPE */}
               {showProductModal && (
@@ -10850,7 +12263,7 @@ const MerchantTopupDashboard = () => {
                         return imagesCount > 0 && (
                           <tr key={product.id} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{product.company_name}</td>
-                            <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{product.amount?.toLocaleString('en-US')} د.ع</td>
+                            <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{formatNumber(product.amount)} د.ع</td>
                             <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-green-400" : "text-green-600")}>{imagesCount}</td>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-gray-300" : "text-gray-700")}>
                               <div className="flex flex-wrap gap-2">
@@ -10896,7 +12309,7 @@ const MerchantTopupDashboard = () => {
               <div className="flex gap-3">
                 <button
                   onClick={() => {
-                    setCustomerForm({ name: '', phone: '', email: '', password: '', customer_type: 'cash', credit_limit: '0', starting_balance: '', notes: '' });
+                    setCustomerForm({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
                     setIsEditingCustomer(null);
                     setShowCustomerModal(true);
                   }}
@@ -10931,9 +12344,9 @@ const MerchantTopupDashboard = () => {
                               {customer.customer_type === 'reseller' ? '🏪 جملة' : '👤 مفرد'}
                             </span>
                           </td>
-                          <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{Math.round(customer.credit_limit)?.toLocaleString('en-US')} د.ع</td>
-                          <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-purple-300" : "text-purple-700")}>{Math.round(customer.starting_balance || 0)?.toLocaleString('en-US')} د.ع</td>
-                          <td className={cn("px-6 py-4 font-semibold", customer.current_debt > customer.credit_limit ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-400" : "text-yellow-600"))}>{Math.round(customer.current_debt)?.toLocaleString('en-US')} د.ع</td>
+                          <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{formatNumber(customer.credit_limit)} د.ع</td>
+                          <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-purple-300" : "text-purple-700")}>{formatNumber(customer.starting_balance || 0)} د.ع</td>
+                          <td className={cn("px-6 py-4 font-semibold", customer.current_debt > customer.credit_limit ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-400" : "text-yellow-600"))}>{formatNumber(customer.current_debt)} د.ع</td>
                           <td className="px-6 py-4">
                             <div className="flex gap-2 pointer-events-auto">
                               {/* Statement button */}
@@ -10945,10 +12358,19 @@ const MerchantTopupDashboard = () => {
                                   setShowCustomerStatement(true);
                                   
                                   try {
+                                    console.log('🔍 Fetching statement for customer ID:', customer.id);
                                     const res = await fetch(`/api/topup/customers/${customer.id}/statement`);
                                     if (res.ok) {
                                       const data = await res.json();
-                                      console.log('✅ Statement loaded:', data);
+                                      console.log('✅ Statement loaded for customer:', data.customer?.id, 'Transactions:', data.transactions?.length);
+                                      
+                                      // ⭐ CRITICAL: Validate data belongs to correct customer
+                                      if (data.customer?.id !== customer.id) {
+                                        console.error('❌ SECURITY: Data mismatch! Requested:', customer.id, 'Received:', data.customer?.id);
+                                        alert('⚠️ خطأ في البيانات: تمت طلب بيانات عميل مختلف');
+                                        return;
+                                      }
+                                      
                                       setCustomerTransactions(Array.isArray(data.transactions) ? data.transactions : []);
                                     } else {
                                       const errorData = await res.json();
@@ -10971,7 +12393,7 @@ const MerchantTopupDashboard = () => {
                               {/* Edit button */}
                               <button 
                                 onClick={() => {
-                                  setCustomerForm({ name: customer.name, phone: customer.phone, email: customer.email || '', password: customer.password || '', customer_type: customer.customer_type, credit_limit: customer.credit_limit.toString(), starting_balance: (customer.starting_balance || 0).toString() });
+                                  setCustomerForm({ name: customer.name, phone: customer.phone, password: customer.password || '', starting_balance: (customer.starting_balance || 0).toString(), credit_limit: (customer.credit_limit || 0).toString(), notes: customer.notes || '', customer_type: customer.customer_type || 'cash' });
                                   setIsEditingCustomer(customer.id);
                                   setShowCustomerModal(true);
                                 }}
@@ -11206,7 +12628,7 @@ const MerchantTopupDashboard = () => {
                     </div>
                     <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
                       <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>💰 إجمالي الإيرادات</p>
-                      <p className={cn("text-2xl font-normal", isDarkMode ? "text-green-400" : "text-green-600")}>{Math.round(typeof stats.totalRevenue === 'number' ? stats.totalRevenue : parseFloat(String(stats.totalRevenue) || '0')).toLocaleString('en-US')} د.ع</p>
+                      <p className={cn("text-2xl font-normal", isDarkMode ? "text-green-400" : "text-green-600")}>{formatNumber(typeof stats.totalRevenue === 'number' ? stats.totalRevenue : parseFloat(String(stats.totalRevenue) || '0'))} د.ع</p>
                     </div>
                   </div>
                   
@@ -11306,15 +12728,13 @@ const MerchantTopupDashboard = () => {
                     let hasError = false;
 
                     for (const file of files) {
-                      // Check file size (max 500KB)
-                      const maxSize = 500 * 1024; // 500KB
-                      if (file.size > maxSize) {
-                        alert(`حجم الملف "${file.name}" كبير جداً. الحد الأقصى: 500KB (الحجم الحالي: ${(file.size / 1024).toFixed(1)}KB)\n\nسيتم ضغط الصور تلقائياً أثناء التحميل.`);
-                        hasError = true;
-                      } else if (!file.type.startsWith('image/')) {
+                      // ✅ REMOVED 500KB limit - support large files with multipart/form-data!
+                      // Check MIME type only
+                      if (!file.type.startsWith('image/')) {
                         alert(`الملف "${file.name}" ليس صورة. الرجاء اختيار ملفات صور فقط.`);
                         hasError = true;
                       } else {
+                        console.log(`📁 Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
                         validFiles.push(file);
                       }
                     }
@@ -11341,7 +12761,7 @@ const MerchantTopupDashboard = () => {
                 ) : (
                   <div>
                     <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>اختر صور أو اسحبها هنا</p>
-                    <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>يمكنك اختيار عدة صور (JPG أو PNG أو WebP، الحد الأقصى 5MB لكل صورة)</p>
+                    <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>يمكنك اختيار عدة صور بدون حد لحجم الملف</p>
                   </div>
                 )}
               </label>
@@ -11358,103 +12778,133 @@ const MerchantTopupDashboard = () => {
       )}
 
       {/* Customer Modal */}
+      {/* Customer Modal - Clean Single Version */}
       {showCustomerModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" dir="rtl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 font-sans" dir="rtl">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className={cn("rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
+            className={cn("rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
           >
-            <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
-              <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>{isEditingCustomer ? 'تعديل العميل' : 'إضافة عميل جديد'}</h3>
-              <button onClick={() => setShowCustomerModal(false)}>
+            {/* Header */}
+            <div className={cn("sticky top-0 p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gradient-to-r from-indigo-50 to-blue-50 border-gray-200")}>
+              <div>
+                <h3 className={cn("font-bold text-xl", isDarkMode ? "text-white" : "text-gray-900")}>
+                  {isEditingCustomer ? '✏️ تعديل بيانات العميل' : '➕ إضافة عميل جديد'}
+                </h3>
+                <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>أكمل جميع الحقول المطلوبة</p>
+              </div>
+              <button 
+                onClick={() => setShowCustomerModal(false)}
+                className={cn("p-2 rounded-full hover:bg-black/10 transition", isDarkMode ? "hover:bg-gray-600" : "")}
+              >
                 <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Row 1: Name & Phone */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>الاسم</label>
+                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>📝 اسم العميل <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     value={customerForm.name}
                     onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
-                    placeholder="اسم العميل"
-                    className={cn("w-full px-4 py-3 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                    placeholder="أدخل اسم العميل كاملاً"
+                    className={cn("w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-500" : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-indigo-500")}
                   />
                 </div>
                 <div>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>رقم الهاتف</label>
+                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>📱 رقم الهاتف <span className="text-red-500">*</span></label>
                   <input
                     type="tel"
                     value={customerForm.phone}
                     onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
-                    placeholder="07xxxxxxxxx"
-                    className={cn("w-full px-4 py-3 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                    placeholder="07800000000"
+                    className={cn("w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-500" : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-indigo-500")}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Row 2: Password & Credit Limit */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>البريد الإلكتروني</label>
-                  <input
-                    type="email"
-                    value={customerForm.email}
-                    onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
-                    placeholder=""
-                    className={cn("w-full px-4 py-3 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
-                  />
-                </div>
-                <div>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>كلمة المرور</label>
+                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>🔐 كلمة المرور <span className="text-red-500">*</span></label>
                   <input
                     type="password"
                     value={customerForm.password}
                     onChange={(e) => setCustomerForm({ ...customerForm, password: e.target.value })}
-                    placeholder="••••••••"
-                    className={cn("w-full px-4 py-3 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                    placeholder="أدخل كلمة المرور"
+                    className={cn("w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-500" : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-indigo-500")}
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>نوع العميل</label>
-                  <select
-                    value={customerForm.customer_type}
-                    onChange={(e) => setCustomerForm({ ...customerForm, customer_type: e.target.value })}
-                    className={cn("w-full px-4 py-3 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200")}
-                  >
-                    <option value="cash">👤 عميل مفرد</option>
-                    <option value="reseller">🏪 نقطة بيع</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>حد الائتمان</label>
+                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>💳 حد الائتمان (د.ع) <span className="text-red-500">*</span></label>
                   <input
                     type="number"
                     value={customerForm.credit_limit}
                     onChange={(e) => setCustomerForm({ ...customerForm, credit_limit: e.target.value })}
                     placeholder="0"
-                    className={cn("w-full px-4 py-3 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
+                    min="0"
+                    className={cn("w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-500" : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-indigo-500")}
                   />
                 </div>
               </div>
 
-              <div>
-                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>💵 ديون سابقة</label>
-                <input
-                  type="number"
-                  value={customerForm.starting_balance}
-                  onChange={(e) => setCustomerForm({ ...customerForm, starting_balance: e.target.value })}
-                  placeholder="0"
-                  className={cn("w-full px-4 py-3 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
-                />
+              {/* Row 3: Starting Balance & Customer Type */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>💰 ديون سابقة (د.ع) <span className="text-red-500">*</span></label>
+                  <input
+                    type="number"
+                    value={customerForm.starting_balance}
+                    onChange={(e) => setCustomerForm({ ...customerForm, starting_balance: e.target.value })}
+                    placeholder="0"
+                    min="0"
+                    className={cn("w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-500" : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-indigo-500")}
+                  />
+                </div>
+                <div>
+                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>🏷️ نوع العميل <span className="text-red-500">*</span></label>
+                  <select
+                    value={customerForm.customer_type}
+                    onChange={(e) => setCustomerForm({ ...customerForm, customer_type: e.target.value })}
+                    className={cn("w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white focus:border-indigo-500" : "bg-white border-gray-300 text-gray-900 focus:border-indigo-500")}
+                  >
+                    <option value="cash">👤 مفرد (عميل فردي)</option>
+                    <option value="reseller">🏪 جملة (نقطة بيع)</option>
+                  </select>
+                </div>
               </div>
 
-              <button onClick={saveCustomer} className="w-full py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700 text-sm">
-                {isEditingCustomer ? 'تحديث' : 'إضافة'}
+              {/* Row 4: Notes */}
+              <div>
+                <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>📌 ملاحظات إضافية (اختياري)</label>
+                <textarea
+                  value={customerForm.notes}
+                  onChange={(e) => setCustomerForm({ ...customerForm, notes: e.target.value })}
+                  placeholder="أضف أي ملاحظات خاصة بهذا العميل..."
+                  rows={3}
+                  className={cn("w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm resize-none", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-500" : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-indigo-500")}
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className={cn("sticky bottom-0 p-4 border-t flex gap-3 justify-end", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50 border-gray-200")}>
+              <button
+                onClick={() => setShowCustomerModal(false)}
+                className={cn("px-6 py-2.5 rounded-lg font-bold transition-all text-sm", isDarkMode ? "bg-gray-600 text-white hover:bg-gray-500" : "bg-gray-300 text-gray-900 hover:bg-gray-400")}
+              >
+                ✕ إلغاء
+              </button>
+              <button
+                onClick={saveCustomer}
+                className={cn("px-6 py-2.5 rounded-lg font-bold transition-all text-sm text-white shadow-lg hover:shadow-xl active:scale-95", isEditingCustomer ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700")}
+              >
+                {isEditingCustomer ? '💾 تحديث' : '➕ إضافة عميل'}
               </button>
             </div>
           </motion.div>
@@ -11478,7 +12928,13 @@ const MerchantTopupDashboard = () => {
                 >
                   <Plus size={16} /> تسديد
                 </button>
-                <button onClick={() => setShowCustomerStatement(false)}>
+                <button onClick={() => {
+                  setShowCustomerStatement(false);
+                  setShowPaymentForm(false);
+                  setPaymentForm({ amount: '' });
+                  setCustomerTransactions([]);
+                  setSelectedCustomerStatement(null);
+                }}>
                   <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
                 </button>
               </div>
@@ -11507,19 +12963,19 @@ const MerchantTopupDashboard = () => {
                   {/* Credit Limit */}
                   <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-blue-900/30 border border-blue-700/50" : "bg-blue-50 border border-blue-200")}>
                     <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-blue-300" : "text-blue-600")}>حد الائتمان</p>
-                    <p className={cn("text-2xl font-semibold", isDarkMode ? "text-blue-300" : "text-blue-700")}>{Math.round(creditLimit).toLocaleString('en-US')} د.ع</p>
+                    <p className={cn("text-2xl font-semibold", isDarkMode ? "text-blue-300" : "text-blue-700")}>{ formatNumber(creditLimit) } د.ع</p>
                   </div>
                   
                   {/* Current Debt */}
                   <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-red-900/30 border border-red-700/50" : "bg-red-50 border border-red-200")}>
                     <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
-                    <p className={cn("text-2xl font-semibold", isDarkMode ? "text-red-300" : "text-red-700")}>{Math.round(currentDebt).toLocaleString('en-US')} د.ع</p>
+                    <p className={cn("text-2xl font-semibold", isDarkMode ? "text-red-300" : "text-red-700")}>{formatNumber(currentDebt)} د.ع</p>
                   </div>
 
                   {/* Available Balance */}
                   <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-green-900/30 border border-green-700/50" : "bg-green-50 border border-green-200")}>
                     <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-green-300" : "text-green-600")}>الرصيد الحالي</p>
-                    <p className={cn("text-2xl font-semibold", isDarkMode ? "text-green-300" : "text-green-700")}>{Math.round(availableBalance).toLocaleString('en-US')} د.ع</p>
+                    <p className={cn("text-2xl font-semibold", isDarkMode ? "text-green-300" : "text-green-700")}>{formatNumber(availableBalance)} د.ع</p>
                   </div>
                 </div>
               );
@@ -11555,37 +13011,58 @@ const MerchantTopupDashboard = () => {
                             })
                           });
                           if (res.ok) {
+                            const paymentData = await res.json();
                             alert('✓ تم التسديد بنجاح');
                             setPaymentForm({ amount: '' });
                             setShowPaymentForm(false);
-                            // Reload statement
-                            setIsLoadingCustomerTransactions(true);
-                            console.log('🔄 Reloading statement for customer:', selectedCustomerStatement.id);
-                            const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
-                            console.log('📡 Statement response status:', statementRes.status);
-                            if (statementRes.ok) {
-                              const data = await statementRes.json();
-                              console.log('✅ Statement data received:', data);
-                              console.log('✅ Transactions array:', data.transactions);
-                              console.log('✅ Transactions count:', data.transactions?.length || 0);
-                              if (data.transactions && Array.isArray(data.transactions)) {
-                                console.log('✅ Setting transactions:', data.transactions.length, 'items');
-                                setCustomerTransactions(data.transactions);
-                              } else {
-                                console.error('❌ Transactions is not an array:', typeof data.transactions);
-                                setCustomerTransactions([]);
-                              }
-                              setSelectedCustomerStatement(data.customer);
-                            } else {
-                              console.error('❌ Statement fetch failed:', statementRes.status);
+                            
+                            // Update customer data immediately from response
+                            if (paymentData.customer) {
+                              console.log('💳 Payment response received:', {
+                                starting_balance: paymentData.customer.starting_balance,
+                                current_debt: paymentData.customer.current_debt,
+                                credit_limit: paymentData.customer.credit_limit
+                              });
+                              setSelectedCustomerStatement({
+                                ...selectedCustomerStatement,
+                                starting_balance: paymentData.customer.starting_balance,
+                                current_debt: paymentData.customer.current_debt,
+                                credit_limit: paymentData.customer.credit_limit ?? selectedCustomerStatement.credit_limit
+                              });
                             }
-                            setIsLoadingCustomerTransactions(false);
+                            
+                            // Reload statement after short delay to ensure DB is updated
+                            setTimeout(async () => {
+                              setIsLoadingCustomerTransactions(true);
+                              console.log('🔄 Reloading statement for customer:', selectedCustomerStatement.id);
+                              const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
+                              console.log('📡 Statement response status:', statementRes.status);
+                              if (statementRes.ok) {
+                                const data = await statementRes.json();
+                                console.log('✅ Statement data received:', data);
+                                console.log('✅ Transactions array:', data.transactions);
+                                console.log('✅ Transactions count:', data.transactions?.length || 0);
+                                if (data.transactions && Array.isArray(data.transactions)) {
+                                  console.log('✅ Setting transactions:', data.transactions.length, 'items');
+                                  setCustomerTransactions(data.transactions);
+                                } else {
+                                  console.error('❌ Transactions is not an array:', typeof data.transactions);
+                                  setCustomerTransactions([]);
+                                }
+                                setSelectedCustomerStatement(data.customer);
+                              } else {
+                                console.error('❌ Statement fetch failed:', statementRes.status);
+                              }
+                              setIsLoadingCustomerTransactions(false);
+                            }, 300);
                           } else {
-                            alert('فشل التسديد');
+                            const errorData = await res.json();
+                            console.error('❌ Payment failed:', res.status, errorData);
+                            alert(`❌ فشل التسديد: ${errorData.error || 'خطأ غير معروف'}`);
                           }
                         } catch (error) {
                           console.error('Payment error:', error);
-                          alert('حدث خطأ');
+                          alert(`❌ حدث خطأ: ${(error as any).message}`);
                         }
                       }}
                       className={cn("px-6 py-2 rounded-lg text-white font-normal text-sm", isDarkMode ? "bg-green-600 hover:bg-green-700" : "bg-green-600 hover:bg-green-700")}
@@ -11635,17 +13112,17 @@ const MerchantTopupDashboard = () => {
                               {tx.description || 'معاملة'}
                             </td>
                             <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-red-400 border-gray-700" : "text-red-600 border-gray-200")}>
-                              {debit > 0 ? debit.toLocaleString('en-US') : '—'}
+                              {debit > 0 ? formatNumber(debit) : '—'}
                             </td>
                             <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-green-400 border-gray-700" : "text-green-600 border-gray-200")}>
-                              {credit > 0 ? credit.toLocaleString('en-US') : '—'}
+                              {credit > 0 ? formatNumber(credit) : '—'}
                             </td>
                             <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-blue-400 border-gray-700" : "text-blue-600 border-gray-200")}>
                               {(tx.balance || 0).toLocaleString('en-US')}
                             </td>
                             <td className={cn("px-4 py-3 border text-center", isDarkMode ? "border-gray-700" : "border-gray-200")}>
                               <div className="flex gap-2 justify-center">
-                                {isPayment && tx.source !== 'opening' && (
+                                {isPayment && (
                                   <>
                                     <button
                                       onClick={async () => {
@@ -11699,7 +13176,13 @@ const MerchantTopupDashboard = () => {
                                             alert('✓ تم الحذف بنجاح');
                                             // Reload statement
                                             setIsLoadingCustomerTransactions(true);
-                                            const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
+                                            const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`, {
+                                              headers: {
+                                                'Cache-Control': 'no-store, no-cache, must-revalidate',
+                                                'Pragma': 'no-cache',
+                                                'Expires': '0'
+                                              }
+                                            });
                                             if (statementRes.ok) {
                                               const data = await statementRes.json();
                                               setCustomerTransactions(Array.isArray(data.transactions) ? data.transactions : []);
@@ -11781,7 +13264,13 @@ const MerchantTopupDashboard = () => {
                   { id: 'overview', label: 'ملخص المبيعات', icon: BarChart3, badge: null },
                   { id: 'companies', label: 'الشركات', icon: StoreIcon, badge: companies.length },
                   { id: 'products', label: 'المنتجات', icon: CreditCard, badge: products.length },
-                  { id: 'codes', label: 'الأكواد', icon: Ticket, badge: products.reduce((sum: number, p: any) => sum + (typeof p.available_codes === 'number' ? p.available_codes : (p.codes?.length || 0)), 0) },
+                  { id: 'codes', label: 'الأكواد', icon: Ticket, badge: products.reduce((sum: number, p: any) => {
+                    // Count uploaded images from each product
+                    const count = (p.images && Array.isArray(p.images)) 
+                      ? p.images.filter((img: any) => img && String(img).length > 0).length 
+                      : 0;
+                    return sum + count;
+                  }, 0) },
                   { id: 'customers', label: 'العملاء', icon: Users, badge: customers.length },
                   { id: 'orders', label: 'الطلبات', icon: ShoppingCart, badge: orders.filter((o: any) => o.status !== 'returned').length },
                   { id: 'settings', label: 'الإعدادات', icon: Settings, badge: null },
@@ -11803,9 +13292,21 @@ const MerchantTopupDashboard = () => {
                       <item.icon size={18} />
                       {item.label}
                     </div>
-                    {item.badge !== null && item.badge > 0 && (
-                      <span className={cn("text-xs font-semibold px-2 py-1 rounded-full", currentSection === item.id ? "bg-white/20" : isDarkMode ? "bg-gray-700 text-indigo-400" : "bg-indigo-100 text-indigo-700")}>
-                        {item.badge}
+                    {item.badge !== null && (item.badge > 0 || item.id === 'codes') && (
+                      <span className={cn("text-sm font-bold px-3 py-1.5 rounded-full min-w-max", 
+                        item.id === 'codes' 
+                          ? currentSection === item.id ? "bg-yellow-400/30 text-yellow-200" : isDarkMode ? "bg-yellow-900/40 text-yellow-300" : "bg-yellow-100 text-yellow-800"
+                          : item.id === 'products'
+                          ? currentSection === item.id ? "bg-blue-400/30 text-blue-200" : isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-blue-100 text-blue-800"
+                          : item.id === 'orders'
+                          ? currentSection === item.id ? "bg-red-400/30 text-red-200" : isDarkMode ? "bg-red-900/40 text-red-300" : "bg-red-100 text-red-800"
+                          : item.id === 'companies'
+                          ? currentSection === item.id ? "bg-green-400/30 text-green-200" : isDarkMode ? "bg-green-900/40 text-green-300" : "bg-green-100 text-green-800"
+                          : item.id === 'customers'
+                          ? currentSection === item.id ? "bg-purple-400/30 text-purple-200" : isDarkMode ? "bg-purple-900/40 text-purple-300" : "bg-purple-100 text-purple-800"
+                          : currentSection === item.id ? "bg-white/20" : isDarkMode ? "bg-gray-700 text-indigo-400" : "bg-indigo-100 text-indigo-700"
+                      )}>
+                        {item.badge === 0 && item.id === 'codes' ? '0️⃣' : item.badge}
                       </span>
                     )}
                   </button>
@@ -11848,8 +13349,10 @@ const TopupStorefront = () => {
       let storeId = rawStoreId;
       const storeNum = parseInt(rawStoreId || '0');
 
-      // If requesting store 21 or 1 for topup, find the first available topup store
-      if (storeNum === 21 || storeNum === 1) {
+      console.log(`🔍 Determining store ID from rawStoreId: "${rawStoreId}" (parsed: ${storeNum})`);
+
+      // If it's a numeric ID that equals 21 or 1, find the first available topup store
+      if (!isNaN(storeNum) && (storeNum === 21 || storeNum === 1)) {
         try {
           console.log('🔍 Finding available topup store...');
           const res = await fetch('/api/stores?page=1&pageSize=100');
@@ -11869,8 +13372,42 @@ const TopupStorefront = () => {
           console.error('Error fetching stores:', err);
           storeId = '1';
         }
+      } else if (isNaN(storeNum)) {
+        // It's a text slug, search for store by name
+        try {
+          console.log(`🔍 Looking up store by slug/name: "${rawStoreId}"`);
+          const res = await fetch('/api/stores?page=1&pageSize=100');
+          const stores = await res.json();
+          
+          // Try to find by store_name or slug
+          const foundStore = Array.isArray(stores) ? stores.find((s: any) => 
+            s.store_name === rawStoreId || 
+            s.slug === rawStoreId || 
+            s.name === rawStoreId ||
+            (s.store_name && s.store_name.toLowerCase().includes(rawStoreId.toLowerCase()))
+          ) : null;
+          
+          if (foundStore) {
+            storeId = String(foundStore.id);
+            console.log(`✅ Found store by name: ${storeId}`);
+          } else {
+            // If no exact match, just use the first topup store
+            const topupStore = Array.isArray(stores) ? stores.find((s: any) => s.store_type === 'topup') : null;
+            if (topupStore) {
+              storeId = String(topupStore.id);
+              console.log(`⚠️ No exact match, using first topup store: ${storeId}`);
+            } else {
+              storeId = '1';
+              console.log(`⚠️ No topup store found, defaulting to store 1`);
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching stores by name:', err);
+          storeId = '1';
+        }
       }
 
+      console.log(`✅ Final storeId resolved to: ${storeId}`);
       setTopupStoreId(storeId);
       setIsLoadingStore(false);
     };
@@ -11880,7 +13417,7 @@ const TopupStorefront = () => {
   
   const storeId = topupStoreId || rawStoreId || '1';
   
-  const { isDarkMode } = useTheme();
+  const { isDarkMode, setIsDarkMode } = useTheme();
   const { primaryColor } = useSettingsStore();
   const { addItem, items: cartItems } = useTopupCartStore();
   const navigate = useNavigate();
@@ -11914,6 +13451,7 @@ const TopupStorefront = () => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [refreshProductsKey, setRefreshProductsKey] = useState(0);  // Trigger for refreshing products
 
   // Auth state
   const [showAuthForm, setShowAuthForm] = useState(false);
@@ -12018,17 +13556,31 @@ const TopupStorefront = () => {
           if (parsed.logo_url && parsed.logo_url.length > 100) {
             console.log('✅ Setting store logo. Length:', parsed.logo_url.length);
             setStoreLogo(parsed.logo_url);
+          } else {
+            // Check if there's a logo from store info
+            console.log('⚠️ Logo too short or missing, checking storeInfo');
+            setStoreLogo('');
           }
         } catch (err) {
           console.error('❌ Error parsing store settings:', err);
+          setStoreLogo('');
         }
       } else {
         console.log('⚠️ No store settings found in localStorage');
+        // Try to get logo from store info if available
+        if (storeInfo?.logo_url && storeInfo.logo_url.length > 100) {
+          console.log('✅ Loading logo from storeInfo');
+          setStoreLogo(storeInfo.logo_url);
+        } else {
+          setStoreLogo('');
+        }
       }
     };
 
-    // Load on mount
-    loadStoreLogo();
+    // Load on mount with a small delay to ensure actualStoreId is set
+    const loadTimer = setTimeout(() => {
+      loadStoreLogo();
+    }, 100);
 
     // Listen for custom event from settings panel
     const handleSettingsUpdate = (e: any) => {
@@ -12039,14 +13591,20 @@ const TopupStorefront = () => {
     window.addEventListener('storeSettingsUpdated', handleSettingsUpdate);
 
     return () => {
+      clearTimeout(loadTimer);
       window.removeEventListener('storeSettingsUpdated', handleSettingsUpdate);
     };
-  }, [actualStoreId]);
+  }, [actualStoreId, storeInfo]);
 
   useEffect(() => {
+    if (isLoadingStore) {
+      console.log('⏳ Still loading store ID, skipping data fetch');
+      return;
+    }
+    
     if (!storeId) {
-      console.log(`⚠️ No storeId in URL, using default store 1 (علي_الهادي)`);
-      setActualStoreId(1); // Set default store 1 when no URL param
+      console.log(`⚠️ No storeId resolved, using default store 1 (علي_الهادي)`);
+      setActualStoreId(1); // Set default store 1 when no storeId
       return;
     }
     
@@ -12221,7 +13779,7 @@ const TopupStorefront = () => {
         console.log(`📡 Fetching companies, categories, and products in parallel for store ID: ${actualStoreId}...`);
         
         const [companiesRes, categoriesRes, productsRes] = await Promise.all([
-          // Try store-specific endpoint first, fallback to all companies
+          // Fetch companies
           fetch(`/api/topup/companies/${actualStoreId}?_t=${timestamp}`, { 
             cache: 'no-store',
             signal: controller.signal 
@@ -12256,24 +13814,26 @@ const TopupStorefront = () => {
             return [];
           }),
           
+          // Fetch categories
           fetch(`/api/topup/categories/${actualStoreId}?_t=${timestamp}`, { 
             cache: 'no-store',
             signal: controller.signal 
           }).then(async r => {
-            console.log('   Companies response status:', r.status);
+            console.log('   Categories response status:', r.status);
             if (!r.ok) {
-              console.warn('⚠️ Companies fetch returned status:', r.status);
+              console.warn('⚠️ Categories fetch returned status:', r.status);
               return [];
             }
             const data = await r.json();
-            console.log('✅ Companies fetched:', Array.isArray(data) ? data.length : 0);
+            console.log('✅ Categories fetched:', Array.isArray(data) ? data.length : 0);
             return Array.isArray(data) ? data : [];
           }).catch(e => {
-            console.warn('⚠️ Companies fetch error:', e.message);
+            console.warn('⚠️ Categories fetch error:', e.message);
             return [];
           }),
           
-          fetch(`/api/topup/categories/${actualStoreId}?_t=${timestamp}`, { 
+          // Fetch products
+          fetch(`/api/topup/products/${actualStoreId}?_t=${timestamp}`, { 
             cache: 'no-store',
             signal: controller.signal 
           }).then(async r => {
@@ -12384,7 +13944,7 @@ const TopupStorefront = () => {
       isMounted = false;
       clearInterval(refreshInterval);
     };
-  }, [storeId]);
+  }, [storeId, isLoadingStore, refreshProductsKey]);
 
   // Load saved customer from localStorage - PRIMARY source is topupCustomer
   useEffect(() => {
@@ -12573,15 +14133,7 @@ const TopupStorefront = () => {
   // Filter companies and categories - show ALL companies/categories for adding products
   const companiesWithProducts = companies; // عرض جميع الشركات
   
-  const categoriesWithProducts = selectedCompany
-    ? categories.filter(c => 
-        products.some(p => p.category_id === c.id && p.company_id === parseInt(selectedCompany))
-      ).length > 0
-      ? categories.filter(c => 
-          products.some(p => p.category_id === c.id && p.company_id === parseInt(selectedCompany))
-        )
-      : categories // إذا لم توجد فئات بمنتجات، عرض جميع الفئات
-    : categories; // عرض جميع الفئات
+  const categoriesWithProducts = categories; // عرض جميع الفئات دائماً
 
   // تحديث selectedProduct عند تحديث البيانات للحصول على أحدث البيانات بما فيها available_codes
   useEffect(() => {
@@ -12601,9 +14153,20 @@ const TopupStorefront = () => {
     }
   }, [products, selectedProduct?.id]);
 
-  const filteredProducts = products.filter(p => 
-    (!selectedCompany || p.company_id === parseInt(selectedCompany))
-  );
+  const filteredProducts = products.filter(p => {
+    if (!selectedCompany || selectedCompany.trim() === '') return true;
+    
+    // Filter by company_id (numeric match from dropdown value)
+    const selectedId = parseInt(selectedCompany);
+    if (!isNaN(selectedId)) {
+      return p.company_id === selectedId;
+    }
+    
+    // Fallback: search by company name if not numeric
+    const searchTerm = selectedCompany.trim().toLowerCase();
+    const companyName = (p.company_name || '').toLowerCase();
+    return companyName.includes(searchTerm);
+  });
 
   const handleAuth = async () => {
     if (!authPhone || !authPassword) {
@@ -12648,6 +14211,11 @@ const TopupStorefront = () => {
         setCustomer(customerData);
         setPhone(data.phone); // Auto-fill phone in purchase form
         setAuthPassword(''); // Clear password from memory
+        
+        // 🔄 IMMEDIATELY refresh customer debt from statement (not from DB)
+        console.log('🔄 [LOGIN] Refreshing customer debt from statement...');
+        await refreshCustomerDebt(data.customer_id);
+        
         // تأخير صغير للتأكد من تحديث state قبل إغلاق النموذج
         setTimeout(() => {
           console.log('⏱️ handleAuth - closing auth form');
@@ -12696,13 +14264,28 @@ const TopupStorefront = () => {
         // 🔄 IMMEDIATE Update: Add payment transaction to statement INSTANTLY
         console.log('⚡ IMMEDIATE UPDATE: Adding payment transaction to statement');
         
+        // 🎯 Get ACCURATE current debt from statement (not from DB)
+        let currentActualDebt = Number(customer.current_debt || 0);
+        if (statementTransactions && statementTransactions.length > 0) {
+          // Use the latest balance from statement transactions
+          currentActualDebt = Number(statementTransactions[0]?.balance || customer.current_debt || 0);
+        }
+        
+        console.log('💰 Payment calculation:', { 
+          dbDebt: customer.current_debt, 
+          statementDebt: statementTransactions[0]?.balance,
+          actualDebt: currentActualDebt,
+          payment: amount,
+          newDebt: Math.max(0, currentActualDebt - amount)
+        });
+        
         const newPaymentTransaction = {
           id: Math.random(),
           type: 'payment',
           description: 'دفعة',
           amount: amount,
           is_payment: true,
-          balance: Math.max(0, (Number(customer.current_debt) || 0) - amount),
+          balance: Math.max(0, currentActualDebt - amount),
           created_at: new Date().toISOString(),
           source: 'payment'
         };
@@ -12710,8 +14293,8 @@ const TopupStorefront = () => {
         // Update statement transactions IMMEDIATELY
         setStatementTransactions(prev => [newPaymentTransaction, ...prev].slice(0, 50));
         
-        // Update customer debt IMMEDIATELY
-        const newDebt = Math.max(0, (Number(customer.current_debt) || 0) - amount);
+        // Update customer debt IMMEDIATELY with ACCURATE value
+        const newDebt = Math.max(0, currentActualDebt - amount);
         setCustomer(prevCustomer => ({
           ...prevCustomer,
           current_debt: newDebt
@@ -13086,7 +14669,8 @@ const TopupStorefront = () => {
           customer_type: finalCustomerType,
           phone: finalPhone,
           address: `${finalName} | ${finalPhone}`,
-          total_amount: displayPrice * quantity
+          total_amount: displayPrice * quantity,
+          selected_images: selectedProduct.images?.slice(0, quantity) || []
         })
       });
 
@@ -13108,6 +14692,21 @@ const TopupStorefront = () => {
         if (customer?.customer_id) {
           console.log('⚡ IMMEDIATE UPDATE: Adding new topup transaction to statement');
           
+          // 🎯 Get ACCURATE current debt from statement (not from DB)
+          let currentActualDebt = Number(customer.current_debt || 0);
+          if (statementTransactions && statementTransactions.length > 0) {
+            // Use the latest balance from statement transactions
+            currentActualDebt = Number(statementTransactions[0]?.balance || customer.current_debt || 0);
+          }
+          
+          console.log('💰 Debt calculation:', { 
+            dbDebt: customer.current_debt, 
+            statementDebt: statementTransactions[0]?.balance,
+            actualDebt: currentActualDebt,
+            purchase: displayPrice * quantity,
+            newDebt: currentActualDebt + (displayPrice * quantity)
+          });
+          
           // Create new transaction object for immediate display
           const newTransaction = {
             id: data.order_id || Math.random(),
@@ -13115,7 +14714,7 @@ const TopupStorefront = () => {
             description: 'شراء',
             amount: displayPrice * quantity,
             is_payment: false,
-            balance: (Number(customer.current_debt) || 0) + (displayPrice * quantity),
+            balance: currentActualDebt + (displayPrice * quantity),
             created_at: new Date().toISOString(),
             source: 'topup_order'
           };
@@ -13123,14 +14722,14 @@ const TopupStorefront = () => {
           // Update statement transactions IMMEDIATELY
           setStatementTransactions(prev => [newTransaction, ...prev].slice(0, 50));
           
-          // Update customer debt IMMEDIATELY
-          const newDebt = (Number(customer.current_debt) || 0) + (displayPrice * quantity);
+          // Update customer debt IMMEDIATELY with ACCURATE value
+          const newDebt = currentActualDebt + (displayPrice * quantity);
           setCustomer(prevCustomer => ({
             ...prevCustomer,
             current_debt: newDebt
           }));
           
-          console.log('✅ Transaction added to statement immediately');
+          console.log('✅ Transaction added to statement immediately with accurate debt');
           
           // Then refresh from server in background (async)
           setTimeout(async () => {
@@ -13138,6 +14737,10 @@ const TopupStorefront = () => {
             await handleLoadStatement();
           }, 300);
         }
+        
+        // 🔄 Refresh products list to show updated inventory
+        console.log('🔄 Refreshing products list after purchase');
+        setRefreshProductsKey(prev => prev + 1);
         
         navigate(`/topup/${storeId}/order/${data.order_id}`);
       } else {
@@ -13172,17 +14775,43 @@ const TopupStorefront = () => {
       {/* Main scrollable container for header and content */}
       <div className="flex-1 overflow-y-auto">
         {/* Header with Auth */}
-        <div className={cn("border-b", isDarkMode ? "border-gray-700" : "border-gray-200")}>
-          <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 lg:gap-4 mb-4">
-            <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto order-2 lg:order-1">
+        <div className={cn("border-b sticky top-0 z-30 backdrop-blur-sm", isDarkMode ? "border-gray-700 bg-gray-900/95" : "border-gray-200 bg-white/95")}>
+          <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+            {/* Search and Theme Toggle Bar */}
+            <div className="flex items-center gap-3 mb-4">
               <button 
-                onClick={() => window.location.reload()}
-                className={cn("flex items-center gap-1 font-normal transition-colors text-sm sm:text-base", isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-600 hover:text-gray-900")}
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className={cn(
+                  "p-2 rounded-lg border transition-all flex items-center justify-center flex-shrink-0",
+                  isDarkMode 
+                    ? "bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800" 
+                    : "bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100"
+                )}
+                title={isDarkMode ? "الوضع الفاتح" : "الوضع الداكن"}
               >
-                <ChevronRight size={18} />
-                <span className="hidden sm:inline">العودة</span>
+                {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
               </button>
+              <div className="relative flex-1">
+                <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2", isDarkMode ? "text-gray-500" : "text-gray-400")} size={16} />
+                <input 
+                  type="text" 
+                  placeholder="بحث حسب الشركة أو المتج..." 
+                  value={selectedCompany}
+                  onChange={(e) => setSelectedCompany(e.target.value)}
+                  className={cn("w-full pl-9 pr-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition-colors text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500" : "bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400")}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 lg:gap-4 mb-4">
+              <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto order-2 lg:order-1">
+                <button 
+                  onClick={() => window.location.reload()}
+                  className={cn("flex items-center gap-1 font-normal transition-colors text-sm sm:text-base", isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-600 hover:text-gray-900")}
+                >
+                  <ChevronRight size={18} />
+                  <span className="hidden sm:inline">العودة</span>
+                </button>
               {/* Shopping Cart Button with Filters */}
               <div className="flex flex-row gap-2 ml-auto lg:ml-0 items-center sm:flex-col sm:gap-2">
                 <button
@@ -13288,17 +14917,49 @@ const TopupStorefront = () => {
                   <div className={cn("w-full lg:w-auto p-3 sm:p-4 rounded-lg border-2 space-y-2 sm:space-y-3 order-3", isDarkMode ? "bg-red-900/30 border-red-600" : "bg-red-50 border-red-300")}>
                     <div>
                       <p className={cn("text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
-                      <p className={cn("text-2xl sm:text-3xl font-bold", Number(customer.current_debt || 0) > Number(customer.credit_limit || 0) ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-300" : "text-yellow-700"))}>{Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')} <span className="text-base sm:text-lg">د.ع</span></p>
+                      <p className={cn("text-2xl sm:text-3xl font-bold", (() => {
+                        // المصدر الأساسي: statementTransactions الأخير (إذا متوفر)
+                        // المصدر الثانوي: customer.current_debt (بديل مباشر)
+                        let currentDebt = Number(customer.current_debt || 0);
+                        
+                        // إذا كان هناك transactions، استخدم الرصيد الأخير (الأحدث)
+                        if (statementTransactions && statementTransactions.length > 0) {
+                          currentDebt = Number(statementTransactions[0]?.balance || customer.current_debt || 0);
+                        }
+                        
+                        return currentDebt > Number(customer.credit_limit || 0) 
+                          ? (isDarkMode ? "text-red-400" : "text-red-600") 
+                          : (isDarkMode ? "text-yellow-300" : "text-yellow-700");
+                      })())}>{(() => {
+                        let currentDebt = Number(customer.current_debt || 0);
+                        
+                        // استخدام أحدث رصيد من transactions
+                        if (statementTransactions && statementTransactions.length > 0) {
+                          currentDebt = Number(statementTransactions[0]?.balance || customer.current_debt || 0);
+                        }
+                        
+                        return Math.round(currentDebt).toLocaleString('en-US');
+                      })()} <span className="text-base sm:text-lg">د.ع</span></p>
                     </div>
 
                     {/* Buttons */}
                     <div className="grid grid-cols-1 gap-2 mt-2">
                       <button
                         onClick={handleLogout}
-                        className={cn("py-2 px-2 sm:px-3 rounded text-xs font-normal", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
+                        className={cn("py-2 px-2 sm:px-3 rounded text-xs font-normal hidden", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
                         title="تسجيل الخروج"
                       >
                         🚪 <span className="hidden sm:inline">خروج</span>
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await handleLoadStatement(customer?.customer_id);
+                          setShowAccountStatement(true);
+                        }}
+                        className={cn("py-2 px-2 sm:px-3 rounded text-xs font-normal", isDarkMode ? "bg-blue-900 text-blue-100 hover:bg-blue-800" : "bg-blue-100 text-blue-700 hover:bg-blue-200")}
+                        title="عرض كشف الحساب الكامل"
+                      >
+                        📋 <span className="hidden sm:inline">كشف الحساب</span>
                       </button>
                     </div>
                   </div>
@@ -13407,7 +15068,7 @@ const TopupStorefront = () => {
           {/* Account Statement Modal */}
           {showAccountStatement && customer && (
             <div className={cn("fixed inset-0 flex items-center justify-center z-50 p-4", isDarkMode ? "bg-black/50" : "bg-black/30")}>
-              <Card className={cn("w-full max-w-4xl max-h-[85vh] overflow-y-auto", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
+              <Card className={cn("w-full max-w-5xl max-h-auto", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
                 <div className={cn("p-6 border-b sticky top-0 z-10", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white")}>
                   <div className="flex justify-between items-center">
                     <h3 className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>
@@ -13435,14 +15096,14 @@ const TopupStorefront = () => {
                   </div>
 
                   {/* Quick Stats Row */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-blue-900/20 border-blue-600" : "bg-blue-50 border-blue-300")}>
                       <p className={cn("text-[11px] font-normal mb-1", isDarkMode ? "text-blue-400" : "text-blue-600")}>حد الائتمان</p>
                       <p className={cn("text-lg font-bold", isDarkMode ? "text-blue-300" : "text-blue-600")}>
                         {Math.round(Number(customer.credit_limit) || 0)?.toLocaleString('en-US')} د.ع
                       </p>
                     </div>
-                    <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-purple-900/20 border-purple-600" : "bg-purple-50 border-purple-300")}>
+                    <div className={cn("p-3 rounded-lg border-2 hidden", isDarkMode ? "bg-purple-900/20 border-purple-600" : "bg-purple-50 border-purple-300")}>
                       <p className={cn("text-[11px] font-normal mb-1", isDarkMode ? "text-purple-400" : "text-purple-600")}>الرصيد الأولي</p>
                       <p className={cn("text-lg font-bold", isDarkMode ? "text-purple-300" : "text-purple-600")}>
                         {Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')} د.ع
@@ -13451,13 +15112,41 @@ const TopupStorefront = () => {
                     <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-yellow-900/20 border-yellow-600" : "bg-yellow-50 border-yellow-300")}>
                       <p className={cn("text-[11px] font-normal mb-1", isDarkMode ? "text-yellow-400" : "text-yellow-600")}>الديون الحالية</p>
                       <p className={cn("text-lg font-bold", isDarkMode ? "text-yellow-300" : "text-yellow-600")}>
-                        {Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')} د.ع
+                        {(() => {
+                          // حساب آخر رصيد من المعاملات
+                          if (statementTransactions && statementTransactions.length > 0) {
+                            const lastTransaction = statementTransactions[0]; // الأحدث في الأعلى
+                            const finalDebt = Math.round(Number(lastTransaction.balance) || 0);
+                            return finalDebt.toLocaleString('en-US');
+                          }
+                          return Math.round(Number(customer.current_debt) || 0).toLocaleString('en-US');
+                        })()} د.ع
                       </p>
                     </div>
-                    <div className={cn("p-3 rounded-lg border-2", (Number(customer.credit_limit || 0) - Number(customer.current_debt || 0)) <= 0 ? (isDarkMode ? "bg-red-900/20 border-red-600" : "bg-red-50 border-red-300") : (isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300"))}>
-                      <p className={cn("text-[11px] font-normal mb-1", (Number(customer.credit_limit || 0) - Number(customer.current_debt || 0)) <= 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-green-400" : "text-green-600"))}>الرصيد المتاح</p>
-                      <p className={cn("text-lg font-bold", (Number(customer.credit_limit || 0) - Number(customer.current_debt || 0)) <= 0 ? (isDarkMode ? "text-red-300" : "text-red-600") : (isDarkMode ? "text-green-300" : "text-green-600"))}>
-                        {Math.round(Math.max(0, Number(customer.credit_limit || 0) - Number(customer.current_debt || 0))).toLocaleString('en-US')} د.ع
+                    <div className={cn("p-3 rounded-lg border-2", (() => {
+                      const currentDebt = statementTransactions && statementTransactions.length > 0 
+                        ? Number(statementTransactions[0]?.balance || 0)
+                        : Number(customer.current_debt || 0);
+                      return (Number(customer.credit_limit || 0) - currentDebt) <= 0 ? (isDarkMode ? "bg-red-900/20 border-red-600" : "bg-red-50 border-red-300") : (isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300");
+                    })())}>
+                      <p className={cn("text-[11px] font-normal mb-1", (() => {
+                        const currentDebt = statementTransactions && statementTransactions.length > 0 
+                          ? Number(statementTransactions[0]?.balance || 0)
+                          : Number(customer.current_debt || 0);
+                        return (Number(customer.credit_limit || 0) - currentDebt) <= 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-green-400" : "text-green-600");
+                      })())}>الرصيد المتاح</p>
+                      <p className={cn("text-lg font-bold", (() => {
+                        const currentDebt = statementTransactions && statementTransactions.length > 0 
+                          ? Number(statementTransactions[0]?.balance || 0)
+                          : Number(customer.current_debt || 0);
+                        return (Number(customer.credit_limit || 0) - currentDebt) <= 0 ? (isDarkMode ? "text-red-300" : "text-red-600") : (isDarkMode ? "text-green-300" : "text-green-600");
+                      })())}>
+                        {(() => {
+                          const currentDebt = statementTransactions && statementTransactions.length > 0 
+                            ? Number(statementTransactions[0]?.balance || 0)
+                            : Number(customer.current_debt || 0);
+                          return Math.round(Math.max(0, Number(customer.credit_limit || 0) - currentDebt)).toLocaleString('en-US');
+                        })()} د.ع
                       </p>
                     </div>
                   </div>
@@ -13485,6 +15174,7 @@ const TopupStorefront = () => {
                           <p className="text-xs">قد لم يتم تحميل البيانات بعد. حاول مرة أخرى.</p>
                         </div>
                       ) : (
+                        <div className="overflow-x-auto">
                         <table className="w-full text-xs border-collapse">
                           <thead className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
                             <tr>
@@ -13571,15 +15261,16 @@ const TopupStorefront = () => {
                             })}
                           </tbody>
                         </table>
+                        </div>
                       )}
                     </div>
                   </div>
 
                   {/* Buttons */}
-                  <div className="grid grid-cols-2 gap-3 mt-6">
+                  <div className="grid grid-cols-1 gap-3 mt-6">
                     <button
                       onClick={handleLogout}
-                      className={cn("py-2 px-3 rounded text-sm font-normal", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
+                      className={cn("py-2 px-3 rounded text-sm font-normal hidden", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
                     >
                       خروج
                     </button>
@@ -13597,7 +15288,7 @@ const TopupStorefront = () => {
         </div>
         
         {/* Filters and Products Content */}
-        <div className="max-w-6xl mx-auto px-4 py-4 sm:py-8 overflow-y-auto md:pb-0 pb-24">
+        <div className="max-w-6xl mx-auto px-4 py-0">
           {/* Products Grid */}
           {showPurchaseForm && selectedProduct && !customer && (
             <Card className={cn("mt-6 border-2", isDarkMode ? "bg-gray-800 border-indigo-700" : "bg-indigo-50 border-indigo-200")}> 
@@ -13666,8 +15357,8 @@ const TopupStorefront = () => {
             </Card>
           )}
 
-          {/* Product Images Gallery - 80% Width */}
-          <div className="max-w-[80%] mx-auto">
+          {/* Product Images Gallery - 100% Width */}
+          <div className="w-full mx-auto">
             {console.log('🔍 DEBUG TopupStorefront:', {
               productsCount: products.length,
               filteredProductsCount: filteredProducts.length,
@@ -13676,7 +15367,7 @@ const TopupStorefront = () => {
               hasImages: filteredProducts.some(p => Array.isArray(p.images) && p.images.length > 0)
             })}
             <h2 className={cn("text-2xl font-normal mb-6", isDarkMode ? "text-white" : "text-gray-900")}>� المنتجات المتاحة للشراء</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" key={`products-list-${products.length}-${Date.now()}`}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4" key={`products-list-${products.length}-${Date.now()}`}>
               {filteredProducts
                 .map((product: any) => {
                 // Get images count for this product
@@ -13689,55 +15380,46 @@ const TopupStorefront = () => {
                 console.log(`📋 Product ${product.id}: amount=${product.amount}, price=${product.price}, images=${imagesCount}`, product);
 
                 // Calculate price based on customer type
-                const displayPrice = customer?.customer_type === 'reseller' && product.retail_price 
-                  ? product.retail_price 
-                  : (product.wholesale_price || product.price || 0);
+                const displayPrice = (() => {
+                  // If customer is not logged in, use wholesale price
+                  if (!customer) {
+                    return product.wholesale_price || product.price || 0;
+                  }
+                  // If customer is reseller and has retail price, use it
+                  if (customer.customer_type === 'reseller' && product.retail_price) {
+                    return product.retail_price;
+                  }
+                  // Otherwise use wholesale price
+                  return product.wholesale_price || product.price || 0;
+                })();
                 
-                const hasBulkPrice = product.retail_price && product.wholesale_price && product.retail_price !== product.wholesale_price;
-                const showBulkBadge = customer?.customer_type === 'reseller' && hasBulkPrice;
-
                 return (
                   <motion.div
                     key={`product-${product.id}`}
                     whileHover={{ y: -4 }}
                     className={cn(
-                      "rounded-lg border-2 p-4 transition-all relative",
+                      "rounded-lg border-2 p-3 transition-all relative scale-100 origin-center",
                       isDarkMode ? "border-indigo-700 hover:border-indigo-600 bg-gray-800" : "border-indigo-400 hover:border-indigo-500 bg-white"
                     )}
                   >
-                    {/* Company Badge */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="text-xs font-normal text-gray-500">{product.company_name || 'غير محدد'}</div>
-                      {showBulkBadge && (
-                        <div className="bg-yellow-500 text-white px-2 py-1 rounded text-xs font-normal">
-                          🎉 جملة
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Product Amount */}
-                    <div className="mb-3">
-                      <div className="text-lg font-bold mb-1">{(product.amount || 0).toLocaleString('en-US')} دينار</div>
-                      <div className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                        {imagesCount > 0 ? `${imagesCount} صورة متاحة` : 'بدون صور'}
+                    {/* Company Name and Product Amount in One Line */}
+                    <div className="flex items-center justify-between mb-2 gap-2">
+                      <div className="text-base font-bold text-gray-300">{product.company_name || 'غير محدد'}</div>
+                      <div className={cn("text-base font-bold whitespace-nowrap", isDarkMode ? "text-blue-400" : "text-indigo-600")}> 
+                        {formatNumber(product.amount || 0)}
                       </div>
                     </div>
 
-                    {/* Price Section */}
-                    <div className="space-y-1 mb-4">
-                      <div className={cn("text-lg font-bold", isDarkMode ? "text-blue-400" : "text-indigo-600")}> 
-                        {(displayPrice || 0).toLocaleString('en-US')} د.ع
+                    {/* Price info */}
+                    <div className="mb-2">
+                      <div className="text-xs font-bold text-green-700">
+                        السعر: {formatNumber(displayPrice || 0)} د.ع {imagesCount > 0 ? `• ${imagesCount} صورة` : '• بدون صور'}
                       </div>
-                      {showBulkBadge && (
-                        <div className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                          <del>{((product.wholesale_price || product.price) || 0).toLocaleString('en-US')} د.ع</del>
-                        </div>
-                      )}
                     </div>
 
                     {/* Quantity Selector */}
-                    <div className="mb-4">
-                      <label className="block text-xs font-normal mb-2">الكمية المطلوبة:</label>
+                    <div className="mb-3">
+                      <label className="block text-xs font-normal mb-1">الكمية:</label>
                       <div className="flex gap-2">
                         <input 
                           type="number" 
@@ -13746,14 +15428,14 @@ const TopupStorefront = () => {
                           defaultValue="1"
                           id={`qty-${product.id}`}
                           className={cn(
-                            "flex-1 px-3 py-2 rounded text-sm border-2 transition-all",
+                            "flex-1 px-2 py-1.5 rounded text-xs border-2 transition-all",
                             isDarkMode 
                               ? "bg-gray-700 border-gray-600 text-white focus:border-indigo-500" 
                               : "bg-white border-gray-300 text-gray-900 focus:border-indigo-500"
                           )}
                         />
-                        <span className={cn("text-xs font-normal leading-10 px-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                          {imagesCount > 0 ? `max: ${imagesCount}` : 'no limit'}
+                        <span className={cn("text-xs font-normal leading-6 px-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                          max: {imagesCount}
                         </span>
                       </div>
                     </div>
@@ -13793,7 +15475,7 @@ const TopupStorefront = () => {
                       }}
                       disabled={imagesCount === 0}
                       className={cn(
-                        "w-full py-2 px-3 rounded text-sm font-normal transition-all flex items-center justify-center gap-2",
+                        "w-full py-1.5 px-2 rounded text-xs font-normal transition-all flex items-center justify-center gap-2",
                         imagesCount === 0
                           ? isDarkMode ? "bg-gray-700 text-gray-500 cursor-not-allowed" : "bg-gray-100 text-gray-400 cursor-not-allowed"
                           : isDarkMode ? "bg-green-900 hover:bg-green-800 text-green-200" : "bg-green-100 hover:bg-green-200 text-green-700"
@@ -13801,7 +15483,7 @@ const TopupStorefront = () => {
                       title={imagesCount === 0 ? "لا توجد صور متاحة" : "إضافة للسلة"}
                     >
                       <ShoppingCart size={16} />
-                      <span>إضافة للسلة</span>
+                      <span>أضف</span>
                     </button>
                   </motion.div>
                 );
@@ -13810,7 +15492,7 @@ const TopupStorefront = () => {
 
             {/* Empty State */}
             {filteredProducts.length === 0 && (
-              <div className={cn("text-center py-12", isDarkMode ? "text-gray-400" : "text-gray-500")}>
+              <div className={cn("text-center py-8", isDarkMode ? "text-gray-400" : "text-gray-500")}>
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4 mx-auto"></div>
@@ -13832,9 +15514,10 @@ const TopupStorefront = () => {
           </div>
         </div>
       </div>
+
       {/* Closing flex-1 overflow-y-auto div */}
       </div>
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 border-t" style={isDarkMode ? {borderColor: '#374151'} : {borderColor: '#f3f4f6'}}>
         <StorePageMobileFooter storeSlug={storeId} isTopup={true} />
       </div>
     </div>
