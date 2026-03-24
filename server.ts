@@ -13,10 +13,6 @@ import archiver from "archiver";
 import multer from "multer";
 import sharp from "sharp";
 
-// 🔴 DEBUG: Show what DATABASE_URL is BEFORE dotenv loads
-console.log('\n🔍 [STARTUP] BEFORE dotenv.config():');
-console.log('  process.env.DATABASE_URL:', process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 80) + '...' : '❌ NOT SET');
-
 // Fix: Ensure all admin endpoints use proper ID validation
 console.log("📡 [SERVER] Server module loading...");
 
@@ -34,9 +30,6 @@ if (!process.env.DATABASE_URL) {
 } else {
   console.log("✅ DATABASE_URL already set in environment (Railway), not loading from .env");
 }
-
-console.log('🔍 [STARTUP] AFTER dotenv.config():');
-console.log('  process.env.DATABASE_URL:', process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 80) + '...' : '❌ NOT SET');
 
 console.log("✅ [STARTUP] Environment configuration ready");
 
@@ -128,13 +121,19 @@ const __dirname = path.dirname(__filename);
 
 console.log("📡 [SERVER] Creating database pool...");
 
-const connectionString = process.env.DATABASE_URL;
+let connectionString = process.env.DATABASE_URL;
 
-console.log('🔍 [DEBUG] Connection string being used for pool:');
-console.log('  Value:', connectionString ? connectionString.substring(0, 80) + '...' : '❌ UNDEFINED');
+// 🔥 CRITICAL FALLBACK: If DATABASE_URL is localhost (from .env), use Railway proxy instead
+// This happens when dotenv loads .env instead of .env.production
+if (connectionString && connectionString.includes('localhost')) {
+  const railwayUrl = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway';
+  console.log('🔄 [SERVER] DATABASE_URL contains localhost - OVERRIDING with Railway proxy!');
+  console.log('  Old:', connectionString.substring(0, 60) + '...');
+  console.log('  New:', railwayUrl.substring(0, 60) + '...');
+  connectionString = railwayUrl;
+}
 
-// ✅ DATABASE_URL is guaranteed to exist at this point (validated at startup)
-console.log("✅ [SERVER] Using cloud DATABASE_URL from environment:", connectionString.substring(0, 60) + "...");
+console.log('✅ [SERVER] Using cloud DATABASE_URL from environment:', connectionString.substring(0, 60) + "...");
 
 const pool = new Pool({
   connectionString,
