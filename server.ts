@@ -12,11 +12,11 @@ import admin from "firebase-admin";
 import archiver from "archiver";
 import multer from "multer";
 import sharp from "sharp";
-// Force Railway internal URL if DATABASE_URL is wrong/missing
+// Force Railway URL if DATABASE_URL is wrong/missing
 const _rawUrl = process.env.DATABASE_URL || "";
 if (!_rawUrl || _rawUrl.includes("localhost") || _rawUrl.includes("127.0.0.1") || _rawUrl.includes("multi_ecommerce")) {
-  process.env.DATABASE_URL = "postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway";
-  console.log("[BOOT] DATABASE_URL set to Railway internal URL (was: " + (_rawUrl || "empty") + ")");
+  process.env.DATABASE_URL = "postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway";
+  console.log("[BOOT] DATABASE_URL set to Railway URL (was: " + (_rawUrl || "empty") + ")");
 } else {
   console.log("[BOOT] DATABASE_URL already valid");
 }
@@ -75,23 +75,23 @@ console.log("ًں“، [SERVER] Creating database pool...");
 // ًںڑ€ RAILWAY DATABASE CONNECTION - INTERNAL URL (PRODUCTION)
 // ==============================================================
 // Using internal Railway URL for connection from INSIDE Railway container
-// External proxy (gondola) only works from OUTSIDE Railway
-const RAILWAY_INTERNAL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway';
+// Using external proxy URL - works from inside and outside Railway
+const RAILWAY_URL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway';
 const RAILWAY_EXTERNAL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway';
 
 // Determine correct connection string:
-// ALWAYS override to Railway internal URL if running in production
+// ALWAYS override to Railway URL if running in production
 // or if DATABASE_URL points to localhost (misconfigured Railway dashboard)
 let rawDbUrl = process.env.DATABASE_URL || '';
 
 let connectionString: string;
 
 if (process.env.NODE_ENV === 'production') {
-  // PRODUCTION: Always use Railway internal URL
+  // PRODUCTION: Always use Railway URL
   // This bypasses any incorrect DATABASE_URL variable in Railway dashboard
-  connectionString = RAILWAY_INTERNAL;
-  console.log('ًںڑ€ [DB] PRODUCTION MODE: Using Railway INTERNAL URL');
-  console.log('ًں”— [DB] Host: postgres.railway.internal:5432');
+  connectionString = RAILWAY_URL;
+  console.log('ًںڑ€ [DB] PRODUCTION MODE: Using Railway URL');
+  console.log('ًں”— [DB] Host: gondola.proxy.rlwy.net:42495');
 } else {
   // DEVELOPMENT: Use local DATABASE_URL or external Railway for testing
   connectionString = rawDbUrl || 'postgresql://postgres:123@localhost:5432/multi_ecommerce';

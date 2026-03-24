@@ -1,4 +1,4 @@
-import fs from 'fs';
+﻿import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
@@ -7,13 +7,13 @@ const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const RAILWAY_INTERNAL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway';
+const RAILWAY_URL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway';
 
 export async function initializeDatabase(connectionString: string) {
-  // In production: always use Railway internal URL
+  // In production: always use Railway URL
   if (process.env.NODE_ENV === 'production') {
-    console.log('✅ [DB-INIT] PRODUCTION: Using Railway internal URL');
-    connectionString = RAILWAY_INTERNAL;
+    console.log('✅ [DB-INIT] PRODUCTION: Using Railway URL');
+    connectionString = RAILWAY_URL;
   } else if (process.env.DATABASE_URL) {
     console.log('✅ [DB-INIT] Using DATABASE_URL from environment');
     connectionString = process.env.DATABASE_URL;
