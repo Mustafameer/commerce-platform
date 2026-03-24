@@ -16,19 +16,15 @@ import sharp from "sharp";
 // Fix: Ensure all admin endpoints use proper ID validation
 console.log("📡 [SERVER] Server module loading...");
 
-// 🔥 CRITICAL: In production (Railway), DATABASE_URL will be set by environment
-// Only load .env if DATABASE_URL is not already set
-if (!process.env.DATABASE_URL) {
-  console.log("📝 Loading .env file (DATABASE_URL not in environment)...");
-  // In production, also try .env.production
-  if (process.env.NODE_ENV === 'production') {
-    console.log("📝 Production mode - also loading .env.production");
-    dotenv.config({ path: '.env.production' });
-  }
-  // Always try .env as fallback
+// � PRODUCTION MODE: Railway ONLY - NO LOCAL FALLBACK!
+console.log('\n🚀 [STARTUP] PRODUCTION MODE - Railway PostgreSQL ONLY!');
+console.log('   LOCAL CONNECTIONS DISABLED - This must run on Railway\n');
+
+// Load .env ONLY if explicitly needed for development
+// In production, ALL variables come from Railway environment
+if (!process.env.DATABASE_URL && process.env.NODE_ENV !== 'production') {
+  console.log("📝 [DEV MODE] Loading .env for development...");
   dotenv.config();
-} else {
-  console.log("✅ DATABASE_URL already set in environment (Railway), not loading from .env");
 }
 
 console.log("✅ [STARTUP] Environment configuration ready");
@@ -121,24 +117,22 @@ const __dirname = path.dirname(__filename);
 
 console.log("📡 [SERVER] Creating database pool...");
 
+// 🚀 Railway PostgreSQL ONLY - No local fallback ever
+const RAILWAY_DB_URL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway';
+
 let connectionString = process.env.DATABASE_URL;
 
-console.log('🔍 [DEBUG] Raw connectionString:', connectionString ? connectionString.substring(0, 80) + '...' : '❌ UNDEFINED');
-console.log('🔍 [DEBUG] Contains localhost?', connectionString && connectionString.includes('localhost') ? '✅ YES' : '❌ NO');
-
-// 🔥 CRITICAL FALLBACK: If DATABASE_URL is localhost (from .env), use Railway proxy instead
-// This happens when dotenv loads .env instead of .env.production
-if (connectionString && connectionString.includes('localhost')) {
-  const railwayUrl = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway';
-  console.log('🔄 [SERVER] DATABASE_URL contains localhost - OVERRIDING with Railway proxy!');
-  console.log('  Old:', connectionString.substring(0, 60) + '...');
-  console.log('  New:', railwayUrl.substring(0, 60) + '...');
-  connectionString = railwayUrl;
-} else {
-  console.log('✅ [SERVER] DATABASE_URL already contains Railway URL - no override needed');
+if (!connectionString) {
+  console.log('⚠️  [WARNING] DATABASE_URL not in environment - using hardcoded Railway URL as final fallback');
+  // ❌ NO LOCALHOST - RAILWAY ONLY
+  connectionString = RAILWAY_DB_URL;
+} else if (connectionString.includes('localhost') || connectionString.includes('127.0.0.1')) {
+  console.log('🚨 [CRITICAL ERROR] Attempted to use localhost database!');
+  console.log('   DATABASE_URL:', connectionString);
+  throw new Error('❌ LOCAL DATABASE CONNECTIONS NOT ALLOWED - Railway only! Remove localhost from DATABASE_URL.');
 }
 
-console.log('✅ [SERVER] Using cloud DATABASE_URL from environment:', connectionString.substring(0, 60) + "...");
+console.log('✅ [SERVER] Database Connection: Railway PostgreSQL proxy via tunnel');
 
 const pool = new Pool({
   connectionString,
