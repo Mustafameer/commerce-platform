@@ -1,4 +1,4 @@
-import express from "express";
+﻿import express from "express";
 import cors from "cors";
 import pg from "pg";
 import path from "path";
@@ -13,26 +13,37 @@ import archiver from "archiver";
 import multer from "multer";
 import sharp from "sharp";
 
-// Fix: Ensure all admin endpoints use proper ID validation
-console.log("📡 [SERVER] Server module loading...");
+// IMMEDIATE FIX: Override DATABASE_URL before ANY other code runs
+// If Railway Dashboard has wrong DATABASE_URL (localhost), this corrects it
+// dotenv.config() will NOT override this because we set it first
+const _envDbUrl = process.env.DATABASE_URL || "";
+if (!_envDbUrl || _envDbUrl.includes("localhost") || _envDbUrl.includes("127.0.0.1") || _envDbUrl.includes("multi_ecommerce")) {
+  process.env.DATABASE_URL = "postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway";
+  console.log("[BOOT] DATABASE_URL set to Railway internal URL (was: " + (_envDbUrl || "empty") + ")");
+} else {
+  console.log("[BOOT] DATABASE_URL already valid: " + _envDbUrl.substring(0, 50));
+}
 
-// � PRODUCTION MODE: Railway ONLY - NO LOCAL FALLBACK!
-console.log('\n🚀 [STARTUP] PRODUCTION MODE - Railway PostgreSQL ONLY!');
+// Fix: Ensure all admin endpoints use proper ID validation
+console.log("ًں“، [SERVER] Server module loading...");
+
+// ï؟½ PRODUCTION MODE: Railway ONLY - NO LOCAL FALLBACK!
+console.log('\nًںڑ€ [STARTUP] PRODUCTION MODE - Railway PostgreSQL ONLY!');
 console.log('   LOCAL CONNECTIONS DISABLED - This must run on Railway\n');
 
 // CRITICAL: In production (Railway), variables are set by platform
 // DO NOT override with .env files
 if (process.env.NODE_ENV === 'production') {
-  console.log("✅ [PRODUCTION MODE] Using Railway environment ONLY - loading NO .env files");
+  console.log("âœ… [PRODUCTION MODE] Using Railway environment ONLY - loading NO .env files");
 } else {
-  console.log("📝 [DEVELOPMENT MODE] Loading .env for local development...");
+  console.log("ًں“‌ [DEVELOPMENT MODE] Loading .env for local development...");
   dotenv.config();
 }
 
-console.log("✅ [STARTUP] Environment configuration ready");
+console.log("âœ… [STARTUP] Environment configuration ready");
 
-// 🔴 CRITICAL: Validate DATABASE_URL immediately - MUST be set before any database operations
-console.log('\n🔍 [STARTUP] Validating required environment variables...');
+// ًں”´ CRITICAL: Validate DATABASE_URL immediately - MUST be set before any database operations
+console.log('\nًں”چ [STARTUP] Validating required environment variables...');
 const requiredEnvVars = {
   'DATABASE_URL': 'Cloud PostgreSQL connection string'
 };
@@ -40,31 +51,31 @@ const requiredEnvVars = {
 const missingVars = [];
 for (const [varName, description] of Object.entries(requiredEnvVars)) {
   if (!process.env[varName] || process.env[varName].trim() === '') {
-    missingVars.push(`  ❌ ${varName}: ${description}`);
+    missingVars.push(`  â‌Œ ${varName}: ${description}`);
   } else {
-    console.log(`  ✅ ${varName}: Set (${process.env[varName].substring(0, 40)}...)`);
+    console.log(`  âœ… ${varName}: Set (${process.env[varName].substring(0, 40)}...)`);
   }
 }
 
 if (missingVars.length > 0) {
   console.error('\n' + '='.repeat(60));
-  console.error('🚨 FATAL: Missing required environment variables!');
+  console.error('ًںڑ¨ FATAL: Missing required environment variables!');
   console.error('='.repeat(60));
   console.error('\nMissing:');
   missingVars.forEach(m => console.error(m));
-  console.error('\n📋 Railway Setup Checklist:');
+  console.error('\nًں“‹ Railway Setup Checklist:');
   console.error('  1. Go to https://railway.app/project/YOUR_PROJECT_ID/plugins');
   console.error('  2. Add PostgreSQL plugin (if not already added)');
   console.error('  3. DATABASE_URL will be auto-set by Railway PostgreSQL plugin');
   console.error('  4. Redeploy: git push (if using GitHub)');
-  console.error('\n🔗 References:');
+  console.error('\nًں”— References:');
   console.error('  - Railway PostgreSQL: https://docs.railway.app/plugins/postgresql');
   console.error('  - Environment Variables: https://docs.railway.app/develop/variables');
   console.error('='.repeat(60) + '\n');
   process.exit(1);
 }
 
-console.log('✅ [STARTUP] All required environment variables are set\n');
+console.log('âœ… [STARTUP] All required environment variables are set\n');
 
 // Initialize Firebase Admin SDK
 const serviceAccount = {
@@ -79,28 +90,28 @@ if (serviceAccount.projectId && serviceAccount.privateKey && serviceAccount.clie
       credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
       storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "your-bucket.appspot.com",
     });
-    console.log("✅ Firebase Admin SDK initialized successfully");
+    console.log("âœ… Firebase Admin SDK initialized successfully");
   } catch (err) {
-    console.warn("⚠️ Firebase Admin SDK initialization failed:", err);
+    console.warn("âڑ ï¸ڈ Firebase Admin SDK initialization failed:", err);
   }
 } else {
-  console.warn("⚠️ Firebase credentials not configured - using local file storage");
+  console.warn("âڑ ï¸ڈ Firebase credentials not configured - using local file storage");
 }
 
-console.log("📡 [SERVER] Dotenv loaded");
+console.log("ًں“، [SERVER] Dotenv loaded");
 
 // Log environment variables (at this point DATABASE_URL is guaranteed to be set)
-console.log("📋 Environment Variables:");
-console.log("  DATABASE_URL:", process.env.DATABASE_URL?.substring(0, 50) + "... ✅");
+console.log("ًں“‹ Environment Variables:");
+console.log("  DATABASE_URL:", process.env.DATABASE_URL?.substring(0, 50) + "... âœ…");
 console.log("  PORT:", process.env.PORT || "3000 (default)");
 console.log("  NODE_ENV:", process.env.NODE_ENV || "development (default)");
-console.log("  FIREBASE_PROJECT_ID:", process.env.FIREBASE_PROJECT_ID ? "✓ Set" : "❌ Not set (local uploads only)");
-console.log("  FIREBASE_CLIENT_EMAIL:", process.env.FIREBASE_CLIENT_EMAIL ? "✓ Set" : "❌ Not set");
+console.log("  FIREBASE_PROJECT_ID:", process.env.FIREBASE_PROJECT_ID ? "âœ“ Set" : "â‌Œ Not set (local uploads only)");
+console.log("  FIREBASE_CLIENT_EMAIL:", process.env.FIREBASE_CLIENT_EMAIL ? "âœ“ Set" : "â‌Œ Not set");
 
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 
-console.log("📡 [SERVER] ESM utilities loaded");
+console.log("ًں“، [SERVER] ESM utilities loaded");
 
 // Helper function to slugify store names (handles Arabic characters)
 function createSlug(text: string): string {
@@ -117,10 +128,10 @@ function createSlug(text: string): string {
 }
 const __dirname = path.dirname(__filename);
 
-console.log("📡 [SERVER] Creating database pool...");
+console.log("ًں“، [SERVER] Creating database pool...");
 
 // ==============================================================
-// 🚀 RAILWAY DATABASE CONNECTION - INTERNAL URL (PRODUCTION)
+// ًںڑ€ RAILWAY DATABASE CONNECTION - INTERNAL URL (PRODUCTION)
 // ==============================================================
 // Using internal Railway URL for connection from INSIDE Railway container
 // External proxy (gondola) only works from OUTSIDE Railway
@@ -138,15 +149,15 @@ if (process.env.NODE_ENV === 'production') {
   // PRODUCTION: Always use Railway internal URL
   // This bypasses any incorrect DATABASE_URL variable in Railway dashboard
   connectionString = RAILWAY_INTERNAL;
-  console.log('🚀 [DB] PRODUCTION MODE: Using Railway INTERNAL URL');
-  console.log('🔗 [DB] Host: postgres.railway.internal:5432');
+  console.log('ًںڑ€ [DB] PRODUCTION MODE: Using Railway INTERNAL URL');
+  console.log('ًں”— [DB] Host: postgres.railway.internal:5432');
 } else {
   // DEVELOPMENT: Use local DATABASE_URL or external Railway for testing
   connectionString = rawDbUrl || 'postgresql://postgres:123@localhost:5432/multi_ecommerce';
-  console.log('🛠️  [DB] DEVELOPMENT MODE: Using local connection');
+  console.log('ًں› ï¸ڈ  [DB] DEVELOPMENT MODE: Using local connection');
 }
 
-console.log('✅ [DB] Connection configured for:', process.env.NODE_ENV === 'production' ? 'Railway (internal)' : 'Local dev');
+console.log('âœ… [DB] Connection configured for:', process.env.NODE_ENV === 'production' ? 'Railway (internal)' : 'Local dev');
 
 const pool = new Pool({
   connectionString,
@@ -156,9 +167,9 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-console.log("✅ [SERVER] Database pool created");
+console.log("âœ… [SERVER] Database pool created");
 
-// ✅ LOCAL IMAGE COMPRESSION & STORAGE (NO FIREBASE)
+// âœ… LOCAL IMAGE COMPRESSION & STORAGE (NO FIREBASE)
 async function uploadAndCompressImageLocally(base64Data: string, filename: string): Promise<string> {
   try {
     const uploadsDir = path.join(__dirname, 'public', 'uploads', 'products');
@@ -193,17 +204,17 @@ async function uploadAndCompressImageLocally(base64Data: string, filename: strin
     
     const imageUrl = `/uploads/products/${uniqueFilename}`;
     const sizeKB = (compressedBuffer.length / 1024).toFixed(2);
-    console.log(`✅ Image saved & compressed: ${imageUrl} (${sizeKB}KB)`);
+    console.log(`âœ… Image saved & compressed: ${imageUrl} (${sizeKB}KB)`);
     return imageUrl;
   } catch (error) {
-    console.error('❌ Image compression/upload error:', error);
+    console.error('â‌Œ Image compression/upload error:', error);
     throw error;
   }
 }
 
 // Firebase Image Upload Helper Function (DEPRECATED - kept for backward compatibility)
 async function uploadImageToFirebase(base64Data: string, filename: string): Promise<string> {
-  // 🚫 NO FIREBASE - redirect to local compression
+  // ًںڑ« NO FIREBASE - redirect to local compression
   return uploadAndCompressImageLocally(base64Data, filename);
 }
 
@@ -283,7 +294,7 @@ async function cleanupSoldAuctionImages(): Promise<void> {
             deletedFilesCount += 1;
           }
         } catch (error) {
-          console.warn(`⚠️ Failed to delete sold auction image: ${imageUrl}`, error);
+          console.warn(`âڑ ï¸ڈ Failed to delete sold auction image: ${imageUrl}`, error);
         }
       }
 
@@ -299,9 +310,9 @@ async function cleanupSoldAuctionImages(): Promise<void> {
       cleanedProductsCount += 1;
     }
 
-    console.log(`🧹 Cleaned sold auction images for ${cleanedProductsCount} product(s), deleted ${deletedFilesCount} local file(s)`);
+    console.log(`ًں§¹ Cleaned sold auction images for ${cleanedProductsCount} product(s), deleted ${deletedFilesCount} local file(s)`);
   } catch (error) {
-    console.error('❌ Failed to cleanup sold auction images:', error);
+    console.error('â‌Œ Failed to cleanup sold auction images:', error);
   }
 }
 
@@ -336,22 +347,22 @@ async function syncStoreAuctionSalesTotal(storeId: number): Promise<number> {
 
 async function testConnection() {
   try {
-    console.log("🔄 Testing database connection...");
-    console.log("🔌 Using connection string:", connectionString.substring(0, 50) + "...");
+    console.log("ًں”„ Testing database connection...");
+    console.log("ًں”Œ Using connection string:", connectionString.substring(0, 50) + "...");
     
     const result = await pool.query("SELECT NOW()");
-    console.log("✅ Database connection successful!");
+    console.log("âœ… Database connection successful!");
     console.log("Current time from DB:", result.rows[0]);
     return true;
   } catch (error) {
-    console.error("❌ Database connection failed:", error);
+    console.error("â‌Œ Database connection failed:", error);
     return false;
   }
 }
 
 async function initDb() {
   try {
-    console.log("📋 Checking if core tables exist...");
+    console.log("ًں“‹ Checking if core tables exist...");
     
     // Check if stores table exists
     const storesCheck = await pool.query(`
@@ -362,17 +373,17 @@ async function initDb() {
     `);
     
     if (storesCheck.rows[0].exists) {
-      console.log("✅ Tables already exist - database is initialized");
-      console.log("🔄 Running migrations for any missing columns...");
+      console.log("âœ… Tables already exist - database is initialized");
+      console.log("ًں”„ Running migrations for any missing columns...");
       try {
         await runMigrations();
       } catch (err: any) {
-        console.warn("⚠️  Migration warning (continuing):", err.message?.substring(0, 80));
+        console.warn("âڑ ï¸ڈ  Migration warning (continuing):", err.message?.substring(0, 80));
       }
       return true;
     }
     
-    console.log("📋 Creating tables...");
+    console.log("ًں“‹ Creating tables...");
     
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -579,25 +590,25 @@ async function initDb() {
       );
     `);
     
-    console.log("✅ Tables created successfully!");
+    console.log("âœ… Tables created successfully!");
     
     // Run migrations for existing databases
-    console.log("🔄 Running migrations...");
+    console.log("ًں”„ Running migrations...");
     await runMigrations();
-    console.log("✅ Migrations completed!");
+    console.log("âœ… Migrations completed!");
     
     return true;
   } catch (error) {
-    console.error("❌ Error creating tables:", error);
+    console.error("â‌Œ Error creating tables:", error);
     return false;
   }
 }
 
 async function runMigrations() {
   try {
-    // ✅ CRITICAL FIX: Convert logo_url from VARCHAR(500) to TEXT
+    // âœ… CRITICAL FIX: Convert logo_url from VARCHAR(500) to TEXT
     // This allows storing Base64 encoded logos directly (permanent cloud storage)
-    console.log('\n📸 [MIGRATION] Converting logo_url columns to TEXT for Base64 storage...');
+    console.log('\nًں“¸ [MIGRATION] Converting logo_url columns to TEXT for Base64 storage...');
     
     // Migrate stores.logo_url
     try {
@@ -605,11 +616,11 @@ async function runMigrations() {
         ALTER TABLE stores 
         ALTER COLUMN logo_url TYPE TEXT;
       `);
-      console.log('✅ Migration: stores.logo_url converted to TEXT');
+      console.log('âœ… Migration: stores.logo_url converted to TEXT');
     } catch (e) {
       const msg = (e as any).message || '';
       if (!msg.includes('already exists') && !msg.includes('cannot change data type')) {
-        console.log('ℹ️  stores.logo_url migration:', msg.substring(0, 80));
+        console.log('â„¹ï¸ڈ  stores.logo_url migration:', msg.substring(0, 80));
       }
     }
     
@@ -619,11 +630,11 @@ async function runMigrations() {
         ALTER TABLE app_settings 
         ALTER COLUMN logo_url TYPE TEXT;
       `);
-      console.log('✅ Migration: app_settings.logo_url converted to TEXT');
+      console.log('âœ… Migration: app_settings.logo_url converted to TEXT');
     } catch (e) {
       const msg = (e as any).message || '';
       if (!msg.includes('already exists') && !msg.includes('cannot change data type')) {
-        console.log('ℹ️  app_settings.logo_url migration:', msg.substring(0, 80));
+        console.log('â„¹ï¸ڈ  app_settings.logo_url migration:', msg.substring(0, 80));
       }
     }
 
@@ -633,11 +644,11 @@ async function runMigrations() {
         ALTER TABLE topup_companies 
         ALTER COLUMN logo_url TYPE TEXT;
       `);
-      console.log('✅ Migration: topup_companies.logo_url converted to TEXT');
+      console.log('âœ… Migration: topup_companies.logo_url converted to TEXT');
     } catch (e) {
       const msg = (e as any).message || '';
       if (!msg.includes('already exists') && !msg.includes('cannot change data type')) {
-        console.log('ℹ️  topup_companies.logo_url migration:', msg.substring(0, 80));
+        console.log('â„¹ï¸ڈ  topup_companies.logo_url migration:', msg.substring(0, 80));
       }
     }
     
@@ -646,35 +657,35 @@ async function runMigrations() {
       ALTER TABLE stores
       ADD COLUMN IF NOT EXISTS commission_percentage DECIMAL(5, 2) DEFAULT 0;
     `);
-    console.log("✅ Migration: commission_percentage column ensured in stores");
+    console.log("âœ… Migration: commission_percentage column ensured in stores");
     
     // Add primary_color column to stores if it doesn't exist
     await pool.query(`
       ALTER TABLE stores
       ADD COLUMN IF NOT EXISTS primary_color TEXT DEFAULT '#4F46E5';
     `);
-    console.log("✅ Migration: primary_color column ensured in stores");
+    console.log("âœ… Migration: primary_color column ensured in stores");
     
     // Add percentage_enabled column to stores if it doesn't exist
     await pool.query(`
       ALTER TABLE stores
       ADD COLUMN IF NOT EXISTS percentage_enabled BOOLEAN DEFAULT TRUE;
     `);
-    console.log("✅ Migration: percentage_enabled column ensured in stores");
+    console.log("âœ… Migration: percentage_enabled column ensured in stores");
     
     // Add subscription_paid column to stores if it doesn't exist
     await pool.query(`
       ALTER TABLE stores
       ADD COLUMN IF NOT EXISTS subscription_paid BOOLEAN DEFAULT FALSE;
     `);
-    console.log("✅ Migration: subscription_paid column ensured in stores");
+    console.log("âœ… Migration: subscription_paid column ensured in stores");
 
     // Add store_type column to stores if it doesn't exist
     await pool.query(`
       ALTER TABLE stores
       ADD COLUMN IF NOT EXISTS store_type VARCHAR(50) DEFAULT 'regular';
     `);
-    console.log("✅ Migration: store_type column ensured in stores");
+    console.log("âœ… Migration: store_type column ensured in stores");
 
     // Update owner_name and owner_phone from users table for existing stores
     await pool.query(`
@@ -686,7 +697,7 @@ async function runMigrations() {
       WHERE s.owner_id = u.id
       AND (s.owner_name IS NULL OR s.owner_name = '' OR s.owner_phone IS NULL OR s.owner_phone = '')
     `);
-    console.log("✅ Migration: Updated missing owner_name and owner_phone from users table");
+    console.log("âœ… Migration: Updated missing owner_name and owner_phone from users table");
 
     // Ensure percentage_enabled and commission_percentage have defaults
     await pool.query(`
@@ -698,7 +709,7 @@ async function runMigrations() {
           ELSE commission_percentage
         END
     `);
-    console.log("✅ Migration: Set default percentage_enabled and commission_percentage");
+    console.log("âœ… Migration: Set default percentage_enabled and commission_percentage");
 
     // Fix orders foreign key to support cascading delete
     try {
@@ -706,7 +717,7 @@ async function runMigrations() {
         ALTER TABLE orders
         DROP CONSTRAINT IF EXISTS orders_store_id_fkey
       `);
-      console.log("✅ Migration: Dropped old orders_store_id_fkey constraint");
+      console.log("âœ… Migration: Dropped old orders_store_id_fkey constraint");
       
       await pool.query(`
         ALTER TABLE orders
@@ -715,11 +726,11 @@ async function runMigrations() {
         REFERENCES stores(id) 
         ON DELETE CASCADE
       `);
-      console.log("✅ Migration: Added new orders_store_id_fkey constraint with ON DELETE CASCADE");
+      console.log("âœ… Migration: Added new orders_store_id_fkey constraint with ON DELETE CASCADE");
     } catch (error) {
       const msg = (error as any).message || '';
       if (!msg.includes('already exists')) {
-        console.log("ℹ️  Foreign key migration info:", msg);
+        console.log("â„¹ï¸ڈ  Foreign key migration info:", msg);
       }
     }
 
@@ -728,14 +739,14 @@ async function runMigrations() {
       ALTER TABLE products
       ADD COLUMN IF NOT EXISTS gallery JSONB DEFAULT '[]';
     `);
-    console.log("✅ Migration: gallery column ensured in products");
+    console.log("âœ… Migration: gallery column ensured in products");
 
     // Add store_id column to users if it doesn't exist
     await pool.query(`
       ALTER TABLE users
       ADD COLUMN IF NOT EXISTS store_id INTEGER REFERENCES stores(id) ON DELETE SET NULL;
     `);
-    console.log("✅ Migration: store_id column added to users");
+    console.log("âœ… Migration: store_id column added to users");
 
     // Link users to their stores (for existing merchants without store_id)
     await pool.query(`
@@ -752,21 +763,21 @@ async function runMigrations() {
         WHERE stores.owner_id = users.id
       )
     `);
-    console.log("✅ Migration: Linked existing merchants to their stores");
+    console.log("âœ… Migration: Linked existing merchants to their stores");
 
     // Add topup_codes column to order_items if it doesn't exist
     await pool.query(`
       ALTER TABLE order_items
       ADD COLUMN IF NOT EXISTS topup_codes TEXT[] DEFAULT ARRAY[]::TEXT[];
     `);
-    console.log("✅ Migration: topup_codes column added to order_items");
+    console.log("âœ… Migration: topup_codes column added to order_items");
 
     // Add topup_product_id column to order_items if it doesn't exist
     await pool.query(`
       ALTER TABLE order_items
       ADD COLUMN IF NOT EXISTS topup_product_id INTEGER REFERENCES topup_products(id);
     `);
-    console.log("✅ Migration: topup_product_id column added to order_items");
+    console.log("âœ… Migration: topup_product_id column added to order_items");
 
     // Make product_id nullable for topup orders
     try {
@@ -774,11 +785,11 @@ async function runMigrations() {
         ALTER TABLE order_items
         ALTER COLUMN product_id DROP NOT NULL;
       `);
-      console.log("✅ Migration: product_id column made nullable in order_items");
+      console.log("âœ… Migration: product_id column made nullable in order_items");
     } catch (error) {
       const msg = (error as any).message || '';
       if (!msg.includes('does not exist')) {
-        console.log("ℹ️  product_id nullable migration info:", msg);
+        console.log("â„¹ï¸ڈ  product_id nullable migration info:", msg);
       }
     }
 
@@ -788,10 +799,10 @@ async function runMigrations() {
         ALTER TABLE order_items
         DROP CONSTRAINT IF EXISTS order_items_product_id_fkey;
       `);
-      console.log("✅ Migration: order_items_product_id_fkey constraint dropped");
+      console.log("âœ… Migration: order_items_product_id_fkey constraint dropped");
     } catch (error) {
       const msg = (error as any).message || '';
-      console.log("ℹ️  FK constraint drop info:", msg);
+      console.log("â„¹ï¸ڈ  FK constraint drop info:", msg);
     }
 
     // Make address column nullable for topup orders
@@ -799,101 +810,101 @@ async function runMigrations() {
       ALTER TABLE orders
       ALTER COLUMN address DROP NOT NULL;
     `);
-    console.log("✅ Migration: address column made nullable in orders");
+    console.log("âœ… Migration: address column made nullable in orders");
 
     // Add retail_price and wholesale_price columns for topup products
     await pool.query(`
       ALTER TABLE products
       ADD COLUMN IF NOT EXISTS retail_price INTEGER DEFAULT 0;
     `);
-    console.log("✅ Migration: retail_price column added to products");
+    console.log("âœ… Migration: retail_price column added to products");
 
     await pool.query(`
       ALTER TABLE products
       ADD COLUMN IF NOT EXISTS wholesale_price INTEGER DEFAULT 0;
     `);
-    console.log("✅ Migration: wholesale_price column added to products");
+    console.log("âœ… Migration: wholesale_price column added to products");
 
     // Add topup customer columns to orders for credit system
     await pool.query(`
       ALTER TABLE orders
       ADD COLUMN IF NOT EXISTS customer_type VARCHAR(50);
     `);
-    console.log("✅ Migration: customer_type column added to orders");
+    console.log("âœ… Migration: customer_type column added to orders");
 
     await pool.query(`
       ALTER TABLE orders
       ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT 'paid';
     `);
-    console.log("✅ Migration: payment_status column added to orders");
+    console.log("âœ… Migration: payment_status column added to orders");
 
     // Add password column to customers table for authentication
     await pool.query(`
       ALTER TABLE customers
       ADD COLUMN IF NOT EXISTS password VARCHAR(255);
     `);
-    console.log("✅ Migration: password column added to customers");
+    console.log("âœ… Migration: password column added to customers");
 
     // Add starting_balance column to customers table
     await pool.query(`
       ALTER TABLE customers
       ADD COLUMN IF NOT EXISTS starting_balance DECIMAL(10, 2) DEFAULT 0;
     `);
-    console.log("✅ Migration: starting_balance column added to customers");
+    console.log("âœ… Migration: starting_balance column added to customers");
 
     // Add codes column to topup_products table
     await pool.query(`
       ALTER TABLE topup_products
       ADD COLUMN IF NOT EXISTS codes TEXT[] DEFAULT ARRAY[]::TEXT[];
     `);
-    console.log("✅ Migration: codes column added to topup_products");
+    console.log("âœ… Migration: codes column added to topup_products");
 
     // Add images column to topup_products table
     await pool.query(`
       ALTER TABLE topup_products
       ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT ARRAY[]::TEXT[];
     `);
-    console.log("✅ Migration: images column added to topup_products");
+    console.log("âœ… Migration: images column added to topup_products");
 
     // Add is_active column to topup_products table
     await pool.query(`
       ALTER TABLE topup_products
       ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
     `);
-    console.log("✅ Migration: is_active column added to topup_products");
+    console.log("âœ… Migration: is_active column added to topup_products");
 
     // Add available_codes column to topup_products table
     await pool.query(`
       ALTER TABLE topup_products
       ADD COLUMN IF NOT EXISTS available_codes INTEGER DEFAULT 0;
     `);
-    console.log("✅ Migration: available_codes column added to topup_products");
+    console.log("âœ… Migration: available_codes column added to topup_products");
 
     // Add auction columns to products table
     await pool.query(`
       ALTER TABLE products
       ADD COLUMN IF NOT EXISTS is_auction BOOLEAN DEFAULT FALSE;
     `);
-    console.log("✅ Migration: is_auction column added to products");
+    console.log("âœ… Migration: is_auction column added to products");
 
     await pool.query(`
       ALTER TABLE products
       ADD COLUMN IF NOT EXISTS auction_id INTEGER REFERENCES auctions(id) ON DELETE SET NULL;
     `);
-    console.log("✅ Migration: auction_id column added to products");
+    console.log("âœ… Migration: auction_id column added to products");
 
     // Add customer_name and customer_phone to auction_bids for contact information
     await pool.query(`
       ALTER TABLE auction_bids
       ADD COLUMN IF NOT EXISTS customer_name VARCHAR(255);
     `);
-    console.log("✅ Migration: customer_name column added to auction_bids");
+    console.log("âœ… Migration: customer_name column added to auction_bids");
 
     await pool.query(`
       ALTER TABLE auction_bids
       ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(20);
     `);
-    console.log("✅ Migration: customer_phone column added to auction_bids");
+    console.log("âœ… Migration: customer_phone column added to auction_bids");
 
     // Add and fix auction_bids columns for flexible bidding
     try {
@@ -902,9 +913,9 @@ async function runMigrations() {
         ALTER TABLE auction_bids
         ADD COLUMN IF NOT EXISTS customer_id INTEGER;
       `);
-      console.log("✅ Migration: customer_id column added to auction_bids");
+      console.log("âœ… Migration: customer_id column added to auction_bids");
     } catch (e) {
-      console.log("ℹ️  Migration note: customer_id column:", (e as any).message?.substring(0, 60));
+      console.log("â„¹ï¸ڈ  Migration note: customer_id column:", (e as any).message?.substring(0, 60));
     }
 
     try {
@@ -913,10 +924,10 @@ async function runMigrations() {
         ALTER TABLE auction_bids
         ALTER COLUMN customer_id DROP NOT NULL;
       `);
-      console.log("✅ Migration: customer_id made nullable for anonymous bids");
+      console.log("âœ… Migration: customer_id made nullable for anonymous bids");
     } catch (e) {
       // May fail if column doesn't exist or is already nullable
-      console.log("ℹ️  Migration note:", (e as any).message?.substring(0, 60));
+      console.log("â„¹ï¸ڈ  Migration note:", (e as any).message?.substring(0, 60));
     }
 
     // Drop the old foreign key constraint if it exists
@@ -925,7 +936,7 @@ async function runMigrations() {
         ALTER TABLE auction_bids
         DROP CONSTRAINT IF EXISTS auction_bids_customer_id_fkey;
       `);
-      console.log("✅ Migration: Dropped old auction_bids_customer_id_fkey");
+      console.log("âœ… Migration: Dropped old auction_bids_customer_id_fkey");
     } catch (e) {
       // Ignore
     }
@@ -937,11 +948,11 @@ async function runMigrations() {
         ADD CONSTRAINT auction_bids_customer_id_fkey 
         FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE SET NULL;
       `);
-      console.log("✅ Migration: customer_id foreign key constraint created");
+      console.log("âœ… Migration: customer_id foreign key constraint created");
     } catch (e) {
       const msg = (e as any).message || '';
       if (!msg.includes('already exists')) {
-        console.log("ℹ️  FK constraint note:", msg.substring(0, 60));
+        console.log("â„¹ï¸ڈ  FK constraint note:", msg.substring(0, 60));
       }
     }
 
@@ -950,13 +961,13 @@ async function runMigrations() {
       ALTER TABLE users
       ADD COLUMN IF NOT EXISTS can_access_admin BOOLEAN DEFAULT false;
     `);
-    console.log("✅ Migration: can_access_admin column added to users");
+    console.log("âœ… Migration: can_access_admin column added to users");
 
     // Set admin users to have can_access_admin = true
     await pool.query(`
       UPDATE users SET can_access_admin = true WHERE role = 'admin' AND can_access_admin = false;
     `);
-    console.log("✅ Migration: Admin users updated with can_access_admin = true");
+    console.log("âœ… Migration: Admin users updated with can_access_admin = true");
 
     // Add topup_customer_id column to orders for topup store customers (credit system)
     try {
@@ -964,7 +975,7 @@ async function runMigrations() {
         ALTER TABLE orders
         ADD COLUMN topup_customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL;
       `);
-      console.log("✅ Migration: topup_customer_id column added to orders table");
+      console.log("âœ… Migration: topup_customer_id column added to orders table");
     } catch (e) {
       // Column already exists, ignore
     }
@@ -974,7 +985,7 @@ async function runMigrations() {
       ALTER TABLE stores
       ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
     `);
-    console.log("✅ Migration: is_active column added to stores");
+    console.log("âœ… Migration: is_active column added to stores");
 
     // Add missing auction columns to support the auction system properly
     try {
@@ -982,7 +993,7 @@ async function runMigrations() {
         ALTER TABLE auctions
         ADD COLUMN IF NOT EXISTS auction_date DATE;
       `);
-      console.log("✅ Migration: auction_date column added to auctions");
+      console.log("âœ… Migration: auction_date column added to auctions");
     } catch (e) {
       // Ignore if column already exists
     }
@@ -992,7 +1003,7 @@ async function runMigrations() {
         ALTER TABLE auctions
         ADD COLUMN IF NOT EXISTS auction_start_time TIME;
       `);
-      console.log("✅ Migration: auction_start_time column added to auctions");
+      console.log("âœ… Migration: auction_start_time column added to auctions");
     } catch (e) {
       // Ignore if column already exists
     }
@@ -1002,7 +1013,7 @@ async function runMigrations() {
         ALTER TABLE auctions
         ADD COLUMN IF NOT EXISTS auction_end_time TIME;
       `);
-      console.log("✅ Migration: auction_end_time column added to auctions");
+      console.log("âœ… Migration: auction_end_time column added to auctions");
     } catch (e) {
       // Ignore if column already exists
     }
@@ -1012,7 +1023,7 @@ async function runMigrations() {
         ALTER TABLE auctions
         ADD COLUMN IF NOT EXISTS current_highest_price DECIMAL(10, 2);
       `);
-      console.log("✅ Migration: current_highest_price column added to auctions");
+      console.log("âœ… Migration: current_highest_price column added to auctions");
     } catch (e) {
       // Ignore if column already exists
     }
@@ -1023,7 +1034,7 @@ async function runMigrations() {
         ALTER TABLE auction_bids
         ALTER COLUMN bidder_id DROP NOT NULL;
       `);
-      console.log("✅ Migration: bidder_id made nullable for anonymous bids");
+      console.log("âœ… Migration: bidder_id made nullable for anonymous bids");
     } catch (e) {
       // Ignore if already nullable
     }
@@ -1034,7 +1045,7 @@ async function runMigrations() {
         ALTER TABLE auctions
         ADD COLUMN IF NOT EXISTS current_highest_price DECIMAL(10, 2);
       `);
-      console.log("✅ Migration: current_highest_price column added to auctions");
+      console.log("âœ… Migration: current_highest_price column added to auctions");
     } catch (e) {
       // Column might already exist
     }
@@ -1044,7 +1055,7 @@ async function runMigrations() {
         ALTER TABLE auctions
         ADD COLUMN IF NOT EXISTS winner_id INTEGER;
       `);
-      console.log("✅ Migration: winner_id column added to auctions");
+      console.log("âœ… Migration: winner_id column added to auctions");
     } catch (e) {
       // Column might already exist
     }
@@ -1055,7 +1066,7 @@ async function runMigrations() {
         ALTER TABLE auction_bids
         ADD COLUMN IF NOT EXISTS bid_price DECIMAL(10, 2);
       `);
-      console.log("✅ Migration: bid_price column added to auction_bids");
+      console.log("âœ… Migration: bid_price column added to auction_bids");
     } catch (e) {
       // Ignore if column already exists
     }
@@ -1074,10 +1085,10 @@ async function runMigrations() {
           SET bid_price = bid_amount 
           WHERE bid_price IS NULL AND bid_amount IS NOT NULL
         `);
-        console.log("✅ Migration: Migrated bid_amount to bid_price");
+        console.log("âœ… Migration: Migrated bid_amount to bid_price");
       }
     } catch (e) {
-      console.log("ℹ️  Migration note:", (e as any).message?.substring(0, 60));
+      console.log("â„¹ï¸ڈ  Migration note:", (e as any).message?.substring(0, 60));
     }
 
     // Add bid_price as an alias/view if needed
@@ -1096,63 +1107,63 @@ async function runMigrations() {
       CREATE INDEX IF NOT EXISTS idx_auction_bids_auction_id 
       ON auction_bids(auction_id);
     `);
-    console.log("✅ Index: idx_auction_bids_auction_id created");
+    console.log("âœ… Index: idx_auction_bids_auction_id created");
 
-    console.log("📊 Creating database indexes for better query performance...");
+    console.log("ًں“ٹ Creating database indexes for better query performance...");
     
     // Index for topup_companies queries
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_topup_companies_store_id 
       ON topup_companies(store_id);
     `);
-    console.log("✅ Index: idx_topup_companies_store_id created");
+    console.log("âœ… Index: idx_topup_companies_store_id created");
     
     // Index for topup_product_categories queries
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_topup_product_categories_store_id 
       ON topup_product_categories(store_id);
     `);
-    console.log("✅ Index: idx_topup_product_categories_store_id created");
+    console.log("âœ… Index: idx_topup_product_categories_store_id created");
     
     // Index for topup_products queries
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_topup_products_store_id 
       ON topup_products(store_id);
     `);
-    console.log("✅ Index: idx_topup_products_store_id created");
+    console.log("âœ… Index: idx_topup_products_store_id created");
     
     // Index for topup_products company lookups
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_topup_products_company_id 
       ON topup_products(company_id);
     `);
-    console.log("✅ Index: idx_topup_products_company_id created");
+    console.log("âœ… Index: idx_topup_products_company_id created");
 
     // Indices for statement endpoint performance (customer queries)
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_orders_topup_customer_id 
       ON orders(topup_customer_id) WHERE is_topup_order = true;
     `);
-    console.log("✅ Index: idx_orders_topup_customer_id created");
+    console.log("âœ… Index: idx_orders_topup_customer_id created");
 
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_orders_customer_id_topup 
       ON orders(customer_id) WHERE is_topup_order = true;
     `);
-    console.log("✅ Index: idx_orders_customer_id_topup created");
+    console.log("âœ… Index: idx_orders_customer_id_topup created");
 
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_customer_payments_customer_id 
       ON customer_payments(customer_id);
     `);
-    console.log("✅ Index: idx_customer_payments_customer_id created");
+    console.log("âœ… Index: idx_customer_payments_customer_id created");
 
     // Add updated_at column to stores if it doesn't exist (critical fix for regular stores)
     await pool.query(`
       ALTER TABLE stores
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
     `);
-    console.log("✅ Migration: updated_at column added to stores");
+    console.log("âœ… Migration: updated_at column added to stores");
 
     // Fix: Convert all VARCHAR(n) columns to TEXT to avoid "value too long" errors
     try {
@@ -1168,7 +1179,7 @@ async function runMigrations() {
       `);
       
       if (allVarcharCols.rows.length > 0) {
-        console.log('\n🔍 Found VARCHAR columns in database:');
+        console.log('\nًں”چ Found VARCHAR columns in database:');
         
         // Group by table
         const byTable = {};
@@ -1179,7 +1190,7 @@ async function runMigrations() {
         
         // Convert all VARCHAR columns to TEXT
         for (const [tableName, cols] of Object.entries(byTable)) {
-          console.log(`\n📊 Table: ${tableName}`);
+          console.log(`\nًں“ٹ Table: ${tableName}`);
           for (const col of cols) {
             console.log(`   - ${col.column_name}: ${col.data_type}(${col.character_maximum_length})`);
             try {
@@ -1187,19 +1198,19 @@ async function runMigrations() {
                 ALTER TABLE ${tableName}
                 ALTER COLUMN ${col.column_name} TYPE TEXT
               `);
-              console.log(`   ✅ Converted to TEXT`);
+              console.log(`   âœ… Converted to TEXT`);
             } catch (e) {
               const msg = (e as any).message || '';
               if (!msg.includes('already exists')) {
-                console.log(`   ℹ️  ${msg.substring(0, 60)}`);
+                console.log(`   â„¹ï¸ڈ  ${msg.substring(0, 60)}`);
               }
             }
           }
         }
-        console.log('\n✅ All VARCHAR columns converted to TEXT');
+        console.log('\nâœ… All VARCHAR columns converted to TEXT');
       }
     } catch (e) {
-      console.log("ℹ️  Migration note:", (e as any).message?.substring(0, 60));
+      console.log("â„¹ï¸ڈ  Migration note:", (e as any).message?.substring(0, 60));
     }
 
     // Add missing stock column to products table
@@ -1208,11 +1219,11 @@ async function runMigrations() {
         ALTER TABLE products
         ADD COLUMN IF NOT EXISTS stock INTEGER DEFAULT 0
       `);
-      console.log('✅ Migration: stock column added to products table');
+      console.log('âœ… Migration: stock column added to products table');
     } catch (e) {
       const msg = (e as any).message || '';
       if (!msg.includes('already exists')) {
-        console.log('ℹ️  Stock column migration:', msg.substring(0, 60));
+        console.log('â„¹ï¸ڈ  Stock column migration:', msg.substring(0, 60));
       }
     }
 
@@ -1222,11 +1233,11 @@ async function runMigrations() {
         ALTER TABLE products
         ADD COLUMN IF NOT EXISTS image_url TEXT
       `);
-      console.log('✅ Migration: image_url column added to products table');
+      console.log('âœ… Migration: image_url column added to products table');
     } catch (e) {
       const msg = (e as any).message || '';
       if (!msg.includes('already exists')) {
-        console.log('ℹ️  image_url column migration:', msg.substring(0, 60));
+        console.log('â„¹ï¸ڈ  image_url column migration:', msg.substring(0, 60));
       }
     }
 
@@ -1234,14 +1245,14 @@ async function runMigrations() {
     // Ignore column already exists errors
     const errorMsg = (error as any).message || '';
     if (!errorMsg.includes('already exists') && !errorMsg.includes('already exists as')) {
-      console.error("⚠️  Migration warning:", error);
+      console.error("âڑ ï¸ڈ  Migration warning:", error);
     }
   }
 }
 
 async function seedData() {
   try {
-    console.log("▶️  Initializing seed data...");
+    console.log("â–¶ï¸ڈ  Initializing seed data...");
     
     // Check if admin user already exists
     const adminCheck = await pool.query("SELECT id FROM users WHERE role = $1 LIMIT 1", ['admin']);
@@ -1252,7 +1263,7 @@ async function seedData() {
         "INSERT INTO users (name, phone, email, password, role, is_active) VALUES ($1, $2, $3, $4, $5, $6)",
         ['Admin', 'admin', 'admin@commerce.local', 'password', 'admin', true]
       );
-      console.log("✅ Admin user created: phone: admin, password: password");
+      console.log("âœ… Admin user created: phone: admin, password: password");
     }
 
     // Check if app settings exist
@@ -1262,18 +1273,18 @@ async function seedData() {
         "INSERT INTO app_settings (app_name, logo_url, admin_commission_percentage) VALUES ($1, $2, $3)",
         ['Commerce Platform', 'https://via.placeholder.com/150', 5]
       );
-      console.log("✅ Default app settings created");
+      console.log("âœ… Default app settings created");
     }
 
-    console.log("✅ Seed data initialization complete");
+    console.log("âœ… Seed data initialization complete");
   } catch (error) {
-    console.warn("⚠️  Seed data warning:", (error as any).message);
+    console.warn("âڑ ï¸ڈ  Seed data warning:", (error as any).message);
   }
 }
 
 async function ensureMissingTables() {
   try {
-    console.log('📸 [SERVER] Ensuring topup_product_images table exists...');
+    console.log('ًں“¸ [SERVER] Ensuring topup_product_images table exists...');
     
     // First, check if the table already exists
     const tableCheck = await pool.query(`
@@ -1284,11 +1295,11 @@ async function ensureMissingTables() {
     `);
     
     if (tableCheck.rows[0].exists) {
-      console.log('✅ [SERVER] topup_product_images table already exists');
+      console.log('âœ… [SERVER] topup_product_images table already exists');
       return;
     }
     
-    console.log('🔨 [SERVER] Creating topup_product_images table...');
+    console.log('ًں”¨ [SERVER] Creating topup_product_images table...');
     
     // Verify that referenced tables exist first
     const storesCheck = await pool.query(`
@@ -1306,16 +1317,16 @@ async function ensureMissingTables() {
     `);
     
     if (!storesCheck.rows[0].exists) {
-      console.warn('⚠️  [SERVER] stores table not found - skipping topup_product_images creation');
+      console.warn('âڑ ï¸ڈ  [SERVER] stores table not found - skipping topup_product_images creation');
       return;
     }
     
     if (!productsCheck.rows[0].exists) {
-      console.warn('⚠️  [SERVER] topup_products table not found - skipping topup_product_images creation');
+      console.warn('âڑ ï¸ڈ  [SERVER] topup_products table not found - skipping topup_product_images creation');
       return;
     }
     
-    console.log('✓ [SERVER] Referenced tables exist, creating topup_product_images...');
+    console.log('âœ“ [SERVER] Referenced tables exist, creating topup_product_images...');
     
     // Create topup_product_images table
     await pool.query(`
@@ -1330,20 +1341,20 @@ async function ensureMissingTables() {
       )
     `);
     
-    console.log('✓ [SERVER] Table created');
+    console.log('âœ“ [SERVER] Table created');
     
     // Create indexes
     try {
       await pool.query(`CREATE INDEX IF NOT EXISTS idx_topup_product_images_store_product ON topup_product_images(store_id, product_id)`);
       await pool.query(`CREATE INDEX IF NOT EXISTS idx_topup_product_images_created ON topup_product_images(created_at)`);
-      console.log('✓ [SERVER] Indexes created');
+      console.log('âœ“ [SERVER] Indexes created');
     } catch (idxErr) {
-      console.warn('⚠️  [SERVER] Index creation warning:', (idxErr as any).message.substring(0, 50));
+      console.warn('âڑ ï¸ڈ  [SERVER] Index creation warning:', (idxErr as any).message.substring(0, 50));
     }
     
-    console.log('✅ [SERVER] topup_product_images table ensured successfully');
+    console.log('âœ… [SERVER] topup_product_images table ensured successfully');
   } catch (error) {
-    console.error('❌ [SERVER] Error ensuring tables:', (error as any).message);
+    console.error('â‌Œ [SERVER] Error ensuring tables:', (error as any).message);
     console.error('    Details:', (error as any).detail || (error as any).toString().substring(0, 100));
   }
 }
@@ -1353,31 +1364,31 @@ async function startServer() {
     // Test database connection first
     const connected = await testConnection();
     if (!connected) {
-      console.warn("⚠️  Database connection failed, but starting server anyway (check database settings)");
+      console.warn("âڑ ï¸ڈ  Database connection failed, but starting server anyway (check database settings)");
     } else {
       // Ensure all required tables exist
       await ensureMissingTables();
       
       // Load/restore data from backup if database is empty
-      // 🔥 CRITICAL: Use the same connection string used for pool!
+      // ًں”¥ CRITICAL: Use the same connection string used for pool!
       try {
         await initializeDatabase(connectionString);
       } catch (error: any) {
-        console.warn("⚠️  Database initialization warning (continuing):", error.message?.substring(0, 100));
+        console.warn("âڑ ï¸ڈ  Database initialization warning (continuing):", error.message?.substring(0, 100));
       }
       
       // Only initialize DB if connected
       try {
         await initDb();
       } catch (error: any) {
-        console.warn("⚠️  Table creation warning (continuing):", error.message?.substring(0, 100));
+        console.warn("âڑ ï¸ڈ  Table creation warning (continuing):", error.message?.substring(0, 100));
       }
       
       // Seed default data
       try {
         await seedData();
       } catch (error: any) {
-        console.warn("⚠️  Seed data warning (continuing):", error.message?.substring(0, 100));
+        console.warn("âڑ ï¸ڈ  Seed data warning (continuing):", error.message?.substring(0, 100));
       }
     }
     
@@ -1399,7 +1410,7 @@ async function startServer() {
           // Add other production domains here if needed
         ];
     
-    console.log('🔒 [CORS] Allowed origins:', allowedOrigins);
+    console.log('ًں”’ [CORS] Allowed origins:', allowedOrigins);
     
     app.use(cors({
       origin: allowedOrigins,
@@ -1432,8 +1443,8 @@ async function startServer() {
     const distPath = path.join(__dirname, "dist");
     
     if (isDev) {
-      console.log("🔧 Development mode detected - NODE_ENV is not 'production'");
-      console.log("⚠️  Using Vite dev server for frontend");
+      console.log("ًں”§ Development mode detected - NODE_ENV is not 'production'");
+      console.log("âڑ ï¸ڈ  Using Vite dev server for frontend");
     }
     
     // Health check endpoint
@@ -1444,7 +1455,7 @@ async function startServer() {
     // Test database endpoint
     app.get("/api/test-db", async (req, res) => {
       try {
-        console.log("🧪 Testing database...");
+        console.log("ًں§ھ Testing database...");
         
         const storesCount = await pool.query("SELECT COUNT(*) as count FROM stores");
         const ordersCount = await pool.query("SELECT COUNT(*) as count FROM orders");
@@ -1461,11 +1472,11 @@ async function startServer() {
           stores_sample: storesData.rows
         };
         
-        console.log("✅ Database test successful:", result);
+        console.log("âœ… Database test successful:", result);
         res.json(result);
       } catch (error) {
         const errorMessage = (error as any).message || 'Unknown error';
-        console.error("❌ Database test error:", errorMessage);
+        console.error("â‌Œ Database test error:", errorMessage);
         console.error("Full error:", error);
         
         res.status(500).json({ 
@@ -1479,7 +1490,7 @@ async function startServer() {
     // Diagnostic endpoint for TopupStorefront
     app.get("/api/diagnostic/topup", async (req, res) => {
       try {
-        console.log("🔍 Running TopupStorefront diagnostic...");
+        console.log("ًں”چ Running TopupStorefront diagnostic...");
         
         const store13 = await pool.query("SELECT * FROM stores WHERE id = 13");
         const companies13 = await pool.query("SELECT * FROM topup_companies WHERE store_id = 13");
@@ -1514,7 +1525,7 @@ async function startServer() {
     // Create images table and add sample images (GET for easy browser access)
     app.get("/api/setup/images-table", async (req, res) => {
       try {
-        console.log('📸 Setting up topup product images table (Store 13 only)...');
+        console.log('ًں“¸ Setting up topup product images table (Store 13 only)...');
         
         // Step 1: Create the table if it doesn't exist - ONLY for topup products
         console.log('   Creating topup_product_images table (Store 13 only)...');
@@ -1527,13 +1538,13 @@ async function startServer() {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `);
-        console.log('   ✓ Table created');
+        console.log('   âœ“ Table created');
         
         // Step 2: Create indexes
         console.log('   Creating indexes...');
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_topup_product_images_product_id ON topup_product_images(topup_product_id)`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_topup_product_images_created ON topup_product_images(created_at)`);
-        console.log('   ✓ Indexes created');
+        console.log('   âœ“ Indexes created');
         
         // Step 3: Add sample images for each product in store 13 ONLY
         console.log('   Adding sample images to Store 13 products...');
@@ -1546,10 +1557,10 @@ async function startServer() {
         const products = await pool.query('SELECT id FROM topup_products WHERE store_id = 13 ORDER BY id');
         
         if (products.rows.length === 0) {
-          console.log('   ⚠️  No products found in store 13');
+          console.log('   âڑ ï¸ڈ  No products found in store 13');
           return res.json({
             success: true,
-            message: '✅ Images table ready (no products in store 13)',
+            message: 'âœ… Images table ready (no products in store 13)',
             table_created: true,
             total_images: 0,
             products_updated: 0,
@@ -1575,23 +1586,23 @@ async function startServer() {
           }
         }
         
-        console.log(`   ✓ Added ${insertedCount} images for ${products.rows.length} products`);
+        console.log(`   âœ“ Added ${insertedCount} images for ${products.rows.length} products`);
         
         // Step 4: Return status
         const imageCount = await pool.query('SELECT COUNT(*) as count FROM topup_product_images');
         
         res.json({
           success: true,
-          message: '✅ Topup product images table setup complete',
+          message: 'âœ… Topup product images table setup complete',
           table_created: true,
           total_images: imageCount.rows[0].count,
           products_updated: products.rows.length,
           store: 13,
-          note: 'جدول مخصص فقط لصور منتجات متجر الشحن - Store 13'
+          note: 'ط¬ط¯ظˆظ„ ظ…ط®طµطµ ظپظ‚ط· ظ„طµظˆط± ظ…ظ†طھط¬ط§طھ ظ…طھط¬ط± ط§ظ„ط´ط­ظ† - Store 13'
         });
         
       } catch (error) {
-        console.error('❌ Error setting up images table:', (error as any).message);
+        console.error('â‌Œ Error setting up images table:', (error as any).message);
         res.status(500).json({
           success: false,
           error: (error as any).message
@@ -1602,7 +1613,7 @@ async function startServer() {
     // Reset seed data endpoint
     app.post("/api/reset-seed", async (req, res) => {
       try {
-        console.log("🔄 Resetting seed data...");
+        console.log("ًں”„ Resetting seed data...");
         await seedData();
         res.json({ success: true, message: "Seed data reset successfully" });
       } catch (error) {
@@ -1613,7 +1624,7 @@ async function startServer() {
     // Clear all data from database
     app.post("/api/clear-all", async (req, res) => {
       try {
-        console.log("🗑️  Clearing all data from database...");
+        console.log("ًں—‘ï¸ڈ  Clearing all data from database...");
         
         const client = await pool.connect();
         try {
@@ -1652,16 +1663,16 @@ async function startServer() {
 
           res.json({
             success: true,
-            message: "جميع البيانات تم حذفها بنجاح!",
+            message: "ط¬ظ…ظٹط¹ ط§ظ„ط¨ظٹط§ظ†ط§طھ طھظ… ط­ط°ظپظ‡ط§ ط¨ظ†ط¬ط§ط­!",
             clearCache: true,
             redirect: "/",
           });
-          console.log("✅ جميع البيانات تم حذفها بنجاح!");
+          console.log("âœ… ط¬ظ…ظٹط¹ ط§ظ„ط¨ظٹط§ظ†ط§طھ طھظ… ط­ط°ظپظ‡ط§ ط¨ظ†ط¬ط§ط­!");
         } finally {
           await client.release();
         }
       } catch (error) {
-        console.error("❌ خطأ في حذف البيانات:", error);
+        console.error("â‌Œ ط®ط·ط£ ظپظٹ ط­ط°ظپ ط§ظ„ط¨ظٹط§ظ†ط§طھ:", error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -1673,7 +1684,7 @@ async function startServer() {
         const limitNum = Math.min(parseInt(limit as string) || 50, 500);
         const offsetNum = Math.max(0, parseInt(offset as string) || 0);
         
-        console.log('🏪 GET /api/stores called:', { limit: limitNum, offset: offsetNum, includeInactive });
+        console.log('ًںڈھ GET /api/stores called:', { limit: limitNum, offset: offsetNum, includeInactive });
         
         let query = `
           SELECT id, store_name, slug, logo_url, primary_color, is_active, store_type, status, owner_name, owner_phone, category as description
@@ -1690,16 +1701,16 @@ async function startServer() {
           LIMIT $1 OFFSET $2
         `;
         
-        console.log('🔍 SQL Query:', query.substring(0, 200) + '...');
+        console.log('ًں”چ SQL Query:', query.substring(0, 200) + '...');
         
         const result = await pool.query(query, [limitNum, offsetNum]);
         
-        console.log('✅ Stores fetched:', { count: result.rows.length, stores: result.rows.map((s: any) => ({ id: s.id, name: s.store_name })) });
+        console.log('âœ… Stores fetched:', { count: result.rows.length, stores: result.rows.map((s: any) => ({ id: s.id, name: s.store_name })) });
         
         res.set('Cache-Control', 'public, max-age=60'); // 1 minute
         res.json(result.rows);
       } catch (error) {
-        console.error('❌ Error fetching stores:', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : '' });
+        console.error('â‌Œ Error fetching stores:', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : '' });
         res.status(500).json({ error: (error as any).message || 'Failed to fetch stores' });
       }
     });
@@ -1711,7 +1722,7 @@ async function startServer() {
         const limitNum = Math.min(parseInt(limit as string) || 100, 1000);
         const offsetNum = Math.max(0, parseInt(offset as string) || 0);
         
-        console.log('📍 /api/admin/stores called - limit:', limitNum, 'offset:', offsetNum);
+        console.log('ًں“چ /api/admin/stores called - limit:', limitNum, 'offset:', offsetNum);
         
         const result = await pool.query(`
           SELECT id, store_name, slug, logo_url, primary_color, is_active, store_type, status, owner_name, owner_phone, owner_id, percentage_enabled, subscription_paid, commission_percentage
@@ -1727,14 +1738,14 @@ async function startServer() {
           LIMIT $1 OFFSET $2
         `, [limitNum, offsetNum]);
         
-        console.log('✅ Query result:', result.rows.length, 'stores found');
+        console.log('âœ… Query result:', result.rows.length, 'stores found');
         result.rows.forEach(s => {
           console.log(`   - ID:${s.id} | ${s.store_name} | Status:${s.status} | Active:${s.is_active}`);
         });
         
         res.json(result.rows);
       } catch (error) {
-        console.error("❌ Admin stores error:", error);
+        console.error("â‌Œ Admin stores error:", error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -1757,7 +1768,7 @@ async function startServer() {
         const store = result.rows[0];
         res.json({
           ...store,
-          owner_name: store.owner_name || store.owner_name_from_user || 'غير معروف',
+          owner_name: store.owner_name || store.owner_name_from_user || 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ',
           owner_phone: store.owner_phone || store.owner_phone_from_user || ''
         });
       } catch (error) {
@@ -1770,7 +1781,7 @@ async function startServer() {
       try {
         const { slug } = req.params;
         const startTime = Date.now();
-        console.log(`📍 [STORE API] Request for slug: "${slug}" at ${startTime}`);
+        console.log(`ًں“چ [STORE API] Request for slug: "${slug}" at ${startTime}`);
         
         // Cache for 5 minutes to reduce database load
         res.set('Cache-Control', 'private, max-age=300');
@@ -1781,16 +1792,16 @@ async function startServer() {
         let result;
         if (isNumericId) {
           // Search by ID - extremely simple and fast
-          console.log(`  ⏱️  Querying by ID: ${parseInt(slug)}`);
+          console.log(`  âڈ±ï¸ڈ  Querying by ID: ${parseInt(slug)}`);
           result = await pool.query(`SELECT * FROM stores WHERE id = $1 LIMIT 1`, [parseInt(slug)]);
         } else {
           // Search by slug - use index efficiently
-          console.log(`  ⏱️  Querying by slug: "${slug}"`);
+          console.log(`  âڈ±ï¸ڈ  Querying by slug: "${slug}"`);
           result = await pool.query(`SELECT * FROM stores WHERE slug = $1 LIMIT 1`, [slug]);
         }
         
         const queryTime = Date.now() - startTime;
-        console.log(`  ✅ Query completed in ${queryTime}ms, rows: ${result.rows.length}`);
+        console.log(`  âœ… Query completed in ${queryTime}ms, rows: ${result.rows.length}`);
         
         if (result.rows.length === 0) {
           return res.status(404).json({ error: 'Store not found' });
@@ -1798,7 +1809,7 @@ async function startServer() {
         
         const store = result.rows[0];
         const totalTime = Date.now() - startTime;
-        console.log(`  ✅ Total time: ${totalTime}ms`);
+        console.log(`  âœ… Total time: ${totalTime}ms`);
         res.json(store);
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
@@ -1810,12 +1821,12 @@ async function startServer() {
       try {
         const { store_name, owner_name, owner_phone, password } = req.body;
         
-        console.log('📝 Store creation request:', { store_name, owner_name, owner_phone });
+        console.log('ًں“‌ Store creation request:', { store_name, owner_name, owner_phone });
         
         // Validate required fields
         if (!store_name || !owner_name || !owner_phone) {
-          console.error('❌ Missing required fields');
-          return res.status(400).json({ error: 'اسم المتجر واسم المالك ورقم الهاتف مطلوبة' });
+          console.error('â‌Œ Missing required fields');
+          return res.status(400).json({ error: 'ط§ط³ظ… ط§ظ„ظ…طھط¬ط± ظˆط§ط³ظ… ط§ظ„ظ…ط§ظ„ظƒ ظˆط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ظ…ط·ظ„ظˆط¨ط©' });
         }
         
         // 1. Check if user exists with this phone
@@ -1824,7 +1835,7 @@ async function startServer() {
         
         if (userCheck.rows.length > 0) {
           userId = userCheck.rows[0].id;
-          console.log('✅ User exists:', userId);
+          console.log('âœ… User exists:', userId);
           // Update user name if different
           await pool.query(
             "UPDATE users SET name = $1, role = $2 WHERE id = $3",
@@ -1837,7 +1848,7 @@ async function startServer() {
             [owner_name, owner_phone, password || 'password123', 'merchant', null]
           );
           userId = userResult.rows[0].id;
-          console.log('✅ New user created:', userId);
+          console.log('âœ… New user created:', userId);
         }
         
         // 3. Create store slug
@@ -1856,7 +1867,7 @@ async function startServer() {
         );
         
         const storeId = result.rows[0].id;
-        console.log('✅ Store created with ID:', storeId, 'Status:', result.rows[0].status);
+        console.log('âœ… Store created with ID:', storeId, 'Status:', result.rows[0].status);
         
         // 5. Link user to store
         await pool.query(
@@ -1864,15 +1875,15 @@ async function startServer() {
           [storeId, userId]
         );
         
-        console.log('✅ Store creation complete. Returning:', { storeId, status: result.rows[0].status });
+        console.log('âœ… Store creation complete. Returning:', { storeId, status: result.rows[0].status });
         
         res.json({
           store: result.rows[0],
           user: { id: userId, name: owner_name, phone: owner_phone, role: 'merchant' },
-          message: 'تم إنشاء المتجر والمستخدم بنجاح'
+          message: 'طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظ…طھط¬ط± ظˆط§ظ„ظ…ط³طھط®ط¯ظ… ط¨ظ†ط¬ط§ط­'
         });
       } catch (error) {
-        console.error('❌ Store creation error:', (error as any).message);
+        console.error('â‌Œ Store creation error:', (error as any).message);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -1893,7 +1904,7 @@ async function startServer() {
           
           // Verify password
           if (user.password !== password) {
-            return res.status(401).json({ error: "❌ رقم الهاتف أو رمز الدخول غير صحيحة" });
+            return res.status(401).json({ error: "â‌Œ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ط£ظˆ ط±ظ…ط² ط§ظ„ط¯ط®ظˆظ„ ط؛ظٹط± طµط­ظٹط­ط©" });
           }
           
           // Get store info if user is a merchant
@@ -1939,7 +1950,7 @@ async function startServer() {
           
           // Verify password
           if (!customer.password || customer.password !== password) {
-            return res.status(401).json({ error: "❌ رقم الهاتف أو رمز الدخول غير صحيحة" });
+            return res.status(401).json({ error: "â‌Œ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ط£ظˆ ط±ظ…ط² ط§ظ„ط¯ط®ظˆظ„ ط؛ظٹط± طµط­ظٹط­ط©" });
           }
           
           // Get store info
@@ -1955,13 +1966,13 @@ async function startServer() {
             phone: customer.phone,
             email: customer.email,
             role: 'customer',
-            customer_type: customer.customer_type, // إرجاع نوع العميل
+            customer_type: customer.customer_type, // ط¥ط±ط¬ط§ط¹ ظ†ظˆط¹ ط§ظ„ط¹ظ…ظٹظ„
             store_id: customer.store_id,
             store_type: store_type
           });
         }
         
-        return res.status(401).json({ error: "❌ رقم الهاتف أو رمز الدخول غير صحيحة" });
+        return res.status(401).json({ error: "â‌Œ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ط£ظˆ ط±ظ…ط² ط§ظ„ط¯ط®ظˆظ„ ط؛ظٹط± طµط­ظٹط­ط©" });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
       }
@@ -2027,7 +2038,7 @@ async function startServer() {
         
         // Validate required fields (email is optional)
         if (!name || !phone || !password || !store_name) {
-          return res.status(400).json({ error: 'الاسم والهاتف وكلمة المرور واسم المتجر مطلوبة' });
+          return res.status(400).json({ error: 'ط§ظ„ط§ط³ظ… ظˆط§ظ„ظ‡ط§طھظپ ظˆظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظˆط§ط³ظ… ط§ظ„ظ…طھط¬ط± ظ…ط·ظ„ظˆط¨ط©' });
         }
         
         let userId;
@@ -2053,11 +2064,11 @@ async function startServer() {
         
         const storeResult = await pool.query(
           "INSERT INTO stores (owner_id, store_name, owner_name, owner_phone, slug, category, store_type, is_active, status) VALUES ($1, $2, $3, $4, $5, $6, $7, false, 'pending') RETURNING *",
-          [userId, store_name, name, phone, storeSlug, category || 'عام', storeType || 'regular']
+          [userId, store_name, name, phone, storeSlug, category || 'ط¹ط§ظ…', storeType || 'regular']
         );
 
         const storeId = storeResult.rows[0].id;
-        // ❌ DISABLED: Don't auto-seed companies, merchants manage them via API
+        // â‌Œ DISABLED: Don't auto-seed companies, merchants manage them via API
         /*
         // If it's a topup store, seed default providers and categories (not products - let merchant add them)
         if (storeType === 'topup') {
@@ -2109,13 +2120,13 @@ async function startServer() {
           );
           
           if (result.rows.length > 0) {
-            console.log(`✅ Loaded store settings for storeId: ${storeId}`);
+            console.log(`âœ… Loaded store settings for storeId: ${storeId}`);
             return res.json(result.rows[0]);
           } else {
             // Store not found - return error instead of falling back to admin
-            console.warn(`⚠️  Store not found for storeId: ${storeId}`);
+            console.warn(`âڑ ï¸ڈ  Store not found for storeId: ${storeId}`);
             return res.status(404).json({ 
-              error: "المتجر غير موجود أو لم تتم إضافته بعد",
+              error: "ط§ظ„ظ…طھط¬ط± ط؛ظٹط± ظ…ظˆط¬ظˆط¯ ط£ظˆ ظ„ظ… طھطھظ… ط¥ط¶ط§ظپطھظ‡ ط¨ط¹ط¯",
               app_name: "",
               logo_url: "",
               primary_color: "#4F46E5"
@@ -2125,7 +2136,7 @@ async function startServer() {
         
         // Get admin settings from app_settings table (when role=admin or no storeId)
         const result = await pool.query("SELECT * FROM app_settings LIMIT 1");
-        console.log(`✅ Loaded admin settings`);
+        console.log(`âœ… Loaded admin settings`);
         res.json(result.rows.length > 0 ? result.rows[0] : {
           app_name: "",
           logo_url: "",
@@ -2145,7 +2156,7 @@ async function startServer() {
         const { store_id, app_name, logo_url, primary_color, commission_percentage, admin_commission_percentage } = req.body;
         
         const reqBodySize = JSON.stringify(req.body).length;
-        console.log("📥 POST /api/settings received:", { 
+        console.log("ًں“¥ POST /api/settings received:", { 
           store_id, 
           has_app_name: app_name !== undefined,
           has_logo_url: logo_url !== undefined,
@@ -2156,12 +2167,12 @@ async function startServer() {
           request_body_size: `${(reqBodySize / 1024).toFixed(2)} KB`
         });
         
-        // ✅ LOGO FIX: Accept Base64 and compress if needed
+        // âœ… LOGO FIX: Accept Base64 and compress if needed
         let processedLogoUrl = logo_url;
         
         if (logo_url && logo_url.startsWith('data:image')) {
           try {
-            console.log('🎨 Processing logo for storage...');
+            console.log('ًںژ¨ Processing logo for storage...');
             
             // Extract base64 data
             const base64Data = logo_url.replace(/^data:image\/[^;]+;base64,/, '');
@@ -2178,7 +2189,7 @@ async function startServer() {
                 .toBuffer();
               
               const compressedSize = (compressedBuffer.length / 1024).toFixed(2);
-              console.log(`  ✅ Compressed: ${compressedSize} KB`);
+              console.log(`  âœ… Compressed: ${compressedSize} KB`);
               
               // Convert back to base64
               processedLogoUrl = 'data:image/png;base64,' + compressedBuffer.toString('base64');
@@ -2186,33 +2197,33 @@ async function startServer() {
             
             // Validate final size (max 1.5MB for database)
             if (processedLogoUrl.length > 1.5 * 1024 * 1024) {
-              console.error("❌ Logo still too large after compression");
+              console.error("â‌Œ Logo still too large after compression");
               return res.status(400).json({ 
-                message: "الصورة كبيرة جداً", 
+                message: "ط§ظ„طµظˆط±ط© ظƒط¨ظٹط±ط© ط¬ط¯ط§ظ‹", 
                 success: false, 
-                error: "حجم الشعار يجب ألا يتجاوز 1.5 MB حتى بعد الضغط" 
+                error: "ط­ط¬ظ… ط§ظ„ط´ط¹ط§ط± ظٹط¬ط¨ ط£ظ„ط§ ظٹطھط¬ط§ظˆط² 1.5 MB ط­طھظ‰ ط¨ط¹ط¯ ط§ظ„ط¶ط؛ط·" 
               });
             }
             
-            console.log(`✅ Logo ready for database storage: ${(processedLogoUrl.length / 1024).toFixed(2)} KB`);
+            console.log(`âœ… Logo ready for database storage: ${(processedLogoUrl.length / 1024).toFixed(2)} KB`);
           } catch (compressErr) {
-            console.warn('⚠️ Logo compression warning (storing original):', (compressErr as any).message);
+            console.warn('âڑ ï¸ڈ Logo compression warning (storing original):', (compressErr as any).message);
             // Keep original if compression fails
           }
         } else if (logo_url && logo_url.length > 2 * 1024 * 1024) {
           // If it's not base64 but still huge, reject
-          console.error("❌ Logo URL too large:", (logo_url.length / 1024 / 1024).toFixed(2) + " MB");
+          console.error("â‌Œ Logo URL too large:", (logo_url.length / 1024 / 1024).toFixed(2) + " MB");
           return res.status(400).json({ 
-            message: "الصورة كبيرة جداً", 
+            message: "ط§ظ„طµظˆط±ط© ظƒط¨ظٹط±ط© ط¬ط¯ط§ظ‹", 
             success: false, 
-            error: "حجم الصورة يجب ألا يتجاوز 2 MB" 
+            error: "ط­ط¬ظ… ط§ظ„طµظˆط±ط© ظٹط¬ط¨ ط£ظ„ط§ ظٹطھط¬ط§ظˆط² 2 MB" 
           });
         }
         
         // If store_id is provided, update store settings
         if (store_id) {
           const storeIdInt = parseInt(store_id);
-          console.log(`🔄 Updating store settings for store_id: ${storeIdInt}`);
+          console.log(`ًں”„ Updating store settings for store_id: ${storeIdInt}`);
           let updateQuery = "UPDATE stores SET ";
           let updates: any[] = [];
           let paramIndex = 1;
@@ -2238,7 +2249,7 @@ async function startServer() {
           
           // If updates.length === 0, it means no valid fields were provided
           if (updates.length === 0) {
-            console.log("✅ No updates provided, returning success");
+            console.log("âœ… No updates provided, returning success");
             return res.status(200).json({ message: "No updates", success: true });
           }
           
@@ -2247,15 +2258,15 @@ async function startServer() {
           updateQuery += updates.join(", ") + ` WHERE id = $${paramIndex} RETURNING *`;
           values.push(storeIdInt);
           
-          console.log("🔍 Update query columns:", updates);
-          console.log("📊 Update values:", values.map((v, i) => i === 1 && v && v.startsWith('data:') ? `[base64 logo ${(v.length/1024).toFixed(1)}KB]` : v));
-          console.log("📝 Final SQL Query:", updateQuery);
+          console.log("ًں”چ Update query columns:", updates);
+          console.log("ًں“ٹ Update values:", values.map((v, i) => i === 1 && v && v.startsWith('data:') ? `[base64 logo ${(v.length/1024).toFixed(1)}KB]` : v));
+          console.log("ًں“‌ Final SQL Query:", updateQuery);
           
           let result;
           try {
             result = await pool.query(updateQuery, values);
           } catch (dbError) {
-            console.error("❌ Database Error:", dbError);
+            console.error("â‌Œ Database Error:", dbError);
             return res.status(500).json({ 
               message: "Database error", 
               success: false, 
@@ -2264,24 +2275,24 @@ async function startServer() {
           }
           
           if (result.rows.length === 0) {
-            console.warn(`⚠️  Store with id ${storeIdInt} not found for update`);
-            return res.status(400).json({ message: "Store not found", success: false, error: "المتجر غير موجود" });
+            console.warn(`âڑ ï¸ڈ  Store with id ${storeIdInt} not found for update`);
+            return res.status(400).json({ message: "Store not found", success: false, error: "ط§ظ„ظ…طھط¬ط± ط؛ظٹط± ظ…ظˆط¬ظˆط¯" });
           }
           
-          console.log(`✅ Store settings updated for store_id: ${storeIdInt}`, result.rows[0]);
+          console.log(`âœ… Store settings updated for store_id: ${storeIdInt}`, result.rows[0]);
           const successResponse = { 
             message: "Store settings updated", 
             success: true, 
             store: result.rows[0],
             timestamp: new Date().toISOString()
           };
-          console.log("🔵 Sending response:", JSON.stringify(successResponse, null, 2));
+          console.log("ًں”µ Sending response:", JSON.stringify(successResponse, null, 2));
           res.setHeader('Content-Type', 'application/json');
           return res.status(200).json(successResponse);
         }
         
         // Otherwise update admin settings
-        // ✅ LOGO FIX: Use processed logo here too
+        // âœ… LOGO FIX: Use processed logo here too
         
         // Check if settings exist
         const existingCheck = await pool.query("SELECT id FROM app_settings LIMIT 1");
@@ -2379,7 +2390,7 @@ async function startServer() {
                    WHERE o.store_id = $1 
                    ORDER BY o.created_at DESC`;
           params = [parseInt(storeId)];
-          console.log(`📋 Fetching orders for store: ${storeId}`);
+          console.log(`ًں“‹ Fetching orders for store: ${storeId}`);
         } else {
           // When no storeId filter, get all orders with store info
           query = `SELECT 
@@ -2406,11 +2417,11 @@ async function startServer() {
         }
         
         const result = await pool.query(query, params);
-        console.log(`📋 Found ${result.rows.length} orders with store info`);
+        console.log(`ًں“‹ Found ${result.rows.length} orders with store info`);
         
         // Log first order for debugging
         if (result.rows.length > 0) {
-          console.log(`📋 Sample order:`, JSON.stringify(result.rows[0]));
+          console.log(`ًں“‹ Sample order:`, JSON.stringify(result.rows[0]));
         }
         
         res.json(result.rows);
@@ -2438,7 +2449,7 @@ async function startServer() {
         const order = orderResult.rows[0];
         
         // For topup orders: update current_debt ONLY
-        // ⭐ starting_balance (الديون السابقة) must remain IMMUTABLE
+        // â­گ starting_balance (ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط³ط§ط¨ظ‚ط©) must remain IMMUTABLE
         if (is_topup && topupCustomerId) {
           await pool.query(
             `UPDATE customers SET 
@@ -2476,7 +2487,7 @@ async function startServer() {
                 );
                 
                 extractedCodes.push(...topupCodes);
-                console.log(`🔑 [TOPUP] Extracted ${item.quantity} codes from product ${item.product_id}, ${remainingCodes.length} remaining`);
+                console.log(`ًں”‘ [TOPUP] Extracted ${item.quantity} codes from product ${item.product_id}, ${remainingCodes.length} remaining`);
               }
             }
             
@@ -2499,7 +2510,7 @@ async function startServer() {
                 [item.quantity, item.product_id]
               );
               
-              console.log(`📦 [ORDER] Updated product ${item.product_id}: -${item.quantity} units, remaining stock: ${stockUpdate.rows[0]?.stock || 0}`);
+              console.log(`ًں“¦ [ORDER] Updated product ${item.product_id}: -${item.quantity} units, remaining stock: ${stockUpdate.rows[0]?.stock || 0}`);
             }
           }
         }
@@ -2544,7 +2555,7 @@ async function startServer() {
     const deleteOrderAndRestoreState = async (orderId: number) => {
       const client = await pool.connect();
       try {
-        console.log(`🗑️  [RETURN ORDER] Starting deletion for order ID: ${orderId}`);
+        console.log(`ًں—‘ï¸ڈ  [RETURN ORDER] Starting deletion for order ID: ${orderId}`);
         
         await client.query('BEGIN');
         
@@ -2553,7 +2564,7 @@ async function startServer() {
           "SELECT product_id, quantity FROM order_items WHERE order_id = $1",
           [orderId]
         );
-        console.log(`🗑️  [RETURN ORDER] Found ${itemsResult.rowCount} order items to restore stock`);
+        console.log(`ًں—‘ï¸ڈ  [RETURN ORDER] Found ${itemsResult.rowCount} order items to restore stock`);
         
         // Restore stock for each product
         for (const item of itemsResult.rows) {
@@ -2561,7 +2572,7 @@ async function startServer() {
             "UPDATE products SET stock = stock + $1 WHERE id = $2 RETURNING stock",
             [item.quantity, item.product_id]
           );
-          console.log(`📦 [RETURN ORDER] Restored product ${item.product_id}: +${item.quantity} units, new stock: ${stockUpdate.rows[0]?.stock || 0}`);
+          console.log(`ًں“¦ [RETURN ORDER] Restored product ${item.product_id}: +${item.quantity} units, new stock: ${stockUpdate.rows[0]?.stock || 0}`);
         }
         
         // Delete order items
@@ -2569,7 +2580,7 @@ async function startServer() {
           "DELETE FROM order_items WHERE order_id = $1",
           [orderId]
         );
-        console.log(`🗑️  [RETURN ORDER] Deleted ${deleteItemsResult.rowCount} order items`);
+        console.log(`ًں—‘ï¸ڈ  [RETURN ORDER] Deleted ${deleteItemsResult.rowCount} order items`);
         
         // Get the order details before deletion to update customer debt
         const orderResult = await client.query(
@@ -2579,7 +2590,7 @@ async function startServer() {
 
         if (orderResult.rows.length === 0) {
           await client.query('ROLLBACK');
-          console.log(`❌ [RETURN ORDER] Order not found: ${orderId}`);
+          console.log(`â‌Œ [RETURN ORDER] Order not found: ${orderId}`);
           return res.status(404).json({ error: "Order not found" });
         }
 
@@ -2592,7 +2603,7 @@ async function startServer() {
             `UPDATE customers SET current_debt = GREATEST(0, current_debt - $1) WHERE id = $2 RETURNING current_debt`,
             [orderAmount, order.customer_id]
           );
-          console.log(`💳 [RETURN ORDER] Customer ${order.customer_id} debt reduced by ${orderAmount}. New debt: ${debtUpdateRes.rows[0]?.current_debt || 0}`);
+          console.log(`ًں’³ [RETURN ORDER] Customer ${order.customer_id} debt reduced by ${orderAmount}. New debt: ${debtUpdateRes.rows[0]?.current_debt || 0}`);
         }
 
         // Then delete the order
@@ -2601,14 +2612,14 @@ async function startServer() {
           [orderId]
         );
         
-        console.log(`🗑️  [RETURN ORDER] Delete result rows: ${result.rowCount}`);
+        console.log(`ًں—‘ï¸ڈ  [RETURN ORDER] Delete result rows: ${result.rowCount}`);
         
         await client.query('COMMIT');
-        console.log(`✅ [RETURN ORDER] Successfully deleted order: ${orderId}`);
-        return { message: "تم حذف الطلب بنجاح", success: true, deleted: result.rows[0] };
+        console.log(`âœ… [RETURN ORDER] Successfully deleted order: ${orderId}`);
+        return { message: "طھظ… ط­ط°ظپ ط§ظ„ط·ظ„ط¨ ط¨ظ†ط¬ط§ط­", success: true, deleted: result.rows[0] };
       } catch (error) {
         await client.query('ROLLBACK');
-        console.error(`❌ [RETURN ORDER] Error:`, error);
+        console.error(`â‌Œ [RETURN ORDER] Error:`, error);
         throw error;
       } finally {
         client.release();
@@ -2693,33 +2704,33 @@ async function startServer() {
           <body dir="rtl">
             <div class="invoice">
               <div class="header">
-                ${order.logo_url ? `<img src="${order.logo_url}" alt="شعار المتجر">` : ''}
-                <h1>${order.store_name || 'متجر'}</h1>
+                ${order.logo_url ? `<img src="${order.logo_url}" alt="ط´ط¹ط§ط± ط§ظ„ظ…طھط¬ط±">` : ''}
+                <h1>${order.store_name || 'ظ…طھط¬ط±'}</h1>
               </div>
               <div class="info" dir="rtl">
                 <div class="info-row">
-                  <span>رقم الطلب: ${order.id}</span>
-                  <span>التاريخ: ${new Date(order.created_at).toLocaleDateString('ar-SA')}</span>
+                  <span>ط±ظ‚ظ… ط§ظ„ط·ظ„ط¨: ${order.id}</span>
+                  <span>ط§ظ„طھط§ط±ظٹط®: ${new Date(order.created_at).toLocaleDateString('ar-SA')}</span>
                 </div>
                 <div class="info-row">
-                  <span>المتجر: ${order.store_name || 'متجر'}</span>
-                  <span>الحالة: ${order.status}</span>
+                  <span>ط§ظ„ظ…طھط¬ط±: ${order.store_name || 'ظ…طھط¬ط±'}</span>
+                  <span>ط§ظ„ط­ط§ظ„ط©: ${order.status}</span>
                 </div>
               </div>
               <div class="customer-info">
-                <h3>🔹 معلومات العميل</h3>
+                <h3>ًں”¹ ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ط¹ظ…ظٹظ„</h3>
                 <div class="info-row">
-                  <span>الهاتف: ${order.phone || '---'}</span>
+                  <span>ط§ظ„ظ‡ط§طھظپ: ${order.phone || '---'}</span>
                 </div>
                 <div class="info-row">
-                  <span>العنوان: ${order.address || 'لم يتم تحديد عنوان'}</span>
+                  <span>ط§ظ„ط¹ظ†ظˆط§ظ†: ${order.address || 'ظ„ظ… ظٹطھظ… طھط­ط¯ظٹط¯ ط¹ظ†ظˆط§ظ†'}</span>
                 </div>
               </div>
               <table dir="rtl" style="text-align: right;">
                 <tr>
-                  <th>المنتج</th>
-                  <th>الكمية</th>
-                  <th>السعر</th>
+                  <th>ط§ظ„ظ…ظ†طھط¬</th>
+                  <th>ط§ظ„ظƒظ…ظٹط©</th>
+                  <th>ط§ظ„ط³ط¹ط±</th>
                 </tr>
                 ${itemsResult.rows.map(item => `
                   <tr>
@@ -2729,20 +2740,20 @@ async function startServer() {
                   </tr>
                 `).join('')}
                 <tr style="font-weight: bold; background: #f5f5f5;">
-                  <td>الإجمالي</td>
+                  <td>ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ</td>
                   <td></td>
                   <td>${formatCurrency(order.total_amount)}</td>
                 </tr>
                 ${order.discount_amount > 0 ? `
                   <tr style="color: green;">
-                    <td>الخصم</td>
+                    <td>ط§ظ„ط®طµظ…</td>
                     <td></td>
                     <td>-${formatCurrency(order.discount_amount)}</td>
                   </tr>
                 ` : ''}
               </table>
               <div class="footer">
-                <p>شكراً لتعاملك معنا</p>
+                <p>ط´ظƒط±ط§ظ‹ ظ„طھط¹ط§ظ…ظ„ظƒ ظ…ط¹ظ†ط§</p>
               </div>
             </div>
             <script>
@@ -2787,34 +2798,34 @@ async function startServer() {
         );
         
         if (coupon.rows.length === 0) {
-          return res.status(400).json({ error: "كود غير صحيح" });
+          return res.status(400).json({ error: "ظƒظˆط¯ ط؛ظٹط± طµط­ظٹط­" });
         }
         
         const cp = coupon.rows[0];
         const now = new Date();
         
-        // التحقق من صلاحية الفترة الزمنية
+        // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† طµظ„ط§ط­ظٹط© ط§ظ„ظپطھط±ط© ط§ظ„ط²ظ…ظ†ظٹط©
         if (cp.valid_from && new Date(cp.valid_from) > now) {
-          return res.status(400).json({ error: "الكود لم يبدأ بعد" });
+          return res.status(400).json({ error: "ط§ظ„ظƒظˆط¯ ظ„ظ… ظٹط¨ط¯ط£ ط¨ط¹ط¯" });
         }
         
         if (cp.valid_until && new Date(cp.valid_until) < now) {
-          return res.status(400).json({ error: "انتهت صلاحية الكود" });
+          return res.status(400).json({ error: "ط§ظ†طھظ‡طھ طµظ„ط§ط­ظٹط© ط§ظ„ظƒظˆط¯" });
         }
         
-        // التحقق من حد الاستخدام
+        // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط­ط¯ ط§ظ„ط§ط³طھط®ط¯ط§ظ…
         if (cp.max_uses && cp.usage_count >= cp.max_uses) {
-          return res.status(400).json({ error: "انتهت مرات استخدام الكود" });
+          return res.status(400).json({ error: "ط§ظ†طھظ‡طھ ظ…ط±ط§طھ ط§ط³طھط®ط¯ط§ظ… ط§ظ„ظƒظˆط¯" });
         }
         
-        // التحقق من الحد الأدنى للمبلغ
+        // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط­ط¯ ط§ظ„ط£ط¯ظ†ظ‰ ظ„ظ„ظ…ط¨ظ„ط؛
         if (cp.min_purchase_amount && order_amount < cp.min_purchase_amount) {
           return res.status(400).json({ 
-            error: `الحد الأدنى للطلب ${cp.min_purchase_amount}` 
+            error: `ط§ظ„ط­ط¯ ط§ظ„ط£ط¯ظ†ظ‰ ظ„ظ„ط·ظ„ط¨ ${cp.min_purchase_amount}` 
           });
         }
         
-        // حساب الخصم
+        // ط­ط³ط§ط¨ ط§ظ„ط®طµظ…
         let discount = 0;
         if (cp.discount_type === 'percentage') {
           discount = Math.floor((order_amount * cp.discount_value) / 100);
@@ -2840,14 +2851,14 @@ async function startServer() {
       try {
         const { store_id, code, discount_type, discount_value, min_purchase_amount, max_uses, valid_from, valid_until } = req.body;
         
-        // التحقق من أن التاجر يملك المتجر
+        // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط£ظ† ط§ظ„طھط§ط¬ط± ظٹظ…ظ„ظƒ ط§ظ„ظ…طھط¬ط±
         const storeCheck = await pool.query(
           `SELECT id FROM stores WHERE id = $1 AND user_id = $2`,
           [store_id, (req as any).user?.id]
         );
         
         if (storeCheck.rows.length === 0) {
-          return res.status(403).json({ error: "ليس لديك صلاحيات" });
+          return res.status(403).json({ error: "ظ„ظٹط³ ظ„ط¯ظٹظƒ طµظ„ط§ط­ظٹط§طھ" });
         }
         
         const result = await pool.query(
@@ -2859,7 +2870,7 @@ async function startServer() {
         res.json({ success: true, coupon: result.rows[0] });
       } catch (error: any) {
         if (error.code === '23505') {
-          res.status(400).json({ error: "كود موجود بالفعل" });
+          res.status(400).json({ error: "ظƒظˆط¯ ظ…ظˆط¬ظˆط¯ ط¨ط§ظ„ظپط¹ظ„" });
         } else {
           res.status(500).json({ error: (error as any).message });
         }
@@ -2877,7 +2888,7 @@ async function startServer() {
         );
         
         if (storeCheck.rows.length === 0) {
-          return res.status(403).json({ error: "ليس لديك صلاحيات" });
+          return res.status(403).json({ error: "ظ„ظٹط³ ظ„ط¯ظٹظƒ طµظ„ط§ط­ظٹط§طھ" });
         }
         
         const result = await pool.query(
@@ -2904,7 +2915,7 @@ async function startServer() {
         );
         
         if (coupon.rows.length === 0) {
-          return res.status(403).json({ error: "ليس لديك صلاحيات" });
+          return res.status(403).json({ error: "ظ„ظٹط³ ظ„ط¯ظٹظƒ طµظ„ط§ط­ظٹط§طھ" });
         }
         
         const result = await pool.query(
@@ -2937,7 +2948,7 @@ async function startServer() {
         );
         
         if (coupon.rows.length === 0) {
-          return res.status(403).json({ error: "ليس لديك صلاحيات" });
+          return res.status(403).json({ error: "ظ„ظٹط³ ظ„ط¯ظٹظƒ طµظ„ط§ط­ظٹط§طھ" });
         }
         
         await pool.query(`DELETE FROM coupons WHERE id = $1`, [req.params.id]);
@@ -2999,7 +3010,7 @@ async function startServer() {
         res.json(result.rows[0]);
       } catch (error: any) {
         if (error.code === '23505') {
-          res.status(400).json({ error: "كود موجود بالفعل" });
+          res.status(400).json({ error: "ظƒظˆط¯ ظ…ظˆط¬ظˆط¯ ط¨ط§ظ„ظپط¹ظ„" });
         } else {
           res.status(500).json({ error: (error as any).message });
         }
@@ -3329,7 +3340,7 @@ async function startServer() {
           if (percentageEnabled && commissionPercent > 0 && storeRevenue > 0) {
             const commission = Math.floor(storeRevenue * (commissionPercent / 100));
             totalAdminCommission += commission;
-            console.log(`📊 Store ${row.id}: Revenue=${storeRevenue}, Commission%=${commissionPercent}, Commission=${commission}`);
+            console.log(`ًں“ٹ Store ${row.id}: Revenue=${storeRevenue}, Commission%=${commissionPercent}, Commission=${commission}`);
           }
         });
         
@@ -3340,7 +3351,7 @@ async function startServer() {
         const settingsResult = await pool.query("SELECT admin_commission_percentage FROM app_settings ORDER BY id DESC LIMIT 1");
         const globalAdminCommissionPercentage = settingsResult.rows.length > 0 ? parseFloat(settingsResult.rows[0].admin_commission_percentage) : 0;
         
-        console.log(`💰 Admin Stats: Stores=${storesResult.rows[0].count}, Orders=${ordersResult.rows[0].count}, Customers=${customersResult.rows[0].count}, Revenue=${totalRevenue}, Commission=${totalAdminCommission}`);
+        console.log(`ًں’° Admin Stats: Stores=${storesResult.rows[0].count}, Orders=${ordersResult.rows[0].count}, Customers=${customersResult.rows[0].count}, Revenue=${totalRevenue}, Commission=${totalAdminCommission}`);
         
         res.json({
           totalStores: parseInt(storesResult.rows[0].count),
@@ -3390,7 +3401,7 @@ async function startServer() {
           [name || phone, phone, email || null, password || 'guest123', role]
         );
 
-        console.log(`✅ [USER] Created ${role}: ${phone}`);
+        console.log(`âœ… [USER] Created ${role}: ${phone}`);
         res.json(result.rows[0]);
       } catch (error) {
         console.error("Add user error:", error);
@@ -3463,7 +3474,7 @@ async function startServer() {
         }
 
         const user = result.rows[0];
-        console.log(`✅ [ADMIN ACCESS] User ${user.name} (${user.phone}) - can_access_admin: ${user.can_access_admin}`);
+        console.log(`âœ… [ADMIN ACCESS] User ${user.name} (${user.phone}) - can_access_admin: ${user.can_access_admin}`);
         
         res.json({ message: "Admin access updated", user: result.rows[0] });
       } catch (error) {
@@ -3505,7 +3516,7 @@ async function startServer() {
         
         const stores = result.rows.map(store => ({
           ...store,
-          owner_name: store.owner_name || store.owner_name_from_user || 'غير معروف',
+          owner_name: store.owner_name || store.owner_name_from_user || 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ',
           owner_phone: store.owner_phone || store.owner_phone_from_user || '',
           owner_email: store.owner_email || store.owner_email_from_user || ''
         }));
@@ -3562,7 +3573,7 @@ async function startServer() {
             s.subscription_paid,
             s.percentage_enabled,
             s.commission_percentage,
-            COALESCE(s.owner_name, u.name, 'غير معروف') as owner_name,
+            COALESCE(s.owner_name, u.name, 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ') as owner_name,
             s.owner_phone,
             c.name as customer_name,
             CASE 
@@ -3591,7 +3602,7 @@ async function startServer() {
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         res.set('Pragma', 'no-cache');
         
-        // ✅ CRITICAL: Convert dates to text format to avoid JavaScript Date object conversion
+        // âœ… CRITICAL: Convert dates to text format to avoid JavaScript Date object conversion
         let query = `SELECT products.*, 
           wholesale_price AS bulk_price, 
           stores.store_name, 
@@ -3624,19 +3635,19 @@ async function startServer() {
           WHERE products.store_id = $1 AND products.is_active = true AND (stores.store_type IS NULL OR stores.store_type != 'topup') 
           ORDER BY products.created_at DESC`;
           params = [parseInt(storeId)];
-          console.log(`📦 Fetching products for store ${storeId}`);
+          console.log(`ًں“¦ Fetching products for store ${storeId}`);
         } else {
-          console.log(`📦 Fetching all products`);
+          console.log(`ًں“¦ Fetching all products`);
         }
         
         const result = await pool.query(query, params);
-        console.log(`✅ Products fetched: ${result.rows.length} items${storeId ? ` for store ${storeId}` : ''}`);
+        console.log(`âœ… Products fetched: ${result.rows.length} items${storeId ? ` for store ${storeId}` : ''}`);
         
         // Log auction products for debugging
         result.rows.forEach((p, i) => {
-          console.log(`   ${i+1}. ID:${p.id} Name:${p.name} Image:${p.image_url ? '✓' : '✗'}`);
+          console.log(`   ${i+1}. ID:${p.id} Name:${p.name} Image:${p.image_url ? 'âœ“' : 'âœ—'}`);
           if (p.is_auction) {
-            console.log(`       🎯 AUCTION DATA:`);
+            console.log(`       ًںژ¯ AUCTION DATA:`);
             console.log(`          auction_date: ${p.auction_date} (type: ${typeof p.auction_date})`);
             console.log(`          auction_start_time: ${p.auction_start_time}`);
             console.log(`          auction_end_time: ${p.auction_end_time}`);
@@ -3646,7 +3657,7 @@ async function startServer() {
         
         res.json(result.rows);
       } catch (error) {
-        console.error('❌ Products API error:', error);
+        console.error('â‌Œ Products API error:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -3693,7 +3704,7 @@ async function startServer() {
             ORDER BY created_at DESC
           `, [parseInt(storeId)]);
 
-          console.log(`📋 GET /api/merchant/customers - StoreId: ${storeId}, Found ${result.rows.length} customers`);
+          console.log(`ًں“‹ GET /api/merchant/customers - StoreId: ${storeId}, Found ${result.rows.length} customers`);
           result.rows.forEach(c => {
             console.log(`   - Customer: Name="${c.name}", Phone="${c.phone}", ID=${c.id}, DB Store=${c.store_id}`);
           });
@@ -3701,7 +3712,7 @@ async function startServer() {
           // Calculate debt from orders for each topup customer
           const customersWithDebt = await Promise.all(
             result.rows.map(async (customer) => {
-              console.log(`🔍 DEBUG: Searching debt for customer: "${customer.phone}"  Name: "${customer.name}" ID: ${customer.id}`);
+              console.log(`ًں”چ DEBUG: Searching debt for customer: "${customer.phone}"  Name: "${customer.name}" ID: ${customer.id}`);
               
               // Search debt by customer_id (accurate method)
               const debtResult = await pool.query(
@@ -3732,7 +3743,7 @@ async function startServer() {
               );
               const totalPayments = parseFloat(paymentsResult.rows[0]?.total_payments || 0);
               
-              console.log(`📊 [TOPUP CUSTOMER] ${customer.name} (Phone: ${customer.phone}, ID: ${customer.id}) - Debt from orders: ${debtFromOrders} - Payments: ${totalPayments}`);
+              console.log(`ًں“ٹ [TOPUP CUSTOMER] ${customer.name} (Phone: ${customer.phone}, ID: ${customer.id}) - Debt from orders: ${debtFromOrders} - Payments: ${totalPayments}`);
               
               return {
                 ...customer,
@@ -3819,7 +3830,7 @@ async function startServer() {
         // No cache for modifications
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
-        // ✅ CRITICAL: Get product data FIRST to find auction_id
+        // âœ… CRITICAL: Get product data FIRST to find auction_id
         const productCheck = await pool.query("SELECT id, store_id, auction_id FROM products WHERE id = $1", [parseInt(id)]);
         
         if (productCheck.rows.length === 0) {
@@ -3827,30 +3838,30 @@ async function startServer() {
         }
         
         const product = productCheck.rows[0];
-        console.log('🗑️ Deleting product:', {
+        console.log('ًں—‘ï¸ڈ Deleting product:', {
           id: product.id,
           auction_id: product.auction_id
         });
         
-        // ✅ If product has an auction, delete it from auctions table first
+        // âœ… If product has an auction, delete it from auctions table first
         if (product.auction_id) {
           try {
             const auctionDelete = await pool.query("DELETE FROM auctions WHERE id = $1", [product.auction_id]);
-            console.log('✅ Auction deleted:', auctionDelete.rowCount, 'rows');
+            console.log('âœ… Auction deleted:', auctionDelete.rowCount, 'rows');
             await syncStoreAuctionSalesTotal(parseInt(product.store_id));
           } catch (auctionErr) {
-            console.warn('⚠️ Warning: Could not delete auction:', auctionErr.message);
+            console.warn('âڑ ï¸ڈ Warning: Could not delete auction:', auctionErr.message);
             // Continue with product deletion even if auction delete fails
           }
         }
         
-        // ✅ Now delete the product
+        // âœ… Now delete the product
         const result = await pool.query("DELETE FROM products WHERE id = $1 RETURNING id", [parseInt(id)]);
         
-        console.log('✅ Product deleted successfully');
+        console.log('âœ… Product deleted successfully');
         res.json({ message: "Product deleted successfully", id: result.rows[0].id });
       } catch (error) {
-        console.error('❌ Error deleting product:', error);
+        console.error('â‌Œ Error deleting product:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -3874,42 +3885,42 @@ async function startServer() {
         let { store_id, category_id, name, price, stock, image_url, description, gallery = [], is_auction = false, auction_date, auction_start_time, auction_end_time, auction_price } = req.body;
         
         console.log('\n' + '='.repeat(90));
-        console.log('📩 🆕 NEW PRODUCT REQUEST: POST /api/products');
+        console.log('ًں“© ًں†• NEW PRODUCT REQUEST: POST /api/products');
         console.log('='.repeat(90));
-        console.log('📨 REQUEST BODY RECEIVED:');
+        console.log('ًں“¨ REQUEST BODY RECEIVED:');
         console.log(JSON.stringify(req.body, null, 2));
         console.log('='.repeat(90));
         
         // No cache for modifications
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
-        // ✅ Validate required fields
+        // âœ… Validate required fields
         if (!store_id || !name || price === undefined || stock === undefined) {
-          console.error('❌ VALIDATION FAILED:', { store_id, name, price, stock });
+          console.error('â‌Œ VALIDATION FAILED:', { store_id, name, price, stock });
           return res.status(400).json({ 
-            error: `خطأ في المدخلات: ${!store_id ? 'store_id غير موجود' : !name ? 'name غير موجود' : price === undefined ? 'price غير موجود' : 'stock غير موجود'}`
+            error: `ط®ط·ط£ ظپظٹ ط§ظ„ظ…ط¯ط®ظ„ط§طھ: ${!store_id ? 'store_id ط؛ظٹط± ظ…ظˆط¬ظˆط¯' : !name ? 'name ط؛ظٹط± ظ…ظˆط¬ظˆط¯' : price === undefined ? 'price ط؛ظٹط± ظ…ظˆط¬ظˆط¯' : 'stock ط؛ظٹط± ظ…ظˆط¬ظˆط¯'}`
           });
         }
         
-        // ✅ Ensure gallery is an array and sanitize it
+        // âœ… Ensure gallery is an array and sanitize it
         if (!Array.isArray(gallery)) {
           gallery = [];
         }
         gallery = gallery.filter(item => item && typeof item === 'string');
         
-        // ✅ Process main image - upload to Firebase if needed
+        // âœ… Process main image - upload to Firebase if needed
         let finalImageUrl = image_url || null;
         if (image_url && image_url.startsWith('data:image')) {
           try {
             finalImageUrl = await uploadImageToFirebase(image_url, `main_${Date.now()}.jpg`);
-            console.log('✅ Main image uploaded');
+            console.log('âœ… Main image uploaded');
           } catch (e) {
-            console.error('⚠️ Main image upload failed:', e.message);
+            console.error('âڑ ï¸ڈ Main image upload failed:', e.message);
             finalImageUrl = null;
           }
         }
         
-        // ✅ Process gallery images
+        // âœ… Process gallery images
         const galleryUrls: string[] = [];
         for (let i = 0; i < gallery.length; i++) {
           const img = gallery[i];
@@ -3917,9 +3928,9 @@ async function startServer() {
             try {
               const url = await uploadImageToFirebase(img, `gallery_${i}_${Date.now()}.jpg`);
               galleryUrls.push(url);
-              console.log(`✅ Gallery image ${i + 1} uploaded`);
+              console.log(`âœ… Gallery image ${i + 1} uploaded`);
             } catch (e) {
-              console.error(`⚠️ Gallery image ${i} failed`);
+              console.error(`âڑ ï¸ڈ Gallery image ${i} failed`);
             }
           } else if (img) {
             galleryUrls.push(img);
@@ -3928,15 +3939,15 @@ async function startServer() {
         
         const galleryArray = galleryUrls && galleryUrls.length > 0 ? galleryUrls : null;
         
-        // ✅ CRITICAL: Parse and validate auction data
-        console.log('\n🎯 PARSING AUCTION DATA:');
+        // âœ… CRITICAL: Parse and validate auction data
+        console.log('\nًںژ¯ PARSING AUCTION DATA:');
         console.log('  Raw is_auction:', is_auction, 'Type:', typeof is_auction);
         console.log('  Raw auction_date:', auction_date);
         console.log('  Raw auction_start_time:', auction_start_time);
         console.log('  Raw auction_end_time:', auction_end_time);
         console.log('  Raw auction_price:', auction_price);
         
-        // ✅ Convert is_auction to boolean properly
+        // âœ… Convert is_auction to boolean properly
         let isAuctionBoolean = false;
         if (is_auction === true || is_auction === 'true' || is_auction === 1 || is_auction === '1') {
           isAuctionBoolean = true;
@@ -3944,22 +3955,22 @@ async function startServer() {
         
         console.log('  Converted is_auction:', isAuctionBoolean);
         
-        // ✅ Parse auction data if product is auction
+        // âœ… Parse auction data if product is auction
         let parsedAuctionDate = null;
         let parsedStartTime = null;
         let parsedEndTime = null;
         let parsedPrice = null;
         
         if (isAuctionBoolean) {
-          console.log('  ✅ This IS an auction product');
+          console.log('  âœ… This IS an auction product');
           
-          // ✅ Validate ALL auction fields are provided (check for non-empty values)
+          // âœ… Validate ALL auction fields are provided (check for non-empty values)
           const hasDate = auction_date && String(auction_date).trim() !== '';
           const hasStartTime = auction_start_time && String(auction_start_time).trim() !== '';
           const hasEndTime = auction_end_time && String(auction_end_time).trim() !== '';
           const hasPrice = auction_price && String(auction_price).trim() !== '';
           
-          console.log('  📋 FIELD CHECK:');
+          console.log('  ًں“‹ FIELD CHECK:');
           console.log('     date present:', hasDate, '(' + JSON.stringify(auction_date) + ')');
           console.log('     start_time present:', hasStartTime, '(' + JSON.stringify(auction_start_time) + ')');
           console.log('     end_time present:', hasEndTime, '(' + JSON.stringify(auction_end_time) + ')');
@@ -3978,24 +3989,24 @@ async function startServer() {
             // Parse price as number
             parsedPrice = parseFloat(String(auction_price));
             
-            console.log('  ✅ AUCTION DATA VALIDATED AND WILL BE SAVED:');
+            console.log('  âœ… AUCTION DATA VALIDATED AND WILL BE SAVED:');
             console.log('     Date: ' + parsedAuctionDate);
             console.log('     Start: ' + parsedStartTime);
             console.log('     End: ' + parsedEndTime);
             console.log('     Price: ' + parsedPrice);
           } else {
-            console.warn('  ❌ AUCTION PRODUCT BUT MISSING REQUIRED FIELDS!');
-            console.warn('     date:', hasDate ? '✓' : '✗ (empty)');
-            console.warn('     start_time:', hasStartTime ? '✓' : '✗ (empty)');
-            console.warn('     end_time:', hasEndTime ? '✓' : '✗ (empty)');
-            console.warn('     price:', hasPrice ? '✓' : '✗ (empty)');
-            return res.status(400).json({ error: 'بيانات المزاد غير مكتملة. يرجى إدخال التاريخ ووقت البداية ووقت النهاية والسعر الأساسي.' });
+            console.warn('  â‌Œ AUCTION PRODUCT BUT MISSING REQUIRED FIELDS!');
+            console.warn('     date:', hasDate ? 'âœ“' : 'âœ— (empty)');
+            console.warn('     start_time:', hasStartTime ? 'âœ“' : 'âœ— (empty)');
+            console.warn('     end_time:', hasEndTime ? 'âœ“' : 'âœ— (empty)');
+            console.warn('     price:', hasPrice ? 'âœ“' : 'âœ— (empty)');
+            return res.status(400).json({ error: 'ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط²ط§ط¯ ط؛ظٹط± ظ…ظƒطھظ…ظ„ط©. ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط§ظ„طھط§ط±ظٹط® ظˆظˆظ‚طھ ط§ظ„ط¨ط¯ط§ظٹط© ظˆظˆظ‚طھ ط§ظ„ظ†ظ‡ط§ظٹط© ظˆط§ظ„ط³ط¹ط± ط§ظ„ط£ط³ط§ط³ظٹ.' });
           }
         } else {
-          console.log('  ℹ️ Not an auction product');
+          console.log('  â„¹ï¸ڈ Not an auction product');
         }
         
-        console.log('\n📝 INSERT VALUES:');
+        console.log('\nًں“‌ INSERT VALUES:');
         console.log('  store_id: ' + store_id);
         console.log('  category_id: ' + (category_id || 'NULL'));
         console.log('  name: ' + name);
@@ -4010,7 +4021,7 @@ async function startServer() {
         console.log('  auction_end_time: ' + (parsedEndTime || 'NULL'));
         console.log('  auction_price: ' + (parsedPrice || 'NULL'));
         
-        // ✅ Execute INSERT with ALL columns
+        // âœ… Execute INSERT with ALL columns
         await client.query('BEGIN');
 
         const result = await client.query(
@@ -4058,13 +4069,13 @@ async function startServer() {
           );
 
           savedProduct.auction_id = auctionInsert.rows[0].id;
-          console.log('✅ Auction row created and linked:', auctionInsert.rows[0].id);
+          console.log('âœ… Auction row created and linked:', auctionInsert.rows[0].id);
         }
 
         await client.query('COMMIT');
         
-        console.log('\n✅✅✅ PRODUCT CREATED SUCCESSFULLY!');
-        console.log('📊 SAVED DATA:');
+        console.log('\nâœ…âœ…âœ… PRODUCT CREATED SUCCESSFULLY!');
+        console.log('ًں“ٹ SAVED DATA:');
         console.log('  ID: ' + savedProduct.id);
         console.log('  Name: ' + savedProduct.name);
         console.log('  Price: ' + savedProduct.price);
@@ -4076,14 +4087,14 @@ async function startServer() {
         console.log('  auction_price: ' + savedProduct.auction_price);
         console.log('='.repeat(90) + '\n');
         
-        // ✅ Return the saved product to frontend
+        // âœ… Return the saved product to frontend
         res.json({ 
           message: 'Product created successfully',
           product: savedProduct 
         });
       } catch (error) {
         await client.query('ROLLBACK');
-        console.error('❌ ERROR CREATING PRODUCT:', error);
+        console.error('â‌Œ ERROR CREATING PRODUCT:', error);
         console.error('Details:', error.message);
         res.status(500).json({ error: (error as any).message });
       } finally {
@@ -4113,8 +4124,8 @@ async function startServer() {
         // No cache for modifications
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
-        // 🔍 DEBUG: Log incoming auction data
-        console.log('🔵 PUT /api/products/:id - Incoming auction data:');
+        // ًں”چ DEBUG: Log incoming auction data
+        console.log('ًں”µ PUT /api/products/:id - Incoming auction data:');
         console.log('  is_auction:', is_auction, 'type:', typeof is_auction);
         console.log('  auction_date:', auction_date, 'type:', typeof auction_date);
         console.log('  auction_start_time:', auction_start_time, 'type:', typeof auction_start_time);
@@ -4145,9 +4156,9 @@ async function startServer() {
         if (image_url && image_url.startsWith('data:image')) {
           try {
             finalImageUrl = await uploadImageToFirebase(image_url, `main_${Date.now()}.jpg`);
-            console.log('✅ Main image uploaded to Firebase/Local');
+            console.log('âœ… Main image uploaded to Firebase/Local');
           } catch (e) {
-            console.error('⚠️ Main image upload failed, continuing:', e);
+            console.error('âڑ ï¸ڈ Main image upload failed, continuing:', e);
             // Keep existing image if upload fails
             finalImageUrl = currentProduct.rows[0].image_url;
           }
@@ -4170,9 +4181,9 @@ async function startServer() {
             try {
               const url = await uploadImageToFirebase(img, `gallery_${i}_${Date.now()}.jpg`);
               galleryUrls.push(url);
-              console.log(`✅ Gallery image ${i + 1}/${gallery.length} uploaded`);
+              console.log(`âœ… Gallery image ${i + 1}/${gallery.length} uploaded`);
             } catch (e) {
-              console.error(`⚠️ Gallery image ${i} upload failed, skipping:`, e);
+              console.error(`âڑ ï¸ڈ Gallery image ${i} upload failed, skipping:`, e);
               // Continue with other images
             }
           } else if (img) {
@@ -4183,11 +4194,11 @@ async function startServer() {
         // Ensure gallery is valid array before updating
         const galleryArray = galleryUrls && galleryUrls.length > 0 ? galleryUrls : null;
         
-        // ✅ CRITICAL: Preserve existing auction data if not being updated
+        // âœ… CRITICAL: Preserve existing auction data if not being updated
         // Get current auction data from database
         const currentAuctionData = currentProduct.rows[0];
         
-        // ✅ Convert database Date objects to strings for proper handling
+        // âœ… Convert database Date objects to strings for proper handling
         let currentDateStr = '';
         if (currentAuctionData.auction_date) {
           const dateObj = new Date(currentAuctionData.auction_date);
@@ -4215,7 +4226,7 @@ async function startServer() {
         
         let currentPriceStr = String(currentAuctionData.auction_price || '');
         
-        console.log('🔵 CURRENT DATA FROM DB (converted to strings):');
+        console.log('ًں”µ CURRENT DATA FROM DB (converted to strings):');
         console.log('  currentDateStr:', currentDateStr);
         console.log('  currentStartTimeStr:', currentStartTimeStr);
         console.log('  currentEndTimeStr:', currentEndTimeStr);
@@ -4232,18 +4243,18 @@ async function startServer() {
                                   is_auction === false || is_auction === 'false' ? false : 
                                   currentAuctionData.is_auction;
         
-        console.log('🔵 PUT AUCTION LOGIC:');
+        console.log('ًں”µ PUT AUCTION LOGIC:');
         console.log('  Current is_auction:', currentAuctionData.is_auction);
         console.log('  Incoming is_auction:', is_auction);
         console.log('  Effective is_auction:', effectiveIsAuction);
         console.log('');
-        console.log('🔵 INCOMING AUCTION DATA (NEW VALUES):');
+        console.log('ًں”µ INCOMING AUCTION DATA (NEW VALUES):');
         console.log('  auction_date:', auction_date, '(trimmed: "' + String(auction_date || '').trim() + '")');
         console.log('  auction_start_time:', auction_start_time, '(trimmed: "' + String(auction_start_time || '').trim() + '")');
         console.log('  auction_end_time:', auction_end_time, '(trimmed: "' + String(auction_end_time || '').trim() + '")');
         console.log('  auction_price:', auction_price, '(trimmed: "' + String(auction_price || '').trim() + '")');
         
-        // ✅ Trim and normalize incoming data
+        // âœ… Trim and normalize incoming data
         const incomingDate = normalizeAuctionDateValue(auction_date);
         const incomingStartTime = String(auction_start_time || '').trim();
         const incomingEndTime = String(auction_end_time || '').trim();
@@ -4252,7 +4263,7 @@ async function startServer() {
         const hasNewAuctionData = incomingDate && incomingStartTime && incomingEndTime && incomingPrice;
         
         console.log('');
-        console.log('📋 TRIMMED INCOMING DATA:');
+        console.log('ًں“‹ TRIMMED INCOMING DATA:');
         console.log('  Has all auction data:', hasNewAuctionData);
         console.log('  incomingDate:', incomingDate);
         console.log('  incomingStartTime:', incomingStartTime);
@@ -4269,7 +4280,7 @@ async function startServer() {
             parsedEndTime = incomingEndTime.slice(0, 5);
             parsedPrice = parseFloat(incomingPrice) || 0; // Convert to number
             
-            console.log('✅ UPDATING TO NEW AUCTION DATA:');
+            console.log('âœ… UPDATING TO NEW AUCTION DATA:');
             console.log('   New Date:', parsedAuctionDate);
             console.log('   New Times:', parsedStartTime, '-', parsedEndTime);
             console.log('   New Price:', parsedPrice);
@@ -4280,7 +4291,7 @@ async function startServer() {
             if (parsedPrice) {
               parsedPrice = parseFloat(parsedPrice) || 0;
             }
-            console.log('✅ PRESERVING EXISTING AUCTION DATA (is_auction=true but no new data)');
+            console.log('âœ… PRESERVING EXISTING AUCTION DATA (is_auction=true but no new data)');
             console.log('   Current Date:', parsedAuctionDate);
             console.log('   Current Times:', parsedStartTime, '-', parsedEndTime);
             console.log('   Current Price:', parsedPrice, '(type: ' + typeof parsedPrice + ')');
@@ -4291,11 +4302,11 @@ async function startServer() {
           parsedStartTime = null;
           parsedEndTime = null;
           parsedPrice = null;
-          console.log('✅ CLEARING AUCTION DATA (is_auction=false)');
+          console.log('âœ… CLEARING AUCTION DATA (is_auction=false)');
         }
         
         console.log('');
-        console.log('📝 FINAL VALUES TO BE SAVED:');
+        console.log('ًں“‌ FINAL VALUES TO BE SAVED:');
         console.log('  parsedAuctionDate:', parsedAuctionDate, '(type:', typeof parsedAuctionDate + ')');
         console.log('  parsedStartTime:', parsedStartTime);
         console.log('  parsedEndTime:', parsedEndTime);
@@ -4339,7 +4350,7 @@ async function startServer() {
                WHERE id = $5`,
               [parsedAuctionDate, parsedStartTime, parsedEndTime, parsedPrice, currentAuctionId]
             );
-            console.log('✅ Auction row updated:', currentAuctionId);
+            console.log('âœ… Auction row updated:', currentAuctionId);
           } else {
             const auctionInsert = await client.query(
               `INSERT INTO auctions (product_id, store_id, auction_date, auction_start_time, auction_end_time, starting_price, current_highest_price, status)
@@ -4353,14 +4364,14 @@ async function startServer() {
               [auctionInsert.rows[0].id, parseInt(id)]
             );
             result.rows[0].auction_id = auctionInsert.rows[0].id;
-            console.log('✅ Auction row created during update:', auctionInsert.rows[0].id);
+            console.log('âœ… Auction row created during update:', auctionInsert.rows[0].id);
           }
         } else if (effectiveIsAuction === false && currentAuctionId) {
           await client.query(`DELETE FROM auctions WHERE id = $1`, [currentAuctionId]);
           await client.query(`UPDATE products SET auction_id = NULL WHERE id = $1`, [parseInt(id)]);
           result.rows[0].auction_id = null;
           shouldSyncAuctionSales = true;
-          console.log('✅ Auction row deleted during product update:', currentAuctionId);
+          console.log('âœ… Auction row deleted during product update:', currentAuctionId);
         }
 
         await client.query('COMMIT');
@@ -4369,7 +4380,7 @@ async function startServer() {
           await syncStoreAuctionSalesTotal(parseInt(storeId));
         }
         
-        console.log('✅✅✅ Product updated:');
+        console.log('âœ…âœ…âœ… Product updated:');
         console.log('  - Product ID:', id);
         console.log('  - is_auction (saved):', result.rows[0].is_auction);
         console.log('  - auction_date (saved):', result.rows[0].auction_date);
@@ -4377,7 +4388,7 @@ async function startServer() {
         console.log('  - auction_end_time (saved):', result.rows[0].auction_end_time);
         console.log('  - auction_price (saved):', result.rows[0].auction_price);
         
-        // ✅ Convert dates to strings before sending response (same as GET endpoint)
+        // âœ… Convert dates to strings before sending response (same as GET endpoint)
         const responseProduct = result.rows[0];
         if (responseProduct.auction_date) {
           responseProduct.auction_date = new Date(responseProduct.auction_date).toISOString().split('T')[0];
@@ -4397,7 +4408,7 @@ async function startServer() {
         });
       } catch (error) {
         await client.query('ROLLBACK');
-        console.error('❌ Error updating product:', error);
+        console.error('â‌Œ Error updating product:', error);
         res.status(500).json({ error: (error as any).message });
       } finally {
         client.release();
@@ -4433,10 +4444,10 @@ async function startServer() {
           [mergedCodes, mergedCodes.length, parseInt(product_id)]
         );
         
-        console.log(`✅ Added ${codes.length} topup codes to product ${product_id}. Total codes: ${mergedCodes.length}`);
+        console.log(`âœ… Added ${codes.length} topup codes to product ${product_id}. Total codes: ${mergedCodes.length}`);
         res.json({ 
           success: true, 
-          message: `تم إضافة ${codes.length} أكواد جديدة. العدد الكلي الآن: ${mergedCodes.length}`, 
+          message: `طھظ… ط¥ط¶ط§ظپط© ${codes.length} ط£ظƒظˆط§ط¯ ط¬ط¯ظٹط¯ط©. ط§ظ„ط¹ط¯ط¯ ط§ظ„ظƒظ„ظٹ ط§ظ„ط¢ظ†: ${mergedCodes.length}`, 
           product: result.rows[0] 
         });
       } catch (error) {
@@ -4536,9 +4547,9 @@ async function startServer() {
           );
           
           if (userCheckResult.rows.length === 0) {
-            console.warn(`⚠️ Store owner ${store.owner_id} not found in users table for store ${storeId}`);
+            console.warn(`âڑ ï¸ڈ Store owner ${store.owner_id} not found in users table for store ${storeId}`);
             return res.status(400).json({ 
-              error: "صاحب المتجر لا يملك حساب مستخدم. يرجى التحقق من بيانات المتجر." 
+              error: "طµط§ط­ط¨ ط§ظ„ظ…طھط¬ط± ظ„ط§ ظٹظ…ظ„ظƒ ط­ط³ط§ط¨ ظ…ط³طھط®ط¯ظ…. ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…طھط¬ط±." 
             });
           }
           
@@ -4548,7 +4559,7 @@ async function startServer() {
               "UPDATE users SET store_id = $1, phone = $2 WHERE id = $3",
               [storeId, phoneToUse, store.owner_id]
             );
-            console.log(`✅ Updated user ${store.owner_id} with store_id ${storeId} and phone ${phoneToUse}`);
+            console.log(`âœ… Updated user ${store.owner_id} with store_id ${storeId} and phone ${phoneToUse}`);
           }
         }
         
@@ -4558,7 +4569,7 @@ async function startServer() {
           ['approved', true, phoneToUse, storeId]
         );
         
-        console.log(`✅ Store ${storeId} (${store.store_type}) approved successfully with phone ${phoneToUse}`);
+        console.log(`âœ… Store ${storeId} (${store.store_type}) approved successfully with phone ${phoneToUse}`);
         
         res.json({ success: true, store: result.rows[0] });
       } catch (error) {
@@ -4638,7 +4649,7 @@ async function startServer() {
           [newIsActive, newStatus, storeId]
         );
         
-        console.log(`🔄 Store ${storeId} toggled: is_active changed from ${!newIsActive} to ${newIsActive}`);
+        console.log(`ًں”„ Store ${storeId} toggled: is_active changed from ${!newIsActive} to ${newIsActive}`);
         
         res.json({ success: true, store: result.rows[0], is_active: newIsActive });
       } catch (error) {
@@ -4670,7 +4681,7 @@ async function startServer() {
           return res.status(404).json({ error: "Store not found" });
         }
 
-        console.log(`✅ Store ${storeId} logo updated`);
+        console.log(`âœ… Store ${storeId} logo updated`);
         res.json({ success: true, store: result.rows[0] });
       } catch (error) {
         console.error("Store logo update error:", error);
@@ -4685,10 +4696,10 @@ async function startServer() {
         const storeId = parseInt(rawId);
         const { subscription_paid } = req.body;
         
-        console.log(`🔄 Toggle subscription request: rawId=${rawId}, parsedId=${storeId}, isNaN=${isNaN(storeId)}, subscription_paid=${subscription_paid}`);
+        console.log(`ًں”„ Toggle subscription request: rawId=${rawId}, parsedId=${storeId}, isNaN=${isNaN(storeId)}, subscription_paid=${subscription_paid}`);
         
         if (isNaN(storeId) || storeId <= 0) {
-          console.error(`❌ Invalid store ID: ${rawId} → ${storeId}`);
+          console.error(`â‌Œ Invalid store ID: ${rawId} â†’ ${storeId}`);
           return res.status(400).json({ error: "Invalid store ID" });
         }
         
@@ -4705,7 +4716,7 @@ async function startServer() {
           return res.status(404).json({ error: "Store not found" });
         }
         
-        console.log(`✅ Store ${storeId} subscription updated to ${subscription_paid}`);
+        console.log(`âœ… Store ${storeId} subscription updated to ${subscription_paid}`);
         res.json({ success: true, store: result.rows[0] });
       } catch (error) {
         console.error("Toggle subscription error:", error);
@@ -4818,7 +4829,7 @@ async function startServer() {
         const { storeId, phone } = req.query;
         if (!storeId) return res.status(400).json({ error: "storeId required" });
 
-        // إذا تم البحث برقم هاتف، رجع العميل الواحد
+        // ط¥ط°ط§ طھظ… ط§ظ„ط¨ط­ط« ط¨ط±ظ‚ظ… ظ‡ط§طھظپطŒ ط±ط¬ط¹ ط§ظ„ط¹ظ…ظٹظ„ ط§ظ„ظˆط§ط­ط¯
         if (phone) {
           const result = await pool.query(
             `SELECT * FROM customers WHERE store_id = $1 AND phone = $2 AND is_active = TRUE`,
@@ -4831,7 +4842,7 @@ async function startServer() {
           return res.json(null);
         }
 
-        // وإلا رجع جميع العملاء في المتجر
+        // ظˆط¥ظ„ط§ ط±ط¬ط¹ ط¬ظ…ظٹط¹ ط§ظ„ط¹ظ…ظ„ط§ط، ظپظٹ ط§ظ„ظ…طھط¬ط±
         const result = await pool.query(
           `SELECT * FROM customers WHERE store_id = $1 AND is_active = TRUE ORDER BY name ASC`,
           [parseInt(storeId as string)]
@@ -4855,7 +4866,7 @@ async function startServer() {
         // Check that this is a topup store
         const storeCheck = await pool.query("SELECT store_type FROM stores WHERE id = $1", [store_id]);
         if (storeCheck.rows.length === 0 || storeCheck.rows[0].store_type !== 'topup') {
-          return res.status(403).json({ error: "فقط متاجر الشحن يمكنها إضافة عملاء" });
+          return res.status(403).json({ error: "ظپظ‚ط· ظ…طھط§ط¬ط± ط§ظ„ط´ط­ظ† ظٹظ…ظƒظ†ظ‡ط§ ط¥ط¶ط§ظپط© ط¹ظ…ظ„ط§ط،" });
         }
 
         const result = await pool.query(
@@ -4865,12 +4876,12 @@ async function startServer() {
           [store_id, name.toString().trim(), phone.toString().trim(), password || null, credit_limit || 0, starting_balance || 0]
         );
         
-        console.log(`✅ Customer created: ${name}`);
+        console.log(`âœ… Customer created: ${name}`);
         res.json({ success: true, customer: result.rows[0] });
       } catch (error) {
         const err = error as any;
         if (err.code === '23505') {
-          res.status(400).json({ error: "هذا الهاتف مسجل بالفعل لهذا المتجر" });
+          res.status(400).json({ error: "ظ‡ط°ط§ ط§ظ„ظ‡ط§طھظپ ظ…ط³ط¬ظ„ ط¨ط§ظ„ظپط¹ظ„ ظ„ظ‡ط°ط§ ط§ظ„ظ…طھط¬ط±" });
         } else {
           res.status(500).json({ error: err.message });
         }
@@ -4894,7 +4905,7 @@ async function startServer() {
         // Check that this is a topup store
         const storeCheck = await pool.query("SELECT store_type FROM stores WHERE id = $1", [storeId]);
         if (storeCheck.rows.length === 0 || storeCheck.rows[0].store_type !== 'topup') {
-          return res.status(403).json({ error: "فقط متاجر الشحن يمكنها تعديل بيانات العملاء" });
+          return res.status(403).json({ error: "ظپظ‚ط· ظ…طھط§ط¬ط± ط§ظ„ط´ط­ظ† ظٹظ…ظƒظ†ظ‡ط§ طھط¹ط¯ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظ„ط§ط،" });
         }
 
         const updates = [];
@@ -4951,15 +4962,15 @@ async function startServer() {
     app.delete("/api/customers/:id", async (req, res) => {
       try {
         return res.status(403).json({
-          error: "تم إيقاف هذا المسار لحماية بيانات الطلبات. استخدم مسار عملاء الشحن المخصص فقط."
+          error: "طھظ… ط¥ظٹظ‚ط§ظپ ظ‡ط°ط§ ط§ظ„ظ…ط³ط§ط± ظ„ط­ظ…ط§ظٹط© ط¨ظٹط§ظ†ط§طھ ط§ظ„ط·ظ„ط¨ط§طھ. ط§ط³طھط®ط¯ظ… ظ…ط³ط§ط± ط¹ظ…ظ„ط§ط، ط§ظ„ط´ط­ظ† ط§ظ„ظ…ط®طµطµ ظپظ‚ط·."
         });
       } catch (error) {
-        console.error(`❌ [DELETE] Error:`, error);
+        console.error(`â‌Œ [DELETE] Error:`, error);
         res.status(500).json({ error: (error as any).message });
       }
     });
 
-    // Get customer statement - كشف الحساب (REBUILT FROM SCRATCH)
+    // Get customer statement - ظƒط´ظپ ط§ظ„ط­ط³ط§ط¨ (REBUILT FROM SCRATCH)
     app.get("/api/customers/:id/statement", async (req, res) => {
       try {
         const customerId = parseInt(req.params.id);
@@ -5006,7 +5017,7 @@ async function startServer() {
           ...txRes.rows.map(t => ({
             id: t.id,
             type: t.type || 'purchase',
-            description: t.description || 'عملية',
+            description: t.description || 'ط¹ظ…ظ„ظٹط©',
             amount: Number(t.amount),
             is_payment: false,
             created_at: t.created_at,
@@ -5015,7 +5026,7 @@ async function startServer() {
           ...payRes.rows.map(p => ({
             id: p.id,
             type: 'payment',
-            description: p.description || 'دفعة',
+            description: p.description || 'ط¯ظپط¹ط©',
             amount: Number(p.amount),
             is_payment: true,
             created_at: p.created_at,
@@ -5024,7 +5035,7 @@ async function startServer() {
           ...topupOrdersRes.rows.map(o => ({
             id: o.id,
             type: 'topup',
-            description: 'شراء',
+            description: 'ط´ط±ط§ط،',
             amount: Number(o.amount),
             is_payment: false,
             created_at: o.created_at,
@@ -5054,7 +5065,7 @@ async function startServer() {
           {
             id: 0,
             type: 'opening',
-            description: 'ديون سابقة',
+            description: 'ط¯ظٹظˆظ† ط³ط§ط¨ظ‚ط©',
             amount: openingBalance,
             balance: openingBalance,
             is_payment: false,
@@ -5100,7 +5111,7 @@ async function startServer() {
         await pool.query(
           `INSERT INTO customer_transactions (customer_id, transaction_type, amount, description)
            VALUES ($1, $2, $3, $4)`,
-          [parseInt(id), 'credit', amount, description || 'دفع']
+          [parseInt(id), 'credit', amount, description || 'ط¯ظپط¹']
         );
 
         const result = await pool.query(
@@ -5108,7 +5119,7 @@ async function startServer() {
           [parseInt(id)]
         );
 
-        console.log(`✅ Credit added to customer ${id}`);
+        console.log(`âœ… Credit added to customer ${id}`);
         res.json({ success: true, customer: result.rows[0] });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
@@ -5148,8 +5159,8 @@ async function startServer() {
           currentDebt: customer.current_debt,
           creditLimit: customer.credit_limit,
           message: canProceed 
-            ? (isNearLimit ? `تحذير: الرصيد المتبقي: ${availableCredit - amount}` : "يمكن المتابعة")
-            : `اعتذر: الرصيد المتاح ${availableCredit} أقل من المبلغ المطلوب ${amount}`
+            ? (isNearLimit ? `طھط­ط°ظٹط±: ط§ظ„ط±طµظٹط¯ ط§ظ„ظ…طھط¨ظ‚ظٹ: ${availableCredit - amount}` : "ظٹظ…ظƒظ† ط§ظ„ظ…طھط§ط¨ط¹ط©")
+            : `ط§ط¹طھط°ط±: ط§ظ„ط±طµظٹط¯ ط§ظ„ظ…طھط§ط­ ${availableCredit} ط£ظ‚ظ„ ظ…ظ† ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…ط·ظ„ظˆط¨ ${amount}`
         });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
@@ -5163,10 +5174,10 @@ async function startServer() {
       try {
         const { phone, password, store_id } = req.body;
 
-        console.log('🔐 /api/topup/auth received:', { phone, store_id, passwordLength: password?.length });
+        console.log('ًں”گ /api/topup/auth received:', { phone, store_id, passwordLength: password?.length });
 
         if (!phone || !password || !store_id) {
-          return res.status(400).json({ error: "رقم الهاتف وكلمة المرور ومعرف المتجر مطلوبة" });
+          return res.status(400).json({ error: "ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ظˆظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظˆظ…ط¹ط±ظپ ط§ظ„ظ…طھط¬ط± ظ…ط·ظ„ظˆط¨ط©" });
         }
 
         // Check if customer exists in the registered customers list for this topup store
@@ -5178,7 +5189,7 @@ async function startServer() {
           [parseInt(store_id), phone]
         );
 
-        console.log('🔐 Customer lookup result:', { 
+        console.log('ًں”گ Customer lookup result:', { 
           found: customerResult.rows.length > 0, 
           store_id, 
           phone,
@@ -5187,13 +5198,13 @@ async function startServer() {
 
         if (customerResult.rows.length === 0) {
           return res.status(403).json({ 
-            error: `❌ عذراً، رقم الهاتف ${phone} غير مسجل في المتجر #${store_id}. يرجى التواصل مع المتجر للتسجيل.` 
+            error: `â‌Œ ط¹ط°ط±ط§ظ‹طŒ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ${phone} ط؛ظٹط± ظ…ط³ط¬ظ„ ظپظٹ ط§ظ„ظ…طھط¬ط± #${store_id}. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ظ…طھط¬ط± ظ„ظ„طھط³ط¬ظٹظ„.` 
           });
         }
 
         const customer = customerResult.rows[0];
 
-        console.log('🔐 Customer found:', { 
+        console.log('ًں”گ Customer found:', { 
           name: customer.name, 
           is_active: customer.is_active,
           has_password: !!customer.password,
@@ -5202,19 +5213,19 @@ async function startServer() {
 
         if (!customer.is_active) {
           return res.status(403).json({ 
-            error: "❌ حسابك غير مفعّل. يرجى التواصل مع المتجر." 
+            error: "â‌Œ ط­ط³ط§ط¨ظƒ ط؛ظٹط± ظ…ظپط¹ظ‘ظ„. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ظ…طھط¬ط±." 
           });
         }
 
         // Verify password matches
         if (!customer.password || customer.password !== password) {
-          console.log('🔐 Password mismatch:', { provided: password, stored: customer.password, match: customer.password === password });
+          console.log('ًں”گ Password mismatch:', { provided: password, stored: customer.password, match: customer.password === password });
           return res.status(403).json({ 
-            error: `❌ كلمة المرور غير صحيحة للرقم ${phone}. يرجى المحاولة مرة أخرى.` 
+            error: `â‌Œ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط؛ظٹط± طµط­ظٹط­ط© ظ„ظ„ط±ظ‚ظ… ${phone}. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.` 
           });
         }
         
-        console.log('✅ Auth successful for:', customer.name);
+        console.log('âœ… Auth successful for:', customer.name);
         res.json({
           success: true,
           customer_id: customer.customer_id,
@@ -5224,10 +5235,10 @@ async function startServer() {
           customer_type: customer.customer_type,
           credit_limit: customer.credit_limit,
           current_debt: customer.current_debt,
-          message: "تم التحقق بنجاح ✓"
+          message: "طھظ… ط§ظ„طھط­ظ‚ظ‚ ط¨ظ†ط¬ط§ط­ âœ“"
         });
       } catch (error) {
-        console.error('❌ /api/topup/auth error:', error);
+        console.error('â‌Œ /api/topup/auth error:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -5306,7 +5317,7 @@ async function startServer() {
         );
         
         if (existingCheck.rows.length > 0) {
-          return res.status(400).json({ error: "هذا رقم الهاتف مسجل بالفعل" });
+          return res.status(400).json({ error: "ظ‡ط°ط§ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ظ…ط³ط¬ظ„ ط¨ط§ظ„ظپط¹ظ„" });
         }
         
         const result = await pool.query(
@@ -5328,7 +5339,7 @@ async function startServer() {
         const { id } = req.params;
         const { name, phone, password, customer_type, credit_limit, starting_balance, notes } = req.body;
         
-        console.log(`📝 UPDATE CUSTOMER ${id}:`);
+        console.log(`ًں“‌ UPDATE CUSTOMER ${id}:`);
         console.log(`   Received name: "${name}"`);
         console.log(`   Received phone: "${phone}"`);
         
@@ -5392,7 +5403,7 @@ async function startServer() {
           return res.status(400).json({ error: "Invalid customer ID" });
         }
         
-        console.log(`🗑️ [DELETE TOPUP] Deleting customer: ${customerId}`);
+        console.log(`ًں—‘ï¸ڈ [DELETE TOPUP] Deleting customer: ${customerId}`);
         
         // Verify customer exists and get info
         const checkRes = await pool.query(
@@ -5401,8 +5412,8 @@ async function startServer() {
         );
         
         if (checkRes.rows.length === 0) {
-          console.error(`❌ Customer not found: ${customerId}`);
-          return res.status(404).json({ error: "العميل غير موجود" });
+          console.error(`â‌Œ Customer not found: ${customerId}`);
+          return res.status(404).json({ error: "ط§ظ„ط¹ظ…ظٹظ„ ط؛ظٹط± ظ…ظˆط¬ظˆط¯" });
         }
         
         const customer = checkRes.rows[0];
@@ -5416,35 +5427,35 @@ async function startServer() {
           [customerId]
         );
 
-        console.log(`✅ [DELETE TOPUP] Customer deactivated safely: ${customer.name} (${customer.phone}) - ID: ${customerId}`);
+        console.log(`âœ… [DELETE TOPUP] Customer deactivated safely: ${customer.name} (${customer.phone}) - ID: ${customerId}`);
 
-        res.json({ success: true, message: "تم تعطيل العميل بنجاح دون المساس بسجل الشراء", customer: { id: customerId, name: customer.name } });
+        res.json({ success: true, message: "طھظ… طھط¹ط·ظٹظ„ ط§ظ„ط¹ظ…ظٹظ„ ط¨ظ†ط¬ط§ط­ ط¯ظˆظ† ط§ظ„ظ…ط³ط§ط³ ط¨ط³ط¬ظ„ ط§ظ„ط´ط±ط§ط،", customer: { id: customerId, name: customer.name } });
       } catch (error) {
-        console.error(`❌ [DELETE TOPUP] Error:`, error);
+        console.error(`â‌Œ [DELETE TOPUP] Error:`, error);
         res.status(500).json({ error: (error as any).message });
       }
     });
 
     // Get customer statement (transactions) - TOPUP STORE ONLY
-    // ⚠️ IMPORTANT: This endpoint is EXCLUSIVELY for topup store customers
+    // âڑ ï¸ڈ IMPORTANT: This endpoint is EXCLUSIVELY for topup store customers
     // It queries topup_orders table (NOT orders table) to avoid mixing with regular store orders
     app.get("/api/topup/customers/:customerId/statement", async (req, res) => {
       try {
         const { customerId } = req.params;
         
-        // ⭐ Validate customer ID format
+        // â­گ Validate customer ID format
         const customerIdNum = parseInt(customerId);
         if (isNaN(customerIdNum) || customerIdNum <= 0) {
-          console.error(`❌ [STATEMENT] Invalid customer ID format: ${customerId}`);
+          console.error(`â‌Œ [STATEMENT] Invalid customer ID format: ${customerId}`);
           return res.status(400).json({ error: "Invalid customer ID format" });
         }
         
-        // ⚠️ CRITICAL: Disable all caching for dynamic data
+        // âڑ ï¸ڈ CRITICAL: Disable all caching for dynamic data
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.set('Pragma', 'no-cache');
         res.set('Expires', '0');
         
-        console.log(`\n📊 [STATEMENT] Fetching statement for customer ID: ${customerIdNum}`);
+        console.log(`\nًں“ٹ [STATEMENT] Fetching statement for customer ID: ${customerIdNum}`);
         
         // Get customer info
         const customerResult = await pool.query(
@@ -5454,20 +5465,20 @@ async function startServer() {
         );
         
         if (customerResult.rows.length === 0) {
-          console.log(`❌ [STATEMENT] Customer ${customerIdNum} not found`);
+          console.log(`â‌Œ [STATEMENT] Customer ${customerIdNum} not found`);
           return res.status(404).json({ error: "Customer not found" });
         }
         
         const customer = customerResult.rows[0];
         
-        // ⭐ Double-check: Verify returned customer matches requested ID
+        // â­گ Double-check: Verify returned customer matches requested ID
         if (customer.id !== customerIdNum) {
-          console.error(`❌ [STATEMENT] SECURITY ERROR: Requested customer ${customerIdNum}, but got ${customer.id}`);
+          console.error(`â‌Œ [STATEMENT] SECURITY ERROR: Requested customer ${customerIdNum}, but got ${customer.id}`);
           return res.status(500).json({ error: "Data integrity error" });
         }
         
-        console.log(`✅ [STATEMENT] Customer found: ${customer.name} (verified ID: ${customer.id})`);
-        console.log(`   🔍 Customer data:`, {
+        console.log(`âœ… [STATEMENT] Customer found: ${customer.name} (verified ID: ${customer.id})`);
+        console.log(`   ًں”چ Customer data:`, {
           id: customer.id,
           starting_balance: customer.starting_balance,
           current_debt: customer.current_debt,
@@ -5479,19 +5490,19 @@ async function startServer() {
           throw new Error('Customer ID is missing');
         }
         
-        // ✅ Calculate opening balance
+        // âœ… Calculate opening balance
         // Opening balance is just the starting_balance - it never changes!
         // It represents the initial capital/credit given to customer
         const openingBalance = Number(customer.starting_balance) || 0;
         
-        console.log(`📊 [STATEMENT] Opening balance calculation:`);
-        console.log(`   Starting balance (immutable): ${openingBalance} د.ع`);
+        console.log(`ًں“ٹ [STATEMENT] Opening balance calculation:`);
+        console.log(`   Starting balance (immutable): ${openingBalance} ط¯.ط¹`);
         
-        console.log(`📊 [STATEMENT] Opening balance calculation:`);
-        console.log(`   Starting balance (immutable): ${openingBalance} د.ع`);
+        console.log(`ًں“ٹ [STATEMENT] Opening balance calculation:`);
+        console.log(`   Starting balance (immutable): ${openingBalance} ط¯.ط¹`);
         
         // Get customer's topup orders (purchases/debits) from TOPUP_ORDERS table
-        // ⚠️ IMPORTANT: Use topup_orders ONLY - not orders table!
+        // âڑ ï¸ڈ IMPORTANT: Use topup_orders ONLY - not orders table!
         // orders table is for regular store customers, topup_orders is for topup store customers
         let ordersResult = { rows: [] };
         try {
@@ -5504,9 +5515,9 @@ async function startServer() {
              ORDER BY o.created_at ASC`,
             [customerIdNum]
           );
-          console.log(`📦 [STATEMENT] Topup Orders query - Customer: ${customerIdNum}, Found: ${ordersResult.rows.length}`);
+          console.log(`ًں“¦ [STATEMENT] Topup Orders query - Customer: ${customerIdNum}, Found: ${ordersResult.rows.length}`);
         } catch (e) {
-          console.warn(`⚠️ [STATEMENT] Topup Orders query failed (table may not exist):`, (e as any).message);
+          console.warn(`âڑ ï¸ڈ [STATEMENT] Topup Orders query failed (table may not exist):`, (e as any).message);
           ordersResult = { rows: [] };
         }
         
@@ -5519,16 +5530,16 @@ async function startServer() {
              ORDER BY created_at ASC`,
             [customerIdNum]
           );
-          console.log(`💳 [STATEMENT] Payments query - Customer: ${customerIdNum}, Found: ${paymentsResult.rows.length}`);
+          console.log(`ًں’³ [STATEMENT] Payments query - Customer: ${customerIdNum}, Found: ${paymentsResult.rows.length}`);
           
-          // ⭐ Verify all returned payments belong to this customer
+          // â­گ Verify all returned payments belong to this customer
           const wrongPayments = paymentsResult.rows.filter(p => p.customer_id !== customerIdNum);
           if (wrongPayments.length > 0) {
-            console.error(`❌ [STATEMENT] SECURITY ERROR: Found ${wrongPayments.length} payments for different customers!`);
-            wrongPayments.forEach(p => console.error(`   ❌ Payment ID ${p.id}: customer_id = ${p.customer_id}, expected ${customerIdNum}`));
+            console.error(`â‌Œ [STATEMENT] SECURITY ERROR: Found ${wrongPayments.length} payments for different customers!`);
+            wrongPayments.forEach(p => console.error(`   â‌Œ Payment ID ${p.id}: customer_id = ${p.customer_id}, expected ${customerIdNum}`));
           }
         } catch (e) {
-          console.warn(`⚠️ [STATEMENT] Payments query failed (table may not exist):`, (e as any).message);
+          console.warn(`âڑ ï¸ڈ [STATEMENT] Payments query failed (table may not exist):`, (e as any).message);
           paymentsResult = { rows: [] };
         }
         
@@ -5538,7 +5549,7 @@ async function startServer() {
             id: o.id,
             created_at: o.created_at instanceof Date ? o.created_at.toISOString() : String(o.created_at),
             type: 'topup',
-            description: `شراء - ${o.total_amount || 0} د.ع`,
+            description: `ط´ط±ط§ط، - ${o.total_amount || 0} ط¯.ط¹`,
             amount: Number(o.total_amount || 0),
             is_payment: false,
             source: 'topup_order'
@@ -5547,7 +5558,7 @@ async function startServer() {
             id: p.id,
             created_at: p.created_at instanceof Date ? p.created_at.toISOString() : String(p.created_at),
             type: 'payment',
-            description: 'دفعة',
+            description: 'ط¯ظپط¹ط©',
             amount: Number(p.amount || 0),
             is_payment: true,
             source: 'payment'
@@ -5561,7 +5572,7 @@ async function startServer() {
           id: 0,
           created_at: customer.created_at instanceof Date ? customer.created_at.toISOString() : String(customer.created_at),
           type: 'opening',
-          description: 'ديون سابقة',
+          description: 'ط¯ظٹظˆظ† ط³ط§ط¨ظ‚ط©',
           amount: openingBalance,
           is_payment: false,
           source: 'opening',
@@ -5599,8 +5610,8 @@ async function startServer() {
           ? otherTransactionsWithBalance[otherTransactionsWithBalance.length - 1].balance 
           : openingBalance;
         
-        console.log(`📊 [STATEMENT] Final: ${transactions.length} transactions, final balance: ${finalBalance} د.ع`);
-        console.log(`📊 [STATEMENT] Database current_debt: ${customer.current_debt}, Calculated finalBalance: ${finalBalance}`);
+        console.log(`ًں“ٹ [STATEMENT] Final: ${transactions.length} transactions, final balance: ${finalBalance} ط¯.ط¹`);
+        console.log(`ًں“ٹ [STATEMENT] Database current_debt: ${customer.current_debt}, Calculated finalBalance: ${finalBalance}`);
         
         res.json({
           customer: {
@@ -5621,17 +5632,17 @@ async function startServer() {
         const errorCode = (error as any).code || 'UNKNOWN';
         const errorDetail = (error as any).detail || '';
         
-        console.error('❌ Statement error:', errorMsg);
+        console.error('â‌Œ Statement error:', errorMsg);
         console.error('   Code:', errorCode);
         console.error('   Detail:', errorDetail);
         console.error('   Stack:', (error as any).stack);
         
         // Return different error messages based on the type of error
-        let userMessage = 'حدث خطأ في تحميل كشف الحساب';
+        let userMessage = 'ط­ط¯ط« ط®ط·ط£ ظپظٹ طھط­ظ…ظٹظ„ ظƒط´ظپ ط§ظ„ط­ط³ط§ط¨';
         if (errorCode === '42P01') {
-          userMessage = 'جدول غير موجود في قاعدة البيانات';
+          userMessage = 'ط¬ط¯ظˆظ„ ط؛ظٹط± ظ…ظˆط¬ظˆط¯ ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ';
         } else if (errorCode === '42703') {
-          userMessage = 'عمود غير موجود في الجدول';
+          userMessage = 'ط¹ظ…ظˆط¯ ط؛ظٹط± ظ…ظˆط¬ظˆط¯ ظپظٹ ط§ظ„ط¬ط¯ظˆظ„';
         }
         
         res.status(500).json({ 
@@ -5644,14 +5655,14 @@ async function startServer() {
     // Topup Payment - Reduce starting_balance or current_debt
     app.post("/api/topup/payment", async (req, res) => {
       try {
-        // ⚠️ CRITICAL: Disable all caching for this endpoint
+        // âڑ ï¸ڈ CRITICAL: Disable all caching for this endpoint
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.set('Pragma', 'no-cache');
         res.set('Expires', '0');
         
         const { customer_id, store_id, amount } = req.body;
         
-        console.log(`💳 [PAYMENT REQUEST] Customer: ${customer_id}, Amount: ${amount}, Store: ${store_id}`);
+        console.log(`ًں’³ [PAYMENT REQUEST] Customer: ${customer_id}, Amount: ${amount}, Store: ${store_id}`);
         
         if (!customer_id || !store_id || !amount || amount <= 0) {
           return res.status(400).json({ error: "customer_id, store_id, and amount are required" });
@@ -5664,28 +5675,28 @@ async function startServer() {
         );
 
         if (customerResult.rows.length === 0) {
-          console.log(`❌ [PAYMENT] Customer ${customer_id} not found`);
+          console.log(`â‌Œ [PAYMENT] Customer ${customer_id} not found`);
           return res.status(404).json({ error: "Customer not found" });
         }
 
         const customer = customerResult.rows[0];
         const currentDebt = parseFloat(customer.current_debt || 0);
         
-        console.log(`💳 [PAYMENT CHECK] Customer: ${customer_id}, CurrentDebt: ${currentDebt}, PaymentAmount: ${amount}`);
+        console.log(`ًں’³ [PAYMENT CHECK] Customer: ${customer_id}, CurrentDebt: ${currentDebt}, PaymentAmount: ${amount}`);
         
         // Validate payment doesn't exceed current debt
         if (currentDebt <= 0) {
-          console.log(`❌ [PAYMENT] Customer has no debt: ${currentDebt}`);
-          return res.status(400).json({ error: `العميل لا يوجد لديه ديون (الديون الحالية: ${currentDebt} د.ع)` });
+          console.log(`â‌Œ [PAYMENT] Customer has no debt: ${currentDebt}`);
+          return res.status(400).json({ error: `ط§ظ„ط¹ظ…ظٹظ„ ظ„ط§ ظٹظˆط¬ط¯ ظ„ط¯ظٹظ‡ ط¯ظٹظˆظ† (ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط­ط§ظ„ظٹط©: ${currentDebt} ط¯.ط¹)` });
         }
         
         if (amount > currentDebt) {
-          console.log(`❌ [PAYMENT] Amount exceeds debt: ${amount} > ${currentDebt}`);
-          return res.status(400).json({ error: `المبلغ المدخل (${amount} د.ع) أكبر من الديون الحالية (${currentDebt} د.ع)` });
+          console.log(`â‌Œ [PAYMENT] Amount exceeds debt: ${amount} > ${currentDebt}`);
+          return res.status(400).json({ error: `ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…ط¯ط®ظ„ (${amount} ط¯.ط¹) ط£ظƒط¨ط± ظ…ظ† ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط­ط§ظ„ظٹط© (${currentDebt} ط¯.ط¹)` });
         }
 
-        // ✅ Update customer's current_debt ONLY
-        // ⭐ IMPORTANT: starting_balance (الديون السابقة) is IMMUTABLE and must never change
+        // âœ… Update customer's current_debt ONLY
+        // â­گ IMPORTANT: starting_balance (ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط³ط§ط¨ظ‚ط©) is IMMUTABLE and must never change
         await pool.query(
           `UPDATE customers SET 
             current_debt = current_debt - $1
@@ -5693,19 +5704,19 @@ async function startServer() {
           [amount, customer_id]
         );
 
-        // ✅ Insert payment record into customer_payments table
+        // âœ… Insert payment record into customer_payments table
         // so it appears in the statement endpoint's transaction list
         try {
-          console.log(`💾 [PAYMENT] Attempting to insert: customer_id=${customer_id}, amount=${amount}, store_id=${store_id}`);
+          console.log(`ًں’¾ [PAYMENT] Attempting to insert: customer_id=${customer_id}, amount=${amount}, store_id=${store_id}`);
           const paymentRes = await pool.query(
             `INSERT INTO customer_payments (customer_id, store_id, amount, payment_method, notes, created_at)
              VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
              RETURNING id`,
-            [customer_id, store_id, amount, 'online', 'تسديد ديون من خلال متجر الشحن']
+            [customer_id, store_id, amount, 'online', 'طھط³ط¯ظٹط¯ ط¯ظٹظˆظ† ظ…ظ† ط®ظ„ط§ظ„ ظ…طھط¬ط± ط§ظ„ط´ط­ظ†']
           );
-          console.log(`✅ [PAYMENT] Recorded in customer_payments table - payment ID: ${paymentRes.rows[0]?.id}`);
+          console.log(`âœ… [PAYMENT] Recorded in customer_payments table - payment ID: ${paymentRes.rows[0]?.id}`);
         } catch (dbErr: any) {
-          console.error(`❌ [PAYMENT] ERROR inserting payment:`, {
+          console.error(`â‌Œ [PAYMENT] ERROR inserting payment:`, {
             code: dbErr.code,
             message: dbErr.message,
             detail: dbErr.detail,
@@ -5714,7 +5725,7 @@ async function startServer() {
           throw new Error("Failed to record payment");
         }
 
-        console.log(`💳 [TOPUP PAYMENT] Customer: ${customer_id} - Amount: ${amount} د.ع - Payment recorded successfully`);
+        console.log(`ًں’³ [TOPUP PAYMENT] Customer: ${customer_id} - Amount: ${amount} ط¯.ط¹ - Payment recorded successfully`);
         
         // Fetch updated customer data
         const updatedCustomer = await pool.query(
@@ -5723,7 +5734,7 @@ async function startServer() {
         );
         
         const customerData = updatedCustomer.rows[0];
-        console.log(`✅ [PAYMENT RESPONSE] Returning customer data:`, {
+        console.log(`âœ… [PAYMENT RESPONSE] Returning customer data:`, {
           id: customerData.id,
           starting_balance: customerData.starting_balance,
           current_debt: customerData.current_debt,
@@ -5732,12 +5743,12 @@ async function startServer() {
         
         res.json({ 
           success: true, 
-          message: "تم تسديد المبلغ بنجاح",
+          message: "طھظ… طھط³ط¯ظٹط¯ ط§ظ„ظ…ط¨ظ„ط؛ ط¨ظ†ط¬ط§ط­",
           amount: amount,
           customer: customerData
         });
       } catch (error) {
-        console.error("❌ Payment error:", error);
+        console.error("â‌Œ Payment error:", error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -5751,7 +5762,7 @@ async function startServer() {
 
         const { paymentId } = req.params;
         
-        console.log(`🗑️ [DELETE PAYMENT] Attempting to delete payment: ${paymentId}`);
+        console.log(`ًں—‘ï¸ڈ [DELETE PAYMENT] Attempting to delete payment: ${paymentId}`);
         
         // Get payment details first
         const paymentRes = await pool.query(
@@ -5760,14 +5771,14 @@ async function startServer() {
         );
         
         if (paymentRes.rows.length === 0) {
-          console.log(`❌ [DELETE PAYMENT] Payment not found: ${paymentId}`);
+          console.log(`â‌Œ [DELETE PAYMENT] Payment not found: ${paymentId}`);
           return res.status(404).json({ error: "Payment not found" });
         }
         
         const payment = paymentRes.rows[0];
         
         // Update customer's current_debt ONLY (reverse the payment)
-        // ⭐ starting_balance (الديون السابقة) must remain IMMUTABLE
+        // â­گ starting_balance (ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط³ط§ط¨ظ‚ط©) must remain IMMUTABLE
         await pool.query(
           `UPDATE customers SET 
             current_debt = current_debt + $1
@@ -5791,20 +5802,20 @@ async function startServer() {
           [payment.customer_id]
         );
         
-        console.log(`✅ [DELETE PAYMENT] Payment deleted successfully. Customer: ${payment.customer_id}, Deleted amount: ${payment.amount} د.ع`);
+        console.log(`âœ… [DELETE PAYMENT] Payment deleted successfully. Customer: ${payment.customer_id}, Deleted amount: ${payment.amount} ط¯.ط¹`);
         
         res.json({ 
           success: true, 
-          message: "تم حذف التسديد بنجاح",
+          message: "طھظ… ط­ط°ظپ ط§ظ„طھط³ط¯ظٹط¯ ط¨ظ†ط¬ط§ط­",
           customer: updatedCustomer.rows[0]
         });
       } catch (error) {
-        console.error("❌ Delete payment error:", error);
+        console.error("â‌Œ Delete payment error:", error);
         res.status(500).json({ error: (error as any).message });
       }
     });
 
-    // ✏️ Edit/Update Payment
+    // âœڈï¸ڈ Edit/Update Payment
     app.put("/api/topup/payment/:paymentId", async (req, res) => {
       try {
         const { paymentId } = req.params;
@@ -5829,7 +5840,7 @@ async function startServer() {
         const amountDifference = Number(newAmount) - oldAmount;
         
         // If amounts differ, adjust customer_debt ONLY
-        // ⭐ starting_balance (الديون السابقة) must remain IMMUTABLE
+        // â­گ starting_balance (ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط³ط§ط¨ظ‚ط©) must remain IMMUTABLE
         if (amountDifference !== 0) {
           await pool.query(
             `UPDATE customers SET 
@@ -5851,11 +5862,11 @@ async function startServer() {
           [payment.customer_id]
         );
         
-        console.log(`✏️ [EDIT PAYMENT] Payment ${paymentId} updated. Customer: ${payment.customer_id}, Old amount: ${oldAmount}, New amount: ${newAmount}, Difference: ${amountDifference} د.ع`);
+        console.log(`âœڈï¸ڈ [EDIT PAYMENT] Payment ${paymentId} updated. Customer: ${payment.customer_id}, Old amount: ${oldAmount}, New amount: ${newAmount}, Difference: ${amountDifference} ط¯.ط¹`);
         
         res.json({ 
           success: true, 
-          message: "تم تحديث التسديد بنجاح",
+          message: "طھظ… طھط­ط¯ظٹط« ط§ظ„طھط³ط¯ظٹط¯ ط¨ظ†ط¬ط§ط­",
           payment: {
             id: paymentId,
             amount: newAmount
@@ -5863,7 +5874,7 @@ async function startServer() {
           customer: updatedCustomer.rows[0]
         });
       } catch (error) {
-        console.error("❌ Edit payment error:", error);
+        console.error("â‌Œ Edit payment error:", error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -5891,7 +5902,7 @@ async function startServer() {
         res.json({
           canProceed,
           isNearLimit,
-          warning: isNearLimit ? `تحذير: الرصيد المتبقي ${availableCredit} د.ع` : '',
+          warning: isNearLimit ? `طھط­ط°ظٹط±: ط§ظ„ط±طµظٹط¯ ط§ظ„ظ…طھط¨ظ‚ظٹ ${availableCredit} ط¯.ط¹` : '',
           availableCredit,
           creditLimit: customer.credit_limit,
           currentDebt: customer.current_debt
@@ -5905,7 +5916,7 @@ async function startServer() {
     app.get("/api/debug/orders-phone", async (req, res) => {
       try {
         const { phone, storeId } = req.query;
-        console.log(`🔍 DEBUG QUERY: phone="${phone}" storeId="${storeId}"`);
+        console.log(`ًں”چ DEBUG QUERY: phone="${phone}" storeId="${storeId}"`);
         
         if (!phone) {
           return res.json({ error: "phone parameter required" });
@@ -5923,7 +5934,7 @@ async function startServer() {
         
         const result = await pool.query(query, params);
         
-        console.log(`📊 DEBUG RESULT: Found ${result.rows.length} orders`);
+        console.log(`ًں“ٹ DEBUG RESULT: Found ${result.rows.length} orders`);
         result.rows.forEach((row: any) => {
           console.log(`  - Order #${row.id}: phone="${row.phone}", amount=${row.total_amount}, store=${row.store_id}`);
         });
@@ -5938,7 +5949,7 @@ async function startServer() {
     app.get("/api/debug/debt-calculation", async (req, res) => {
       try {
         const { phone, storeId } = req.query;
-        console.log(`\n🔍 DEBUG DEBT CALC: phone="${phone}" storeId="${storeId}"`);
+        console.log(`\nًں”چ DEBUG DEBT CALC: phone="${phone}" storeId="${storeId}"`);
         
         if (!phone || !storeId) {
           return res.json({ error: "phone and storeId required" });
@@ -5949,7 +5960,7 @@ async function startServer() {
           `SELECT id, name, phone FROM customers WHERE phone = $1 AND store_id = $2`,
           [phone, parseInt(storeId as string)]
         );
-        console.log(`📌 Customer found: ${custResult.rows.length > 0 ? JSON.stringify(custResult.rows[0]) : "NOT FOUND"}`);
+        console.log(`ًں“Œ Customer found: ${custResult.rows.length > 0 ? JSON.stringify(custResult.rows[0]) : "NOT FOUND"}`);
         
         // Step 2: Calculate debt using exact query from endpoint
         const debtResult = await pool.query(
@@ -5958,14 +5969,14 @@ async function startServer() {
            WHERE store_id = $1 AND phone = $2`,
           [parseInt(storeId as string), phone]
         );
-        console.log(`💰 Debt query result: ${JSON.stringify(debtResult.rows[0])}`);
+        console.log(`ًں’° Debt query result: ${JSON.stringify(debtResult.rows[0])}`);
         
         // Step 3: Show all orders for this phone/store combo
         const ordersResult = await pool.query(
           `SELECT id, phone, total_amount, discount_amount, store_id FROM orders WHERE phone = $1 AND store_id = $2`,
           [phone, parseInt(storeId as string)]
         );
-        console.log(`📦 Found ${ordersResult.rows.length} orders`);
+        console.log(`ًں“¦ Found ${ordersResult.rows.length} orders`);
         ordersResult.rows.forEach((row: any, idx: number) => {
           console.log(`   [${idx + 1}] ID: ${row.id}, Amount: ${row.total_amount}, Discount: ${row.discount_amount}`);
         });
@@ -5986,7 +5997,7 @@ async function startServer() {
     // DEBUG: Check stores mismatch between DB and API
     app.get("/api/debug/stores-mismatch", async (req, res) => {
       try {
-        console.log("\n🔍 DEBUG STORES MISMATCH CHECK");
+        console.log("\nًں”چ DEBUG STORES MISMATCH CHECK");
         
         // Get ALL stores from database (regardless of is_active)
         const allStoresResult = await pool.query(`
@@ -6012,17 +6023,17 @@ async function startServer() {
           ORDER BY s.id DESC
         `);
         
-        console.log(`📊 ALL stores in DB: ${allStoresResult.rows.length}`);
+        console.log(`ًں“ٹ ALL stores in DB: ${allStoresResult.rows.length}`);
         allStoresResult.rows.forEach((s: any) => {
           console.log(`   [${s.id}] ${s.store_name} (is_active: ${s.is_active}, status: ${s.status}, owner_id: ${s.owner_id})`);
         });
         
-        console.log(`\n📊 ACTIVE stores (is_active=true): ${activeStoresResult.rows.length}`);
+        console.log(`\nًں“ٹ ACTIVE stores (is_active=true): ${activeStoresResult.rows.length}`);
         activeStoresResult.rows.forEach((s: any) => {
           console.log(`   [${s.id}] ${s.store_name} (owner_name: ${s.owner_name}, owner_phone: ${s.owner_phone})`);
         });
         
-        console.log(`\n📊 Stores with user info: ${storesWithUsersResult.rows.length}`);
+        console.log(`\nًں“ٹ Stores with user info: ${storesWithUsersResult.rows.length}`);
         storesWithUsersResult.rows.forEach((s: any) => {
           console.log(`   [${s.id}] ${s.store_name} - Owner: ${s.owner_id} (${s.user_name}/${s.user_phone})`);
         });
@@ -6147,22 +6158,22 @@ async function startServer() {
       try {
         let { store_id, name, logo_url } = req.body;
         
-        console.log('\n📦 POST /api/topup/companies');
+        console.log('\nًں“¦ POST /api/topup/companies');
         console.log('   Payload:', { store_id, name, has_logo: !!logo_url });
         
         if (!name || typeof name !== 'string' || name.trim().length === 0) {
-          console.warn('❌ Invalid name');
+          console.warn('â‌Œ Invalid name');
           return res.status(400).json({ error: "Company name is required" });
         }
         
         name = name.trim();
         
-        // ✅ LOGO FIX: Compress and process logo for company
+        // âœ… LOGO FIX: Compress and process logo for company
         let processedLogo = logo_url;
         
         if (logo_url && logo_url.startsWith('data:image')) {
           try {
-            console.log('   🎨 Processing company logo for storage...');
+            console.log('   ًںژ¨ Processing company logo for storage...');
             
             const base64Data = logo_url.replace(/^data:image\/[^;]+;base64,/, '');
             const buffer = Buffer.from(base64Data, 'base64');
@@ -6177,11 +6188,11 @@ async function startServer() {
                 .png({ quality: 80 })
                 .toBuffer();
               
-              console.log(`     ✅ Compressed: ${(compressedBuffer.length / 1024).toFixed(2)} KB`);
+              console.log(`     âœ… Compressed: ${(compressedBuffer.length / 1024).toFixed(2)} KB`);
               processedLogo = 'data:image/png;base64,' + compressedBuffer.toString('base64');
             }
           } catch (compressErr) {
-            console.warn('     ⚠️  Logo compression warning:', (compressErr as any).message);
+            console.warn('     âڑ ï¸ڈ  Logo compression warning:', (compressErr as any).message);
           }
         }
         
@@ -6198,16 +6209,16 @@ async function startServer() {
             const storeCheck = await pool.query('SELECT id FROM stores WHERE id = $1', [providedStoreId]);
             if (storeCheck.rows.length > 0) {
               finalStoreId = providedStoreId;
-              console.log(`   ✅ Using provided store ID: ${finalStoreId}`);
+              console.log(`   âœ… Using provided store ID: ${finalStoreId}`);
             } else {
-              console.log(`   ⚠️  Provided store ID ${providedStoreId} does not exist, searching for alternative...`);
+              console.log(`   âڑ ï¸ڈ  Provided store ID ${providedStoreId} does not exist, searching for alternative...`);
             }
           }
         }
         
         // Step 2: If store_id not valid, find first topup store
         if (!finalStoreId) {
-          console.log('   🔍 Finding topup store...');
+          console.log('   ًں”چ Finding topup store...');
           const topupStores = await pool.query(
             'SELECT id FROM stores WHERE store_type = $1 LIMIT 1',
             ['topup']
@@ -6215,20 +6226,20 @@ async function startServer() {
           
           if (topupStores.rows.length > 0) {
             finalStoreId = topupStores.rows[0].id;
-            console.log(`   ✅ Found topup store: ${finalStoreId}`);
+            console.log(`   âœ… Found topup store: ${finalStoreId}`);
           }
         }
         
         // Step 3: If still no store, find ANY store
         if (!finalStoreId) {
-          console.log('   🔍 Finding any available store...');
+          console.log('   ًں”چ Finding any available store...');
           const anyStore = await pool.query('SELECT id FROM stores LIMIT 1');
           
           if (anyStore.rows.length > 0) {
             finalStoreId = anyStore.rows[0].id;
-            console.log(`   ⚠️  Using first available store: ${finalStoreId}`);
+            console.log(`   âڑ ï¸ڈ  Using first available store: ${finalStoreId}`);
           } else {
-            console.log('   ❌ No stores found in database!');
+            console.log('   â‌Œ No stores found in database!');
             return res.status(500).json({ 
               error: "No stores available in database",
               details: "Database is empty or corrupted. Please create a store first."
@@ -6237,10 +6248,10 @@ async function startServer() {
         }
         
         // Final verification before insert
-        console.log(`   🔍 Final verification: checking store ${finalStoreId}...`);
+        console.log(`   ًں”چ Final verification: checking store ${finalStoreId}...`);
         const finalCheck = await pool.query('SELECT id FROM stores WHERE id = $1', [finalStoreId]);
         if (finalCheck.rows.length === 0) {
-          console.error(`   ❌ CRITICAL: Store ${finalStoreId} disappeared during transaction!`);
+          console.error(`   â‌Œ CRITICAL: Store ${finalStoreId} disappeared during transaction!`);
           return res.status(500).json({
             error: "Store verification failed",
             details: `Store ${finalStoreId} not found in database`
@@ -6248,18 +6259,18 @@ async function startServer() {
         }
         
         // Insert the company
-        console.log(`   📝 Inserting company "${name}" into store ${finalStoreId}...`);
+        console.log(`   ًں“‌ Inserting company "${name}" into store ${finalStoreId}...`);
         const result = await pool.query(
           `INSERT INTO topup_companies (store_id, name, logo_url) 
            VALUES ($1, $2, $3) RETURNING *`,
           [finalStoreId, name, processedLogo || null]
         );
         
-        console.log('   ✅ Company added successfully');
+        console.log('   âœ… Company added successfully');
         res.status(201).json(result.rows[0]);
         
       } catch (error: any) {
-        console.error('\n❌ ERROR in POST /api/topup/companies');
+        console.error('\nâ‌Œ ERROR in POST /api/topup/companies');
         console.error('   Message:', error.message);
         console.error('   Code:', error.code);
         
@@ -6279,12 +6290,12 @@ async function startServer() {
         // No cache for modifications
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
-        // ✅ LOGO FIX: Process logo for company update
+        // âœ… LOGO FIX: Process logo for company update
         let processedLogo = logo_url;
         
         if (logo_url && logo_url.startsWith('data:image')) {
           try {
-            console.log('   🎨 Processing company logo update...');
+            console.log('   ًںژ¨ Processing company logo update...');
             
             const base64Data = logo_url.replace(/^data:image\/[^;]+;base64,/, '');
             const buffer = Buffer.from(base64Data, 'base64');
@@ -6296,10 +6307,10 @@ async function startServer() {
                 .toBuffer();
               
               processedLogo = 'data:image/png;base64,' + compressedBuffer.toString('base64');
-              console.log(`     ✅ Logo compressed for update`);
+              console.log(`     âœ… Logo compressed for update`);
             }
           } catch (compressErr) {
-            console.warn('     ⚠️  Logo compression warning:', (compressErr as any).message);
+            console.warn('     âڑ ï¸ڈ  Logo compression warning:', (compressErr as any).message);
           }
         }
         
@@ -6342,7 +6353,7 @@ async function startServer() {
         
         // Actually delete the company
         await pool.query(`DELETE FROM topup_companies WHERE id = $1`, [id]);
-        res.json({ success: true, message: "✅ تم حذف الشركة بنجاح" });
+        res.json({ success: true, message: "âœ… طھظ… ط­ط°ظپ ط§ظ„ط´ط±ظƒط© ط¨ظ†ط¬ط§ط­" });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
       }
@@ -6575,7 +6586,7 @@ async function startServer() {
       try {
         const { store_id, company_id, amount, price, bulk_price, quantity_type, category_id } = req.body;
         
-        console.log('📦 Product POST received:', { store_id, company_id, amount, price });
+        console.log('ًں“¦ Product POST received:', { store_id, company_id, amount, price });
         
         // No cache for modifications
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -6595,7 +6606,7 @@ async function startServer() {
         
         // Ensure default category exists
         const checkCat = await pool.query(
-          `SELECT id FROM topup_product_categories WHERE store_id = $1 AND name = 'عام' LIMIT 1`,
+          `SELECT id FROM topup_product_categories WHERE store_id = $1 AND name = 'ط¹ط§ظ…' LIMIT 1`,
           [store_id]
         );
         
@@ -6604,15 +6615,15 @@ async function startServer() {
         if (!finalCategoryId) {
           if (checkCat.rows.length > 0) {
             finalCategoryId = checkCat.rows[0].id;
-            console.log('✅ Using existing default category:', finalCategoryId);
+            console.log('âœ… Using existing default category:', finalCategoryId);
           } else {
             // Create default category if it doesn't exist
             const newCat = await pool.query(
               `INSERT INTO topup_product_categories (store_id, name) VALUES ($1, $2) RETURNING id`,
-              [store_id, 'عام']
+              [store_id, 'ط¹ط§ظ…']
             );
             finalCategoryId = newCat.rows[0].id;
-            console.log('✅ Created new default category:', finalCategoryId);
+            console.log('âœ… Created new default category:', finalCategoryId);
           }
         }
         
@@ -6622,10 +6633,10 @@ async function startServer() {
           [store_id, company_id, finalCategoryId, amount, price, bulk_price || price, bulk_price || price]
         );
         
-        console.log('✅ Product created:', result.rows[0]);
+        console.log('âœ… Product created:', result.rows[0]);
         res.status(201).json(result.rows[0]);
       } catch (error) {
-        console.error('❌ Error creating product:', error);
+        console.error('â‌Œ Error creating product:', error);
         res.status(500).json({ error: (error as any).message, details: (error as any).detail });
       }
     });
@@ -6673,17 +6684,17 @@ async function startServer() {
         
         // Handle images array - send as array (PostgreSQL will handle conversion)
         if (images !== undefined && Array.isArray(images)) {
-          // 🔥 CRITICAL: Filter out base64/JSON - keep ONLY valid URLs
+          // ًں”¥ CRITICAL: Filter out base64/JSON - keep ONLY valid URLs
           const validImages = images.filter((img: any) => {
             const isValidUrl = typeof img === 'string' && (img.startsWith('/uploads/') || img.startsWith('http'));
             const isBase64OrJson = typeof img === 'string' && (img.startsWith('data:') || img.startsWith('{'));
             if (isBase64OrJson) {
-              console.warn('⚠️ [PUT] Rejecting base64/JSON data from request:', img.substring(0, 50));
+              console.warn('âڑ ï¸ڈ [PUT] Rejecting base64/JSON data from request:', img.substring(0, 50));
             }
             return isValidUrl;
           });
-          console.log('📸 [PUT] Updating product images:', validImages.length, 'valid URLs (filtered from', images.length, 'total)');
-          console.log('📋 [PUT] Valid images to save:', validImages);
+          console.log('ًں“¸ [PUT] Updating product images:', validImages.length, 'valid URLs (filtered from', images.length, 'total)');
+          console.log('ًں“‹ [PUT] Valid images to save:', validImages);
           updates.push(`images = $${paramCount++}`);
           values.push(validImages); // Pass array directly - PostgreSQL driver handles conversion
         }
@@ -6697,7 +6708,7 @@ async function startServer() {
           return res.status(404).json({ error: "Product not found" });
         }
         
-        console.log('✅ Product updated:', result.rows[0].id);
+        console.log('âœ… Product updated:', result.rows[0].id);
         res.json(result.rows[0]);
       } catch (error) {
         console.error('Error updating product:', error);
@@ -6710,7 +6721,7 @@ async function startServer() {
       try {
         const { id } = req.params;
         
-        // منع التخزين المؤقت
+        // ظ…ظ†ط¹ ط§ظ„طھط®ط²ظٹظ† ط§ظ„ظ…ط¤ظ‚طھ
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.set('Pragma', 'no-cache');
         res.set('Expires', '0');
@@ -6789,7 +6800,7 @@ async function startServer() {
           return res.status(400).json({ error: "Missing store_id or image_url" });
         }
 
-        console.log(`🗑️ Deleting image: ${image_url}`);
+        console.log(`ًں—‘ï¸ڈ Deleting image: ${image_url}`);
 
         // Get current images array from product
         const productResult = await pool.query(
@@ -6812,10 +6823,10 @@ async function startServer() {
             const filePath = path.join(__dirname, image_url);
             if (fs.existsSync(filePath)) {
               await unlink(filePath);
-              console.log(`✅ File deleted from filesystem: ${filePath}`);
+              console.log(`âœ… File deleted from filesystem: ${filePath}`);
             }
           } catch (fileErr) {
-            console.warn(`⚠️ Could not delete file: ${image_url}`, fileErr);
+            console.warn(`âڑ ï¸ڈ Could not delete file: ${image_url}`, fileErr);
             // Continue even if file delete fails
           }
         }
@@ -6826,9 +6837,9 @@ async function startServer() {
             `DELETE FROM topup_product_images WHERE topup_product_id = $1 AND image_url = $2`,
             [productId, image_url]
           );
-          console.log(`✅ Deleted from topup_product_images: ${image_url}`);
+          console.log(`âœ… Deleted from topup_product_images: ${image_url}`);
         } catch (dbErr) {
-          console.warn(`⚠️ Could not delete from database: ${image_url}`, dbErr);
+          console.warn(`âڑ ï¸ڈ Could not delete from database: ${image_url}`, dbErr);
         }
 
         // Update product with new images array
@@ -6837,7 +6848,7 @@ async function startServer() {
           [updatedImages, productId, store_id]
         );
 
-        console.log(`✅ Product images updated. Remaining: ${updatedImages.length}`);
+        console.log(`âœ… Product images updated. Remaining: ${updatedImages.length}`);
 
         res.json({
           success: true,
@@ -6845,7 +6856,7 @@ async function startServer() {
           remaining_images: updatedImages
         });
       } catch (error) {
-        console.error('❌ Error deleting image:', error);
+        console.error('â‌Œ Error deleting image:', error);
         res.status(500).json({ 
           success: false, 
           error: (error as any).message 
@@ -6877,7 +6888,7 @@ async function startServer() {
           [parseInt(imageId)]
         );
         
-        console.log(`🗑️  Image deleted: ${imageId} (store: ${imageInfo.rows[0].store_id}, product: ${imageInfo.rows[0].product_id})`);
+        console.log(`ًں—‘ï¸ڈ  Image deleted: ${imageId} (store: ${imageInfo.rows[0].store_id}, product: ${imageInfo.rows[0].product_id})`);
         
         res.json({
           success: true,
@@ -6923,11 +6934,11 @@ async function startServer() {
               duplicateCount++;
             }
           } catch (err) {
-            console.error(`⚠️  Error inserting image: ${err}`);
+            console.error(`âڑ ï¸ڈ  Error inserting image: ${err}`);
           }
         }
         
-        console.log(`✅ Images added: ${insertedCount} inserted, ${duplicateCount} duplicates`);
+        console.log(`âœ… Images added: ${insertedCount} inserted, ${duplicateCount} duplicates`);
         
         res.json({
           success: true,
@@ -6946,28 +6957,28 @@ async function startServer() {
     // Upload images to topup product (card images with codes printed on them)
     app.post("/api/topup/upload-images", async (req, res) => {
       try {
-        console.log('📤 Starting image upload request...');
+        console.log('ًں“¤ Starting image upload request...');
         const { store_id, topup_product_id, images } = req.body;
 
         // No cache for modifications
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
 
         if (!store_id || !topup_product_id || !images || !Array.isArray(images)) {
-          console.warn('⚠️ Missing required fields');
+          console.warn('âڑ ï¸ڈ Missing required fields');
           return res.status(400).json({ error: "Missing required fields or invalid images format" });
         }
 
-        console.log('📊 Image upload details:', { store_id, topup_product_id, image_count: images.length });
+        console.log('ًں“ٹ Image upload details:', { store_id, topup_product_id, image_count: images.length });
 
         // Filter out empty images
         const validImages = images.filter((img: string) => img && img.trim()).map((img: string) => img.trim());
 
         if (validImages.length === 0) {
-          console.warn('⚠️ No valid images provided');
+          console.warn('âڑ ï¸ڈ No valid images provided');
           return res.status(400).json({ error: "No valid images provided" });
         }
 
-        console.log('✔️ Valid images count:', validImages.length);
+        console.log('âœ”ï¸ڈ Valid images count:', validImages.length);
 
         // Get existing images
         const existingResult = await pool.query(
@@ -6976,7 +6987,7 @@ async function startServer() {
         );
 
         if (existingResult.rows.length === 0) {
-          console.warn('⚠️ Product not found');
+          console.warn('âڑ ï¸ڈ Product not found');
           return res.status(404).json({ error: "Product not found" });
         }
 
@@ -6994,7 +7005,7 @@ async function startServer() {
         // Merge old and new unique images only
         const allImages = [...existingImages, ...newUniqueImages];
 
-        console.log('💾 Updating product with images...');
+        console.log('ًں’¾ Updating product with images...');
 
         // Update product with new images only - don't modify available_codes
         const result = await pool.query(
@@ -7005,15 +7016,15 @@ async function startServer() {
           [allImages, topup_product_id, store_id]
         );
 
-        let message = `تم تحميل ${newUniqueImages.length} صورة جديدة بنجاح`;
+        let message = `طھظ… طھط­ظ…ظٹظ„ ${newUniqueImages.length} طµظˆط±ط© ط¬ط¯ظٹط¯ط© ط¨ظ†ط¬ط§ط­`;
         if (duplicateCount > 0) {
-          message += ` (تم تخطي ${duplicateCount} صور مكررة)`;
+          message += ` (طھظ… طھط®ط·ظٹ ${duplicateCount} طµظˆط± ظ…ظƒط±ط±ط©)`;
         }
 
-        console.log('✅ Images uploaded successfully:', { product_id: topup_product_id, new_count: newUniqueImages.length, duplicate_count: duplicateCount });
+        console.log('âœ… Images uploaded successfully:', { product_id: topup_product_id, new_count: newUniqueImages.length, duplicate_count: duplicateCount });
         res.json({ success: true, message, product: result.rows[0] });
       } catch (error) {
-        console.error('❌ Error uploading images:', error);
+        console.error('â‌Œ Error uploading images:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -7021,7 +7032,7 @@ async function startServer() {
     // Upload images to Firebase Storage (supports multipart/form-data for large files)
     app.post("/api/topup/upload-images-firebase", upload.array('images', 100), async (req, res) => {
       try {
-        console.log('📤 Starting Firebase image upload request...');
+        console.log('ًں“¤ Starting Firebase image upload request...');
         const { store_id, topup_product_id } = req.body;
         const files = (req as any).files as any[];
 
@@ -7029,16 +7040,16 @@ async function startServer() {
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
 
         if (!store_id || !topup_product_id) {
-          console.warn('⚠️ Missing required fields for Firebase upload');
+          console.warn('âڑ ï¸ڈ Missing required fields for Firebase upload');
           return res.status(400).json({ error: "Missing store_id or topup_product_id" });
         }
 
         if (!files || files.length === 0) {
-          console.warn('⚠️ No files provided');
+          console.warn('âڑ ï¸ڈ No files provided');
           return res.status(400).json({ error: "No files provided" });
         }
 
-        console.log('📁 Files received:', files.length, 'files');
+        console.log('ًں“پ Files received:', files.length, 'files');
         files.forEach((f, i) => {
           console.log(`  ${i + 1}. ${f.originalname}: ${(f.size / 1024).toFixed(2)} KB (${f.mimetype})`);
         });
@@ -7050,7 +7061,7 @@ async function startServer() {
         );
 
         if (existingResult.rows.length === 0) {
-          console.warn('⚠️ Product not found');
+          console.warn('âڑ ï¸ڈ Product not found');
           return res.status(404).json({ error: "Product not found" });
         }
 
@@ -7062,8 +7073,8 @@ async function startServer() {
         const uploadedUrls: string[] = [];
         const duplicateUrls: string[] = [];
 
-        // 🎯 Save to local storage (uploads directory)
-        console.log('💾 Saving images to local storage...');
+        // ًںژ¯ Save to local storage (uploads directory)
+        console.log('ًں’¾ Saving images to local storage...');
         
         // Create uploads directory if needed
         const uploadsDir = path.join(__dirname, 'uploads', 'topup', String(store_id), String(topup_product_id));
@@ -7094,7 +7105,7 @@ async function startServer() {
             if (hashCheckResult.rows.length > 0) {
               // Image already exists - don't upload
               duplicateUrls.push(file.originalname);
-              console.log('⏭️ Image already exists (duplicate hash):', imageHash);
+              console.log('âڈ­ï¸ڈ Image already exists (duplicate hash):', imageHash);
               continue;
             }
 
@@ -7105,7 +7116,7 @@ async function startServer() {
                 else resolve(true);
               });
             });
-            console.log('✅ File saved locally:', filePath);
+            console.log('âœ… File saved locally:', filePath);
 
             // Store reference in database with local path
             const imageUrl = `/uploads/topup/${store_id}/${topup_product_id}/${fileName}`;
@@ -7118,38 +7129,38 @@ async function startServer() {
             );
 
             uploadedUrls.push(imageUrl);
-            console.log(`✅ Image processed: ${file.originalname} (${(file.size / 1024).toFixed(2)} KB) → ${imageUrl}`);
+            console.log(`âœ… Image processed: ${file.originalname} (${(file.size / 1024).toFixed(2)} KB) â†’ ${imageUrl}`);
           } catch (uploadErr) {
-            console.error('❌ Error saving image locally:', uploadErr);
+            console.error('â‌Œ Error saving image locally:', uploadErr);
           }
         }
 
-        // 🔥 Update topup_products table with image URLs - APPEND to existing images
+        // ًں”¥ Update topup_products table with image URLs - APPEND to existing images
         if (uploadedUrls.length > 0) {
           try {
             // Combine existing images + newly uploaded images
             const finalImages = [...existingImageUrls, ...uploadedUrls];
-            console.log('🔗 Combining images: existing=', existingImageUrls.length, '+ new=', uploadedUrls.length, '= total', finalImages.length);
+            console.log('ًں”— Combining images: existing=', existingImageUrls.length, '+ new=', uploadedUrls.length, '= total', finalImages.length);
             
             const updateResult = await pool.query(
               `UPDATE topup_products SET images = $1 WHERE id = $2 AND store_id = $3 RETURNING images`,
               [finalImages, topup_product_id, store_id]
             );
-            console.log('✅ Product images updated in database:', finalImages.length, 'total images');
-            console.log('✅ Final images array:', finalImages);
+            console.log('âœ… Product images updated in database:', finalImages.length, 'total images');
+            console.log('âœ… Final images array:', finalImages);
           } catch (updateErr) {
-            console.error('⚠️ Warning: Could not update product images in database:', updateErr);
+            console.error('âڑ ï¸ڈ Warning: Could not update product images in database:', updateErr);
           }
         } else {
-          console.warn('⚠️ No new images uploaded');
+          console.warn('âڑ ï¸ڈ No new images uploaded');
         }
 
-        let message = `تم تحميل ${uploadedUrls.length} صورة جديدة بنجاح`;
+        let message = `طھظ… طھط­ظ…ظٹظ„ ${uploadedUrls.length} طµظˆط±ط© ط¬ط¯ظٹط¯ط© ط¨ظ†ط¬ط§ط­`;
         if (duplicateUrls.length > 0) {
-          message += ` (تم تخطي ${duplicateUrls.length} صور مكررة)`;
+          message += ` (طھظ… طھط®ط·ظٹ ${duplicateUrls.length} طµظˆط± ظ…ظƒط±ط±ط©)`;
         }
 
-        console.log('✅ Images uploaded successfully:', { 
+        console.log('âœ… Images uploaded successfully:', { 
           product_id: topup_product_id, 
           new_count: uploadedUrls.length, 
           duplicate_count: duplicateUrls.length,
@@ -7165,7 +7176,7 @@ async function startServer() {
           all_images: allImages
         });
       } catch (error) {
-        console.error('❌ Error uploading images:', error);
+        console.error('â‌Œ Error uploading images:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -7222,15 +7233,15 @@ async function startServer() {
           [allCodes, allCodes.length, topup_product_id, store_id]
         );
 
-        let message = `تم تحميل ${newUniqueCode.length} أكواد جديدة بنجاح`;
+        let message = `طھظ… طھط­ظ…ظٹظ„ ${newUniqueCode.length} ط£ظƒظˆط§ط¯ ط¬ط¯ظٹط¯ط© ط¨ظ†ط¬ط§ط­`;
         if (duplicateCount > 0) {
-          message += ` (تم تخطي ${duplicateCount} أكواد مكررة)`;
+          message += ` (طھظ… طھط®ط·ظٹ ${duplicateCount} ط£ظƒظˆط§ط¯ ظ…ظƒط±ط±ط©)`;
         }
 
-        console.log('✅ Codes uploaded:', { product_id: topup_product_id, new_count: newUniqueCode.length, duplicate_count: duplicateCount });
+        console.log('âœ… Codes uploaded:', { product_id: topup_product_id, new_count: newUniqueCode.length, duplicate_count: duplicateCount });
         res.json({ success: true, message, product: result.rows[0] });
       } catch (error) {
-        console.error('❌ Error uploading codes:', error);
+        console.error('â‌Œ Error uploading codes:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -7240,8 +7251,8 @@ async function startServer() {
       try {
         const { store_id, topup_product_id, quantity, customer_id, customer_type, phone, total_amount, selected_images } = req.body;
 
-        console.log(`\n🛒 ========== TOPUP PURCHASE REQUEST ==========`);
-        console.log(`📦 Request Body:`, JSON.stringify(req.body, null, 2));
+        console.log(`\nًں›’ ========== TOPUP PURCHASE REQUEST ==========`);
+        console.log(`ًں“¦ Request Body:`, JSON.stringify(req.body, null, 2));
 
         if (!store_id || !topup_product_id || !quantity || !phone) {
           return res.status(400).json({ error: "Missing required fields" });
@@ -7253,7 +7264,7 @@ async function startServer() {
           return res.status(400).json({ error: "Invalid store_id format" });
         }
 
-        console.log(`\n🔍 Finding or creating customer...`);
+        console.log(`\nًں”چ Finding or creating customer...`);
         console.log(`  - customer_id provided: ${customer_id}`);
         console.log(`  - phone provided: ${phone}`);
         console.log(`  - store_id: ${parsedStoreId}`);
@@ -7270,16 +7281,16 @@ async function startServer() {
           
           if (checkRes.rows.length > 0) {
             foundCustomerId = customer_id;
-            console.log(`✅ Customer found by ID: ${foundCustomerId}`);
+            console.log(`âœ… Customer found by ID: ${foundCustomerId}`);
           } else {
-            console.error(`❌ Customer ID ${customer_id} not found for store ${parsedStoreId}`);
-            return res.status(403).json({ error: "❌ العميل غير مسجل" });
+            console.error(`â‌Œ Customer ID ${customer_id} not found for store ${parsedStoreId}`);
+            return res.status(403).json({ error: "â‌Œ ط§ظ„ط¹ظ…ظٹظ„ ط؛ظٹط± ظ…ط³ط¬ظ„" });
           }
         }
         
         // Step 2: If no customer_id, try to find or create by phone
         if (!foundCustomerId && phone) {
-          console.log(`🔍 Searching for customer by phone: ${phone}`);
+          console.log(`ًں”چ Searching for customer by phone: ${phone}`);
           
           const phoneRes = await pool.query(
             `SELECT id FROM customers WHERE phone = $1 AND store_id = $2`,
@@ -7288,26 +7299,26 @@ async function startServer() {
           
           if (phoneRes.rows.length > 0) {
             foundCustomerId = phoneRes.rows[0].id;
-            console.log(`✅ Customer found by phone: ID=${foundCustomerId}`);
+            console.log(`âœ… Customer found by phone: ID=${foundCustomerId}`);
           } else {
             // Create new customer
-            console.log(`✨ Creating new customer...`);
+            console.log(`âœ¨ Creating new customer...`);
             try {
               const insertRes = await pool.query(
                 `INSERT INTO customers (store_id, phone, name, current_debt, starting_balance, is_active)
                  VALUES ($1, $2, $3, 0, 0, true)
                  RETURNING id`,
-                [parsedStoreId, phone, `عميل جديد - ${phone}`]
+                [parsedStoreId, phone, `ط¹ظ…ظٹظ„ ط¬ط¯ظٹط¯ - ${phone}`]
               );
               
               foundCustomerId = insertRes.rows[0].id;
-              console.log(`✅ New customer created: ID=${foundCustomerId}`);
+              console.log(`âœ… New customer created: ID=${foundCustomerId}`);
             } catch (insertErr: any) {
-              console.error(`❌ Insert error:`, insertErr.code, insertErr.message);
+              console.error(`â‌Œ Insert error:`, insertErr.code, insertErr.message);
               
               // If unique constraint violation, customer might be deleted, try to reactivate
               if (insertErr.code === '23505') {
-                console.log(`⚠️ Unique constraint - customer exists, fetching...`);
+                console.log(`âڑ ï¸ڈ Unique constraint - customer exists, fetching...`);
                 const existRes = await pool.query(
                   `SELECT id, is_active FROM customers WHERE phone = $1 AND store_id = $2`,
                   [phone, parsedStoreId]
@@ -7317,20 +7328,20 @@ async function startServer() {
                   foundCustomerId = existRes.rows[0].id;
                   
                   if (!existRes.rows[0].is_active) {
-                    console.log(`🔄 Reactivating customer ID=${foundCustomerId}`);
+                    console.log(`ًں”„ Reactivating customer ID=${foundCustomerId}`);
                     await pool.query(
                       `UPDATE customers SET is_active = true WHERE id = $1`,
                       [foundCustomerId]
                     );
                   }
                   
-                  console.log(`✅ Using customer: ID=${foundCustomerId}`);
+                  console.log(`âœ… Using customer: ID=${foundCustomerId}`);
                 } else {
-                  console.error(`❌ Constraint violation but customer not found`);
-                  return res.status(500).json({ error: "❌ خطأ في البيانات" });
+                  console.error(`â‌Œ Constraint violation but customer not found`);
+                  return res.status(500).json({ error: "â‌Œ ط®ط·ط£ ظپظٹ ط§ظ„ط¨ظٹط§ظ†ط§طھ" });
                 }
               } else {
-                return res.status(500).json({ error: `❌ خطأ: ${insertErr.message}` });
+                return res.status(500).json({ error: `â‌Œ ط®ط·ط£: ${insertErr.message}` });
               }
             }
           }
@@ -7338,14 +7349,14 @@ async function startServer() {
         
         // Step 3: Verify we have a valid customer ID
         if (!foundCustomerId || typeof foundCustomerId !== 'number') {
-          console.error(`❌ CRITICAL: Invalid foundCustomerId=${foundCustomerId}`);
-          return res.status(400).json({ error: "❌ فشل التحقق من العميل" });
+          console.error(`â‌Œ CRITICAL: Invalid foundCustomerId=${foundCustomerId}`);
+          return res.status(400).json({ error: "â‌Œ ظپط´ظ„ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط¹ظ…ظٹظ„" });
         }
 
-        console.log(`✅ Customer verified: ID=${foundCustomerId}`);
+        console.log(`âœ… Customer verified: ID=${foundCustomerId}`);
 
         // Step 4: Check credit and debt BEFORE updating
-        console.log(`\n💰 Checking credit limits...`);
+        console.log(`\nًں’° Checking credit limits...`);
         
         const creditRes = await pool.query(
           `SELECT credit_limit FROM customers WHERE id = $1`,
@@ -7353,8 +7364,8 @@ async function startServer() {
         );
         
         if (creditRes.rows.length === 0) {
-          console.error(`❌ CRITICAL: Customer ${foundCustomerId} disappeared!`);
-          return res.status(500).json({ error: "❌ خطأ في البيانات" });
+          console.error(`â‌Œ CRITICAL: Customer ${foundCustomerId} disappeared!`);
+          return res.status(500).json({ error: "â‌Œ ط®ط·ط£ ظپظٹ ط§ظ„ط¨ظٹط§ظ†ط§طھ" });
         }
         
         const creditLimit = creditRes.rows[0].credit_limit;
@@ -7377,24 +7388,24 @@ async function startServer() {
         
         if (availableCredit < total_amount) {
           return res.status(403).json({ 
-            error: `❌ الرصيد المتاح ${availableCredit} أقل من المبلغ المطلوب ${total_amount}` 
+            error: `â‌Œ ط§ظ„ط±طµظٹط¯ ط§ظ„ظ…طھط§ط­ ${availableCredit} ط£ظ‚ظ„ ظ…ظ† ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…ط·ظ„ظˆط¨ ${total_amount}` 
           });
         }
 
         // Step 5: Final safety check before INSERT
-        console.log(`\n🔐 Final safety checks...`);
+        console.log(`\nًں”گ Final safety checks...`);
         console.log(`  - foundCustomerId: ${foundCustomerId} (${typeof foundCustomerId})`);
         console.log(`  - store_id: ${parsedStoreId} (${typeof parsedStoreId})`);
         console.log(`  - total_amount: ${total_amount}`);
 
         if (!foundCustomerId || typeof foundCustomerId !== 'number' || foundCustomerId <= 0) {
-          console.error(`❌ CRITICAL: foundCustomerId is invalid!`);
-          return res.status(400).json({ error: "❌ معرف العميل غير صحيح" });
+          console.error(`â‌Œ CRITICAL: foundCustomerId is invalid!`);
+          return res.status(400).json({ error: "â‌Œ ظ…ط¹ط±ظپ ط§ظ„ط¹ظ…ظٹظ„ ط؛ظٹط± طµط­ظٹط­" });
         }
 
         if (!parsedStoreId || typeof parsedStoreId !== 'number' || parsedStoreId <= 0) {
-          console.error(`❌ CRITICAL: parsedStoreId is invalid!`);
-          return res.status(400).json({ error: "❌ معرف المتجر غير صحيح" });
+          console.error(`â‌Œ CRITICAL: parsedStoreId is invalid!`);
+          return res.status(400).json({ error: "â‌Œ ظ…ط¹ط±ظپ ط§ظ„ظ…طھط¬ط± ط؛ظٹط± طµط­ظٹط­" });
         }
 
         // Double-check customer still exists
@@ -7404,11 +7415,11 @@ async function startServer() {
         );
 
         if (finalCheckRes.rows.length === 0) {
-          console.error(`❌ CRITICAL: Customer ${foundCustomerId} not found for store ${parsedStoreId}`);
-          return res.status(500).json({ error: "❌ العميل غير موجود" });
+          console.error(`â‌Œ CRITICAL: Customer ${foundCustomerId} not found for store ${parsedStoreId}`);
+          return res.status(500).json({ error: "â‌Œ ط§ظ„ط¹ظ…ظٹظ„ ط؛ظٹط± ظ…ظˆط¬ظˆط¯" });
         }
 
-        console.log(`✅ All checks passed - ready to create order`);
+        console.log(`âœ… All checks passed - ready to create order`);
         
         const orderResult = await pool.query(
           `INSERT INTO orders (customer_id, topup_customer_id, store_id, total_amount, phone, address, status, is_topup_order)
@@ -7418,19 +7429,19 @@ async function startServer() {
         );
 
         if (!orderResult.rows || orderResult.rows.length === 0) {
-          console.error(`❌ Failed to create order - no rows returned`);
-          return res.status(500).json({ error: "❌ فشل إنشاء الطلب" });
+          console.error(`â‌Œ Failed to create order - no rows returned`);
+          return res.status(500).json({ error: "â‌Œ ظپط´ظ„ ط¥ظ†ط´ط§ط، ط§ظ„ط·ظ„ط¨" });
         }
 
         const orderId = orderResult.rows[0].id;
-        console.log(`✅ Topup Order Created: ID=${orderId}, Customer=${foundCustomerId}, Store=${parsedStoreId}, Amount=${total_amount}`);
+        console.log(`âœ… Topup Order Created: ID=${orderId}, Customer=${foundCustomerId}, Store=${parsedStoreId}, Amount=${total_amount}`);
 
         // Update customer's current_debt to reflect the new topup purchase
         await pool.query(
           `UPDATE customers SET current_debt = current_debt + $1 WHERE id = $2`,
           [total_amount, foundCustomerId]
         );
-        console.log(`💳 [TOPUP PURCHASE] Customer ${foundCustomerId} debt increased by ${total_amount}`);
+        console.log(`ًں’³ [TOPUP PURCHASE] Customer ${foundCustomerId} debt increased by ${total_amount}`);
 
         // Add order item with topup_product_id
         await pool.query(
@@ -7439,7 +7450,7 @@ async function startServer() {
           [orderId, topup_product_id, quantity, total_amount / quantity]
         );
 
-        console.log(`✅ Order item added for topup product ${topup_product_id}`);
+        console.log(`âœ… Order item added for topup product ${topup_product_id}`);
 
         // Get current product codes/images and remove used ones
         const productResult = await pool.query(
@@ -7477,13 +7488,13 @@ async function startServer() {
             imagesArray = [];
           }
           
-          console.log(`🔑 Current codes available: ${codesArray.length}`);
-          console.log(`🖼️  Current images available: ${imagesArray.length}`);
+          console.log(`ًں”‘ Current codes available: ${codesArray.length}`);
+          console.log(`ًں–¼ï¸ڈ  Current images available: ${imagesArray.length}`);
           
           if (codesArray.length > 0) {
             // Remove the first 'quantity' codes from the product
             const remainingCodes = codesArray.slice(quantity);
-            console.log(`🗑️  Removed ${quantity} codes. Remaining: ${remainingCodes.length}`);
+            console.log(`ًں—‘ï¸ڈ  Removed ${quantity} codes. Remaining: ${remainingCodes.length}`);
             
             // Update product with remaining codes AND update available_codes count
             await pool.query(
@@ -7491,9 +7502,9 @@ async function startServer() {
               [remainingCodes, remainingCodes.length, topup_product_id]
             );
             
-            console.log(`✅ Topup product codes updated - available_codes: ${remainingCodes.length}`);
+            console.log(`âœ… Topup product codes updated - available_codes: ${remainingCodes.length}`);
           } else {
-            console.log(`⚠️  Warning: No codes available to assign!`);
+            console.log(`âڑ ï¸ڈ  Warning: No codes available to assign!`);
           }
           
           // Handle images - store them in order_images table
@@ -7507,12 +7518,12 @@ async function startServer() {
               usedImages = selected_images.filter((img: string) => imagesArray.includes(img));
               // Remove selected images from remaining
               remainingImages = imagesArray.filter((img: string) => !usedImages.includes(img));
-              console.log(`🖼️  Using ${usedImages.length} selected images. Remaining: ${remainingImages.length}`);
+              console.log(`ًں–¼ï¸ڈ  Using ${usedImages.length} selected images. Remaining: ${remainingImages.length}`);
             } else {
               // Fallback: use first 'quantity' images
               usedImages = imagesArray.slice(0, quantity);
               remainingImages = imagesArray.slice(quantity);
-              console.log(`🖼️  Using first ${usedImages.length} images. Remaining: ${remainingImages.length}`);
+              console.log(`ًں–¼ï¸ڈ  Using first ${usedImages.length} images. Remaining: ${remainingImages.length}`);
             }
             
             // Store used images in order_images table AND delete from topup_product_images
@@ -7526,15 +7537,15 @@ async function startServer() {
                   [orderId, topup_product_id, image]
                 );
                 
-                // 🗑️ DELETE from topup_product_images (so it doesn't appear in API response)
+                // ًں—‘ï¸ڈ DELETE from topup_product_images (so it doesn't appear in API response)
                 await pool.query(
                   `DELETE FROM topup_product_images WHERE topup_product_id = $1 AND image_url = $2`,
                   [topup_product_id, image]
                 );
                 
-                console.log(`🗑️  Deleted image from topup_product_images: ${image}`);
+                console.log(`ًں—‘ï¸ڈ  Deleted image from topup_product_images: ${image}`);
               } catch (err) {
-                console.error(`⚠️  Error processing image: ${err}`);
+                console.error(`âڑ ï¸ڈ  Error processing image: ${err}`);
               }
             }
             
@@ -7544,7 +7555,7 @@ async function startServer() {
               [remainingImages, topup_product_id]
             );
             
-            console.log(`✅ Topup product images updated - remaining: ${remainingImages.length}`);
+            console.log(`âœ… Topup product images updated - remaining: ${remainingImages.length}`);
           }
         }
 
@@ -7560,15 +7571,15 @@ async function startServer() {
         
         const storedImages = storedImagesResult.rows.map(row => row.image_url);
 
-        console.log(`\n✅ ========== TOPUP PURCHASE COMPLETED SUCCESSFULLY ==========\n`);
+        console.log(`\nâœ… ========== TOPUP PURCHASE COMPLETED SUCCESSFULLY ==========\n`);
         res.json({ 
           success: true, 
           order_id: orderId, 
-          message: "✓ تم إتمام الشراء بنجاح",
+          message: "âœ“ طھظ… ط¥طھظ…ط§ظ… ط§ظ„ط´ط±ط§ط، ط¨ظ†ط¬ط§ط­",
           images: storedImages
         });
       } catch (error) {
-        console.error(`\n❌ ========== TOPUP PURCHASE FAILED ==========`);
+        console.error(`\nâ‌Œ ========== TOPUP PURCHASE FAILED ==========`);
         console.error(`Error details:`, (error as any).message);
         console.error(`Stack:`, (error as any).stack);
         res.status(500).json({ error: (error as any).message });
@@ -7580,7 +7591,7 @@ async function startServer() {
       try {
         const { orderId } = req.params;
 
-        // جلب صور الطلب من جدول order_images
+        // ط¬ظ„ط¨ طµظˆط± ط§ظ„ط·ظ„ط¨ ظ…ظ† ط¬ط¯ظˆظ„ order_images
         const imagesResult = await pool.query(
           `SELECT oi.image_url, oi.image_data, oi.topup_product_id, tp.amount, tp.price
            FROM order_images oi
@@ -7624,7 +7635,7 @@ async function startServer() {
           count: allImages.length
         });
       } catch (error) {
-        console.error('❌ Error fetching order images:', error);
+        console.error('â‌Œ Error fetching order images:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -7634,7 +7645,7 @@ async function startServer() {
       try {
         const { orderId } = req.params;
 
-        // جلب بيانات الطلب
+        // ط¬ظ„ط¨ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط·ظ„ط¨
         const orderResult = await pool.query(
           `SELECT id, store_id, status FROM orders WHERE id = $1`,
           [orderId]
@@ -7646,7 +7657,7 @@ async function startServer() {
 
         const order = orderResult.rows[0];
 
-        // جلب الصور المحفوظة مع الطلب من جدول order_images
+        // ط¬ظ„ط¨ ط§ظ„طµظˆط± ط§ظ„ظ…ط­ظپظˆط¸ط© ظ…ط¹ ط§ظ„ط·ظ„ط¨ ظ…ظ† ط¬ط¯ظˆظ„ order_images
         const imagesResult = await pool.query(
           `SELECT image_url FROM order_images WHERE order_id = $1 ORDER BY created_at ASC`,
           [orderId]
@@ -7667,13 +7678,13 @@ async function startServer() {
       }
     });
 
-    // 🎁 Download order package with codes and images - DELETE AFTER DOWNLOAD
+    // ًںژپ Download order package with codes and images - DELETE AFTER DOWNLOAD
     app.get("/api/topup/download-package/:orderId", async (req, res) => {
       try {
         const { orderId } = req.params;
-        console.log(`📦 Starting download package for order: ${orderId}`);
+        console.log(`ًں“¦ Starting download package for order: ${orderId}`);
 
-        // جلب بيانات الطلب
+        // ط¬ظ„ط¨ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط·ظ„ط¨
         const orderResult = await pool.query(
           `SELECT id, store_id, status FROM orders WHERE id = $1`,
           [orderId]
@@ -7685,7 +7696,7 @@ async function startServer() {
 
         const order = orderResult.rows[0];
 
-        // جلب المنتجات والأكواد
+        // ط¬ظ„ط¨ ط§ظ„ظ…ظ†طھط¬ط§طھ ظˆط§ظ„ط£ظƒظˆط§ط¯
         const itemsResult = await pool.query(
           `SELECT topup_product_id, quantity FROM order_items WHERE order_id = $1`,
           [orderId]
@@ -7707,80 +7718,80 @@ async function startServer() {
               const codesToAdd = product.codes.slice(0, item.quantity);
               allCodes = [...allCodes, ...codesToAdd];
             }
-            // جمع روابط الصور
+            // ط¬ظ…ط¹ ط±ظˆط§ط¨ط· ط§ظ„طµظˆط±
             if (product.images && Array.isArray(product.images)) {
               imageUrls = [...imageUrls, ...product.images];
             }
           }
         }
 
-        // إنشاء ZIP file
+        // ط¥ظ†ط´ط§ط، ZIP file
         const fileName = `order-${orderId}-${Date.now()}`;
         const zipPath = path.join(__dirname, 'uploads', `${fileName}.zip`);
         
-        // تأكد من وجود مجلد uploads
+        // طھط£ظƒط¯ ظ…ظ† ظˆط¬ظˆط¯ ظ…ط¬ظ„ط¯ uploads
         await mkdir(path.join(__dirname, 'uploads'), { recursive: true });
 
         const output = fs.createWriteStream(zipPath);
         const archive = archiver('zip', { zlib: { level: 9 } });
 
-        // إضافة ملف الأكواد
+        // ط¥ط¶ط§ظپط© ظ…ظ„ظپ ط§ظ„ط£ظƒظˆط§ط¯
         if (allCodes.length > 0) {
-          const codesText = `🎁 أكواد الطلب #${orderId}\n━━━━━━━━━━━━━━━━━\n${allCodes.join('\n')}\n\n📋 عدد الأكواد: ${allCodes.length}`;
+          const codesText = `ًںژپ ط£ظƒظˆط§ط¯ ط§ظ„ط·ظ„ط¨ #${orderId}\nâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پâ”پ\n${allCodes.join('\n')}\n\nًں“‹ ط¹ط¯ط¯ ط§ظ„ط£ظƒظˆط§ط¯: ${allCodes.length}`;
           archive.append(codesText, { name: `codes-${orderId}.txt` });
         }
 
-        // إضافة الصور
+        // ط¥ط¶ط§ظپط© ط§ظ„طµظˆط±
         let imagesAdded = 0;
         for (const imageUrl of imageUrls) {
           try {
-            // إذا كانت صورة من التخزين المحلي (uploads/)
+            // ط¥ط°ط§ ظƒط§ظ†طھ طµظˆط±ط© ظ…ظ† ط§ظ„طھط®ط²ظٹظ† ط§ظ„ظ…ط­ظ„ظٹ (uploads/)
             if (imageUrl.includes('/uploads/') || fs.existsSync(imageUrl)) {
               const fileName = path.basename(imageUrl);
               archive.file(imageUrl, { name: `images/${fileName}` });
               imagesAdded++;
             }
           } catch (err) {
-            console.warn(`⚠️ Could not add image: ${imageUrl}`);
+            console.warn(`âڑ ï¸ڈ Could not add image: ${imageUrl}`);
           }
         }
 
         archive.on('error', (err) => {
-          console.error('❌ Archive error:', err);
+          console.error('â‌Œ Archive error:', err);
           res.status(500).json({ error: 'Failed to create download package' });
         });
 
         output.on('close', async () => {
-          console.log(`✅ ZIP created: ${archive.pointer()} bytes`);
+          console.log(`âœ… ZIP created: ${archive.pointer()} bytes`);
           
-          // إرسال الملف
+          // ط¥ط±ط³ط§ظ„ ط§ظ„ظ…ظ„ظپ
           res.download(zipPath, `order-${orderId}.zip`, async (err) => {
             if (err) {
-              console.error('❌ Download error:', err);
+              console.error('â‌Œ Download error:', err);
             } else {
-              console.log(`✅ Download started for order ${orderId}`);
+              console.log(`âœ… Download started for order ${orderId}`);
             }
             
-            // حذف الملف والصور بعد 5 ثوان من البدء (التنزيل عادة ينتهي في ثانية)
+            // ط­ط°ظپ ط§ظ„ظ…ظ„ظپ ظˆط§ظ„طµظˆط± ط¨ط¹ط¯ 5 ط«ظˆط§ظ† ظ…ظ† ط§ظ„ط¨ط¯ط، (ط§ظ„طھظ†ط²ظٹظ„ ط¹ط§ط¯ط© ظٹظ†طھظ‡ظٹ ظپظٹ ط«ط§ظ†ظٹط©)
             setTimeout(async () => {
               try {
-                // حذف ZIP
+                // ط­ط°ظپ ZIP
                 await unlink(zipPath);
-                console.log(`🧹 ZIP deleted: ${zipPath}`);
+                console.log(`ًں§¹ ZIP deleted: ${zipPath}`);
                 
-                // حذف صور المنتجات من الخادم (بعد التنزيل)
+                // ط­ط°ظپ طµظˆط± ط§ظ„ظ…ظ†طھط¬ط§طھ ظ…ظ† ط§ظ„ط®ط§ط¯ظ… (ط¨ط¹ط¯ ط§ظ„طھظ†ط²ظٹظ„)
                 for (const imageUrl of imageUrls) {
                   if (imageUrl.includes('/uploads/') && fs.existsSync(imageUrl)) {
                     try {
                       await unlink(imageUrl);
-                      console.log(`🧹 Image deleted: ${imageUrl}`);
+                      console.log(`ًں§¹ Image deleted: ${imageUrl}`);
                     } catch (unlinkErr) {
-                      console.warn(`⚠️ Could not delete image: ${imageUrl}`);
+                      console.warn(`âڑ ï¸ڈ Could not delete image: ${imageUrl}`);
                     }
                   }
                 }
                 
-                // تحديث قاعدة البيانات - تنظيف صور المنتج إذا كانت كل صوره تم حذفها
+                // طھط­ط¯ظٹط« ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ - طھظ†ط¸ظٹظپ طµظˆط± ط§ظ„ظ…ظ†طھط¬ ط¥ط°ط§ ظƒط§ظ†طھ ظƒظ„ طµظˆط±ظ‡ طھظ… ط­ط°ظپظ‡ط§
                 for (const item of itemsResult.rows) {
                   await pool.query(
                     `UPDATE topup_products SET images = '[]' WHERE id = $1`,
@@ -7788,9 +7799,9 @@ async function startServer() {
                   );
                 }
                 
-                console.log(`✅ Cleanup completed for order ${orderId}`);
+                console.log(`âœ… Cleanup completed for order ${orderId}`);
               } catch (cleanupErr) {
-                console.error('❌ Cleanup error:', cleanupErr);
+                console.error('â‌Œ Cleanup error:', cleanupErr);
               }
             }, 5000);
           });
@@ -7800,7 +7811,7 @@ async function startServer() {
         archive.finalize();
 
       } catch (error) {
-        console.error('❌ ERROR in download-package:', error);
+        console.error('â‌Œ ERROR in download-package:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -7810,7 +7821,7 @@ async function startServer() {
       try {
         const { orderId } = req.params;
 
-        console.log(`🗑️  Attempting to delete topup order: ${orderId}`);
+        console.log(`ًں—‘ï¸ڈ  Attempting to delete topup order: ${orderId}`);
 
         // Get order details before deleting
         const orderResult = await pool.query(
@@ -7852,7 +7863,7 @@ async function startServer() {
               `UPDATE customers SET current_debt = GREATEST(0, current_debt - $1) WHERE id = $2 RETURNING current_debt`,
               [orderAmount, order.customer_id]
             );
-            console.log(`💳 [TOPUP ORDER DELETE] Customer ${order.customer_id} debt reduced by ${orderAmount}. New debt: ${debtUpdateRes.rows[0]?.current_debt || 0}`);
+            console.log(`ًں’³ [TOPUP ORDER DELETE] Customer ${order.customer_id} debt reduced by ${orderAmount}. New debt: ${debtUpdateRes.rows[0]?.current_debt || 0}`);
           }
         }
 
@@ -7866,11 +7877,11 @@ async function startServer() {
           return res.status(500).json({ error: "Failed to delete order" });
         }
 
-        console.log(`✅ Topup order deleted successfully: ${orderId}`);
+        console.log(`âœ… Topup order deleted successfully: ${orderId}`);
 
         res.json({
           success: true,
-          message: "تم حذف طلب الشحن بنجاح",
+          message: "طھظ… ط­ط°ظپ ط·ظ„ط¨ ط§ظ„ط´ط­ظ† ط¨ظ†ط¬ط§ط­",
           deleted_order_id: orderId
         });
       } catch (error) {
@@ -7952,7 +7963,7 @@ async function startServer() {
 
         res.json(result.rows || []);
       } catch (error) {
-        console.error('❌ Auctions API error:', error);
+        console.error('â‌Œ Auctions API error:', error);
         res.json([]); // Return empty array instead of 500 error
       }
     });
@@ -8031,13 +8042,13 @@ async function startServer() {
         `, [productId]);
 
         if (productResult.rows.length === 0) {
-          console.log('⚠️ No auction found for product:', productId);
+          console.log('âڑ ï¸ڈ No auction found for product:', productId);
           return res.status(404).json(null);
         }
 
         const auctionData = productResult.rows[0];
         
-        console.log('✅ Sending auction data from products table:');
+        console.log('âœ… Sending auction data from products table:');
         console.log('  product_id:', auctionData.product_id);
         console.log('  auction_date:', auctionData.auction_date);
         console.log('  auction_start_time:', auctionData.auction_start_time);
@@ -8056,7 +8067,7 @@ async function startServer() {
       try {
         const { product_id, auction_date, auction_start_time, auction_end_time, starting_price } = req.body;
 
-        console.log('📝 AUCTION REQUEST RECEIVED:', {
+        console.log('ًں“‌ AUCTION REQUEST RECEIVED:', {
           product_id,
           auction_date,
           auction_start_time,
@@ -8073,7 +8084,7 @@ async function startServer() {
 
         // Validate inputs
         if (!product_id || !auction_date || !auction_start_time || !auction_end_time || !starting_price) {
-          console.error('❌ MISSING FIELDS:', {
+          console.error('â‌Œ MISSING FIELDS:', {
             product_id: !product_id ? 'MISSING' : 'OK',
             auction_date: !auction_date ? 'MISSING' : 'OK',
             auction_start_time: !auction_start_time ? 'MISSING' : 'OK',
@@ -8104,7 +8115,7 @@ async function startServer() {
           RETURNING *
         `, [product_id, store_id, auction_date, auction_start_time, auction_end_time, starting_price, 0]);
 
-        console.log('✅ AUCTION CREATED:', result.rows[0]);
+        console.log('âœ… AUCTION CREATED:', result.rows[0]);
 
         // Update product to mark as auction
         await pool.query(`
@@ -8115,7 +8126,7 @@ async function startServer() {
 
         res.status(201).json(result.rows[0]);
       } catch (error) {
-        console.error('❌ ERROR CREATING AUCTION:', error);
+        console.error('â‌Œ ERROR CREATING AUCTION:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -8249,13 +8260,13 @@ async function startServer() {
 
         res.json({ 
           success: true, 
-          message: 'تم حفظ المبيعة وإضافتها لإجمالي المبيعات',
+          message: 'طھظ… ط­ظپط¸ ط§ظ„ظ…ط¨ظٹط¹ط© ظˆط¥ط¶ط§ظپطھظ‡ط§ ظ„ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¨ظٹط¹ط§طھ',
           sale_amount: newSaleAmount,
           previous_sale_amount: previousSale,
           new_total_sales: updatedTotalSales
         });
       } catch (error) {
-        console.error('❌ Error finalizing auction:', error);
+        console.error('â‌Œ Error finalizing auction:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -8285,7 +8296,7 @@ async function startServer() {
         const finalSalePrice = parseFloat(auction.final_sale_price || 0);
 
         if (!finalSalePrice) {
-          return res.status(400).json({ error: 'لا توجد مبيعة مؤكدة لهذا المزاد' });
+          return res.status(400).json({ error: 'ظ„ط§ طھظˆط¬ط¯ ظ…ط¨ظٹط¹ط© ظ…ط¤ظƒط¯ط© ظ„ظ‡ط°ط§ ط§ظ„ظ…ط²ط§ط¯' });
         }
 
         await pool.query(`
@@ -8303,12 +8314,12 @@ async function startServer() {
 
         res.json({
           success: true,
-          message: 'تم حذف المشتري المؤكد وتحديث إجمالي المبيعات',
+          message: 'طھظ… ط­ط°ظپ ط§ظ„ظ…ط´طھط±ظٹ ط§ظ„ظ…ط¤ظƒط¯ ظˆطھط­ط¯ظٹط« ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¨ظٹط¹ط§طھ',
           removed_sale_amount: finalSalePrice,
           new_total_sales: updatedTotalSales
         });
       } catch (error) {
-        console.error('❌ Error removing auction sale:', error);
+        console.error('â‌Œ Error removing auction sale:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -8419,7 +8430,7 @@ async function startServer() {
           return res.status(400).json({ error: 'SQL content required' });
         }
 
-        console.log('🔄 Starting database restore...');
+        console.log('ًں”„ Starting database restore...');
         
         const client = await pool.connect();
         
@@ -8443,7 +8454,7 @@ async function startServer() {
         
         client.release();
         
-        console.log(`✅ Database restore completed: ${executed} statements executed`);
+        console.log(`âœ… Database restore completed: ${executed} statements executed`);
         res.json({ 
           success: true, 
           executed,
@@ -8482,24 +8493,24 @@ async function startServer() {
       try {
         const { customer_id, store_id, amount, payment_method, notes } = req.body;
         
-        console.log('📝 Payment request received:', { customer_id, store_id, amount, payment_method, notes });
+        console.log('ًں“‌ Payment request received:', { customer_id, store_id, amount, payment_method, notes });
         
         // Detailed validation
         if (!customer_id) {
-          console.warn('❌ Validation failed: customer_id is required');
+          console.warn('â‌Œ Validation failed: customer_id is required');
           return res.status(400).json({ error: "customer_id is required" });
         }
         if (!store_id) {
-          console.warn('❌ Validation failed: store_id is required');
+          console.warn('â‌Œ Validation failed: store_id is required');
           return res.status(400).json({ error: "store_id is required" });
         }
         if (!amount || isNaN(amount) || amount <= 0) {
-          console.warn('❌ Validation failed: amount must be a valid number > 0, received:', amount);
+          console.warn('â‌Œ Validation failed: amount must be a valid number > 0, received:', amount);
           return res.status(400).json({ error: "amount must be a valid number greater than 0" });
         }
 
         // Decrease current_debt by payment amount (payment reduces what customer owes)
-        // ⭐ starting_balance (الديون السابقة) must remain IMMUTABLE
+        // â­گ starting_balance (ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط³ط§ط¨ظ‚ط©) must remain IMMUTABLE
         await pool.query(
           `UPDATE customers SET 
             current_debt = current_debt - $1
@@ -8515,11 +8526,11 @@ async function startServer() {
           [customer_id, store_id, amount, payment_method || null, notes || null]
         );
 
-        console.log(`✅ [PAYMENT ADDED] Customer: ${customer_id} - Store: ${store_id} - Amount: ${amount} | Debt decreased by ${amount} ✓`);
+        console.log(`âœ… [PAYMENT ADDED] Customer: ${customer_id} - Store: ${store_id} - Amount: ${amount} | Debt decreased by ${amount} âœ“`);
         res.json(paymentResult.rows[0]);
       } catch (error) {
         const errorMsg = (error as any).message || 'Unknown error';
-        console.error('❌ [PAYMENT ERROR]', errorMsg, (error as any));
+        console.error('â‌Œ [PAYMENT ERROR]', errorMsg, (error as any));
         res.status(500).json({ error: `Database error: ${errorMsg}` });
       }
     });
@@ -8546,9 +8557,9 @@ async function startServer() {
         const amountDifference = oldAmount - newAmount;
 
         // Update current_debt based on the difference
-        // If newAmount > oldAmount: customer paid more → debt decreases more (subtract difference)
-        // If newAmount < oldAmount: customer paid less → debt increases (add difference)
-        // ⭐ starting_balance (الديون السابقة) must remain IMMUTABLE
+        // If newAmount > oldAmount: customer paid more â†’ debt decreases more (subtract difference)
+        // If newAmount < oldAmount: customer paid less â†’ debt increases (add difference)
+        // â­گ starting_balance (ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط³ط§ط¨ظ‚ط©) must remain IMMUTABLE
         if (amountDifference !== 0) {
           await pool.query(
             `UPDATE customers SET 
@@ -8570,7 +8581,7 @@ async function startServer() {
           [amount || null, payment_method || null, notes || null, parseInt(id)]
         );
 
-        console.log(`✏️ [PAYMENT UPDATED] ID: ${id} | Old: ${oldAmount} → New: ${newAmount} | Debt adjusted by: ${amountDifference} ✓`);
+        console.log(`âœڈï¸ڈ [PAYMENT UPDATED] ID: ${id} | Old: ${oldAmount} â†’ New: ${newAmount} | Debt adjusted by: ${amountDifference} âœ“`);
         res.json(result.rows[0]);
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
@@ -8597,7 +8608,7 @@ async function startServer() {
 
         // When a payment is deleted, add the payment amount back to current_debt
         // because the customer still owes what they were trying to pay
-        // ⭐ starting_balance (الديون السابقة) must remain IMMUTABLE
+        // â­گ starting_balance (ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط³ط§ط¨ظ‚ط©) must remain IMMUTABLE
         await pool.query(
           `UPDATE customers SET 
             current_debt = current_debt + $1
@@ -8611,8 +8622,8 @@ async function startServer() {
           [parseInt(id)]
         );
 
-        console.log(`🗑️ [PAYMENT DELETED] ID: ${id} | Amount: ${amount} | Customer: ${customer_id} | Debt increased by ${amount} ✓`);
-        res.json({ success: true, message: "تم حذف التسديد بنجاح وتم استرجاع المبلغ للحساب" });
+        console.log(`ًں—‘ï¸ڈ [PAYMENT DELETED] ID: ${id} | Amount: ${amount} | Customer: ${customer_id} | Debt increased by ${amount} âœ“`);
+        res.json({ success: true, message: "طھظ… ط­ط°ظپ ط§ظ„طھط³ط¯ظٹط¯ ط¨ظ†ط¬ط§ط­ ظˆطھظ… ط§ط³طھط±ط¬ط§ط¹ ط§ظ„ظ…ط¨ظ„ط؛ ظ„ظ„ط­ط³ط§ط¨" });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
       }
@@ -8621,23 +8632,23 @@ async function startServer() {
     // Admin: Clear all transaction data (DELETE endpoint)
     app.delete("/api/admin/clear-transactions", async (req, res) => {
       try {
-        console.log("🗑️ [ADMIN] Clear transactions endpoint called");
+        console.log("ًں—‘ï¸ڈ [ADMIN] Clear transactions endpoint called");
         
         // Clear customer transactions
         const resultTransactions = await pool.query('DELETE FROM customer_transactions');
-        console.log(`✓ تم حذف ${resultTransactions.rowCount} معاملة من customer_transactions`);
+        console.log(`âœ“ طھظ… ط­ط°ظپ ${resultTransactions.rowCount} ظ…ط¹ط§ظ…ظ„ط© ظ…ظ† customer_transactions`);
 
         // Clear customer payments
         const resultPayments = await pool.query('DELETE FROM customer_payments');
-        console.log(`✓ تم حذف ${resultPayments.rowCount} دفعة من customer_payments`);
+        console.log(`âœ“ طھظ… ط­ط°ظپ ${resultPayments.rowCount} ط¯ظپط¹ط© ظ…ظ† customer_payments`);
 
         // Clear topup orders (orders with topup_customer_id only)
         const resultOrders = await pool.query('DELETE FROM orders WHERE customer_id IS NULL AND topup_customer_id IS NOT NULL');
-        console.log(`✓ تم حذف ${resultOrders.rowCount} طلب توب أب من orders`);
+        console.log(`âœ“ طھظ… ط­ط°ظپ ${resultOrders.rowCount} ط·ظ„ط¨ طھظˆط¨ ط£ط¨ ظ…ظ† orders`);
 
         res.json({ 
           success: true, 
-          message: "✅ تم مسح جميع البيانات بنجاح",
+          message: "âœ… طھظ… ظ…ط³ط­ ط¬ظ…ظٹط¹ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط¨ظ†ط¬ط§ط­",
           cleared: {
             transactions: resultTransactions.rowCount,
             payments: resultPayments.rowCount,
@@ -8646,15 +8657,15 @@ async function startServer() {
         });
         
       } catch (error) {
-        console.error("❌ Error clearing data:", error);
+        console.error("â‌Œ Error clearing data:", error);
         res.status(500).json({ error: (error as any).message });
       }
     });
 
-    // ⚠️ DANGEROUS: Delete ALL data from database (restore schema/structure only)
+    // âڑ ï¸ڈ DANGEROUS: Delete ALL data from database (restore schema/structure only)
     app.delete("/api/admin/purge-all-data", async (req, res) => {
       try {
-        console.log("🚨 [ADMIN] PURGE ALL DATA - Nuclear option called");
+        console.log("ًںڑ¨ [ADMIN] PURGE ALL DATA - Nuclear option called");
         
         // List of tables to clear (in order of dependencies)
         const tablesToClear = [
@@ -8682,9 +8693,9 @@ async function startServer() {
           try {
             const result = await pool.query(`DELETE FROM ${table}`);
             results[table] = result.rowCount;
-            console.log(`✓ تم حذف ${result.rowCount} سجل من ${table}`);
+            console.log(`âœ“ طھظ… ط­ط°ظپ ${result.rowCount} ط³ط¬ظ„ ظ…ظ† ${table}`);
           } catch (err: any) {
-            console.log(`⚠️ ${table}: ${err.message}`);
+            console.log(`âڑ ï¸ڈ ${table}: ${err.message}`);
           }
         }
 
@@ -8706,20 +8717,20 @@ async function startServer() {
         for (const seq of sequences) {
           try {
             await pool.query(`ALTER SEQUENCE ${seq} RESTART WITH 1`);
-            console.log(`✓ تم إعادة تعيين ${seq}`);
+            console.log(`âœ“ طھظ… ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ${seq}`);
           } catch (err: any) {
-            console.log(`⚠️ ${seq}: ${err.message}`);
+            console.log(`âڑ ï¸ڈ ${seq}: ${err.message}`);
           }
         }
 
         res.json({ 
           success: true, 
-          message: "✅ تم حذف جميع البيانات بنجاح - الجداول جاهزة لبيانات جديدة",
+          message: "âœ… طھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط¨ظ†ط¬ط§ط­ - ط§ظ„ط¬ط¯ط§ظˆظ„ ط¬ط§ظ‡ط²ط© ظ„ط¨ظٹط§ظ†ط§طھ ط¬ط¯ظٹط¯ط©",
           deleted: results
         });
         
       } catch (error) {
-        console.error("❌ Error purging data:", error);
+        console.error("â‌Œ Error purging data:", error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -8727,7 +8738,7 @@ async function startServer() {
     // Initialize store 1 with test products
     app.get("/api/init/store1-products", async (req, res) => {
       try {
-        console.log('🔧 Initializing store 1 with test products...');
+        console.log('ًں”§ Initializing store 1 with test products...');
         
         // Create SVG images
         const svg1 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzQyODVGNCIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIyNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmb250LXdlaWdodD0iYm9sZCI+MzU8L3RleHQ+PC9zdmc+';
@@ -8745,9 +8756,9 @@ async function startServer() {
           const newCompanies = await pool.query(`
             INSERT INTO topup_companies (store_id, name, logo_url)
             VALUES 
-              (1, 'زين أثير', 'https://via.placeholder.com/100'),
-              (1, 'آسيا سيل', 'https://via.placeholder.com/100'),
-              (1, 'كورك', 'https://via.placeholder.com/100')
+              (1, 'ط²ظٹظ† ط£ط«ظٹط±', 'https://via.placeholder.com/100'),
+              (1, 'ط¢ط³ظٹط§ ط³ظٹظ„', 'https://via.placeholder.com/100'),
+              (1, 'ظƒظˆط±ظƒ', 'https://via.placeholder.com/100')
             RETURNING id, name
           `);
           newCompanies.rows.forEach(c => {
@@ -8768,26 +8779,26 @@ async function startServer() {
             (1, $5, 1, 15000, 17500, 16500, 16000, $6, true)
           RETURNING id, amount, price, array_length(images, 1) as images_count
         `, [
-          companyIds['زين أثير'],
+          companyIds['ط²ظٹظ† ط£ط«ظٹط±'],
           [svg1, svg2, svg3, svg1, svg2],
-          companyIds['آسيا سيل'],
+          companyIds['ط¢ط³ظٹط§ ط³ظٹظ„'],
           [svg3, svg1, svg2, svg3, svg1, svg2, svg3],
-          companyIds['كورك'],
+          companyIds['ظƒظˆط±ظƒ'],
           [svg2, svg3, svg1, svg2, svg3]
         ]);
         
-        console.log('✅ Initialized store 1 with products:');
+        console.log('âœ… Initialized store 1 with products:');
         products.rows.forEach(p => {
           console.log(`   - ID: ${p.id} | Amount: ${p.amount} | Price: ${p.price} | Images: ${p.images_count}`);
         });
         
         res.json({ 
           success: true, 
-          message: '✅ تم تهيئة المنتجات بنجاح',
+          message: 'âœ… طھظ… طھظ‡ظٹط¦ط© ط§ظ„ظ…ظ†طھط¬ط§طھ ط¨ظ†ط¬ط§ط­',
           products: products.rows
         });
       } catch (error) {
-        console.error('❌ Error initializing:', error);
+        console.error('â‌Œ Error initializing:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -8800,10 +8811,10 @@ async function startServer() {
     
     try {
       await mkdir(uploadsPath, { recursive: true });
-      console.log('✅ Upload directory ready:', uploadsPath);
+      console.log('âœ… Upload directory ready:', uploadsPath);
     } catch (e: any) {
       if (e.code !== 'EEXIST') {
-        console.warn('⚠️ Warning: Could not create uploads directory:', e.message);
+        console.warn('âڑ ï¸ڈ Warning: Could not create uploads directory:', e.message);
       }
     }
     
@@ -8831,9 +8842,9 @@ async function startServer() {
             
             fs.writeFileSync(filePath, buffer);
             finalImageUrl = `/uploads/products/${savedFileName}`;
-            console.log(`✅ Image saved to disk: ${finalImageUrl}`);
+            console.log(`âœ… Image saved to disk: ${finalImageUrl}`);
           } catch (e) {
-            console.warn('⚠️ Could not save image to disk, using base64 in DB:', e);
+            console.warn('âڑ ï¸ڈ Could not save image to disk, using base64 in DB:', e);
           }
         }
         
@@ -8924,10 +8935,10 @@ async function startServer() {
           try {
             if (fs.existsSync(filePath)) {
               fs.unlinkSync(filePath);
-              console.log(`✅ Deleted file: ${filePath}`);
+              console.log(`âœ… Deleted file: ${filePath}`);
             }
           } catch (e: any) {
-            console.warn('⚠️ Could not delete file:', e.message);
+            console.warn('âڑ ï¸ڈ Could not delete file:', e.message);
           }
         }
         
@@ -8942,7 +8953,7 @@ async function startServer() {
     // Admin: Cleanup orphaned auctions (auctions for deleted products)
     app.post("/api/admin/cleanup/orphaned-auctions", async (req, res) => {
       try {
-        console.log("🧹 [ADMIN] Cleaning up orphaned auction records...");
+        console.log("ًں§¹ [ADMIN] Cleaning up orphaned auction records...");
         
         // Step 1: Count orphaned auctions before cleanup
         const orphanedCountRes = await pool.query(`
@@ -8951,7 +8962,7 @@ async function startServer() {
           WHERE p.id IS NULL
         `);
         const orphanedCount = parseInt(orphanedCountRes.rows[0].count);
-        console.log(`📊 Found ${orphanedCount} orphaned auction records`);
+        console.log(`ًں“ٹ Found ${orphanedCount} orphaned auction records`);
         
         // Step 2: Get list of orphaned product IDs for verification
         const orphanedIdsRes = await pool.query(`
@@ -8961,18 +8972,18 @@ async function startServer() {
           ORDER BY a.product_id
         `);
         const orphanedIds = orphanedIdsRes.rows.map(r => r.product_id);
-        console.log(`🔍 Orphaned product IDs: ${orphanedIds.join(', ') || 'NONE'}`);
+        console.log(`ًں”چ Orphaned product IDs: ${orphanedIds.join(', ') || 'NONE'}`);
         
         // Step 3: Delete orphaned auctions using explicit product IDs
         let deletedCount = 0;
         if (orphanedCount > 0 && orphanedIds.length > 0) {
           const placeholders = orphanedIds.map((_, i) => `$${i + 1}`).join(',');
           const deleteQuery = `DELETE FROM auctions WHERE product_id IN (${placeholders})`;
-          console.log(`🗑️ Executing delete query with ${orphanedIds.length} product IDs...`);
+          console.log(`ًں—‘ï¸ڈ Executing delete query with ${orphanedIds.length} product IDs...`);
           
           const deleteRes = await pool.query(deleteQuery, orphanedIds);
           deletedCount = deleteRes.rowCount;
-          console.log(`✅ Deleted ${deletedCount} orphaned auction records`);
+          console.log(`âœ… Deleted ${deletedCount} orphaned auction records`);
         }
         
         // Step 4: Check if CASCADE DELETE constraint exists
@@ -8988,7 +8999,7 @@ async function startServer() {
         
         if (!hasConstraint) {
           try {
-            console.log("🔐 Adding CASCADE DELETE foreign key constraint...");
+            console.log("ًں”گ Adding CASCADE DELETE foreign key constraint...");
             // Drop existing foreign key if any
             await pool.query(`
               ALTER TABLE auctions DROP CONSTRAINT IF EXISTS auctions_product_id_fkey
@@ -9002,9 +9013,9 @@ async function startServer() {
               ON DELETE CASCADE
             `);
             constraintStatus = 'added';
-            console.log("✅ CASCADE DELETE constraint added");
+            console.log("âœ… CASCADE DELETE constraint added");
           } catch (err: any) {
-            console.warn("⚠️ Could not add constraint:", err.message);
+            console.warn("âڑ ï¸ڈ Could not add constraint:", err.message);
             constraintStatus = 'error';
           }
         }
@@ -9013,11 +9024,11 @@ async function startServer() {
         const finalCountRes = await pool.query('SELECT COUNT(*) as count FROM auctions');
         const finalCount = parseInt(finalCountRes.rows[0].count);
         
-        console.log(`📊 Final auction count: ${finalCount}`);
+        console.log(`ًں“ٹ Final auction count: ${finalCount}`);
         
         res.json({
           success: true,
-          message: "✅ Orphaned auction cleanup completed",
+          message: "âœ… Orphaned auction cleanup completed",
           cleanup: {
             orphanedFound: orphanedCount,
             orphanedProductIds: orphanedIds,
@@ -9036,7 +9047,7 @@ async function startServer() {
         });
         
       } catch (error) {
-        console.error("❌ Error during cleanup:", error);
+        console.error("â‌Œ Error during cleanup:", error);
         res.status(500).json({ 
           success: false,
           error: (error as any).message 
@@ -9063,7 +9074,7 @@ async function startServer() {
     // Admin: Force cleanup with TRUNCATE (nuclear option)
     app.post("/api/admin/cleanup/auctions-force", async (req, res) => {
       try {
-        console.log("💥 [ADMIN] FORCE cleanup - truncating auctions table");
+        console.log("ًں’¥ [ADMIN] FORCE cleanup - truncating auctions table");
         
         // Disable constraint temporarily to allow truncate
         await pool.query('ALTER TABLE auctions DISABLE TRIGGER ALL');
@@ -9074,15 +9085,15 @@ async function startServer() {
         // Re-enable constraints
         await pool.query('ALTER TABLE auctions ENABLE TRIGGER ALL');
         
-        console.log("✅ Auctions table truncated");
+        console.log("âœ… Auctions table truncated");
         
         res.json({
           success: true,
-          message: "✅ All auctions cleared (FORCE method)",
+          message: "âœ… All auctions cleared (FORCE method)",
           result: truncateRes
         });
       } catch (error) {
-        console.error("❌ Error:", error);
+        console.error("â‌Œ Error:", error);
         res.status(500).json({ 
           success: false,
           error: (error as any).message 
@@ -9093,7 +9104,7 @@ async function startServer() {
     // Admin: Cleanup status with raw SQL results
     app.get("/api/admin/cleanup/status", async (req, res) => {
       try {
-        console.log("📊 [ADMIN] Checking cleanup status...");
+        console.log("ًں“ٹ [ADMIN] Checking cleanup status...");
         
         // Count total auctions
         const totalRes = await pool.query('SELECT COUNT(*) as count FROM auctions');
@@ -9143,7 +9154,7 @@ async function startServer() {
         });
         
       } catch (error) {
-        console.error("❌ Error checking status:", error);
+        console.error("â‌Œ Error checking status:", error);
         res.status(500).json({ 
           success: false,
           error: (error as any).message 
@@ -9180,7 +9191,7 @@ async function startServer() {
     // Admin endpoint: Recalculate customer debt from transactions
     app.post('/api/admin/recalculate-debt', async (req, res) => {
       try {
-        console.log('🔄 Recalculating customer debts...');
+        console.log('ًں”„ Recalculating customer debts...');
         
         // Get all topup store customers
         const customersResult = await pool.query(`
@@ -9190,7 +9201,7 @@ async function startServer() {
           ORDER BY created_at DESC
         `);
         
-        console.log(`📊 Found ${customersResult.rows.length} customers`);
+        console.log(`ًں“ٹ Found ${customersResult.rows.length} customers`);
         
         const updates: any[] = [];
         
@@ -9222,7 +9233,7 @@ async function startServer() {
           // Calculate correct debt: opening_balance + purchases - payments
           const correctDebt = Math.max(0, openingBalance + totalPurchases - totalPayments);
           
-          console.log(`👤 ${customer.name} (${customer.phone}): opening=${openingBalance}, purchases=${totalPurchases}, payments=${totalPayments}, calculated=${correctDebt}, old=${customer.current_debt}`);
+          console.log(`ًں‘¤ ${customer.name} (${customer.phone}): opening=${openingBalance}, purchases=${totalPurchases}, payments=${totalPayments}, calculated=${correctDebt}, old=${customer.current_debt}`);
           
           // Update if different
           if (Math.abs(correctDebt - customer.current_debt) > 0.01) {
@@ -9242,17 +9253,17 @@ async function startServer() {
               totalPayments
             });
             
-            console.log(`✅ Updated ${customer.name}: ${customer.current_debt} → ${correctDebt}`);
+            console.log(`âœ… Updated ${customer.name}: ${customer.current_debt} â†’ ${correctDebt}`);
           }
         }
         
         res.json({
           success: true,
-          message: `✅ Recalculated debt for ${updates.length} customers`,
+          message: `âœ… Recalculated debt for ${updates.length} customers`,
           updates: updates
         });
       } catch (error) {
-        console.error('❌ Error recalculating debt:', error);
+        console.error('â‌Œ Error recalculating debt:', error);
         res.status(500).json({ error: 'Failed to recalculate debt', details: (error as any).message });
       }
     });
@@ -9279,29 +9290,29 @@ async function startServer() {
     
     const PORT = Number.parseInt(process.env.PORT || "3000", 10);
     const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`✅ Server is running on 0.0.0.0:${PORT}`);
-      console.log(`📡 [PRODUCTION] Database connected via DATABASE_URL`);
+      console.log(`âœ… Server is running on 0.0.0.0:${PORT}`);
+      console.log(`ًں“، [PRODUCTION] Database connected via DATABASE_URL`);
     });
 
     cleanupSoldAuctionImages().catch((error) => {
-      console.error('❌ Initial sold auction image cleanup failed:', error);
+      console.error('â‌Œ Initial sold auction image cleanup failed:', error);
     });
 
     setInterval(() => {
       cleanupSoldAuctionImages().catch((error) => {
-        console.error('❌ Scheduled sold auction image cleanup failed:', error);
+        console.error('â‌Œ Scheduled sold auction image cleanup failed:', error);
       });
     }, 24 * 60 * 60 * 1000);
     
     server.on('error', (e: any) => {
       if (e.code === 'EADDRINUSE') {
-        console.error(`❌ Port ${PORT} is already in use.`);
+        console.error(`â‌Œ Port ${PORT} is already in use.`);
       } else {
-        console.error('❌ Server error:', e);
+        console.error('â‌Œ Server error:', e);
       }
     });
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    console.error('â‌Œ Failed to start server:', error);
     process.exit(1);
   }
 }
