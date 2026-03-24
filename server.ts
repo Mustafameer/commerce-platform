@@ -6,6 +6,10 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { initializeDatabase } from "./db-init.ts";
 import fs from "fs";
+
+// 🔴 DEBUG: Show what DATABASE_URL is BEFORE dotenv loads
+console.log('\n🔍 [STARTUP] BEFORE dotenv.config():');
+console.log('  process.env.DATABASE_URL:', process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 80) + '...' : '❌ NOT SET');
 import { mkdir, unlink } from "fs/promises";
 import crypto from "crypto";
 import admin from "firebase-admin";
@@ -24,6 +28,9 @@ if (!process.env.DATABASE_URL) {
 } else {
   console.log("✅ DATABASE_URL already set in environment (Railway), not loading from .env");
 }
+
+console.log('🔍 [STARTUP] AFTER dotenv.config():');
+console.log('  process.env.DATABASE_URL:', process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 80) + '...' : '❌ NOT SET');
 
 console.log("✅ [STARTUP] Environment configuration ready");
 
@@ -116,6 +123,9 @@ const __dirname = path.dirname(__filename);
 console.log("📡 [SERVER] Creating database pool...");
 
 const connectionString = process.env.DATABASE_URL;
+
+console.log('🔍 [DEBUG] Connection string being used for pool:');
+console.log('  Value:', connectionString ? connectionString.substring(0, 80) + '...' : '❌ UNDEFINED');
 
 // ✅ DATABASE_URL is guaranteed to exist at this point (validated at startup)
 console.log("✅ [SERVER] Using cloud DATABASE_URL from environment:", connectionString.substring(0, 60) + "...");
