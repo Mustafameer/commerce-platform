@@ -12,104 +12,75 @@ import admin from "firebase-admin";
 import archiver from "archiver";
 import multer from "multer";
 import sharp from "sharp";
-// Force Railway URL if DATABASE_URL is wrong/missing
-const _rawUrl = process.env.DATABASE_URL || "";
-if (!_rawUrl || _rawUrl.includes("localhost") || _rawUrl.includes("127.0.0.1") || _rawUrl.includes("multi_ecommerce")) {
-  process.env.DATABASE_URL = "postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway";
-  console.log("[BOOT] DATABASE_URL set to Railway URL (was: " + (_rawUrl || "empty") + ")");
-} else {
-  console.log("[BOOT] DATABASE_URL already valid");
-}
+// ============================================================
+// DATABASE CONNECTION - CLEAN AND SIMPLE
+// ============================================================
+// In production (Railway): DATABASE_URL is set in Railway Dashboard
+// In development (local): DATABASE_URL is loaded from .env file
+// No hardcoded URLs. No overrides. No fallbacks to localhost.
 
-// Load .env only in development (Railway injects env vars directly in production)
-if (process.env.NODE_ENV !== "production") {
+// Load .env for local development only
+// (Railway sets env vars directly - no .env file needed in production)
+if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
 }
 
-console.log("[SERVER] Starting - NODE_ENV:", process.env.NODE_ENV || "development");
-console.log("[SERVER] DB:", (process.env.DATABASE_URL || "").substring(0, 55) + "...");
+// Fail fast if DATABASE_URL is not set
+if (!process.env.DATABASE_URL) {
+  console.error('FATAL: DATABASE_URL environment variable is not set!');
+  console.error('  - In Railway: check Variables tab in your project dashboard');
+  console.error('  - In local dev: add DATABASE_URL=... to your .env file');
+  process.exit(1);
+}
 
-// Firebase Admin SDK (optional - only needed for cloud image storage)
+console.log('[DB] DATABASE_URL is set, connecting...');
+
+// Firebase (optional - only needed if using Firebase Storage for images)
 const serviceAccount = {
-  projectId: process.env.FIREBASE_PROJECT_ID || "",
-  privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n") || "",
-  clientEmail: process.env.FIREBASE_CLIENT_EMAIL || "",
+  projectId: process.env.FIREBASE_PROJECT_ID || '',
+  privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n') || '',
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',
 };
-
 if (serviceAccount.projectId && serviceAccount.privateKey && serviceAccount.clientEmail) {
   try {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "your-bucket.appspot.com",
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || '',
     });
-    console.log("[SERVER] Firebase Admin SDK initialized");
+    console.log('[Firebase] Admin SDK initialized');
   } catch (err) {
-    console.warn("[SERVER] Firebase initialization failed:", err);
+    console.warn('[Firebase] Initialization failed (continuing without Firebase):', err);
   }
 } else {
-  console.log("[SERVER] Firebase not configured - using local file storage");
+  console.log('[Firebase] Not configured - using local file storage');
 }
+
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
-
-console.log("ًں“، [SERVER] ESM utilities loaded");
-
-// Helper function to slugify store names (handles Arabic characters)
-function createSlug(text: string): string {
-  // Remove Arabic and special characters, keep only alphanumeric
-  const slug = text
-    .toLocaleLowerCase()
-    .replace(/[^a-z0-9\u0600-\u06FF\s-]/g, '') // Keep Arabic Unicode ranges and ASCII
-    .replace(/[\u0600-\u06FF]+/g, 'store') // Replace Arabic chars with 'store'
-    .replace(/\s+/g, '-') // Replace spaces with dashes
-    .replace(/-+/g, '-') // Replace multiple dashes with single dash
-    .replace(/^-|-$/g, ''); // Remove leading/trailing dashes
-  
-  return slug || `store-${Date.now()}`;
-}
 const __dirname = path.dirname(__filename);
 
-console.log("ًں“، [SERVER] Creating database pool...");
-
-// ==============================================================
-// ًںڑ€ RAILWAY DATABASE CONNECTION - INTERNAL URL (PRODUCTION)
-// ==============================================================
-// Using internal Railway URL for connection from INSIDE Railway container
-// Using external proxy URL - works from inside and outside Railway
-const RAILWAY_URL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway';
-const RAILWAY_EXTERNAL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway';
-
-// Determine correct connection string:
-// ALWAYS override to Railway URL if running in production
-// or if DATABASE_URL points to localhost (misconfigured Railway dashboard)
-let rawDbUrl = process.env.DATABASE_URL || '';
-
-let connectionString: string;
-
-if (process.env.NODE_ENV === 'production') {
-  // PRODUCTION: Always use Railway URL
-  // This bypasses any incorrect DATABASE_URL variable in Railway dashboard
-  connectionString = RAILWAY_URL;
-  console.log('ًںڑ€ [DB] PRODUCTION MODE: Using Railway URL');
-  console.log('ًں”— [DB] Host: gondola.proxy.rlwy.net:42495');
-} else {
-  // DEVELOPMENT: Use local DATABASE_URL or external Railway for testing
-  connectionString = rawDbUrl || 'postgresql://postgres:123@localhost:5432/multi_ecommerce';
-  console.log('ًں› ï¸ڈ  [DB] DEVELOPMENT MODE: Using local connection');
-}
-
-console.log('âœ… [DB] Connection configured for:', process.env.NODE_ENV === 'production' ? 'Railway (internal)' : 'Local dev');
-
+// Create database pool using DATABASE_URL directly
+// SSL is required for Railway cloud PostgreSQL
 const pool = new Pool({
-  connectionString,
-  connectionTimeoutMillis: 10000,
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 15000,
   idleTimeoutMillis: 30000,
   max: 10,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-console.log("âœ… [SERVER] Database pool created");
+console.log('[DB] Pool created. NODE_ENV:', process.env.NODE_ENV || 'development');
 
+function createSlug(text: string): string {
+  const slug = text
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9\u0600-\u06FF\s-]/g, '')
+    .replace(/[\u0600-\u06FF]+/g, 'store')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return slug || `store-${Date.now()}`;
+}
 // âœ… LOCAL IMAGE COMPRESSION & STORAGE (NO FIREBASE)
 async function uploadAndCompressImageLocally(base64Data: string, filename: string): Promise<string> {
   try {

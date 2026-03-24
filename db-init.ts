@@ -7,31 +7,19 @@ const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const RAILWAY_URL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway';
-
 export async function initializeDatabase(connectionString: string) {
-  // In production: always use Railway URL
-  if (process.env.NODE_ENV === 'production') {
-    console.log('✅ [DB-INIT] PRODUCTION: Using Railway URL');
-    connectionString = RAILWAY_URL;
-  } else if (process.env.DATABASE_URL) {
-    console.log('✅ [DB-INIT] Using DATABASE_URL from environment');
-    connectionString = process.env.DATABASE_URL;
-  } else if (!connectionString) {
-    throw new Error('❌ [DB-INIT] FATAL: No connection string provided!');
-  }
+  // Use DATABASE_URL from environment directly - no overrides
+  const dbUrl = process.env.DATABASE_URL || connectionString;
   
   const client = new Pool({
-    connectionString,
+    connectionString: dbUrl,
     connectionTimeoutMillis: 10000,
-    ssl: {
-      rejectUnauthorized: false
-    }
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   });
 
   try {
-    console.log('🔍 [DB-INIT] Checking if database is initialized...');
-    console.log('🔌 [DB-INIT] Connection string:', connectionString.substring(0, 50) + '...');
+    console.log('[DB-INIT] Checking database...');
+    console.log('[DB-INIT] URL:', (dbUrl || '').substring(0, 50) + '...');
     
     // Check if stores table exists and has data
     const result = await client.query(`
