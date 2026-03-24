@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-03-20T18:44:53.415Z",
+  "provider": "firebase",
+  "totalFiles": 4,
+  "totalSize": 3560089,
+  "files": [
+    {
+      "name": "1774027596386_e8k8g_main_1774027593006.jpg",
+      "size": 115996,
+      "cloudPath": "products/1774027596386_e8k8g_main_1774027593006.jpg",
+      "status": "pending"
+    },
+    {
+      "name": "1774027596903_q85k1f_gallery_0_1774027596389.jpg",
+      "size": 878270,
+      "cloudPath": "products/1774027596903_q85k1f_gallery_0_1774027596389.jpg",
+      "status": "pending"
+    },
+    {
+      "name": "1774027597647_guyt3g_gallery_1_1774027596905.jpg",
+      "size": 1159862,
+      "cloudPath": "products/1774027597647_guyt3g_gallery_1_1774027596905.jpg",
+      "status": "pending"
+    },
+    {
+      "name": "1774027598072_gu3jc_gallery_2_1774027597649.jpg",
+      "size": 1405961,
+      "cloudPath": "products/1774027598072_gu3jc_gallery_2_1774027597649.jpg",
+      "status": "pending"
+    }
+  ]
+}

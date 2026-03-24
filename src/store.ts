@@ -121,7 +121,7 @@ interface SettingsState {
 
 export const useSettingsStore = create<SettingsState>((set, get) => {
   return {
-    appName: 'منصتي',
+    appName: '',
     logoUrl: '',
     primaryColor: '#4F46E5',
     setSettings: function(settings) {
@@ -135,7 +135,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
     resetSettings: function() {
       console.log('🔄 resetSettings called');
       set({
-        appName: 'منصتي',
+        appName: '',
         logoUrl: '',
         primaryColor: '#4F46E5'
       });
@@ -172,7 +172,7 @@ interface DarkModeState {
 export const useDarkModeStore = create<DarkModeState>()(
   persist(
     (set, get) => ({
-      isDarkMode: false,
+      isDarkMode: true,
       setIsDarkMode: (dark) => set({ isDarkMode: dark }),
       toggleDarkMode: () => set({ isDarkMode: !get().isDarkMode }),
     }),

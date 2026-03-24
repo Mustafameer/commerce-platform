@@ -2,7 +2,7 @@ import pkg from 'pg';
 const { Pool } = pkg;
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://admin:4fR9y2m8VxKl@web-production-9efff.up.railway.app:5432/multi_ecommerce'
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/multi_ecommerce'
 });
 
 async function cleanupStore1() {

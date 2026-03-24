@@ -55,76 +55,15 @@ export async function initializeDatabase(connectionString: string) {
       }
     }
 
-    console.log('📂 [DB-INIT] Loading database backup...');
-    const backupPath = path.join(__dirname, 'database_backup.sql');
-    console.log('📁 [DB-INIT] Backup file path:', backupPath);
+    // Skip backup file execution - tables already created
+    console.log('⏩ [DB-INIT] Skipping backup file (tables already initialized)');
     
-    if (!fs.existsSync(backupPath)) {
-      console.log('⚠️  [DB-INIT] No backup file found, skipping initialization');
-      return;
-    }
-
-    console.log('✓ [DB-INIT] Backup file found, reading content...');
-    const backupContent = fs.readFileSync(backupPath, 'utf8');
-    console.log('✓ [DB-INIT] Backup size:', (backupContent.length / 1024).toFixed(2), 'KB');
-    
-    // Split by lines to handle multi-line statements better
-    const lines = backupContent.split('\n');
-    let currentStatement = '';
-    const statements: string[] = [];
-    
-    for (const line of lines) {
-      // Skip comments and empty lines
-      if (line.trim().startsWith('--') || line.trim().length === 0) {
-        continue;
-      }
-      
-      currentStatement += line + '\n';
-      
-      // Check if statement ends with semicolon
-      if (line.trim().endsWith(';')) {
-        statements.push(currentStatement.trim());
-        currentStatement = '';
-      }
-    }
-    
-    // Add any remaining statement
-    if (currentStatement.trim().length > 0) {
-      statements.push(currentStatement.trim());
-    }
-
-    console.log(`🚀 [DB-INIT] Executing ${statements.length} SQL statements...`);
-    
-    let count = 0;
-    let successCount = 0;
-    let skippedCount = 0;
-    
-    for (const statement of statements) {
-      count++;
-      try {
-        if (statement.length === 0) continue;
-        
-        process.stdout.write(`\r⏳ [DB-INIT] Executing statement ${count}/${statements.length}...`);
-        await client.query(statement);
-        successCount++;
-        
-        if (count % 20 === 0) {
-          console.log(`\n  ✓ [DB-INIT] ${count}/${statements.length} processed (${successCount} successful)`);
-        }
-      } catch (err: any) {
-        // Ignore common non-critical errors
-        const errMsg = err.message || '';
-        if (
-          errMsg.includes('already exists') ||
-          errMsg.includes('duplicate key') ||
-          errMsg.includes('violates unique constraint')
-        ) {
-          skippedCount++;
-        } else {
-          console.warn(`\n  ⚠️  [DB-INIT] Statement ${count} error: ${errMsg.substring(0, 80)}`);
-        }
-      }
-    }
+    // Just verify tables exist
+    const tableCheck = await client.query(`
+      SELECT COUNT(*) as table_count FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `);
+    console.log('📊 [DB-INIT] Total tables in database:', tableCheck.rows[0].table_count);
 
     // Create indexes for fast query performance
     console.log('\n📇 [DB-INIT] Creating performance indexes...');
@@ -133,14 +72,12 @@ export async function initializeDatabase(connectionString: string) {
       'CREATE INDEX IF NOT EXISTS idx_stores_id ON stores(id);',
       'CREATE INDEX IF NOT EXISTS idx_stores_is_active ON stores(is_active);',
       'CREATE INDEX IF NOT EXISTS idx_stores_is_active_created ON stores(is_active, created_at DESC);',
-      'CREATE INDEX IF NOT EXISTS idx_topup_stores_slug ON topup_stores(slug);',
       'CREATE INDEX IF NOT EXISTS idx_topup_companies_store_id ON topup_companies(store_id);',
       'CREATE INDEX IF NOT EXISTS idx_topup_categories_store_id ON topup_product_categories(store_id);',
       'CREATE INDEX IF NOT EXISTS idx_topup_products_store_id ON topup_products(store_id);',
       'CREATE INDEX IF NOT EXISTS idx_customers_store_id ON customers(store_id);',
       'CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);',
-      'CREATE INDEX IF NOT EXISTS idx_topup_product_images_store_product ON topup_product_images(store_id, product_id);',
-      'CREATE INDEX IF NOT EXISTS idx_topup_product_images_created ON topup_product_images(created_at);'
+      'CREATE INDEX IF NOT EXISTS idx_topup_product_images_product ON topup_product_images(topup_product_id);'
     ];
     
     for (const indexStmt of indexes) {
@@ -198,9 +135,9 @@ export async function initializeDatabase(connectionString: string) {
         console.log('  📝 [DB-INIT] Creating topup store with explicit ID 13...');
         try {
           await client.query(`
-            INSERT INTO stores (id, store_name, slug, owner_name, owner_phone, category, status, is_active, store_type) 
-            VALUES (13, $1, $2, $3, $4, $5, $6, $7, $8)`,
-            ['Topup Store', 'topup-main', 'Topup Admin', '+964', 'شحن', 'approved', true, 'topup']
+            INSERT INTO stores (id, store_name, slug, owner_name, owner_phone, status, is_active, store_type) 
+            VALUES (13, $1, $2, $3, $4, $5, $6, $7)`,
+            ['Topup Store', 'topup-main', 'Topup Admin', '+964', 'approved', true, 'topup']
           );
           console.log('  ✅ [DB-INIT] Topup store 13 created successfully');
         } catch (insertErr: any) {
@@ -223,7 +160,6 @@ export async function initializeDatabase(connectionString: string) {
     }
 
     console.log(`\n\n✅ [DB-INIT] Database initialization complete!`);
-    console.log(`📊 [DB-INIT] Statements: ${successCount} executed, ${skippedCount} skipped (already exist)`);
     
   } catch (err: any) {
     console.error('❌ [DB-INIT] Database initialization error:', err.message);

@@ -1,12 +1,13 @@
 import pkg from 'pg';
 const { Pool } = pkg;
 
+if (!process.env.DATABASE_URL) {
+  console.error('❌ [FATAL] DATABASE_URL not set - cloud-only configuration required.');
+  process.exit(1);
+}
+
 const pool = new Pool({
-  user: 'postgres',
-  password: '123',
-  host: 'localhost',
-  port: 5432,
-  database: 'multi_ecommerce'
+  connectionString: process.env.DATABASE_URL
 });
 
 async function checkAndCleanStores() {

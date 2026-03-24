@@ -1,6 +1,6 @@
 import fetch from 'node-fetch';
 
-const API_URL = 'https://web-production-9efff.up.railway.app/api';
+const API_URL = 'http://localhost:3000/api';
 
 const topupLogo = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+Cjwvc3ZnPg==`;
 

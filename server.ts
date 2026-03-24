@@ -10,23 +10,51 @@ import { mkdir, unlink } from "fs/promises";
 import crypto from "crypto";
 import admin from "firebase-admin";
 import archiver from "archiver";
+import multer from "multer";
+import sharp from "sharp";
 
 // Fix: Ensure all admin endpoints use proper ID validation
 console.log("📡 [SERVER] Server module loading...");
 
-// 🔥 CRITICAL: Check if DATABASE_URL exists in environment BEFORE loading dotenv
-const hasRailwayDb = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('railway');
-console.log("🔍 [STARTUP] DATABASE_URL check:");
-console.log("   Exists:", !!process.env.DATABASE_URL);
-console.log("   Is Railway:", hasRailwayDb);
+// 🔥 CRITICAL: Load .env first, always
+dotenv.config();
 
-// Only load .env if DATABASE_URL doesn't exist (local development only)
-if (!process.env.DATABASE_URL) {
-  console.log("⚠️  [STARTUP] No DATABASE_URL in environment, loading from .env...");
-  dotenv.config();
-} else {
-  console.log("✅ [STARTUP] DATABASE_URL found in environment, skipping .env");
+console.log("✅ [STARTUP] Dotenv configuration loaded");
+
+// 🔴 CRITICAL: Validate DATABASE_URL immediately - MUST be set before any database operations
+console.log('\n🔍 [STARTUP] Validating required environment variables...');
+const requiredEnvVars = {
+  'DATABASE_URL': 'Cloud PostgreSQL connection string'
+};
+
+const missingVars = [];
+for (const [varName, description] of Object.entries(requiredEnvVars)) {
+  if (!process.env[varName] || process.env[varName].trim() === '') {
+    missingVars.push(`  ❌ ${varName}: ${description}`);
+  } else {
+    console.log(`  ✅ ${varName}: Set (${process.env[varName].substring(0, 40)}...)`);
+  }
 }
+
+if (missingVars.length > 0) {
+  console.error('\n' + '='.repeat(60));
+  console.error('🚨 FATAL: Missing required environment variables!');
+  console.error('='.repeat(60));
+  console.error('\nMissing:');
+  missingVars.forEach(m => console.error(m));
+  console.error('\n📋 Railway Setup Checklist:');
+  console.error('  1. Go to https://railway.app/project/YOUR_PROJECT_ID/plugins');
+  console.error('  2. Add PostgreSQL plugin (if not already added)');
+  console.error('  3. DATABASE_URL will be auto-set by Railway PostgreSQL plugin');
+  console.error('  4. Redeploy: git push (if using GitHub)');
+  console.error('\n🔗 References:');
+  console.error('  - Railway PostgreSQL: https://docs.railway.app/plugins/postgresql');
+  console.error('  - Environment Variables: https://docs.railway.app/develop/variables');
+  console.error('='.repeat(60) + '\n');
+  process.exit(1);
+}
+
+console.log('✅ [STARTUP] All required environment variables are set\n');
 
 // Initialize Firebase Admin SDK
 const serviceAccount = {
@@ -51,12 +79,13 @@ if (serviceAccount.projectId && serviceAccount.privateKey && serviceAccount.clie
 
 console.log("📡 [SERVER] Dotenv loaded");
 
-// Log environment variables
+// Log environment variables (at this point DATABASE_URL is guaranteed to be set)
 console.log("📋 Environment Variables:");
-console.log("  DATABASE_URL:", process.env.DATABASE_URL ? "✓ Set" : "❌ Not set");
+console.log("  DATABASE_URL:", process.env.DATABASE_URL?.substring(0, 50) + "... ✅");
 console.log("  PORT:", process.env.PORT || "3000 (default)");
 console.log("  NODE_ENV:", process.env.NODE_ENV || "development (default)");
-console.log("  BUILD_TIMESTAMP: 2026-03-18T00:45:00Z-FULL-REBUILD");
+console.log("  FIREBASE_PROJECT_ID:", process.env.FIREBASE_PROJECT_ID ? "✓ Set" : "❌ Not set (local uploads only)");
+console.log("  FIREBASE_CLIENT_EMAIL:", process.env.FIREBASE_CLIENT_EMAIL ? "✓ Set" : "❌ Not set");
 
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
@@ -80,14 +109,10 @@ const __dirname = path.dirname(__filename);
 
 console.log("📡 [SERVER] Creating database pool...");
 
-let connectionString = process.env.DATABASE_URL;
+const connectionString = process.env.DATABASE_URL;
 
-// 🔥 CRITICAL: Use DATABASE_URL if it exists, whether or not NODE_ENV says so
-if (connectionString) {
-  console.log("✅ [SERVER] Using DATABASE_URL from environment:", connectionString.substring(0, 60) + "...");
-} else {
-  throw new Error('❌ [SERVER] FATAL: DATABASE_URL not set! Please set it in Railway Variables.');
-}
+// ✅ DATABASE_URL is guaranteed to exist at this point (validated at startup)
+console.log("✅ [SERVER] Using cloud DATABASE_URL from environment:", connectionString.substring(0, 60) + "...");
 
 const pool = new Pool({
   connectionString,
@@ -98,6 +123,182 @@ const pool = new Pool({
 
 console.log("✅ [SERVER] Database pool created");
 console.log("🔌 Database connection string:", connectionString.substring(0, 50) + "...");
+
+// ✅ LOCAL IMAGE COMPRESSION & STORAGE (NO FIREBASE)
+async function uploadAndCompressImageLocally(base64Data: string, filename: string): Promise<string> {
+  try {
+    const uploadsDir = path.join(__dirname, 'public', 'uploads', 'products');
+    await mkdir(uploadsDir, { recursive: true });
+    
+    // Remove data URL prefix if present
+    const base64String = base64Data.replace(/^data:image\/\w+;base64,/, '');
+    
+    // Create unique filename
+    const uniqueFilename = `${Date.now()}_${Math.random().toString(36).substring(7)}_${filename}`;
+    const filePath = path.join(uploadsDir, uniqueFilename);
+    
+    // Convert base64 to buffer and COMPRESS with Sharp
+    const buffer = Buffer.from(base64String, 'base64');
+    
+    // Compress and optimize image
+    const compressedBuffer = await sharp(buffer)
+      .resize(1200, 1200, {
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .jpeg({ quality: 80, progressive: true })
+      .toBuffer();
+    
+    // Write compressed image to disk
+    await new Promise<void>((resolve, reject) => {
+      fs.writeFile(filePath, compressedBuffer, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    
+    const imageUrl = `/uploads/products/${uniqueFilename}`;
+    const sizeKB = (compressedBuffer.length / 1024).toFixed(2);
+    console.log(`✅ Image saved & compressed: ${imageUrl} (${sizeKB}KB)`);
+    return imageUrl;
+  } catch (error) {
+    console.error('❌ Image compression/upload error:', error);
+    throw error;
+  }
+}
+
+// Firebase Image Upload Helper Function (DEPRECATED - kept for backward compatibility)
+async function uploadImageToFirebase(base64Data: string, filename: string): Promise<string> {
+  // 🚫 NO FIREBASE - redirect to local compression
+  return uploadAndCompressImageLocally(base64Data, filename);
+}
+
+function getLocalUploadsFilePath(fileUrl: string): string | null {
+  if (typeof fileUrl !== 'string' || !fileUrl.startsWith('/uploads/')) {
+    return null;
+  }
+
+  const relativePath = fileUrl.replace(/^\//, '');
+  const resolvedPath = path.resolve(__dirname, 'public', relativePath.replace(/\//g, path.sep));
+  const uploadsRoot = path.resolve(__dirname, 'public', 'uploads');
+
+  if (!resolvedPath.startsWith(uploadsRoot)) {
+    return null;
+  }
+
+  return resolvedPath;
+}
+
+async function deleteLocalUploadIfExists(fileUrl: string): Promise<boolean> {
+  const filePath = getLocalUploadsFilePath(fileUrl);
+  if (!filePath || !fs.existsSync(filePath)) {
+    return false;
+  }
+
+  await unlink(filePath);
+  return true;
+}
+
+async function cleanupSoldAuctionImages(): Promise<void> {
+  try {
+    const result = await pool.query(`
+      SELECT
+        a.id as auction_id,
+        a.product_id,
+        p.image_url,
+        p.gallery
+      FROM auctions a
+      JOIN products p ON p.id = a.product_id
+      WHERE a.sold_at IS NOT NULL
+      AND a.sold_at <= NOW() - INTERVAL '7 days'
+      AND (
+        COALESCE(NULLIF(p.image_url, ''), '') <> ''
+        OR COALESCE(NULLIF(BTRIM(p.gallery::text), ''), '') NOT IN ('[]', '{}')
+      )
+    `);
+
+    if (!result.rows.length) {
+      return;
+    }
+
+    let deletedFilesCount = 0;
+    let cleanedProductsCount = 0;
+
+    for (const row of result.rows) {
+      const galleryItems = Array.isArray(row.gallery)
+        ? row.gallery
+        : typeof row.gallery === 'string'
+          ? JSON.parse(row.gallery || '[]')
+          : [];
+
+      const imageUrls = new Set<string>();
+      if (row.image_url) {
+        imageUrls.add(String(row.image_url));
+      }
+
+      for (const item of galleryItems) {
+        if (typeof item === 'string' && item) {
+          imageUrls.add(item);
+        }
+      }
+
+      for (const imageUrl of imageUrls) {
+        try {
+          const deleted = await deleteLocalUploadIfExists(imageUrl);
+          if (deleted) {
+            deletedFilesCount += 1;
+          }
+        } catch (error) {
+          console.warn(`⚠️ Failed to delete sold auction image: ${imageUrl}`, error);
+        }
+      }
+
+      await pool.query(
+        `UPDATE products
+         SET image_url = NULL,
+             gallery = NULL,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [row.product_id]
+      );
+
+      cleanedProductsCount += 1;
+    }
+
+    console.log(`🧹 Cleaned sold auction images for ${cleanedProductsCount} product(s), deleted ${deletedFilesCount} local file(s)`);
+  } catch (error) {
+    console.error('❌ Failed to cleanup sold auction images:', error);
+  }
+}
+
+async function getStoreAuctionSalesTotal(storeId: number): Promise<number> {
+  const result = await pool.query(
+    `SELECT COALESCE(SUM(final_sale_price), 0) as total
+     FROM auctions
+     WHERE store_id = $1 AND sold_at IS NOT NULL`,
+    [storeId]
+  );
+
+  return parseFloat(result.rows[0]?.total || 0);
+}
+
+async function syncStoreAuctionSalesTotal(storeId: number): Promise<number> {
+  await pool.query(`
+    ALTER TABLE stores
+    ADD COLUMN IF NOT EXISTS total_regular_sales NUMERIC DEFAULT 0
+  `);
+
+  const actualTotal = await getStoreAuctionSalesTotal(storeId);
+
+  await pool.query(
+    `UPDATE stores
+     SET total_regular_sales = $1
+     WHERE id = $2`,
+    [actualTotal, storeId]
+  );
+
+  return actualTotal;
+}
 
 async function testConnection() {
   try {
@@ -326,6 +527,22 @@ async function initDb() {
         bid_price DECIMAL(10, 2) NOT NULL,
         bid_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS coupons (
+        id SERIAL PRIMARY KEY,
+        store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+        code VARCHAR(50) NOT NULL UNIQUE,
+        discount_type VARCHAR(20) CHECK (discount_type IN ('percentage', 'fixed')),
+        discount_value DECIMAL(10, 2) NOT NULL,
+        min_purchase_amount DECIMAL(10, 2) DEFAULT 0,
+        max_uses INTEGER,
+        usage_count INTEGER DEFAULT 0,
+        valid_from TIMESTAMP,
+        valid_until TIMESTAMP,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
     `);
     
     console.log("✅ Tables created successfully!");
@@ -344,12 +561,51 @@ async function initDb() {
 
 async function runMigrations() {
   try {
-    // Add primary_color column to app_settings if it doesn't exist
-    await pool.query(`
-      ALTER TABLE app_settings
-      ADD COLUMN IF NOT EXISTS primary_color TEXT DEFAULT '#4F46E5';
-    `);
-    console.log("✅ Migration: primary_color column ensured in app_settings");
+    // ✅ CRITICAL FIX: Convert logo_url from VARCHAR(500) to TEXT
+    // This allows storing Base64 encoded logos directly (permanent cloud storage)
+    console.log('\n📸 [MIGRATION] Converting logo_url columns to TEXT for Base64 storage...');
+    
+    // Migrate stores.logo_url
+    try {
+      await pool.query(`
+        ALTER TABLE stores 
+        ALTER COLUMN logo_url TYPE TEXT;
+      `);
+      console.log('✅ Migration: stores.logo_url converted to TEXT');
+    } catch (e) {
+      const msg = (e as any).message || '';
+      if (!msg.includes('already exists') && !msg.includes('cannot change data type')) {
+        console.log('ℹ️  stores.logo_url migration:', msg.substring(0, 80));
+      }
+    }
+    
+    // Migrate app_settings.logo_url
+    try {
+      await pool.query(`
+        ALTER TABLE app_settings 
+        ALTER COLUMN logo_url TYPE TEXT;
+      `);
+      console.log('✅ Migration: app_settings.logo_url converted to TEXT');
+    } catch (e) {
+      const msg = (e as any).message || '';
+      if (!msg.includes('already exists') && !msg.includes('cannot change data type')) {
+        console.log('ℹ️  app_settings.logo_url migration:', msg.substring(0, 80));
+      }
+    }
+
+    // Migrate topup_companies.logo_url
+    try {
+      await pool.query(`
+        ALTER TABLE topup_companies 
+        ALTER COLUMN logo_url TYPE TEXT;
+      `);
+      console.log('✅ Migration: topup_companies.logo_url converted to TEXT');
+    } catch (e) {
+      const msg = (e as any).message || '';
+      if (!msg.includes('already exists') && !msg.includes('cannot change data type')) {
+        console.log('ℹ️  topup_companies.logo_url migration:', msg.substring(0, 80));
+      }
+    }
     
     // Add commission_percentage column to stores if it doesn't exist
     await pool.query(`
@@ -572,6 +828,13 @@ async function runMigrations() {
     `);
     console.log("✅ Migration: is_active column added to topup_products");
 
+    // Add available_codes column to topup_products table
+    await pool.query(`
+      ALTER TABLE topup_products
+      ADD COLUMN IF NOT EXISTS available_codes INTEGER DEFAULT 0;
+    `);
+    console.log("✅ Migration: available_codes column added to topup_products");
+
     // Add auction columns to products table
     await pool.query(`
       ALTER TABLE products
@@ -598,21 +861,55 @@ async function runMigrations() {
     `);
     console.log("✅ Migration: customer_phone column added to auction_bids");
 
-    // Make customer_id nullable to allow anonymous bids
-    await pool.query(`
-      ALTER TABLE auction_bids
-      ALTER COLUMN customer_id DROP NOT NULL;
-    `);
-    console.log("✅ Migration: customer_id made nullable for anonymous bids");
+    // Add and fix auction_bids columns for flexible bidding
+    try {
+      // Add customer_id column if it doesn't exist
+      await pool.query(`
+        ALTER TABLE auction_bids
+        ADD COLUMN IF NOT EXISTS customer_id INTEGER;
+      `);
+      console.log("✅ Migration: customer_id column added to auction_bids");
+    } catch (e) {
+      console.log("ℹ️  Migration note: customer_id column:", (e as any).message?.substring(0, 60));
+    }
 
-    // Drop the foreign key constraint if it exists and recreate it as nullable
-    await pool.query(`
-      ALTER TABLE auction_bids
-      DROP CONSTRAINT IF EXISTS auction_bids_customer_id_fkey,
-      ADD CONSTRAINT auction_bids_customer_id_fkey 
-      FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE SET NULL;
-    `);
-    console.log("✅ Migration: customer_id foreign key constraint updated");
+    try {
+      // Make customer_id nullable
+      await pool.query(`
+        ALTER TABLE auction_bids
+        ALTER COLUMN customer_id DROP NOT NULL;
+      `);
+      console.log("✅ Migration: customer_id made nullable for anonymous bids");
+    } catch (e) {
+      // May fail if column doesn't exist or is already nullable
+      console.log("ℹ️  Migration note:", (e as any).message?.substring(0, 60));
+    }
+
+    // Drop the old foreign key constraint if it exists
+    try {
+      await pool.query(`
+        ALTER TABLE auction_bids
+        DROP CONSTRAINT IF EXISTS auction_bids_customer_id_fkey;
+      `);
+      console.log("✅ Migration: Dropped old auction_bids_customer_id_fkey");
+    } catch (e) {
+      // Ignore
+    }
+
+    // Add FK constraint as nullable
+    try {
+      await pool.query(`
+        ALTER TABLE auction_bids
+        ADD CONSTRAINT auction_bids_customer_id_fkey 
+        FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE SET NULL;
+      `);
+      console.log("✅ Migration: customer_id foreign key constraint created");
+    } catch (e) {
+      const msg = (e as any).message || '';
+      if (!msg.includes('already exists')) {
+        console.log("ℹ️  FK constraint note:", msg.substring(0, 60));
+      }
+    }
 
     // Add can_access_admin column to users if it doesn't exist
     await pool.query(`
@@ -645,7 +942,128 @@ async function runMigrations() {
     `);
     console.log("✅ Migration: is_active column added to stores");
 
-    // Create indexes for performance optimization
+    // Add missing auction columns to support the auction system properly
+    try {
+      await pool.query(`
+        ALTER TABLE auctions
+        ADD COLUMN IF NOT EXISTS auction_date DATE;
+      `);
+      console.log("✅ Migration: auction_date column added to auctions");
+    } catch (e) {
+      // Ignore if column already exists
+    }
+
+    try {
+      await pool.query(`
+        ALTER TABLE auctions
+        ADD COLUMN IF NOT EXISTS auction_start_time TIME;
+      `);
+      console.log("✅ Migration: auction_start_time column added to auctions");
+    } catch (e) {
+      // Ignore if column already exists
+    }
+
+    try {
+      await pool.query(`
+        ALTER TABLE auctions
+        ADD COLUMN IF NOT EXISTS auction_end_time TIME;
+      `);
+      console.log("✅ Migration: auction_end_time column added to auctions");
+    } catch (e) {
+      // Ignore if column already exists
+    }
+
+    try {
+      await pool.query(`
+        ALTER TABLE auctions
+        ADD COLUMN IF NOT EXISTS current_highest_price DECIMAL(10, 2);
+      `);
+      console.log("✅ Migration: current_highest_price column added to auctions");
+    } catch (e) {
+      // Ignore if column already exists
+    }
+
+    // Make bidder_id nullable for anonymous bids
+    try {
+      await pool.query(`
+        ALTER TABLE auction_bids
+        ALTER COLUMN bidder_id DROP NOT NULL;
+      `);
+      console.log("✅ Migration: bidder_id made nullable for anonymous bids");
+    } catch (e) {
+      // Ignore if already nullable
+    }
+
+    // Add missing columns to auctions table
+    try {
+      await pool.query(`
+        ALTER TABLE auctions
+        ADD COLUMN IF NOT EXISTS current_highest_price DECIMAL(10, 2);
+      `);
+      console.log("✅ Migration: current_highest_price column added to auctions");
+    } catch (e) {
+      // Column might already exist
+    }
+
+    try {
+      await pool.query(`
+        ALTER TABLE auctions
+        ADD COLUMN IF NOT EXISTS winner_id INTEGER;
+      `);
+      console.log("✅ Migration: winner_id column added to auctions");
+    } catch (e) {
+      // Column might already exist
+    }
+
+    // Add missing auction_bids columns for proper bid placement
+    try {
+      await pool.query(`
+        ALTER TABLE auction_bids
+        ADD COLUMN IF NOT EXISTS bid_price DECIMAL(10, 2);
+      `);
+      console.log("✅ Migration: bid_price column added to auction_bids");
+    } catch (e) {
+      // Ignore if column already exists
+    }
+
+    // Rename bid_amount to bid_price if both exist, keep bid_price
+    try {
+      const result = await pool.query(`
+        SELECT column_name FROM information_schema.columns 
+        WHERE table_name = 'auction_bids' AND column_name = 'bid_amount'
+      `);
+      
+      if (result.rows.length > 0) {
+        // Copy bid_amount to bid_price if bid_price is empty
+        await pool.query(`
+          UPDATE auction_bids 
+          SET bid_price = bid_amount 
+          WHERE bid_price IS NULL AND bid_amount IS NOT NULL
+        `);
+        console.log("✅ Migration: Migrated bid_amount to bid_price");
+      }
+    } catch (e) {
+      console.log("ℹ️  Migration note:", (e as any).message?.substring(0, 60));
+    }
+
+    // Add bid_price as an alias/view if needed
+    try {
+      await pool.query(`
+        ALTER TABLE auction_bids
+        ADD COLUMN IF NOT EXISTS bid_price_alias DECIMAL(10, 2) 
+        GENERATED ALWAYS AS (bid_amount) STORED;
+      `);
+    } catch (e) {
+      // Ignore - might already exist or not needed
+    }
+
+    // Create index for auction_bids queries
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_auction_bids_auction_id 
+      ON auction_bids(auction_id);
+    `);
+    console.log("✅ Index: idx_auction_bids_auction_id created");
+
     console.log("📊 Creating database indexes for better query performance...");
     
     // Index for topup_companies queries
@@ -694,6 +1112,89 @@ async function runMigrations() {
       ON customer_payments(customer_id);
     `);
     console.log("✅ Index: idx_customer_payments_customer_id created");
+
+    // Add updated_at column to stores if it doesn't exist (critical fix for regular stores)
+    await pool.query(`
+      ALTER TABLE stores
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    `);
+    console.log("✅ Migration: updated_at column added to stores");
+
+    // Fix: Convert all VARCHAR(n) columns to TEXT to avoid "value too long" errors
+    try {
+      // Get all VARCHAR columns with character_maximum_length from ALL tables
+      const allVarcharCols = await pool.query(`
+        SELECT table_name, column_name, data_type, character_maximum_length
+        FROM information_schema.columns
+        WHERE data_type = 'character varying'
+        AND character_maximum_length IS NOT NULL
+        AND table_schema = 'public'
+        AND table_name NOT LIKE 'pg_%'
+        ORDER BY table_name, column_name
+      `);
+      
+      if (allVarcharCols.rows.length > 0) {
+        console.log('\n🔍 Found VARCHAR columns in database:');
+        
+        // Group by table
+        const byTable = {};
+        for (const col of allVarcharCols.rows) {
+          if (!byTable[col.table_name]) byTable[col.table_name] = [];
+          byTable[col.table_name].push(col);
+        }
+        
+        // Convert all VARCHAR columns to TEXT
+        for (const [tableName, cols] of Object.entries(byTable)) {
+          console.log(`\n📊 Table: ${tableName}`);
+          for (const col of cols) {
+            console.log(`   - ${col.column_name}: ${col.data_type}(${col.character_maximum_length})`);
+            try {
+              await pool.query(`
+                ALTER TABLE ${tableName}
+                ALTER COLUMN ${col.column_name} TYPE TEXT
+              `);
+              console.log(`   ✅ Converted to TEXT`);
+            } catch (e) {
+              const msg = (e as any).message || '';
+              if (!msg.includes('already exists')) {
+                console.log(`   ℹ️  ${msg.substring(0, 60)}`);
+              }
+            }
+          }
+        }
+        console.log('\n✅ All VARCHAR columns converted to TEXT');
+      }
+    } catch (e) {
+      console.log("ℹ️  Migration note:", (e as any).message?.substring(0, 60));
+    }
+
+    // Add missing stock column to products table
+    try {
+      await pool.query(`
+        ALTER TABLE products
+        ADD COLUMN IF NOT EXISTS stock INTEGER DEFAULT 0
+      `);
+      console.log('✅ Migration: stock column added to products table');
+    } catch (e) {
+      const msg = (e as any).message || '';
+      if (!msg.includes('already exists')) {
+        console.log('ℹ️  Stock column migration:', msg.substring(0, 60));
+      }
+    }
+
+    // Add image_url column to products table if it doesn't exist
+    try {
+      await pool.query(`
+        ALTER TABLE products
+        ADD COLUMN IF NOT EXISTS image_url TEXT
+      `);
+      console.log('✅ Migration: image_url column added to products table');
+    } catch (e) {
+      const msg = (e as any).message || '';
+      if (!msg.includes('already exists')) {
+        console.log('ℹ️  image_url column migration:', msg.substring(0, 60));
+      }
+    }
 
   } catch (error) {
     // Ignore column already exists errors
@@ -820,7 +1321,7 @@ async function startServer() {
     if (!connected) {
       console.warn("⚠️  Database connection failed, but starting server anyway (check database settings)");
     } else {
-      // Ensure all required tables exist (for Railway migrations)
+      // Ensure all required tables exist
       await ensureMissingTables();
       
       // Load/restore data from backup if database is empty
@@ -848,36 +1349,59 @@ async function startServer() {
     
     const app = express();
     
-    // Configure CORS for production & development
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://127.0.0.1:5173',
-      'http://127.0.0.1:3000',
-      'https://commerce-platform-six.vercel.app', // Vercel frontend production
-      'https://web-production-9efff.up.railway.app', // Rail way backend (self)
-    ];
+    // Configure CORS: CLOUD ONLY (no localhost connections)
+    const isDev = process.env.NODE_ENV !== 'production';
+    const allowedOrigins = isDev 
+      ? [
+          // Development local ports only when NODE_ENV != production
+          'http://localhost:5173',
+          'http://localhost:3000',
+          'http://127.0.0.1:5173',
+          'http://127.0.0.1:3000',
+        ]
+      : [
+          // Production: Only cloud domain(s)
+          'https://web-production-9efff.up.railway.app',
+          // Add other production domains here if needed
+        ];
     
-    // Add dynamic Vercel and Railway URLs when available as environment variables
-    if (process.env.VERCEL_URL) {
-      allowedOrigins.push(`https://${process.env.VERCEL_URL}`);
-    }
-    if (process.env.RAILWAY_PUBLIC_DOMAIN) {
-      allowedOrigins.push(`https://${process.env.RAILWAY_PUBLIC_DOMAIN}`);
-    }
+    console.log('🔒 [CORS] Allowed origins:', allowedOrigins);
     
     app.use(cors({
       origin: allowedOrigins,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires'],
     }));
     
     // Increase JSON body size limit to allow base64 images (logos) in settings
     app.use(express.json({ limit: "10mb" }));
     
+    // Configure multer for file uploads (multipart/form-data)
+    const upload = multer({
+      storage: multer.memoryStorage(), // Store files in memory for processing
+      limits: {
+        fileSize: 100 * 1024 * 1024, // 100MB per file
+        files: 100 // Max 100 files per request
+      },
+      fileFilter: (req, file, cb) => {
+        // Only accept image files
+        if (file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new Error('Only image files are allowed'));
+        }
+      }
+    });
+    
     // Define distPath early so it's available for all routes
     const distPath = path.join(__dirname, "dist");
+    const isDev = !fs.existsSync(distPath);
+    
+    if (isDev) {
+      console.log("🔧 Development mode detected - dist folder not found");
+      console.log("⚠️  Using Vite dev server for frontend");
+    }
     
     // Health check endpoint
     app.get("/api/health", (req, res) => {
@@ -1052,26 +1576,98 @@ async function startServer() {
         res.status(500).json({ error: (error as any).message });
       }
     });
+
+    // Clear all data from database
+    app.post("/api/clear-all", async (req, res) => {
+      try {
+        console.log("🗑️  Clearing all data from database...");
+        
+        const client = await pool.connect();
+        try {
+          // Order matters due to foreign keys
+          const tables = [
+            'auction_bids',
+            'auctions',
+            'topup_orders_detail',
+            'topup_orders',
+            'order_items',
+            'orders',
+            'cart_items',
+            'customer_payments',
+            'customer_transactions',
+            'customers',
+            'topup_product_images',
+            'topup_products',
+            'topup_product_categories',
+            'topup_companies',
+            'products',
+            'categories',
+            'merchant_applications',
+            'company_users',
+            'app_settings',
+            'stores',
+            'users'
+          ];
+
+          for (const table of tables) {
+            try {
+              await client.query(`TRUNCATE TABLE ${table} CASCADE`);
+            } catch (e) {
+              await client.query(`DELETE FROM ${table}`);
+            }
+          }
+
+          res.json({
+            success: true,
+            message: "جميع البيانات تم حذفها بنجاح!",
+            clearCache: true,
+            redirect: "/",
+          });
+          console.log("✅ جميع البيانات تم حذفها بنجاح!");
+        } finally {
+          await client.release();
+        }
+      } catch (error) {
+        console.error("❌ خطأ في حذف البيانات:", error);
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
     
     // Get stores (public - only active)
     app.get("/api/stores", async (req, res) => {
       try {
-        const { limit = 50, offset = 0 } = req.query;
+        const { limit = 50, offset = 0, includeInactive = false } = req.query;
         const limitNum = Math.min(parseInt(limit as string) || 50, 500);
         const offsetNum = Math.max(0, parseInt(offset as string) || 0);
         
-        const result = await pool.query(`
-          SELECT id, store_name, slug, logo_url, primary_color, is_active, store_type, status, owner_name, owner_phone
+        console.log('🏪 GET /api/stores called:', { limit: limitNum, offset: offsetNum, includeInactive });
+        
+        let query = `
+          SELECT id, store_name, slug, logo_url, primary_color, is_active, store_type, status, owner_name, owner_phone, category as description
           FROM stores
-          WHERE is_active = true
+        `;
+        
+        // Only filter by is_active if not explicitly requesting inactive stores
+        if (includeInactive !== 'true') {
+          query += 'WHERE is_active = true OR is_active IS NULL ';
+        }
+        
+        query += `
           ORDER BY created_at DESC
           LIMIT $1 OFFSET $2
-        `, [limitNum, offsetNum]);
+        `;
         
-        res.set('Cache-Control', 'public, max-age=300'); // 5 minutes
+        console.log('🔍 SQL Query:', query.substring(0, 200) + '...');
+        
+        const result = await pool.query(query, [limitNum, offsetNum]);
+        
+        console.log('✅ Stores fetched:', { count: result.rows.length, stores: result.rows.map((s: any) => ({ id: s.id, name: s.store_name })) });
+        
+        res.set('Cache-Control', 'public, max-age=60'); // 1 minute
         res.json(result.rows);
       } catch (error) {
-        res.status(500).json({ error: (error as any).message });
+        console.error('❌ Error fetching stores:', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : '' });
+        res.status(500).json({ error: (error as any).message || 'Failed to fetch stores' });
       }
     });
 
@@ -1082,8 +1678,10 @@ async function startServer() {
         const limitNum = Math.min(parseInt(limit as string) || 100, 1000);
         const offsetNum = Math.max(0, parseInt(offset as string) || 0);
         
+        console.log('📍 /api/admin/stores called - limit:', limitNum, 'offset:', offsetNum);
+        
         const result = await pool.query(`
-          SELECT id, store_name, slug, logo_url, primary_color, is_active, store_type, status, owner_name, owner_phone, owner_id, owner_email, percentage_enabled, subscription_paid, commission_percentage
+          SELECT id, store_name, slug, logo_url, primary_color, is_active, store_type, status, owner_name, owner_phone, owner_id, percentage_enabled, subscription_paid, commission_percentage
           FROM stores
           ORDER BY 
             CASE status 
@@ -1096,9 +1694,14 @@ async function startServer() {
           LIMIT $1 OFFSET $2
         `, [limitNum, offsetNum]);
         
+        console.log('✅ Query result:', result.rows.length, 'stores found');
+        result.rows.forEach(s => {
+          console.log(`   - ID:${s.id} | ${s.store_name} | Status:${s.status} | Active:${s.is_active}`);
+        });
+        
         res.json(result.rows);
       } catch (error) {
-        console.error("Admin stores error:", error);
+        console.error("❌ Admin stores error:", error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -1294,7 +1897,7 @@ async function startServer() {
         
         // If not found in users, try customers table (for customer login)
         result = await pool.query(
-          "SELECT id, name, phone, email, store_id, customer_type, password FROM customers WHERE phone = $1",
+          "SELECT id, name, phone, store_id, customer_type, password FROM customers WHERE phone = $1",
           [phone]
         );
         
@@ -1367,7 +1970,7 @@ async function startServer() {
         } else if (role === 'customer') {
           // Check if customer still exists
           const result = await pool.query(
-            "SELECT id, name, phone, email FROM customers WHERE id = $1",
+            "SELECT id, name, phone FROM customers WHERE id = $1",
             [userId]
           );
           
@@ -1491,7 +2094,7 @@ async function startServer() {
         const result = await pool.query("SELECT * FROM app_settings LIMIT 1");
         console.log(`✅ Loaded admin settings`);
         res.json(result.rows.length > 0 ? result.rows[0] : {
-          app_name: "منصتي",
+          app_name: "",
           logo_url: "",
           primary_color: "#4F46E5",
           commission_percentage: 0,
@@ -1503,7 +2106,7 @@ async function startServer() {
       }
     });
 
-    // update app settings
+    // update app settings - LOGO STORAGE FIX: Save as Base64 directly to database
     app.post("/api/settings", async (req, res) => {
       try {
         const { store_id, app_name, logo_url, primary_color, commission_percentage, admin_commission_percentage } = req.body;
@@ -1520,8 +2123,51 @@ async function startServer() {
           request_body_size: `${(reqBodySize / 1024).toFixed(2)} KB`
         });
         
-        // If logo_url is too large (over 2MB), reject it
-        if (logo_url && logo_url.length > 2 * 1024 * 1024) {
+        // ✅ LOGO FIX: Accept Base64 and compress if needed
+        let processedLogoUrl = logo_url;
+        
+        if (logo_url && logo_url.startsWith('data:image')) {
+          try {
+            console.log('🎨 Processing logo for storage...');
+            
+            // Extract base64 data
+            const base64Data = logo_url.replace(/^data:image\/[^;]+;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+            
+            console.log(`  Original size: ${(buffer.length / 1024).toFixed(2)} KB`);
+            
+            // Compress if larger than 200KB
+            if (buffer.length > 200 * 1024) {
+              console.log('  Compressing logo (size > 200KB)...');
+              const compressedBuffer = await sharp(buffer)
+                .resize(200, 200, { fit: 'contain', withoutEnlargement: true })
+                .png({ quality: 80 })
+                .toBuffer();
+              
+              const compressedSize = (compressedBuffer.length / 1024).toFixed(2);
+              console.log(`  ✅ Compressed: ${compressedSize} KB`);
+              
+              // Convert back to base64
+              processedLogoUrl = 'data:image/png;base64,' + compressedBuffer.toString('base64');
+            }
+            
+            // Validate final size (max 1.5MB for database)
+            if (processedLogoUrl.length > 1.5 * 1024 * 1024) {
+              console.error("❌ Logo still too large after compression");
+              return res.status(400).json({ 
+                message: "الصورة كبيرة جداً", 
+                success: false, 
+                error: "حجم الشعار يجب ألا يتجاوز 1.5 MB حتى بعد الضغط" 
+              });
+            }
+            
+            console.log(`✅ Logo ready for database storage: ${(processedLogoUrl.length / 1024).toFixed(2)} KB`);
+          } catch (compressErr) {
+            console.warn('⚠️ Logo compression warning (storing original):', (compressErr as any).message);
+            // Keep original if compression fails
+          }
+        } else if (logo_url && logo_url.length > 2 * 1024 * 1024) {
+          // If it's not base64 but still huge, reject
           console.error("❌ Logo URL too large:", (logo_url.length / 1024 / 1024).toFixed(2) + " MB");
           return res.status(400).json({ 
             message: "الصورة كبيرة جداً", 
@@ -1546,7 +2192,7 @@ async function startServer() {
           }
           if (logo_url !== undefined) {
             updates.push(`logo_url = $${paramIndex++}`);
-            values.push(logo_url);
+            values.push(processedLogoUrl);
           }
           if (primary_color !== undefined) {
             updates.push(`primary_color = $${paramIndex++}`);
@@ -1569,7 +2215,7 @@ async function startServer() {
           values.push(storeIdInt);
           
           console.log("🔍 Update query columns:", updates);
-          console.log("📊 Update values:", values);
+          console.log("📊 Update values:", values.map((v, i) => i === 1 && v && v.startsWith('data:') ? `[base64 logo ${(v.length/1024).toFixed(1)}KB]` : v));
           console.log("📝 Final SQL Query:", updateQuery);
           
           let result;
@@ -1602,6 +2248,8 @@ async function startServer() {
         }
         
         // Otherwise update admin settings
+        // ✅ LOGO FIX: Use processed logo here too
+        
         // Check if settings exist
         const existingCheck = await pool.query("SELECT id FROM app_settings LIMIT 1");
         
@@ -1621,7 +2269,7 @@ async function startServer() {
           }
           if (logo_url !== undefined) {
             updates.push(`logo_url = $${paramIndex++}`);
-            values.push(logo_url);
+            values.push(processedLogoUrl);
           }
           if (primary_color !== undefined) {
             updates.push(`primary_color = $${paramIndex++}`);
@@ -1646,7 +2294,7 @@ async function startServer() {
           // Insert new settings if none exist
           const result = await pool.query(
             "INSERT INTO app_settings (app_name, logo_url, primary_color, admin_commission_percentage) VALUES ($1, $2, $3, $4) RETURNING *",
-            [app_name, logo_url, primary_color, admin_commission_percentage]
+            [app_name, processedLogoUrl, primary_color, admin_commission_percentage]
           );
           return res.status(200).json({ message: "Settings created successfully", success: true, settings: result.rows[0] });
         }
@@ -1682,7 +2330,7 @@ async function startServer() {
                       o.store_id,
                       o.total_amount,
                       o.discount_amount,
-                      o.status,
+                      COALESCE(NULLIF(o.status, ''), 'pending') as status,
                       o.phone,
                       o.address,
                       o.is_topup_order,
@@ -1708,7 +2356,7 @@ async function startServer() {
                       o.store_id,
                       o.total_amount,
                       o.discount_amount,
-                      o.status,
+                      COALESCE(NULLIF(o.status, ''), 'pending') as status,
                       o.phone,
                       o.address,
                       o.is_topup_order,
@@ -1756,9 +2404,16 @@ async function startServer() {
         
         const order = orderResult.rows[0];
         
-        // NOTE: Do NOT update current_debt here!
-        // Debt is calculated dynamically from orders table in statement endpoint
-        // This prevents double-counting
+        // For topup orders: update current_debt ONLY
+        // ⭐ starting_balance (الديون السابقة) must remain IMMUTABLE
+        if (is_topup && topupCustomerId) {
+          await pool.query(
+            `UPDATE customers SET 
+              current_debt = current_debt + $1
+             WHERE id = $2`,
+            [total_amount - (discount_amount || 0), topupCustomerId]
+          );
+        }
         
         const extractedCodes: string[] = [];
         
@@ -1853,13 +2508,9 @@ async function startServer() {
       }
     });
 
-    // Return order (delete it)
-    app.patch("/api/orders/:id/return", async (req, res) => {
+    const deleteOrderAndRestoreState = async (orderId: number) => {
       const client = await pool.connect();
       try {
-        const { id } = req.params;
-        const orderId = parseInt(id);
-        
         console.log(`🗑️  [RETURN ORDER] Starting deletion for order ID: ${orderId}`);
         
         await client.query('BEGIN');
@@ -1905,7 +2556,7 @@ async function startServer() {
         // Update customer debt (reduce by order amount)
         if (order.customer_id) {
           const debtUpdateRes = await client.query(
-            `UPDATE customers SET current_debt = GREATEST(0, current_debt - $1), updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING current_debt`,
+            `UPDATE customers SET current_debt = GREATEST(0, current_debt - $1) WHERE id = $2 RETURNING current_debt`,
             [orderAmount, order.customer_id]
           );
           console.log(`💳 [RETURN ORDER] Customer ${order.customer_id} debt reduced by ${orderAmount}. New debt: ${debtUpdateRes.rows[0]?.current_debt || 0}`);
@@ -1921,13 +2572,37 @@ async function startServer() {
         
         await client.query('COMMIT');
         console.log(`✅ [RETURN ORDER] Successfully deleted order: ${orderId}`);
-        res.json({ message: "تم حذف الطلب بنجاح", success: true, deleted: result.rows[0] });
+        return { message: "تم حذف الطلب بنجاح", success: true, deleted: result.rows[0] };
       } catch (error) {
         await client.query('ROLLBACK');
         console.error(`❌ [RETURN ORDER] Error:`, error);
-        res.status(500).json({ error: (error as any).message });
+        throw error;
       } finally {
         client.release();
+      }
+    };
+
+    // Return order (delete it)
+    app.patch("/api/orders/:id/return", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const orderId = parseInt(id);
+        const result = await deleteOrderAndRestoreState(orderId);
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Delete order completely and restore stock/state
+    app.delete("/api/orders/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const orderId = parseInt(id);
+        const result = await deleteOrderAndRestoreState(orderId);
+        res.json(result);
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
       }
     });
 
@@ -2070,13 +2745,239 @@ async function startServer() {
     // Validate coupon
     app.post("/api/coupons/validate", async (req, res) => {
       try {
-        const { code, store_id } = req.body;
-        // Placeholder: You can expand this with actual coupon logic
+        const { code, store_id, order_amount } = req.body;
+        
+        const coupon = await pool.query(
+          `SELECT * FROM coupons 
+           WHERE code = $1 AND store_id = $2 AND is_active = true`,
+          [code, store_id]
+        );
+        
+        if (coupon.rows.length === 0) {
+          return res.status(400).json({ error: "كود غير صحيح" });
+        }
+        
+        const cp = coupon.rows[0];
+        const now = new Date();
+        
+        // التحقق من صلاحية الفترة الزمنية
+        if (cp.valid_from && new Date(cp.valid_from) > now) {
+          return res.status(400).json({ error: "الكود لم يبدأ بعد" });
+        }
+        
+        if (cp.valid_until && new Date(cp.valid_until) < now) {
+          return res.status(400).json({ error: "انتهت صلاحية الكود" });
+        }
+        
+        // التحقق من حد الاستخدام
+        if (cp.max_uses && cp.usage_count >= cp.max_uses) {
+          return res.status(400).json({ error: "انتهت مرات استخدام الكود" });
+        }
+        
+        // التحقق من الحد الأدنى للمبلغ
+        if (cp.min_purchase_amount && order_amount < cp.min_purchase_amount) {
+          return res.status(400).json({ 
+            error: `الحد الأدنى للطلب ${cp.min_purchase_amount}` 
+          });
+        }
+        
+        // حساب الخصم
+        let discount = 0;
+        if (cp.discount_type === 'percentage') {
+          discount = Math.floor((order_amount * cp.discount_value) / 100);
+        } else {
+          discount = cp.discount_value;
+        }
+        
         res.json({
           valid: true,
-          discount: 0,
-          code: code
+          id: cp.id,
+          code: code,
+          discount_type: cp.discount_type,
+          discount_value: cp.discount_value,
+          discount_amount: discount
         });
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Create coupon (merchant)
+    app.post("/api/merchant/coupons", async (req, res) => {
+      try {
+        const { store_id, code, discount_type, discount_value, min_purchase_amount, max_uses, valid_from, valid_until } = req.body;
+        
+        // التحقق من أن التاجر يملك المتجر
+        const storeCheck = await pool.query(
+          `SELECT id FROM stores WHERE id = $1 AND user_id = $2`,
+          [store_id, (req as any).user?.id]
+        );
+        
+        if (storeCheck.rows.length === 0) {
+          return res.status(403).json({ error: "ليس لديك صلاحيات" });
+        }
+        
+        const result = await pool.query(
+          `INSERT INTO coupons (store_id, code, discount_type, discount_value, min_purchase_amount, max_uses, valid_from, valid_until)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+          [store_id, code.toUpperCase(), discount_type, discount_value, min_purchase_amount || 0, max_uses || null, valid_from || null, valid_until || null]
+        );
+        
+        res.json({ success: true, coupon: result.rows[0] });
+      } catch (error: any) {
+        if (error.code === '23505') {
+          res.status(400).json({ error: "كود موجود بالفعل" });
+        } else {
+          res.status(500).json({ error: (error as any).message });
+        }
+      }
+    });
+
+    // Get merchant coupons
+    app.get("/api/merchant/coupons", async (req, res) => {
+      try {
+        const storeId = req.query.store_id;
+        
+        const storeCheck = await pool.query(
+          `SELECT id FROM stores WHERE id = $1 AND user_id = $2`,
+          [storeId, (req as any).user?.id]
+        );
+        
+        if (storeCheck.rows.length === 0) {
+          return res.status(403).json({ error: "ليس لديك صلاحيات" });
+        }
+        
+        const result = await pool.query(
+          `SELECT * FROM coupons WHERE store_id = $1 ORDER BY created_at DESC`,
+          [storeId]
+        );
+        
+        res.json(result.rows);
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Update coupon
+    app.put("/api/merchant/coupons/:id", async (req, res) => {
+      try {
+        const { discount_type, discount_value, min_purchase_amount, max_uses, valid_from, valid_until, is_active } = req.body;
+        
+        const coupon = await pool.query(
+          `SELECT c.* FROM coupons c 
+           JOIN stores s ON c.store_id = s.id 
+           WHERE c.id = $1 AND s.user_id = $2`,
+          [req.params.id, (req as any).user?.id]
+        );
+        
+        if (coupon.rows.length === 0) {
+          return res.status(403).json({ error: "ليس لديك صلاحيات" });
+        }
+        
+        const result = await pool.query(
+          `UPDATE coupons SET discount_type = COALESCE($1, discount_type),
+            discount_value = COALESCE($2, discount_value),
+            min_purchase_amount = COALESCE($3, min_purchase_amount),
+            max_uses = COALESCE($4, max_uses),
+            valid_from = COALESCE($5, valid_from),
+            valid_until = COALESCE($6, valid_until),
+            is_active = COALESCE($7, is_active),
+            updated_at = NOW()
+           WHERE id = $8 RETURNING *`,
+          [discount_type, discount_value, min_purchase_amount, max_uses, valid_from, valid_until, is_active, req.params.id]
+        );
+        
+        res.json({ success: true, coupon: result.rows[0] });
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Delete coupon
+    app.delete("/api/merchant/coupons/:id", async (req, res) => {
+      try {
+        const coupon = await pool.query(
+          `SELECT c.* FROM coupons c 
+           JOIN stores s ON c.store_id = s.id 
+           WHERE c.id = $1 AND s.user_id = $2`,
+          [req.params.id, (req as any).user?.id]
+        );
+        
+        if (coupon.rows.length === 0) {
+          return res.status(403).json({ error: "ليس لديك صلاحيات" });
+        }
+        
+        await pool.query(`DELETE FROM coupons WHERE id = $1`, [req.params.id]);
+        res.json({ success: true });
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Increment coupon usage
+    app.post("/api/coupons/:id/use", async (req, res) => {
+      try {
+        await pool.query(
+          `UPDATE coupons SET usage_count = usage_count + 1 WHERE id = $1`,
+          [req.params.id]
+        );
+        res.json({ success: true });
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Get coupons for frontend (with storeId query param)
+    app.get("/api/coupons", async (req, res) => {
+      try {
+        const storeId = req.query.storeId;
+        if (!storeId) {
+          return res.json([]);
+        }
+        const result = await pool.query(
+          `SELECT * FROM coupons WHERE store_id = $1 AND is_active = true ORDER BY created_at DESC`,
+          [storeId]
+        );
+        res.json(result.rows);
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Create coupon (frontend - unauthenticated for now, but should add auth)
+    app.post("/api/coupons", async (req, res) => {
+      try {
+        const { store_id, code, discount_type, discount_value, min_order_value, usage_limit, expiry_date } = req.body;
+        
+        const result = await pool.query(
+          `INSERT INTO coupons (store_id, code, discount_type, discount_value, min_purchase_amount, max_uses, valid_until)
+           VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, code, discount_type, discount_value, min_purchase_amount, max_uses, valid_until, usage_count`,
+          [
+            store_id, 
+            code.toUpperCase(), 
+            discount_type, 
+            discount_value, 
+            min_order_value || 0, 
+            usage_limit || null, 
+            expiry_date || null
+          ]
+        );
+        
+        res.json(result.rows[0]);
+      } catch (error: any) {
+        if (error.code === '23505') {
+          res.status(400).json({ error: "كود موجود بالفعل" });
+        } else {
+          res.status(500).json({ error: (error as any).message });
+        }
+      }
+    });
+
+    // Delete coupon (frontend)
+    app.delete("/api/coupons/:id", async (req, res) => {
+      try {
+        await pool.query(`DELETE FROM coupons WHERE id = $1`, [req.params.id]);
+        res.json({ success: true });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
       }
@@ -2086,6 +2987,11 @@ async function startServer() {
     app.get("/api/merchant/stats", async (req, res) => {
       try {
         const storeId = req.query.storeId as string;
+
+        await pool.query(`
+          ALTER TABLE stores
+          ADD COLUMN IF NOT EXISTS total_regular_sales NUMERIC DEFAULT 0
+        `);
         
         if (!storeId || isNaN(Number(storeId))) {
           return res.json({
@@ -2093,6 +2999,7 @@ async function startServer() {
             netRevenue: 0,
             adminCommission: 0,
             orderStats: { total: 0, pending: 0, completed: 0 },
+            fulfillmentStats: { total: 0, pending: 0, completed: 0 },
             topProducts: []
           });
         }
@@ -2101,18 +3008,21 @@ async function startServer() {
 
         // Get store info for commission calculation
         const storeResult = await pool.query(
-          "SELECT percentage_enabled, commission_percentage FROM stores WHERE id = $1",
+          "SELECT percentage_enabled, commission_percentage, total_regular_sales, store_type FROM stores WHERE id = $1",
           [storeIdNum]
         );
         const percentageEnabled = storeResult.rows.length > 0 ? storeResult.rows[0].percentage_enabled : false;
         const commissionPercentage = storeResult.rows.length > 0 ? parseFloat(storeResult.rows[0].commission_percentage) : 0;
+        const auctionSalesRevenue = await syncStoreAuctionSalesTotal(storeIdNum);
+        const storeType = storeResult.rows.length > 0 ? storeResult.rows[0].store_type : null;
 
         // Get total revenue (only completed orders)
         const revenueResult = await pool.query(
           "SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE store_id = $1 AND status = 'completed'",
           [storeIdNum]
         );
-        const totalRevenue = parseFloat(revenueResult.rows[0].total);
+        const completedOrdersRevenue = parseFloat(revenueResult.rows[0].total);
+        const totalRevenue = completedOrdersRevenue + auctionSalesRevenue;
         
         // Calculate admin commission
         let adminCommission = 0;
@@ -2129,7 +3039,7 @@ async function startServer() {
         const total = parseInt(totalOrdersResult.rows[0].count);
 
         const pendingOrdersResult = await pool.query(
-          "SELECT COUNT(*) as count FROM orders WHERE store_id = $1 AND status = 'pending'",
+          "SELECT COUNT(*) as count FROM orders WHERE store_id = $1 AND COALESCE(NULLIF(status, ''), 'pending') = 'pending'",
           [storeIdNum]
         );
         const pending = parseInt(pendingOrdersResult.rows[0].count);
@@ -2139,6 +3049,36 @@ async function startServer() {
           [storeIdNum]
         );
         const completed = parseInt(completedOrdersResult.rows[0].count);
+
+        let fulfillmentPending = pending;
+        let fulfillmentCompleted = completed;
+        let fulfillmentTotal = total;
+
+        if (storeType !== 'topup') {
+          const pendingAuctionResult = await pool.query(
+            `SELECT COUNT(*) as count
+             FROM auctions a
+             WHERE a.store_id = $1
+             AND a.sold_at IS NULL
+             `,
+            [storeIdNum]
+          );
+
+          const completedAuctionResult = await pool.query(
+            `SELECT COUNT(*) as count
+             FROM auctions a
+             WHERE a.store_id = $1
+             AND a.sold_at IS NOT NULL`,
+            [storeIdNum]
+          );
+
+          const pendingAuctions = parseInt(pendingAuctionResult.rows[0].count);
+          const completedAuctions = parseInt(completedAuctionResult.rows[0].count);
+
+          fulfillmentPending += pendingAuctions;
+          fulfillmentCompleted += completedAuctions;
+          fulfillmentTotal += pendingAuctions + completedAuctions;
+        }
 
         // Get top products (sold products) - only products with actual sales
         const topProductsResult = await pool.query(
@@ -2161,6 +3101,7 @@ async function startServer() {
           netRevenue,
           adminCommission,
           orderStats: { total, pending, completed },
+          fulfillmentStats: { total: fulfillmentTotal, pending: fulfillmentPending, completed: fulfillmentCompleted },
           topProducts
         });
       } catch (error) {
@@ -2170,8 +3111,156 @@ async function startServer() {
           netRevenue: 0,
           adminCommission: 0,
           orderStats: { total: 0, pending: 0, completed: 0 },
+          fulfillmentStats: { total: 0, pending: 0, completed: 0 },
           topProducts: []
         });
+      }
+    });
+
+    app.get("/api/merchant/sales-report", async (req, res) => {
+      try {
+        const storeId = req.query.storeId as string;
+        const fromDate = req.query.from as string | undefined;
+        const toDate = req.query.to as string | undefined;
+        const saleType = (req.query.saleType as string | undefined) || 'all';
+
+        if (!storeId || isNaN(Number(storeId))) {
+          return res.status(400).json({ error: "Invalid store ID" });
+        }
+
+        if (!['all', 'order', 'auction'].includes(saleType)) {
+          return res.status(400).json({ error: "Invalid sale type" });
+        }
+
+        const storeIdNum = parseInt(storeId, 10);
+        const filters: string[] = ["store_id = $1"];
+        const values: any[] = [storeIdNum];
+        let paramIndex = 2;
+
+        if (fromDate) {
+          filters.push(`sale_date >= $${paramIndex++}::date`);
+          values.push(fromDate);
+        }
+
+        if (toDate) {
+          filters.push(`sale_date < ($${paramIndex++}::date + INTERVAL '1 day')`);
+          values.push(toDate);
+        }
+
+        if (saleType !== 'all') {
+          filters.push(`sale_type = $${paramIndex++}`);
+          values.push(saleType);
+        }
+
+        const salesResult = await pool.query(
+          `WITH all_sales AS (
+             SELECT 
+               o.id,
+               o.store_id,
+               o.created_at as sale_date,
+               (o.total_amount - COALESCE(o.discount_amount, 0))::numeric as amount,
+               'order'::text as sale_type
+             FROM orders o
+             WHERE o.status = 'completed'
+
+             UNION ALL
+
+             SELECT 
+               a.id,
+               a.store_id,
+               a.sold_at as sale_date,
+               COALESCE(a.final_sale_price, 0)::numeric as amount,
+               'auction'::text as sale_type
+             FROM auctions a
+             WHERE a.sold_at IS NOT NULL
+           )
+           SELECT id, store_id, sale_date, amount, sale_type
+           FROM all_sales
+           WHERE ${filters.join(' AND ')}
+           ORDER BY sale_date ASC`,
+          values
+        );
+
+        const rows = salesResult.rows.map((row: any) => ({
+          ...row,
+          amount: parseFloat(row.amount || 0),
+          saleDate: new Date(row.sale_date)
+        }));
+
+        const createRangeKey = (date: Date, period: 'daily' | 'weekly' | 'monthly') => {
+          const current = new Date(date);
+          current.setHours(0, 0, 0, 0);
+
+          if (period === 'daily') {
+            return current.toISOString().slice(0, 10);
+          }
+
+          if (period === 'monthly') {
+            return `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+          }
+
+          const day = current.getDay();
+          const diffToWeekStart = day === 0 ? 6 : day - 1;
+          current.setDate(current.getDate() - diffToWeekStart);
+          return current.toISOString().slice(0, 10);
+        };
+
+        const createRangeLabel = (key: string, period: 'daily' | 'weekly' | 'monthly') => {
+          if (period === 'daily') {
+            return key;
+          }
+
+          if (period === 'monthly') {
+            const [year, month] = key.split('-');
+            return `${year}/${month}`;
+          }
+
+          const start = new Date(`${key}T00:00:00`);
+          const end = new Date(start);
+          end.setDate(start.getDate() + 6);
+          return `${start.toISOString().slice(5, 10)} - ${end.toISOString().slice(5, 10)}`;
+        };
+
+        const aggregateByPeriod = (period: 'daily' | 'weekly' | 'monthly') => {
+          const bucket = new Map<string, { total: number; order_count: number }>();
+
+          rows.forEach((row) => {
+            const key = createRangeKey(row.saleDate, period);
+            const current = bucket.get(key) || { total: 0, order_count: 0 };
+            current.total += row.amount;
+            current.order_count += 1;
+            bucket.set(key, current);
+          });
+
+          return Array.from(bucket.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, value]) => ({
+              period: createRangeLabel(key, period),
+              total: value.total,
+              order_count: value.order_count,
+              key
+            }));
+        };
+
+        const totalRevenue = rows.reduce((sum, row) => sum + row.amount, 0);
+        const totalOrders = rows.length;
+
+        res.json({
+          daily: aggregateByPeriod('daily'),
+          weekly: aggregateByPeriod('weekly'),
+          monthly: aggregateByPeriod('monthly'),
+          summary: {
+            totalRevenue,
+            totalOrders,
+            averageOrder: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+            from: fromDate || null,
+            to: toDate || null,
+            saleType
+          }
+        });
+      } catch (error) {
+        console.error("Error fetching merchant sales report:", error);
+        res.status(500).json({ error: "Failed to fetch merchant sales report" });
       }
     });
 
@@ -2467,18 +3556,64 @@ async function startServer() {
         const storeId = req.query.storeId as string;
         // No cache for product data
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        res.set('Pragma', 'no-cache');
         
-        let query = "SELECT products.*, wholesale_price AS bulk_price, stores.store_name, stores.primary_color, stores.store_type, categories.name as category_name FROM products LEFT JOIN stores ON products.store_id = stores.id LEFT JOIN categories ON products.category_id = categories.id WHERE products.is_active = true AND (stores.store_type IS NULL OR stores.store_type != 'topup') ORDER BY products.created_at DESC";
+        // ✅ CRITICAL: Convert dates to text format to avoid JavaScript Date object conversion
+        let query = `SELECT products.*, 
+          wholesale_price AS bulk_price, 
+          stores.store_name, 
+          stores.primary_color, 
+          stores.store_type, 
+          categories.name as category_name,
+          TO_CHAR(products.auction_date, 'YYYY-MM-DD') as auction_date,
+          TO_CHAR(products.auction_start_time, 'HH24:MI') as auction_start_time,
+          TO_CHAR(products.auction_end_time, 'HH24:MI') as auction_end_time
+        FROM products 
+        LEFT JOIN stores ON products.store_id = stores.id 
+        LEFT JOIN categories ON products.category_id = categories.id 
+        WHERE products.is_active = true AND (stores.store_type IS NULL OR stores.store_type != 'topup') 
+        ORDER BY products.created_at DESC`;
         let params: any[] = [];
         
         if (storeId) {
-          query = "SELECT products.*, wholesale_price AS bulk_price, stores.store_name, stores.primary_color, stores.store_type, categories.name as category_name FROM products LEFT JOIN stores ON products.store_id = stores.id LEFT JOIN categories ON products.category_id = categories.id WHERE products.store_id = $1 AND products.is_active = true AND (stores.store_type IS NULL OR stores.store_type != 'topup') ORDER BY products.created_at DESC";
+          query = `SELECT products.*, 
+            wholesale_price AS bulk_price, 
+            stores.store_name, 
+            stores.primary_color, 
+            stores.store_type, 
+            categories.name as category_name,
+            TO_CHAR(products.auction_date, 'YYYY-MM-DD') as auction_date,
+            TO_CHAR(products.auction_start_time, 'HH24:MI') as auction_start_time,
+            TO_CHAR(products.auction_end_time, 'HH24:MI') as auction_end_time
+          FROM products 
+          LEFT JOIN stores ON products.store_id = stores.id 
+          LEFT JOIN categories ON products.category_id = categories.id 
+          WHERE products.store_id = $1 AND products.is_active = true AND (stores.store_type IS NULL OR stores.store_type != 'topup') 
+          ORDER BY products.created_at DESC`;
           params = [parseInt(storeId)];
+          console.log(`📦 Fetching products for store ${storeId}`);
+        } else {
+          console.log(`📦 Fetching all products`);
         }
         
         const result = await pool.query(query, params);
+        console.log(`✅ Products fetched: ${result.rows.length} items${storeId ? ` for store ${storeId}` : ''}`);
+        
+        // Log auction products for debugging
+        result.rows.forEach((p, i) => {
+          console.log(`   ${i+1}. ID:${p.id} Name:${p.name} Image:${p.image_url ? '✓' : '✗'}`);
+          if (p.is_auction) {
+            console.log(`       🎯 AUCTION DATA:`);
+            console.log(`          auction_date: ${p.auction_date} (type: ${typeof p.auction_date})`);
+            console.log(`          auction_start_time: ${p.auction_start_time}`);
+            console.log(`          auction_end_time: ${p.auction_end_time}`);
+            console.log(`          auction_price: ${p.auction_price}`);
+          }
+        });
+        
         res.json(result.rows);
       } catch (error) {
+        console.error('❌ Products API error:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -2512,7 +3647,6 @@ async function startServer() {
               store_id,
               name,
               phone,
-              email,
               customer_type,
               credit_limit,
               current_debt,
@@ -2525,6 +3659,11 @@ async function startServer() {
             WHERE store_id = $1
             ORDER BY created_at DESC
           `, [parseInt(storeId)]);
+
+          console.log(`📋 GET /api/merchant/customers - StoreId: ${storeId}, Found ${result.rows.length} customers`);
+          result.rows.forEach(c => {
+            console.log(`   - Customer: Name="${c.name}", Phone="${c.phone}", ID=${c.id}, DB Store=${c.store_id}`);
+          });
 
           // Calculate debt from orders for each topup customer
           const customersWithDebt = await Promise.all(
@@ -2572,17 +3711,23 @@ async function startServer() {
           return res.json(customersWithDebt);
         }
 
-        // If regular store: Get customers from orders (auto-populated)
+        // If regular store: Build customer summaries from regular-store orders only.
         const result = await pool.query(`
           SELECT 
             o.phone,
-            o.address,
-            MIN(o.created_at) as created_at,
-            COALESCE(SUM(o.total_amount - COALESCE(o.discount_amount, 0)), 0) as total_debt
+            COALESCE(
+              (ARRAY_REMOVE(ARRAY_AGG(NULLIF(TRIM(o.address), '') ORDER BY o.created_at DESC), NULL))[1],
+              '-'
+            ) as address,
+            MAX(o.created_at) as created_at,
+            COUNT(*) as total_orders,
+            COALESCE(SUM(o.total_amount - COALESCE(o.discount_amount, 0)), 0) as total_spent
           FROM orders o
-          WHERE o.store_id = $1 AND o.phone IS NOT NULL
-          GROUP BY o.phone, o.address
-          ORDER BY MIN(o.created_at) DESC
+          WHERE o.store_id = $1
+            AND o.phone IS NOT NULL
+            AND COALESCE(o.is_topup_order, false) = false
+          GROUP BY o.phone
+          ORDER BY MAX(o.created_at) DESC
         `, [parseInt(storeId)]);
 
         // Transform to match customer format
@@ -2590,12 +3735,14 @@ async function startServer() {
           customer_id: index,
           id: index,
           store_id: parseInt(storeId),
-          name: row.phone || 'عميل مجهول',
           phone: row.phone,
+          address: row.address || '-',
+          total_orders: parseInt(row.total_orders || 0, 10),
+          total_spent: parseFloat(row.total_spent || 0),
           email: null,
           customer_type: 'cash',
           credit_limit: 0,
-          current_debt: parseFloat(row.total_debt || 0),
+          current_debt: 0,
           notes: null,
           is_active: true,
           created_at: row.created_at,
@@ -2639,56 +3786,588 @@ async function startServer() {
         // No cache for modifications
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
-        const result = await pool.query("DELETE FROM products WHERE id = $1 RETURNING id", [parseInt(id)]);
+        // ✅ CRITICAL: Get product data FIRST to find auction_id
+        const productCheck = await pool.query("SELECT id, store_id, auction_id FROM products WHERE id = $1", [parseInt(id)]);
         
-        if (result.rows.length === 0) {
+        if (productCheck.rows.length === 0) {
           return res.status(404).json({ error: "Product not found" });
         }
         
+        const product = productCheck.rows[0];
+        console.log('🗑️ Deleting product:', {
+          id: product.id,
+          auction_id: product.auction_id
+        });
+        
+        // ✅ If product has an auction, delete it from auctions table first
+        if (product.auction_id) {
+          try {
+            const auctionDelete = await pool.query("DELETE FROM auctions WHERE id = $1", [product.auction_id]);
+            console.log('✅ Auction deleted:', auctionDelete.rowCount, 'rows');
+            await syncStoreAuctionSalesTotal(parseInt(product.store_id));
+          } catch (auctionErr) {
+            console.warn('⚠️ Warning: Could not delete auction:', auctionErr.message);
+            // Continue with product deletion even if auction delete fails
+          }
+        }
+        
+        // ✅ Now delete the product
+        const result = await pool.query("DELETE FROM products WHERE id = $1 RETURNING id", [parseInt(id)]);
+        
+        console.log('✅ Product deleted successfully');
         res.json({ message: "Product deleted successfully", id: result.rows[0].id });
       } catch (error) {
+        console.error('❌ Error deleting product:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
 
     // Create product
     app.post("/api/products", async (req, res) => {
+      const client = await pool.connect();
       try {
-        const { store_id, category_id, name, price, stock, image_url, description, gallery = [] } = req.body;
+        const normalizeAuctionDateValue = (value: any) => {
+          const trimmed = String(value || '').trim();
+          if (!trimmed) return '';
+          if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+          const slashMatch = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+          if (slashMatch) {
+            const [, day, month, year] = slashMatch;
+            return `${year}-${month}-${day}`;
+          }
+          return trimmed;
+        };
+
+        let { store_id, category_id, name, price, stock, image_url, description, gallery = [], is_auction = false, auction_date, auction_start_time, auction_end_time, auction_price } = req.body;
+        
+        console.log('\n' + '='.repeat(90));
+        console.log('📩 🆕 NEW PRODUCT REQUEST: POST /api/products');
+        console.log('='.repeat(90));
+        console.log('📨 REQUEST BODY RECEIVED:');
+        console.log(JSON.stringify(req.body, null, 2));
+        console.log('='.repeat(90));
+        
         // No cache for modifications
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
-        const result = await pool.query(
-          "INSERT INTO products (store_id, category_id, name, price, stock, image_url, description, gallery, is_active) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true) RETURNING *",
-          [store_id, category_id || null, name, price, stock, image_url, description, JSON.stringify(gallery)]
-        );
+        // ✅ Validate required fields
+        if (!store_id || !name || price === undefined || stock === undefined) {
+          console.error('❌ VALIDATION FAILED:', { store_id, name, price, stock });
+          return res.status(400).json({ 
+            error: `خطأ في المدخلات: ${!store_id ? 'store_id غير موجود' : !name ? 'name غير موجود' : price === undefined ? 'price غير موجود' : 'stock غير موجود'}`
+          });
+        }
         
-        res.json(result.rows[0]);
+        // ✅ Ensure gallery is an array and sanitize it
+        if (!Array.isArray(gallery)) {
+          gallery = [];
+        }
+        gallery = gallery.filter(item => item && typeof item === 'string');
+        
+        // ✅ Process main image - upload to Firebase if needed
+        let finalImageUrl = image_url || null;
+        if (image_url && image_url.startsWith('data:image')) {
+          try {
+            finalImageUrl = await uploadImageToFirebase(image_url, `main_${Date.now()}.jpg`);
+            console.log('✅ Main image uploaded');
+          } catch (e) {
+            console.error('⚠️ Main image upload failed:', e.message);
+            finalImageUrl = null;
+          }
+        }
+        
+        // ✅ Process gallery images
+        const galleryUrls: string[] = [];
+        for (let i = 0; i < gallery.length; i++) {
+          const img = gallery[i];
+          if (img && img.startsWith('data:image')) {
+            try {
+              const url = await uploadImageToFirebase(img, `gallery_${i}_${Date.now()}.jpg`);
+              galleryUrls.push(url);
+              console.log(`✅ Gallery image ${i + 1} uploaded`);
+            } catch (e) {
+              console.error(`⚠️ Gallery image ${i} failed`);
+            }
+          } else if (img) {
+            galleryUrls.push(img);
+          }
+        }
+        
+        const galleryArray = galleryUrls && galleryUrls.length > 0 ? galleryUrls : null;
+        
+        // ✅ CRITICAL: Parse and validate auction data
+        console.log('\n🎯 PARSING AUCTION DATA:');
+        console.log('  Raw is_auction:', is_auction, 'Type:', typeof is_auction);
+        console.log('  Raw auction_date:', auction_date);
+        console.log('  Raw auction_start_time:', auction_start_time);
+        console.log('  Raw auction_end_time:', auction_end_time);
+        console.log('  Raw auction_price:', auction_price);
+        
+        // ✅ Convert is_auction to boolean properly
+        let isAuctionBoolean = false;
+        if (is_auction === true || is_auction === 'true' || is_auction === 1 || is_auction === '1') {
+          isAuctionBoolean = true;
+        }
+        
+        console.log('  Converted is_auction:', isAuctionBoolean);
+        
+        // ✅ Parse auction data if product is auction
+        let parsedAuctionDate = null;
+        let parsedStartTime = null;
+        let parsedEndTime = null;
+        let parsedPrice = null;
+        
+        if (isAuctionBoolean) {
+          console.log('  ✅ This IS an auction product');
+          
+          // ✅ Validate ALL auction fields are provided (check for non-empty values)
+          const hasDate = auction_date && String(auction_date).trim() !== '';
+          const hasStartTime = auction_start_time && String(auction_start_time).trim() !== '';
+          const hasEndTime = auction_end_time && String(auction_end_time).trim() !== '';
+          const hasPrice = auction_price && String(auction_price).trim() !== '';
+          
+          console.log('  📋 FIELD CHECK:');
+          console.log('     date present:', hasDate, '(' + JSON.stringify(auction_date) + ')');
+          console.log('     start_time present:', hasStartTime, '(' + JSON.stringify(auction_start_time) + ')');
+          console.log('     end_time present:', hasEndTime, '(' + JSON.stringify(auction_end_time) + ')');
+          console.log('     price present:', hasPrice, '(' + JSON.stringify(auction_price) + ')');
+          
+          if (hasDate && hasStartTime && hasEndTime && hasPrice) {
+            // Parse date - remove time part if present
+            parsedAuctionDate = String(auction_date).includes('T') 
+              ? String(auction_date).split('T')[0] 
+              : normalizeAuctionDateValue(auction_date);
+            
+            // Parse times - get first 5 chars (HH:MM)
+            parsedStartTime = String(auction_start_time).substring(0, 5);
+            parsedEndTime = String(auction_end_time).substring(0, 5);
+            
+            // Parse price as number
+            parsedPrice = parseFloat(String(auction_price));
+            
+            console.log('  ✅ AUCTION DATA VALIDATED AND WILL BE SAVED:');
+            console.log('     Date: ' + parsedAuctionDate);
+            console.log('     Start: ' + parsedStartTime);
+            console.log('     End: ' + parsedEndTime);
+            console.log('     Price: ' + parsedPrice);
+          } else {
+            console.warn('  ❌ AUCTION PRODUCT BUT MISSING REQUIRED FIELDS!');
+            console.warn('     date:', hasDate ? '✓' : '✗ (empty)');
+            console.warn('     start_time:', hasStartTime ? '✓' : '✗ (empty)');
+            console.warn('     end_time:', hasEndTime ? '✓' : '✗ (empty)');
+            console.warn('     price:', hasPrice ? '✓' : '✗ (empty)');
+            return res.status(400).json({ error: 'بيانات المزاد غير مكتملة. يرجى إدخال التاريخ ووقت البداية ووقت النهاية والسعر الأساسي.' });
+          }
+        } else {
+          console.log('  ℹ️ Not an auction product');
+        }
+        
+        console.log('\n📝 INSERT VALUES:');
+        console.log('  store_id: ' + store_id);
+        console.log('  category_id: ' + (category_id || 'NULL'));
+        console.log('  name: ' + name);
+        console.log('  price: ' + price);
+        console.log('  stock: ' + stock);
+        console.log('  image_url: ' + (finalImageUrl ? finalImageUrl.substring(0, 50) + '...' : 'NULL'));
+        console.log('  description: ' + (description ? description.substring(0, 100) : 'NULL'));
+        console.log('  gallery: ' + galleryArray?.length + ' items');
+        console.log('  is_auction: ' + isAuctionBoolean);
+        console.log('  auction_date: ' + (parsedAuctionDate || 'NULL'));
+        console.log('  auction_start_time: ' + (parsedStartTime || 'NULL'));
+        console.log('  auction_end_time: ' + (parsedEndTime || 'NULL'));
+        console.log('  auction_price: ' + (parsedPrice || 'NULL'));
+        
+        // ✅ Execute INSERT with ALL columns
+        await client.query('BEGIN');
+
+        const result = await client.query(
+          `INSERT INTO products 
+           (store_id, category_id, name, price, stock, image_url, description, gallery, 
+            is_active, is_auction, auction_date, auction_start_time, auction_end_time, auction_price) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8::text[], true, $9, $10::date, $11::time, $12::time, $13) 
+           RETURNING id, store_id, category_id, name, price, stock, image_url, description, gallery, 
+                     is_active, is_auction, 
+                     TO_CHAR(auction_date, 'YYYY-MM-DD') as auction_date,
+                     TO_CHAR(auction_start_time, 'HH24:MI') as auction_start_time,
+                     TO_CHAR(auction_end_time, 'HH24:MI') as auction_end_time,
+                     auction_price, created_at`,
+          [
+            store_id, 
+            category_id || null, 
+            name, 
+            price, 
+            stock, 
+            finalImageUrl, 
+            description || null, 
+            galleryArray, 
+            isAuctionBoolean,
+            parsedAuctionDate, 
+            parsedStartTime, 
+            parsedEndTime, 
+            parsedPrice
+          ]
+        );
+
+        const productId = result.rows[0].id;
+        const savedProduct = result.rows[0];
+
+        if (isAuctionBoolean && parsedAuctionDate && parsedStartTime && parsedEndTime && parsedPrice !== null) {
+          const auctionInsert = await client.query(
+            `INSERT INTO auctions (product_id, store_id, auction_date, auction_start_time, auction_end_time, starting_price, current_highest_price, status)
+             VALUES ($1, $2, $3, $4, $5, $6, $6, 'active')
+             RETURNING id`,
+            [productId, store_id, parsedAuctionDate, parsedStartTime, parsedEndTime, parsedPrice]
+          );
+
+          await client.query(
+            `UPDATE products SET auction_id = $1 WHERE id = $2`,
+            [auctionInsert.rows[0].id, productId]
+          );
+
+          savedProduct.auction_id = auctionInsert.rows[0].id;
+          console.log('✅ Auction row created and linked:', auctionInsert.rows[0].id);
+        }
+
+        await client.query('COMMIT');
+        
+        console.log('\n✅✅✅ PRODUCT CREATED SUCCESSFULLY!');
+        console.log('📊 SAVED DATA:');
+        console.log('  ID: ' + savedProduct.id);
+        console.log('  Name: ' + savedProduct.name);
+        console.log('  Price: ' + savedProduct.price);
+        console.log('  Stock: ' + savedProduct.stock);
+        console.log('  is_auction: ' + savedProduct.is_auction);
+        console.log('  auction_date: ' + savedProduct.auction_date);
+        console.log('  auction_start_time: ' + savedProduct.auction_start_time);
+        console.log('  auction_end_time: ' + savedProduct.auction_end_time);
+        console.log('  auction_price: ' + savedProduct.auction_price);
+        console.log('='.repeat(90) + '\n');
+        
+        // ✅ Return the saved product to frontend
+        res.json({ 
+          message: 'Product created successfully',
+          product: savedProduct 
+        });
       } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('❌ ERROR CREATING PRODUCT:', error);
+        console.error('Details:', error.message);
         res.status(500).json({ error: (error as any).message });
+      } finally {
+        client.release();
       }
     });
 
     // Update product
     app.put("/api/products/:id", async (req, res) => {
+      const client = await pool.connect();
       try {
+        const normalizeAuctionDateValue = (value: any) => {
+          const trimmed = String(value || '').trim();
+          if (!trimmed) return '';
+          if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+          const slashMatch = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+          if (slashMatch) {
+            const [, day, month, year] = slashMatch;
+            return `${year}-${month}-${day}`;
+          }
+          return trimmed;
+        };
+
         const { id } = req.params;
-        const { category_id, name, price, stock, image_url, description, gallery = [] } = req.body;
+        let { category_id, name, price, stock, image_url, description, gallery = [], is_auction = false,
+              auction_date, auction_start_time, auction_end_time, auction_price } = req.body;
         // No cache for modifications
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
-        const result = await pool.query(
-          "UPDATE products SET category_id = $1, name = $2, price = $3, stock = $4, image_url = $5, description = $6, gallery = $7 WHERE id = $8 RETURNING *",
-          [category_id || null, name, price, stock, image_url, description, JSON.stringify(gallery), parseInt(id)]
+        // 🔍 DEBUG: Log incoming auction data
+        console.log('🔵 PUT /api/products/:id - Incoming auction data:');
+        console.log('  is_auction:', is_auction, 'type:', typeof is_auction);
+        console.log('  auction_date:', auction_date, 'type:', typeof auction_date);
+        console.log('  auction_start_time:', auction_start_time, 'type:', typeof auction_start_time);
+        console.log('  auction_end_time:', auction_end_time, 'type:', typeof auction_end_time);
+        console.log('  auction_price:', auction_price, 'type:', typeof auction_price);
+        
+        // Get current product to preserve existing image if not provided
+        await client.query('BEGIN');
+
+        const currentProduct = await client.query(
+          "SELECT store_id, image_url, gallery, auction_id, is_auction, auction_date, auction_start_time, auction_end_time, auction_price FROM products WHERE id = $1",
+          [parseInt(id)]
         );
         
-        if (result.rows.length === 0) {
+        if (currentProduct.rows.length === 0) {
           return res.status(404).json({ error: "Product not found" });
         }
         
-        res.json(result.rows[0]);
+        // Ensure gallery is an array and sanitize it
+        if (!Array.isArray(gallery)) {
+          gallery = [];
+        }
+        gallery = gallery.filter(item => item && typeof item === 'string');
+        
+        // Process main image - upload to Firebase if it's base64 (OPTIONAL)
+        let finalImageUrl = image_url !== undefined ? image_url : currentProduct.rows[0].image_url;
+        
+        if (image_url && image_url.startsWith('data:image')) {
+          try {
+            finalImageUrl = await uploadImageToFirebase(image_url, `main_${Date.now()}.jpg`);
+            console.log('✅ Main image uploaded to Firebase/Local');
+          } catch (e) {
+            console.error('⚠️ Main image upload failed, continuing:', e);
+            // Keep existing image if upload fails
+            finalImageUrl = currentProduct.rows[0].image_url;
+          }
+        }
+        
+        // Process gallery images - upload to Firebase and collect URLs (OPTIONAL)
+        const galleryUrls: string[] = [];
+        
+        // If no new gallery provided, keep existing
+        if (gallery.length === 0 && currentProduct.rows[0].gallery) {
+          const existingGallery = Array.isArray(currentProduct.rows[0].gallery) 
+            ? currentProduct.rows[0].gallery 
+            : JSON.parse(currentProduct.rows[0].gallery || '[]');
+          gallery = existingGallery;
+        }
+        
+        for (let i = 0; i < gallery.length; i++) {
+          const img = gallery[i];
+          if (img && img.startsWith('data:image')) {
+            try {
+              const url = await uploadImageToFirebase(img, `gallery_${i}_${Date.now()}.jpg`);
+              galleryUrls.push(url);
+              console.log(`✅ Gallery image ${i + 1}/${gallery.length} uploaded`);
+            } catch (e) {
+              console.error(`⚠️ Gallery image ${i} upload failed, skipping:`, e);
+              // Continue with other images
+            }
+          } else if (img) {
+            galleryUrls.push(img); // Already a URL
+          }
+        }
+        
+        // Ensure gallery is valid array before updating
+        const galleryArray = galleryUrls && galleryUrls.length > 0 ? galleryUrls : null;
+        
+        // ✅ CRITICAL: Preserve existing auction data if not being updated
+        // Get current auction data from database
+        const currentAuctionData = currentProduct.rows[0];
+        
+        // ✅ Convert database Date objects to strings for proper handling
+        let currentDateStr = '';
+        if (currentAuctionData.auction_date) {
+          const dateObj = new Date(currentAuctionData.auction_date);
+          const year = dateObj.getFullYear();
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+          const day = String(dateObj.getDate()).padStart(2, '0');
+          currentDateStr = `${year}-${month}-${day}`;
+        }
+        
+        let currentStartTimeStr = '';
+        if (currentAuctionData.auction_start_time) {
+          currentStartTimeStr = String(currentAuctionData.auction_start_time);
+          if (currentStartTimeStr.length > 5) {
+            currentStartTimeStr = currentStartTimeStr.slice(0, 5);
+          }
+        }
+        
+        let currentEndTimeStr = '';
+        if (currentAuctionData.auction_end_time) {
+          currentEndTimeStr = String(currentAuctionData.auction_end_time);
+          if (currentEndTimeStr.length > 5) {
+            currentEndTimeStr = currentEndTimeStr.slice(0, 5);
+          }
+        }
+        
+        let currentPriceStr = String(currentAuctionData.auction_price || '');
+        
+        console.log('🔵 CURRENT DATA FROM DB (converted to strings):');
+        console.log('  currentDateStr:', currentDateStr);
+        console.log('  currentStartTimeStr:', currentStartTimeStr);
+        console.log('  currentEndTimeStr:', currentEndTimeStr);
+        console.log('  currentPriceStr:', currentPriceStr);
+        
+        // Parse auction data if provided, otherwise preserve existing
+        let parsedAuctionDate = currentDateStr; // Preserve existing
+        let parsedStartTime = currentStartTimeStr; // Preserve existing
+        let parsedEndTime = currentEndTimeStr; // Preserve existing
+        let parsedPrice = currentPriceStr; // Preserve existing
+        
+        // Determine effective is_auction value
+        let effectiveIsAuction = is_auction === true || is_auction === 'true' ? true : 
+                                  is_auction === false || is_auction === 'false' ? false : 
+                                  currentAuctionData.is_auction;
+        
+        console.log('🔵 PUT AUCTION LOGIC:');
+        console.log('  Current is_auction:', currentAuctionData.is_auction);
+        console.log('  Incoming is_auction:', is_auction);
+        console.log('  Effective is_auction:', effectiveIsAuction);
+        console.log('');
+        console.log('🔵 INCOMING AUCTION DATA (NEW VALUES):');
+        console.log('  auction_date:', auction_date, '(trimmed: "' + String(auction_date || '').trim() + '")');
+        console.log('  auction_start_time:', auction_start_time, '(trimmed: "' + String(auction_start_time || '').trim() + '")');
+        console.log('  auction_end_time:', auction_end_time, '(trimmed: "' + String(auction_end_time || '').trim() + '")');
+        console.log('  auction_price:', auction_price, '(trimmed: "' + String(auction_price || '').trim() + '")');
+        
+        // ✅ Trim and normalize incoming data
+        const incomingDate = normalizeAuctionDateValue(auction_date);
+        const incomingStartTime = String(auction_start_time || '').trim();
+        const incomingEndTime = String(auction_end_time || '').trim();
+        const incomingPrice = String(auction_price || '').trim();
+        
+        const hasNewAuctionData = incomingDate && incomingStartTime && incomingEndTime && incomingPrice;
+        
+        console.log('');
+        console.log('📋 TRIMMED INCOMING DATA:');
+        console.log('  Has all auction data:', hasNewAuctionData);
+        console.log('  incomingDate:', incomingDate);
+        console.log('  incomingStartTime:', incomingStartTime);
+        console.log('  incomingEndTime:', incomingEndTime);
+        console.log('  incomingPrice:', incomingPrice);
+        
+        // Update auction data based on is_auction flag
+        if (effectiveIsAuction === true) {
+          // This is (or will be) an auction product
+          if (hasNewAuctionData) {
+            // User provided new auction data - update it
+            parsedAuctionDate = incomingDate.split('T')[0];
+            parsedStartTime = incomingStartTime.slice(0, 5);
+            parsedEndTime = incomingEndTime.slice(0, 5);
+            parsedPrice = parseFloat(incomingPrice) || 0; // Convert to number
+            
+            console.log('✅ UPDATING TO NEW AUCTION DATA:');
+            console.log('   New Date:', parsedAuctionDate);
+            console.log('   New Times:', parsedStartTime, '-', parsedEndTime);
+            console.log('   New Price:', parsedPrice);
+          } else {
+            // User didn't provide new auction data but is_auction is true
+            // Keep existing data (already set above)
+            // Convert string price back to number if needed
+            if (parsedPrice) {
+              parsedPrice = parseFloat(parsedPrice) || 0;
+            }
+            console.log('✅ PRESERVING EXISTING AUCTION DATA (is_auction=true but no new data)');
+            console.log('   Current Date:', parsedAuctionDate);
+            console.log('   Current Times:', parsedStartTime, '-', parsedEndTime);
+            console.log('   Current Price:', parsedPrice, '(type: ' + typeof parsedPrice + ')');
+          }
+        } else {
+          // is_auction is false - clear all auction data
+          parsedAuctionDate = null;
+          parsedStartTime = null;
+          parsedEndTime = null;
+          parsedPrice = null;
+          console.log('✅ CLEARING AUCTION DATA (is_auction=false)');
+        }
+        
+        console.log('');
+        console.log('📝 FINAL VALUES TO BE SAVED:');
+        console.log('  parsedAuctionDate:', parsedAuctionDate, '(type:', typeof parsedAuctionDate + ')');
+        console.log('  parsedStartTime:', parsedStartTime);
+        console.log('  parsedEndTime:', parsedEndTime);
+        console.log('  parsedPrice:', parsedPrice, '(type:', typeof parsedPrice + ')');
+        console.log('');
+        
+        const result = await client.query(
+          `UPDATE products SET category_id = $1, name = $2, price = $3, stock = $4, image_url = $5, description = $6, gallery = $7::text[], is_auction = $8, 
+                              auction_date = NULLIF($9, '')::date, 
+                              auction_start_time = NULLIF($10, '')::time, 
+                              auction_end_time = NULLIF($11, '')::time, 
+                              auction_price = NULLIF($12, '')::numeric 
+           WHERE id = $13 
+           RETURNING id, store_id, category_id, name, price, stock, image_url, description, gallery, is_active, is_auction,
+                     TO_CHAR(auction_date, 'YYYY-MM-DD') as auction_date,
+                     TO_CHAR(auction_start_time, 'HH24:MI') as auction_start_time,
+                     TO_CHAR(auction_end_time, 'HH24:MI') as auction_end_time,
+                     auction_price, created_at`,
+          [category_id || null, name, price, stock, finalImageUrl, description, galleryArray, effectiveIsAuction, parsedAuctionDate, parsedStartTime, parsedEndTime, parsedPrice, parseInt(id)]
+        );
+
+        const currentAuctionId = currentAuctionData.auction_id;
+        const storeId = currentAuctionData.store_id;
+        const hasCompleteAuctionValues = !!(parsedAuctionDate && parsedStartTime && parsedEndTime && parsedPrice !== null);
+        let shouldSyncAuctionSales = false;
+
+        if (effectiveIsAuction === true && hasCompleteAuctionValues) {
+          if (currentAuctionId) {
+            await client.query(
+              `UPDATE auctions
+               SET auction_date = $1,
+                   auction_start_time = $2,
+                   auction_end_time = $3,
+                   starting_price = $4,
+                   current_highest_price = CASE
+                     WHEN current_highest_price IS NULL OR current_highest_price = 0 THEN $4
+                     WHEN current_highest_price < $4 THEN $4
+                     ELSE current_highest_price
+                   END,
+                   status = 'active'
+               WHERE id = $5`,
+              [parsedAuctionDate, parsedStartTime, parsedEndTime, parsedPrice, currentAuctionId]
+            );
+            console.log('✅ Auction row updated:', currentAuctionId);
+          } else {
+            const auctionInsert = await client.query(
+              `INSERT INTO auctions (product_id, store_id, auction_date, auction_start_time, auction_end_time, starting_price, current_highest_price, status)
+               VALUES ($1, $2, $3, $4, $5, $6, $6, 'active')
+               RETURNING id`,
+              [parseInt(id), storeId, parsedAuctionDate, parsedStartTime, parsedEndTime, parsedPrice]
+            );
+
+            await client.query(
+              `UPDATE products SET auction_id = $1 WHERE id = $2`,
+              [auctionInsert.rows[0].id, parseInt(id)]
+            );
+            result.rows[0].auction_id = auctionInsert.rows[0].id;
+            console.log('✅ Auction row created during update:', auctionInsert.rows[0].id);
+          }
+        } else if (effectiveIsAuction === false && currentAuctionId) {
+          await client.query(`DELETE FROM auctions WHERE id = $1`, [currentAuctionId]);
+          await client.query(`UPDATE products SET auction_id = NULL WHERE id = $1`, [parseInt(id)]);
+          result.rows[0].auction_id = null;
+          shouldSyncAuctionSales = true;
+          console.log('✅ Auction row deleted during product update:', currentAuctionId);
+        }
+
+        await client.query('COMMIT');
+
+        if (shouldSyncAuctionSales) {
+          await syncStoreAuctionSalesTotal(parseInt(storeId));
+        }
+        
+        console.log('✅✅✅ Product updated:');
+        console.log('  - Product ID:', id);
+        console.log('  - is_auction (saved):', result.rows[0].is_auction);
+        console.log('  - auction_date (saved):', result.rows[0].auction_date);
+        console.log('  - auction_start_time (saved):', result.rows[0].auction_start_time);
+        console.log('  - auction_end_time (saved):', result.rows[0].auction_end_time);
+        console.log('  - auction_price (saved):', result.rows[0].auction_price);
+        
+        // ✅ Convert dates to strings before sending response (same as GET endpoint)
+        const responseProduct = result.rows[0];
+        if (responseProduct.auction_date) {
+          responseProduct.auction_date = new Date(responseProduct.auction_date).toISOString().split('T')[0];
+        }
+        if (responseProduct.auction_start_time) {
+          const timeStr = String(responseProduct.auction_start_time);
+          responseProduct.auction_start_time = timeStr.length > 5 ? timeStr.slice(0, 5) : timeStr;
+        }
+        if (responseProduct.auction_end_time) {
+          const timeStr = String(responseProduct.auction_end_time);
+          responseProduct.auction_end_time = timeStr.length > 5 ? timeStr.slice(0, 5) : timeStr;
+        }
+        
+        res.json({ 
+          message: 'Product updated successfully',
+          product: responseProduct
+        });
       } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('❌ Error updating product:', error);
         res.status(500).json({ error: (error as any).message });
+      } finally {
+        client.release();
       }
     });
 
@@ -2922,7 +4601,7 @@ async function startServer() {
         const newStatus = newIsActive ? 'approved' : 'suspended';
         
         const result = await pool.query(
-          "UPDATE stores SET is_active = $1, status = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING *",
+          "UPDATE stores SET is_active = $1, status = $2 WHERE id = $3 RETURNING *",
           [newIsActive, newStatus, storeId]
         );
         
@@ -2950,7 +4629,7 @@ async function startServer() {
         }
 
         const result = await pool.query(
-          "UPDATE stores SET logo_url = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *",
+          "UPDATE stores SET logo_url = $1 WHERE id = $2 RETURNING *",
           [logo_url, storeId]
         );
 
@@ -2985,7 +4664,7 @@ async function startServer() {
         }
         
         const result = await pool.query(
-          "UPDATE stores SET subscription_paid = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *",
+          "UPDATE stores SET subscription_paid = $1 WHERE id = $2 RETURNING *",
           [subscription_paid, storeId]
         );
         
@@ -3134,7 +4813,7 @@ async function startServer() {
     // Create a new customer
     app.post("/api/customers", async (req, res) => {
       try {
-        const { store_id, name, phone, email, customer_type, credit_limit, password, notes, starting_balance } = req.body;
+        const { store_id, name, phone, password, credit_limit, starting_balance } = req.body;
         
         if (!store_id || !name || !phone) {
           return res.status(400).json({ error: "store_id, name, and phone are required" });
@@ -3147,10 +4826,10 @@ async function startServer() {
         }
 
         const result = await pool.query(
-          `INSERT INTO customers (store_id, name, phone, email, customer_type, credit_limit, password, notes, starting_balance)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-           RETURNING *`,
-          [store_id, name, phone, email || null, customer_type || 'cash', credit_limit || 0, password || null, notes || null, starting_balance || 0]
+          `INSERT INTO customers (store_id, name, phone, password, credit_limit, starting_balance, current_debt, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6, $6, true)
+           RETURNING id, store_id, name, phone, password, credit_limit, starting_balance, current_debt, is_active, created_at`,
+          [store_id, name.toString().trim(), phone.toString().trim(), password || null, credit_limit || 0, starting_balance || 0]
         );
         
         console.log(`✅ Customer created: ${name}`);
@@ -3169,7 +4848,7 @@ async function startServer() {
     app.put("/api/customers/:id", async (req, res) => {
       try {
         const { id } = req.params;
-        const { name, email, customer_type, credit_limit, password, notes, is_active, starting_balance } = req.body;
+        const { name, phone, password, is_active, starting_balance, credit_limit, notes } = req.body;
 
         // Get the customer first to get store_id
         const customerRes = await pool.query("SELECT store_id FROM customers WHERE id = $1", [parseInt(id)]);
@@ -3191,23 +4870,23 @@ async function startServer() {
 
         if (name !== undefined) {
           updates.push(`name = $${paramCount++}`);
-          values.push(name);
+          values.push(name.toString().trim());
         }
-        if (email !== undefined) {
-          updates.push(`email = $${paramCount++}`);
-          values.push(email);
+        if (phone !== undefined) {
+          updates.push(`phone = $${paramCount++}`);
+          values.push(phone.toString().trim());
         }
-        if (customer_type !== undefined) {
-          updates.push(`customer_type = $${paramCount++}`);
-          values.push(customer_type);
+        if (password !== undefined) {
+          updates.push(`password = $${paramCount++}`);
+          values.push(password);
         }
         if (credit_limit !== undefined) {
           updates.push(`credit_limit = $${paramCount++}`);
           values.push(credit_limit);
         }
-        if (password !== undefined) {
-          updates.push(`password = $${paramCount++}`);
-          values.push(password);
+        if (starting_balance !== undefined) {
+          updates.push(`starting_balance = $${paramCount++}`);
+          values.push(starting_balance);
         }
         if (notes !== undefined) {
           updates.push(`notes = $${paramCount++}`);
@@ -3217,16 +4896,11 @@ async function startServer() {
           updates.push(`is_active = $${paramCount++}`);
           values.push(is_active);
         }
-        if (starting_balance !== undefined) {
-          updates.push(`starting_balance = $${paramCount++}`);
-          values.push(starting_balance);
-        }
 
-        updates.push(`updated_at = CURRENT_TIMESTAMP`);
         values.push(parseInt(id));
 
         const result = await pool.query(
-          `UPDATE customers SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+          `UPDATE customers SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, store_id, name, phone, password, credit_limit, current_debt, starting_balance, notes, is_active, created_at`,
           values
         );
 
@@ -3240,45 +4914,12 @@ async function startServer() {
       }
     });
 
-    // Delete customer (soft delete - marks as inactive)
+    // Legacy customer delete route is disabled for safety.
     app.delete("/api/customers/:id", async (req, res) => {
       try {
-        const { id } = req.params;
-        const customerId = parseInt(id, 10);
-
-        if (isNaN(customerId)) {
-          return res.status(400).json({ error: "Invalid customer ID" });
-        }
-
-        console.log(`🗑️ [DELETE] Deleting customer: ${customerId}`);
-
-        // Get the customer first to get store_id
-        const customerRes = await pool.query("SELECT store_id, name, phone FROM customers WHERE id = $1", [customerId]);
-        if (customerRes.rows.length === 0) {
-          return res.status(404).json({ error: "Customer not found" });
-        }
-
-        const storeId = customerRes.rows[0].store_id;
-        const customer = customerRes.rows[0];
-
-        // Check that this is a topup store
-        const storeCheck = await pool.query("SELECT store_type FROM stores WHERE id = $1", [storeId]);
-        if (storeCheck.rows.length === 0 || storeCheck.rows[0].store_type !== 'topup') {
-          return res.status(403).json({ error: "فقط متاجر الشحن يمكنها حذف عملاء" });
-        }
-
-        // Permanently delete the customer
-        const result = await pool.query(
-          "DELETE FROM customers WHERE id = $1 RETURNING id, name",
-          [customerId]
-        );
-
-        if (result.rows.length === 0) {
-          return res.status(404).json({ error: "Customer not found" });
-        }
-
-        console.log(`✅ [DELETE] Customer deleted permanently: ${customer.name} (${customer.phone}) - ID: ${customerId}`);
-        res.json({ success: true, message: "تم حذف العميل بنجاح", customer: result.rows[0] });
+        return res.status(403).json({
+          error: "تم إيقاف هذا المسار لحماية بيانات الطلبات. استخدم مسار عملاء الشحن المخصص فقط."
+        });
       } catch (error) {
         console.error(`❌ [DELETE] Error:`, error);
         res.status(500).json({ error: (error as any).message });
@@ -3292,7 +4933,7 @@ async function startServer() {
         
         // Step 1: Fetch customer
         const customerRes = await pool.query(
-          `SELECT id, name, phone, credit_limit, starting_balance, created_at 
+          `SELECT id, name, phone, starting_balance, created_at 
            FROM customers WHERE id = $1`,
           [customerId]
         );
@@ -3497,7 +5138,7 @@ async function startServer() {
 
         // Check if customer exists in the registered customers list for this topup store
         const customerResult = await pool.query(
-          `SELECT id as customer_id, store_id, name, phone, email, customer_type, credit_limit, current_debt, password, is_active
+          `SELECT id as customer_id, store_id, name, phone, customer_type, credit_limit, current_debt, password, is_active
            FROM customers 
            WHERE store_id = $1 AND phone = $2
            LIMIT 1`,
@@ -3564,7 +5205,7 @@ async function startServer() {
         const { storeId } = req.params;
         
         const result = await pool.query(
-          `SELECT id, store_id, name, phone, COALESCE(starting_balance, 0) as starting_balance, is_active, created_at
+          `SELECT id, store_id, name, phone, password, customer_type, COALESCE(credit_limit, 0) as credit_limit, COALESCE(starting_balance, 0) as starting_balance, notes, is_active, created_at
            FROM customers 
            WHERE store_id = $1 AND is_active = true 
            ORDER BY created_at DESC`,
@@ -3619,7 +5260,7 @@ async function startServer() {
     // Create topup customer
     app.post("/api/topup/customers", async (req, res) => {
       try {
-        const { store_id, name, phone, email, password, customer_type, credit_limit, starting_balance } = req.body;
+        const { store_id, name, phone, password, customer_type, credit_limit, starting_balance, notes } = req.body;
         
         if (!store_id || !name || !phone || !password) {
           return res.status(400).json({ error: "store_id, name, phone, and password are required" });
@@ -3636,10 +5277,10 @@ async function startServer() {
         }
         
         const result = await pool.query(
-          `INSERT INTO customers (store_id, name, phone, email, password, customer_type, credit_limit, current_debt, starting_balance, is_active)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, true)
-           RETURNING id, store_id, name, phone, email, customer_type, credit_limit, current_debt, starting_balance`,
-          [store_id, name, phone, email || '', password, customer_type || 'cash', credit_limit || 0, starting_balance || 0]
+          `INSERT INTO customers (store_id, name, phone, password, customer_type, credit_limit, starting_balance, current_debt, notes, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $7, $8, true)
+           RETURNING id, store_id, name, phone, password, customer_type, credit_limit, current_debt, starting_balance, notes, is_active, created_at`,
+          [store_id, name, phone, password, customer_type || 'cash', credit_limit || 0, starting_balance || 0, notes || '']
         );
         
         res.status(201).json(result.rows[0]);
@@ -3652,7 +5293,11 @@ async function startServer() {
     app.put("/api/topup/customers/:id", async (req, res) => {
       try {
         const { id } = req.params;
-        const { name, email, password, customer_type, credit_limit, starting_balance } = req.body;
+        const { name, phone, password, customer_type, credit_limit, starting_balance, notes } = req.body;
+        
+        console.log(`📝 UPDATE CUSTOMER ${id}:`);
+        console.log(`   Received name: "${name}"`);
+        console.log(`   Received phone: "${phone}"`);
         
         const updates = [];
         const values = [];
@@ -3660,11 +5305,11 @@ async function startServer() {
         
         if (name !== undefined) {
           updates.push(`name = $${paramCount++}`);
-          values.push(name);
+          values.push(name.toString().trim());
         }
-        if (email !== undefined) {
-          updates.push(`email = $${paramCount++}`);
-          values.push(email);
+        if (phone !== undefined) {
+          updates.push(`phone = $${paramCount++}`);
+          values.push(phone.toString().trim());
         }
         if (password !== undefined) {
           updates.push(`password = $${paramCount++}`);
@@ -3682,12 +5327,15 @@ async function startServer() {
           updates.push(`starting_balance = $${paramCount++}`);
           values.push(starting_balance);
         }
+        if (notes !== undefined) {
+          updates.push(`notes = $${paramCount++}`);
+          values.push(notes);
+        }
         
-        updates.push(`updated_at = NOW()`);
         values.push(id);
         
         const result = await pool.query(
-          `UPDATE customers SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, name, phone, email, customer_type, credit_limit, current_debt, starting_balance`,
+          `UPDATE customers SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, store_id, name, phone, password, customer_type, credit_limit, current_debt, starting_balance, notes, is_active, created_at`,
           values
         );
         
@@ -3726,90 +5374,136 @@ async function startServer() {
         
         const customer = checkRes.rows[0];
         
-        // Permanently delete the customer
+        // Soft delete to preserve purchase/payment history integrity.
         const result = await pool.query(
-          `DELETE FROM customers WHERE id = $1 RETURNING id`,
+          `UPDATE customers
+           SET is_active = false
+           WHERE id = $1
+           RETURNING id`,
           [customerId]
         );
-        
-        console.log(`✅ [DELETE TOPUP] Customer deleted permanently: ${customer.name} (${customer.phone}) - ID: ${customerId}`);
-        
-        res.json({ success: true, message: "تم حذف العميل بنجاح", customer: { id: customerId, name: customer.name } });
+
+        console.log(`✅ [DELETE TOPUP] Customer deactivated safely: ${customer.name} (${customer.phone}) - ID: ${customerId}`);
+
+        res.json({ success: true, message: "تم تعطيل العميل بنجاح دون المساس بسجل الشراء", customer: { id: customerId, name: customer.name } });
       } catch (error) {
         console.error(`❌ [DELETE TOPUP] Error:`, error);
         res.status(500).json({ error: (error as any).message });
       }
     });
 
-    // Get customer statement (transactions)
+    // Get customer statement (transactions) - TOPUP STORE ONLY
+    // ⚠️ IMPORTANT: This endpoint is EXCLUSIVELY for topup store customers
+    // It queries topup_orders table (NOT orders table) to avoid mixing with regular store orders
     app.get("/api/topup/customers/:customerId/statement", async (req, res) => {
       try {
         const { customerId } = req.params;
+        
+        // ⭐ Validate customer ID format
+        const customerIdNum = parseInt(customerId);
+        if (isNaN(customerIdNum) || customerIdNum <= 0) {
+          console.error(`❌ [STATEMENT] Invalid customer ID format: ${customerId}`);
+          return res.status(400).json({ error: "Invalid customer ID format" });
+        }
         
         // ⚠️ CRITICAL: Disable all caching for dynamic data
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.set('Pragma', 'no-cache');
         res.set('Expires', '0');
         
-        console.log(`📊 [STATEMENT] Fetching for customer ID: ${customerId}`);
+        console.log(`\n📊 [STATEMENT] Fetching statement for customer ID: ${customerIdNum}`);
         
         // Get customer info
         const customerResult = await pool.query(
-          `SELECT id, name, phone, email, customer_type, credit_limit, created_at, starting_balance
+          `SELECT id, name, phone, created_at, starting_balance, current_debt, credit_limit
            FROM customers WHERE id = $1`,
-          [customerId]
+          [customerIdNum]
         );
         
         if (customerResult.rows.length === 0) {
-          console.log(`❌ [STATEMENT] Customer ${customerId} not found`);
+          console.log(`❌ [STATEMENT] Customer ${customerIdNum} not found`);
           return res.status(404).json({ error: "Customer not found" });
         }
         
         const customer = customerResult.rows[0];
-        console.log(`✅ [STATEMENT] Customer found: ${customer.name}`);
-        console.log(`   🔍 Customer data: starting_balance=${customer.starting_balance}, credit_limit=${customer.credit_limit}`);
+        
+        // ⭐ Double-check: Verify returned customer matches requested ID
+        if (customer.id !== customerIdNum) {
+          console.error(`❌ [STATEMENT] SECURITY ERROR: Requested customer ${customerIdNum}, but got ${customer.id}`);
+          return res.status(500).json({ error: "Data integrity error" });
+        }
+        
+        console.log(`✅ [STATEMENT] Customer found: ${customer.name} (verified ID: ${customer.id})`);
+        console.log(`   🔍 Customer data:`, {
+          id: customer.id,
+          starting_balance: customer.starting_balance,
+          current_debt: customer.current_debt,
+          credit_limit: customer.credit_limit
+        });
+        
+        // Validate required fields
+        if (!customer.id) {
+          throw new Error('Customer ID is missing');
+        }
         
         // ✅ Calculate opening balance
         // Opening balance is just the starting_balance - it never changes!
         // It represents the initial capital/credit given to customer
-        const openingBalance = Number(customer.starting_balance || 0);
+        const openingBalance = Number(customer.starting_balance) || 0;
         
         console.log(`📊 [STATEMENT] Opening balance calculation:`);
         console.log(`   Starting balance (immutable): ${openingBalance} د.ع`);
         
-        // Get customer's topup orders (purchases/debits) from orders table
-        // Use topup_customer_id OR customer_id since some orders use either
-        const ordersResult = await pool.query(
-          `SELECT 
-            o.id, o.store_id, o.total_amount,
-            o.status, o.created_at
-           FROM orders o
-           WHERE (o.topup_customer_id = $1 OR o.customer_id = $1) AND o.is_topup_order = true
-           ORDER BY o.created_at ASC`,
-          [customerId]
-        );
-        console.log(`📦 [STATEMENT] Orders query - Customer: ${customerId}, Found: ${ordersResult.rows.length}`);
-        if (ordersResult.rows.length > 0) {
-          console.log(`   Orders:`, ordersResult.rows.map(o => ({ id: o.id, amount: o.total_amount, topup_customer_id: o.id })));
+        console.log(`📊 [STATEMENT] Opening balance calculation:`);
+        console.log(`   Starting balance (immutable): ${openingBalance} د.ع`);
+        
+        // Get customer's topup orders (purchases/debits) from TOPUP_ORDERS table
+        // ⚠️ IMPORTANT: Use topup_orders ONLY - not orders table!
+        // orders table is for regular store customers, topup_orders is for topup store customers
+        let ordersResult = { rows: [] };
+        try {
+          ordersResult = await pool.query(
+            `SELECT 
+              o.id, o.customer_id, o.total_amount,
+              o.status, o.created_at
+             FROM topup_orders o
+             WHERE o.customer_id = $1
+             ORDER BY o.created_at ASC`,
+            [customerIdNum]
+          );
+          console.log(`📦 [STATEMENT] Topup Orders query - Customer: ${customerIdNum}, Found: ${ordersResult.rows.length}`);
+        } catch (e) {
+          console.warn(`⚠️ [STATEMENT] Topup Orders query failed (table may not exist):`, (e as any).message);
+          ordersResult = { rows: [] };
         }
         
         // Get customer's payments (credits)
-        const paymentsResult = await pool.query(
-          `SELECT id, customer_id, amount, payment_method, created_at
-           FROM customer_payments WHERE customer_id = $1
-           ORDER BY created_at ASC`,
-          [customerId]
-        );
-        console.log(`💳 [STATEMENT] Payments query - Customer: ${customerId}, Found: ${paymentsResult.rows.length}`);
-        if (paymentsResult.rows.length > 0) {
-          console.log(`   Payments:`, paymentsResult.rows.map(p => ({ id: p.id, amount: p.amount, customer_id: p.customer_id })));
+        let paymentsResult = { rows: [] };
+        try {
+          paymentsResult = await pool.query(
+            `SELECT id, customer_id, amount, payment_method, created_at
+             FROM customer_payments WHERE customer_id = $1
+             ORDER BY created_at ASC`,
+            [customerIdNum]
+          );
+          console.log(`💳 [STATEMENT] Payments query - Customer: ${customerIdNum}, Found: ${paymentsResult.rows.length}`);
+          
+          // ⭐ Verify all returned payments belong to this customer
+          const wrongPayments = paymentsResult.rows.filter(p => p.customer_id !== customerIdNum);
+          if (wrongPayments.length > 0) {
+            console.error(`❌ [STATEMENT] SECURITY ERROR: Found ${wrongPayments.length} payments for different customers!`);
+            wrongPayments.forEach(p => console.error(`   ❌ Payment ID ${p.id}: customer_id = ${p.customer_id}, expected ${customerIdNum}`));
+          }
+        } catch (e) {
+          console.warn(`⚠️ [STATEMENT] Payments query failed (table may not exist):`, (e as any).message);
+          paymentsResult = { rows: [] };
         }
         
         // Combine all transactions and build statement
         const allItems = [
           ...ordersResult.rows.map(o => ({
             id: o.id,
-            created_at: o.created_at,
+            created_at: o.created_at instanceof Date ? o.created_at.toISOString() : String(o.created_at),
             type: 'topup',
             description: `شراء - ${o.total_amount || 0} د.ع`,
             amount: Number(o.total_amount || 0),
@@ -3818,7 +5512,7 @@ async function startServer() {
           })),
           ...paymentsResult.rows.map(p => ({
             id: p.id,
-            created_at: p.created_at,
+            created_at: p.created_at instanceof Date ? p.created_at.toISOString() : String(p.created_at),
             type: 'payment',
             description: 'دفعة',
             amount: Number(p.amount || 0),
@@ -3832,7 +5526,7 @@ async function startServer() {
         // Separate opening balance (IMMUTABLE) from other transactions
         const openingBalanceRow = {
           id: 0,
-          created_at: customer.created_at,
+          created_at: customer.created_at instanceof Date ? customer.created_at.toISOString() : String(customer.created_at),
           type: 'opening',
           description: 'ديون سابقة',
           amount: openingBalance,
@@ -3847,12 +5541,21 @@ async function startServer() {
         // Calculate running balance for OTHER transactions starting from opening balance
         let runningBalance = openingBalance;
         const otherTransactionsWithBalance = otherTransactions.map((item) => {
-          if (item.is_payment) {
-            runningBalance -= item.amount;  // Payment REDUCES debt (balance goes down)
-          } else {
-            runningBalance += item.amount;  // Purchase INCREASES debt (balance goes up)
+          try {
+            if (item.is_payment) {
+              runningBalance -= Number(item.amount || 0);  // Payment REDUCES debt (balance goes down)
+            } else {
+              runningBalance += Number(item.amount || 0);  // Purchase INCREASES debt (balance goes up)
+            }
+            return { 
+              ...item, 
+              balance: Math.max(0, runningBalance),
+              amount: Number(item.amount || 0)
+            };
+          } catch (e) {
+            console.error('Error processing item:', item, e);
+            return { ...item, balance: 0, amount: 0 };
           }
-          return { ...item, balance: Math.max(0, runningBalance) };
         });
         
         // Combine: other transactions in REVERSE order (newest first), opening balance LAST (always at bottom)
@@ -3864,23 +5567,44 @@ async function startServer() {
           : openingBalance;
         
         console.log(`📊 [STATEMENT] Final: ${transactions.length} transactions, final balance: ${finalBalance} د.ع`);
+        console.log(`📊 [STATEMENT] Database current_debt: ${customer.current_debt}, Calculated finalBalance: ${finalBalance}`);
         
         res.json({
           customer: {
-            id: customer.id,
-            name: customer.name,
-            phone: customer.phone,
-            email: customer.email,
-            customer_type: customer.customer_type,
-            credit_limit: Number(customer.credit_limit),
-            current_debt: finalBalance
+            id: customer.id || 0,
+            name: customer.name || '',
+            phone: customer.phone || '',
+            credit_limit: Number(customer.credit_limit) || 0,
+            current_debt: Number(finalBalance) || 0,
+            starting_balance: Number(customer.starting_balance) || 0
           },
-          transactions,
-          current_debt: finalBalance
+          transactions: Array.isArray(transactions) ? transactions : [],
+          current_debt: Number(finalBalance) || 0,
+          credit_limit: Number(customer.credit_limit) || 0,
+          starting_balance: Number(customer.starting_balance) || 0
         });
       } catch (error) {
-        console.error('❌ Statement error:', error);
-        res.status(500).json({ error: (error as any).message });
+        const errorMsg = (error as any).message || 'Unknown error';
+        const errorCode = (error as any).code || 'UNKNOWN';
+        const errorDetail = (error as any).detail || '';
+        
+        console.error('❌ Statement error:', errorMsg);
+        console.error('   Code:', errorCode);
+        console.error('   Detail:', errorDetail);
+        console.error('   Stack:', (error as any).stack);
+        
+        // Return different error messages based on the type of error
+        let userMessage = 'حدث خطأ في تحميل كشف الحساب';
+        if (errorCode === '42P01') {
+          userMessage = 'جدول غير موجود في قاعدة البيانات';
+        } else if (errorCode === '42703') {
+          userMessage = 'عمود غير موجود في الجدول';
+        }
+        
+        res.status(500).json({ 
+          error: userMessage,
+          details: errorMsg
+        });
       }
     });
 
@@ -3902,7 +5626,7 @@ async function startServer() {
 
         // Get customer info to verify they exist
         const customerResult = await pool.query(
-          `SELECT id, starting_balance, credit_limit FROM customers WHERE id = $1`,
+          `SELECT id, starting_balance, current_debt, credit_limit FROM customers WHERE id = $1`,
           [customer_id]
         );
 
@@ -3912,18 +5636,31 @@ async function startServer() {
         }
 
         const customer = customerResult.rows[0];
-        const startingBalance = parseFloat(customer.starting_balance || 0);
+        const currentDebt = parseFloat(customer.current_debt || 0);
         
-        // Validate payment doesn't exceed starting balance
-        if (amount > startingBalance) {
-          return res.status(400).json({ error: `المبلغ المدخل أكبر من الديون الحالية (${startingBalance} د.ع)` });
+        console.log(`💳 [PAYMENT CHECK] Customer: ${customer_id}, CurrentDebt: ${currentDebt}, PaymentAmount: ${amount}`);
+        
+        // Validate payment doesn't exceed current debt
+        if (currentDebt <= 0) {
+          console.log(`❌ [PAYMENT] Customer has no debt: ${currentDebt}`);
+          return res.status(400).json({ error: `العميل لا يوجد لديه ديون (الديون الحالية: ${currentDebt} د.ع)` });
+        }
+        
+        if (amount > currentDebt) {
+          console.log(`❌ [PAYMENT] Amount exceeds debt: ${amount} > ${currentDebt}`);
+          return res.status(400).json({ error: `المبلغ المدخل (${amount} د.ع) أكبر من الديون الحالية (${currentDebt} د.ع)` });
         }
 
-        // ⚠️ IMPORTANT: DO NOT MODIFY starting_balance!
-        // It's immutable - the opening balance must stay constant!
-        // The statement endpoint will calculate current debt as: starting_balance - SUM(payments)
+        // ✅ Update customer's current_debt ONLY
+        // ⭐ IMPORTANT: starting_balance (الديون السابقة) is IMMUTABLE and must never change
+        await pool.query(
+          `UPDATE customers SET 
+            current_debt = current_debt - $1
+           WHERE id = $2`,
+          [amount, customer_id]
+        );
 
-        // ✅ CRITICAL FIX: Insert payment record into customer_payments table
+        // ✅ Insert payment record into customer_payments table
         // so it appears in the statement endpoint's transaction list
         try {
           console.log(`💾 [PAYMENT] Attempting to insert: customer_id=${customer_id}, amount=${amount}, store_id=${store_id}`);
@@ -3946,10 +5683,25 @@ async function startServer() {
 
         console.log(`💳 [TOPUP PAYMENT] Customer: ${customer_id} - Amount: ${amount} د.ع - Payment recorded successfully`);
         
+        // Fetch updated customer data
+        const updatedCustomer = await pool.query(
+          `SELECT id, starting_balance, current_debt, credit_limit FROM customers WHERE id = $1`,
+          [customer_id]
+        );
+        
+        const customerData = updatedCustomer.rows[0];
+        console.log(`✅ [PAYMENT RESPONSE] Returning customer data:`, {
+          id: customerData.id,
+          starting_balance: customerData.starting_balance,
+          current_debt: customerData.current_debt,
+          credit_limit: customerData.credit_limit
+        });
+        
         res.json({ 
           success: true, 
           message: "تم تسديد المبلغ بنجاح",
-          amount: amount
+          amount: amount,
+          customer: customerData
         });
       } catch (error) {
         console.error("❌ Payment error:", error);
@@ -3981,6 +5733,15 @@ async function startServer() {
         
         const payment = paymentRes.rows[0];
         
+        // Update customer's current_debt ONLY (reverse the payment)
+        // ⭐ starting_balance (الديون السابقة) must remain IMMUTABLE
+        await pool.query(
+          `UPDATE customers SET 
+            current_debt = current_debt + $1
+           WHERE id = $2`,
+          [payment.amount, payment.customer_id]
+        );
+        
         // Delete the payment
         const deleteRes = await pool.query(
           `DELETE FROM customer_payments WHERE id = $1 RETURNING id`,
@@ -3991,11 +5752,18 @@ async function startServer() {
           return res.status(500).json({ error: "Failed to delete payment" });
         }
         
+        // Fetch updated customer data
+        const updatedCustomer = await pool.query(
+          `SELECT id, starting_balance, current_debt, credit_limit FROM customers WHERE id = $1`,
+          [payment.customer_id]
+        );
+        
         console.log(`✅ [DELETE PAYMENT] Payment deleted successfully. Customer: ${payment.customer_id}, Deleted amount: ${payment.amount} د.ع`);
         
         res.json({ 
           success: true, 
-          message: "تم حذف التسديد بنجاح"
+          message: "تم حذف التسديد بنجاح",
+          customer: updatedCustomer.rows[0]
         });
       } catch (error) {
         console.error("❌ Delete payment error:", error);
@@ -4027,10 +5795,27 @@ async function startServer() {
         const oldAmount = Number(payment.amount);
         const amountDifference = Number(newAmount) - oldAmount;
         
-        // Update payment amount only (starting_balance should never change!)
+        // If amounts differ, adjust customer_debt ONLY
+        // ⭐ starting_balance (الديون السابقة) must remain IMMUTABLE
+        if (amountDifference !== 0) {
+          await pool.query(
+            `UPDATE customers SET 
+              current_debt = current_debt - $1
+             WHERE id = $2`,
+            [amountDifference, payment.customer_id]
+          );
+        }
+        
+        // Update payment amount
         await pool.query(
           `UPDATE customer_payments SET amount = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
           [newAmount, paymentId]
+        );
+        
+        // Fetch updated customer data
+        const updatedCustomer = await pool.query(
+          `SELECT id, starting_balance, current_debt, credit_limit FROM customers WHERE id = $1`,
+          [payment.customer_id]
         );
         
         console.log(`✏️ [EDIT PAYMENT] Payment ${paymentId} updated. Customer: ${payment.customer_id}, Old amount: ${oldAmount}, New amount: ${newAmount}, Difference: ${amountDifference} د.ع`);
@@ -4041,7 +5826,8 @@ async function startServer() {
           payment: {
             id: paymentId,
             amount: newAmount
-          }
+          },
+          customer: updatedCustomer.rows[0]
         });
       } catch (error) {
         console.error("❌ Edit payment error:", error);
@@ -4323,13 +6109,13 @@ async function startServer() {
       }
     });
 
-    // Create topup company
+    // Create topup company - LOGO FIX: Compress and store Base64
     app.post("/api/topup/companies", async (req, res) => {
       try {
         let { store_id, name, logo_url } = req.body;
         
         console.log('\n📦 POST /api/topup/companies');
-        console.log('   Payload:', { store_id, name, logo_url });
+        console.log('   Payload:', { store_id, name, has_logo: !!logo_url });
         
         if (!name || typeof name !== 'string' || name.trim().length === 0) {
           console.warn('❌ Invalid name');
@@ -4337,6 +6123,34 @@ async function startServer() {
         }
         
         name = name.trim();
+        
+        // ✅ LOGO FIX: Compress and process logo for company
+        let processedLogo = logo_url;
+        
+        if (logo_url && logo_url.startsWith('data:image')) {
+          try {
+            console.log('   🎨 Processing company logo for storage...');
+            
+            const base64Data = logo_url.replace(/^data:image\/[^;]+;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+            
+            console.log(`     Original size: ${(buffer.length / 1024).toFixed(2)} KB`);
+            
+            // Compress if larger than 200KB
+            if (buffer.length > 200 * 1024) {
+              console.log('     Compressing logo...');
+              const compressedBuffer = await sharp(buffer)
+                .resize(150, 150, { fit: 'contain', withoutEnlargement: true })
+                .png({ quality: 80 })
+                .toBuffer();
+              
+              console.log(`     ✅ Compressed: ${(compressedBuffer.length / 1024).toFixed(2)} KB`);
+              processedLogo = 'data:image/png;base64,' + compressedBuffer.toString('base64');
+            }
+          } catch (compressErr) {
+            console.warn('     ⚠️  Logo compression warning:', (compressErr as any).message);
+          }
+        }
         
         // Set cache headers
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -4405,7 +6219,7 @@ async function startServer() {
         const result = await pool.query(
           `INSERT INTO topup_companies (store_id, name, logo_url) 
            VALUES ($1, $2, $3) RETURNING *`,
-          [finalStoreId, name, logo_url || null]
+          [finalStoreId, name, processedLogo || null]
         );
         
         console.log('   ✅ Company added successfully');
@@ -4423,14 +6237,38 @@ async function startServer() {
       }
     });
 
-    // Update topup company
+    // Update topup company - LOGO FIX: Compress and store Base64
     app.put("/api/topup/companies/:id", async (req, res) => {
       try {
         const { id } = req.params;
-        const { name, logo_url } = req.body;
+        let { name, logo_url } = req.body;
         
         // No cache for modifications
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        
+        // ✅ LOGO FIX: Process logo for company update
+        let processedLogo = logo_url;
+        
+        if (logo_url && logo_url.startsWith('data:image')) {
+          try {
+            console.log('   🎨 Processing company logo update...');
+            
+            const base64Data = logo_url.replace(/^data:image\/[^;]+;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+            
+            if (buffer.length > 200 * 1024) {
+              const compressedBuffer = await sharp(buffer)
+                .resize(150, 150, { fit: 'contain', withoutEnlargement: true })
+                .png({ quality: 80 })
+                .toBuffer();
+              
+              processedLogo = 'data:image/png;base64,' + compressedBuffer.toString('base64');
+              console.log(`     ✅ Logo compressed for update`);
+            }
+          } catch (compressErr) {
+            console.warn('     ⚠️  Logo compression warning:', (compressErr as any).message);
+          }
+        }
         
         const updates = [];
         const values = [];
@@ -4442,7 +6280,7 @@ async function startServer() {
         }
         if (logo_url !== undefined) {
           updates.push(`logo_url = $${paramCount++}`);
-          values.push(logo_url);
+          values.push(processedLogo);
         }
         
         updates.push(`updated_at = NOW()`);
@@ -4548,7 +6386,7 @@ async function startServer() {
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         
         const result = await pool.query(
-          `UPDATE topup_product_categories SET name = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+          `UPDATE topup_product_categories SET name = $1 WHERE id = $2 RETURNING *`,
           [name, id]
         );
         
@@ -4604,17 +6442,37 @@ async function startServer() {
             tp.codes,
             tp.is_active,
             tc.name as company_name,
-            tpc.name as category_name
+            tpc.name as category_name,
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'id', tpi.id,
+                  'url', tpi.image_url,
+                  'hash', tpi.image_hash,
+                  'type', tpi.image_type,
+                  'uploaded_at', tpi.uploaded_at
+                ) ORDER BY tpi.id ASC
+              ) FILTER (WHERE tpi.id IS NOT NULL),
+              '[]'::json
+            ) AS gallery
           FROM topup_products tp
           LEFT JOIN topup_companies tc ON tp.company_id = tc.id
           LEFT JOIN topup_product_categories tpc ON tp.category_id = tpc.id
+          LEFT JOIN topup_product_images tpi ON tp.id = tpi.topup_product_id
           WHERE tp.store_id = $1
+          GROUP BY tp.id, tp.store_id, tp.company_id, tp.category_id, tp.amount, tp.price, tp.retail_price, tp.wholesale_price, tp.available_codes, tp.images, tp.codes, tp.is_active, tc.id, tc.name, tpc.id, tpc.name
           ORDER BY tp.created_at DESC
           LIMIT $2 OFFSET $3`,
           [storeId, limit, offset]
         );
         
-        res.json(result.rows);
+        // Transform response: add images array from gallery
+        const transformedRows = result.rows.map((row: any) => ({
+          ...row,
+          images: Array.isArray(row.gallery) ? row.gallery.map((img: any) => img.url) : []
+        }));
+        
+        res.json(transformedRows);
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
       }
@@ -4644,16 +6502,36 @@ async function startServer() {
             tp.images,
             tp.codes,
             tp.is_active,
-            tc.name as company_name
+            tc.name as company_name,
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'id', tpi.id,
+                  'url', tpi.image_url,
+                  'hash', tpi.image_hash,
+                  'type', tpi.image_type,
+                  'uploaded_at', tpi.uploaded_at
+                ) ORDER BY tpi.id ASC
+              ) FILTER (WHERE tpi.id IS NOT NULL),
+              '[]'::json
+            ) AS gallery
           FROM topup_products tp
           LEFT JOIN topup_companies tc ON tp.company_id = tc.id
+          LEFT JOIN topup_product_images tpi ON tp.id = tpi.topup_product_id
           WHERE tp.store_id = $1
+          GROUP BY tp.id, tp.store_id, tp.company_id, tp.amount, tp.price, tp.retail_price, tp.wholesale_price, tp.images, tp.codes, tp.is_active, tc.id, tc.name
           ORDER BY tp.id DESC
           LIMIT $2 OFFSET $3`,
           [storeId, limit, offset]
         );
         
-        res.json(result.rows);
+        // Transform response: add images array from gallery
+        const transformedRows = result.rows.map((row: any) => ({
+          ...row,
+          images: Array.isArray(row.gallery) ? row.gallery.map((img: any) => img.url) : []
+        }));
+        
+        res.json(transformedRows);
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
       }
@@ -4760,7 +6638,7 @@ async function startServer() {
           values.push(available_codes);
         }
         
-        // Handle images array - convert to JSON (ONLY URLs, NO base64!)
+        // Handle images array - send as array (PostgreSQL will handle conversion)
         if (images !== undefined && Array.isArray(images)) {
           // 🔥 CRITICAL: Filter out base64/JSON - keep ONLY valid URLs
           const validImages = images.filter((img: any) => {
@@ -4774,10 +6652,9 @@ async function startServer() {
           console.log('📸 [PUT] Updating product images:', validImages.length, 'valid URLs (filtered from', images.length, 'total)');
           console.log('📋 [PUT] Valid images to save:', validImages);
           updates.push(`images = $${paramCount++}`);
-          values.push(JSON.stringify(validImages)); // Store ONLY URLs as JSON
+          values.push(validImages); // Pass array directly - PostgreSQL driver handles conversion
         }
         
-        updates.push(`updated_at = NOW()`);
         values.push(id);
         
         const query = `UPDATE topup_products SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`;
@@ -4913,7 +6790,7 @@ async function startServer() {
         // Delete from topup_product_images table
         try {
           await pool.query(
-            `DELETE FROM topup_product_images WHERE product_id = $1 AND image_url = $2`,
+            `DELETE FROM topup_product_images WHERE topup_product_id = $1 AND image_url = $2`,
             [productId, image_url]
           );
           console.log(`✅ Deleted from topup_product_images: ${image_url}`);
@@ -4924,7 +6801,7 @@ async function startServer() {
         // Update product with new images array
         await pool.query(
           `UPDATE topup_products SET images = $1 WHERE id = $2 AND store_id = $3`,
-          [JSON.stringify(updatedImages), productId, store_id]
+          [updatedImages, productId, store_id]
         );
 
         console.log(`✅ Product images updated. Remaining: ${updatedImages.length}`);
@@ -5108,19 +6985,30 @@ async function startServer() {
       }
     });
 
-    // Upload images to Firebase Storage
-    app.post("/api/topup/upload-images-firebase", async (req, res) => {
+    // Upload images to Firebase Storage (supports multipart/form-data for large files)
+    app.post("/api/topup/upload-images-firebase", upload.array('images', 100), async (req, res) => {
       try {
         console.log('📤 Starting Firebase image upload request...');
-        const { store_id, topup_product_id, images } = req.body;
+        const { store_id, topup_product_id } = req.body;
+        const files = (req as any).files as any[];
 
         // No cache for modifications
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
 
-        if (!store_id || !topup_product_id || !images || !Array.isArray(images)) {
+        if (!store_id || !topup_product_id) {
           console.warn('⚠️ Missing required fields for Firebase upload');
-          return res.status(400).json({ error: "Missing required fields or invalid images format" });
+          return res.status(400).json({ error: "Missing store_id or topup_product_id" });
         }
+
+        if (!files || files.length === 0) {
+          console.warn('⚠️ No files provided');
+          return res.status(400).json({ error: "No files provided" });
+        }
+
+        console.log('📁 Files received:', files.length, 'files');
+        files.forEach((f, i) => {
+          console.log(`  ${i + 1}. ${f.originalname}: ${(f.size / 1024).toFixed(2)} KB (${f.mimetype})`);
+        });
 
         // Get existing images from database
         const existingResult = await pool.query(
@@ -5137,26 +7025,27 @@ async function startServer() {
           (Array.isArray(existingResult.rows[0].images) ? existingResult.rows[0].images : 
            (typeof existingResult.rows[0].images === 'string' ? JSON.parse(existingResult.rows[0].images) : [])) 
           : [];
+        
         const uploadedUrls: string[] = [];
         const duplicateUrls: string[] = [];
 
-        // 🎯 ALWAYS save to Railway (not Firebase)
-        console.log('💾 Saving images to Railway storage...');
+        // 🎯 Save to local storage (uploads directory)
+        console.log('💾 Saving images to local storage...');
         
         // Create uploads directory if needed
         const uploadsDir = path.join(__dirname, 'uploads', 'topup', String(store_id), String(topup_product_id));
         await mkdir(uploadsDir, { recursive: true });
         
-        for (const imageData of images) {
+        for (const file of files) {
           try {
-            // Convert base64 to buffer
-            const base64Data = imageData.split(',')[1] || imageData;
-            const buffer = Buffer.from(base64Data, 'base64');
+            const buffer = file.buffer;
 
-            // Generate unique filename
+            // Generate unique filename based on original name
             const timestamp = Date.now();
             const randomStr = Math.random().toString(36).substring(7);
-            const fileName = `image-${timestamp}-${randomStr}.jpg`;
+            const ext = path.extname(file.originalname) || '.jpg';
+            const baseName = path.basename(file.originalname, ext);
+            const fileName = `${baseName}-${timestamp}-${randomStr}${ext}`;
             const filePath = path.join(uploadsDir, fileName);
 
             // Create MD5 hash of image for duplicate detection
@@ -5165,33 +7054,40 @@ async function startServer() {
             // Check if this hash already exists in database
             const hashCheckResult = await pool.query(
               `SELECT id FROM topup_product_images 
-               WHERE store_id = $1 AND product_id = $2 AND image_hash = $3 LIMIT 1`,
-              [store_id, topup_product_id, imageHash]
+               WHERE topup_product_id = $1 AND image_hash = $2 LIMIT 1`,
+              [topup_product_id, imageHash]
             );
 
             if (hashCheckResult.rows.length > 0) {
               // Image already exists - don't upload
-              duplicateUrls.push(fileName);
+              duplicateUrls.push(file.originalname);
               console.log('⏭️ Image already exists (duplicate hash):', imageHash);
               continue;
             }
 
-            // Save to Railway filesystem
-            fs.writeFileSync(filePath, buffer);
-            console.log('✅ Image saved to Railway:', filePath);
+            // Save to local filesystem
+            await new Promise((resolve, reject) => {
+              fs.writeFile(filePath, buffer, (err) => {
+                if (err) reject(err);
+                else resolve(true);
+              });
+            });
+            console.log('✅ File saved locally:', filePath);
 
             // Store reference in database with local path
             const imageUrl = `/uploads/topup/${store_id}/${topup_product_id}/${fileName}`;
+            const imageBase64 = buffer.toString('base64');
+            
             await pool.query(
-              `INSERT INTO topup_product_images (store_id, product_id, image_url, image_hash, uploaded_at)
-               VALUES ($1, $2, $3, $4, NOW())`,
-              [store_id, topup_product_id, imageUrl, imageHash]
+              `INSERT INTO topup_product_images (topup_product_id, image_data, image_url, image_hash, image_type)
+               VALUES ($1, $2, $3, $4, $5)`,
+              [topup_product_id, imageBase64, imageUrl, imageHash, file.mimetype]
             );
 
             uploadedUrls.push(imageUrl);
-            console.log('✅ Image saved to Railway:', fileName);
+            console.log(`✅ Image processed: ${file.originalname} (${(file.size / 1024).toFixed(2)} KB) → ${imageUrl}`);
           } catch (uploadErr) {
-            console.error('❌ Error saving image to Railway:', uploadErr);
+            console.error('❌ Error saving image locally:', uploadErr);
           }
         }
 
@@ -5201,20 +7097,18 @@ async function startServer() {
             // Combine existing images + newly uploaded images
             const finalImages = [...existingImageUrls, ...uploadedUrls];
             console.log('🔗 Combining images: existing=', existingImageUrls.length, '+ new=', uploadedUrls.length, '= total', finalImages.length);
-            console.log('📋 Final images array:', finalImages);
-            console.log('📝 JSON before DB save:', JSON.stringify(finalImages));
             
             const updateResult = await pool.query(
               `UPDATE topup_products SET images = $1 WHERE id = $2 AND store_id = $3 RETURNING images`,
-              [JSON.stringify(finalImages), topup_product_id, store_id]
+              [finalImages, topup_product_id, store_id]
             );
             console.log('✅ Product images updated in database:', finalImages.length, 'total images');
-            console.log('📊 DB returned:', updateResult.rows[0]?.images);
+            console.log('✅ Final images array:', finalImages);
           } catch (updateErr) {
             console.error('⚠️ Warning: Could not update product images in database:', updateErr);
           }
         } else {
-          console.warn('⚠️ No images uploaded, uploadedUrls is empty:', { uploadedUrls, images: images.length });
+          console.warn('⚠️ No new images uploaded');
         }
 
         let message = `تم تحميل ${uploadedUrls.length} صورة جديدة بنجاح`;
@@ -5222,19 +7116,23 @@ async function startServer() {
           message += ` (تم تخطي ${duplicateUrls.length} صور مكررة)`;
         }
 
-        console.log('✅ Firebase images uploaded successfully:', { 
+        console.log('✅ Images uploaded successfully:', { 
           product_id: topup_product_id, 
           new_count: uploadedUrls.length, 
-          duplicate_count: duplicateUrls.length 
+          duplicate_count: duplicateUrls.length,
+          total_size_mb: (files.reduce((sum, f) => sum + f.size, 0) / 1024 / 1024).toFixed(2)
         });
 
+        // Return ALL images (existing + new), not just the new ones
+        const allImages = [...existingImageUrls, ...uploadedUrls];
         res.json({ 
           success: true, 
           message, 
-          image_urls: uploadedUrls
+          image_urls: uploadedUrls,
+          all_images: allImages
         });
       } catch (error) {
-        console.error('❌ Error uploading images to Firebase:', error);
+        console.error('❌ Error uploading images:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -5307,7 +7205,7 @@ async function startServer() {
     // Topup Purchase
     app.post("/api/topup/purchase", async (req, res) => {
       try {
-        const { store_id, topup_product_id, quantity, customer_id, customer_type, phone, total_amount } = req.body;
+        const { store_id, topup_product_id, quantity, customer_id, customer_type, phone, total_amount, selected_images } = req.body;
 
         console.log(`\n🛒 ========== TOPUP PURCHASE REQUEST ==========`);
         console.log(`📦 Request Body:`, JSON.stringify(req.body, null, 2));
@@ -5363,10 +7261,10 @@ async function startServer() {
             console.log(`✨ Creating new customer...`);
             try {
               const insertRes = await pool.query(
-                `INSERT INTO customers (store_id, phone, name, customer_type, credit_limit, current_debt, is_active)
-                 VALUES ($1, $2, $3, $4, 50000, 0, true)
+                `INSERT INTO customers (store_id, phone, name, current_debt, starting_balance, is_active)
+                 VALUES ($1, $2, $3, 0, 0, true)
                  RETURNING id`,
-                [parsedStoreId, phone, `عميل جديد - ${phone}`, customer_type || 'cash']
+                [parsedStoreId, phone, `عميل جديد - ${phone}`]
               );
               
               foundCustomerId = insertRes.rows[0].id;
@@ -5494,6 +7392,13 @@ async function startServer() {
         const orderId = orderResult.rows[0].id;
         console.log(`✅ Topup Order Created: ID=${orderId}, Customer=${foundCustomerId}, Store=${parsedStoreId}, Amount=${total_amount}`);
 
+        // Update customer's current_debt to reflect the new topup purchase
+        await pool.query(
+          `UPDATE customers SET current_debt = current_debt + $1 WHERE id = $2`,
+          [total_amount, foundCustomerId]
+        );
+        console.log(`💳 [TOPUP PURCHASE] Customer ${foundCustomerId} debt increased by ${total_amount}`);
+
         // Add order item with topup_product_id
         await pool.query(
           `INSERT INTO order_items (order_id, product_id, topup_product_id, quantity, price)
@@ -5560,23 +7465,43 @@ async function startServer() {
           
           // Handle images - store them in order_images table
           if (imagesArray.length > 0) {
-            // Use the first 'quantity' images for this order
-            const usedImages = imagesArray.slice(0, quantity);
-            const remainingImages = imagesArray.slice(quantity);
+            // Use selected images if provided, otherwise use first 'quantity' images
+            let usedImages = [];
+            let remainingImages = imagesArray;
             
-            console.log(`🖼️  Assigning ${usedImages.length} images to order. Remaining images: ${remainingImages.length}`);
+            if (Array.isArray(selected_images) && selected_images.length > 0) {
+              // Use only the selected images
+              usedImages = selected_images.filter((img: string) => imagesArray.includes(img));
+              // Remove selected images from remaining
+              remainingImages = imagesArray.filter((img: string) => !usedImages.includes(img));
+              console.log(`🖼️  Using ${usedImages.length} selected images. Remaining: ${remainingImages.length}`);
+            } else {
+              // Fallback: use first 'quantity' images
+              usedImages = imagesArray.slice(0, quantity);
+              remainingImages = imagesArray.slice(quantity);
+              console.log(`🖼️  Using first ${usedImages.length} images. Remaining: ${remainingImages.length}`);
+            }
             
-            // Store used images in order_images table
+            // Store used images in order_images table AND delete from topup_product_images
             for (const image of usedImages) {
               try {
+                // Store in order_images
                 await pool.query(
                   `INSERT INTO order_images (order_id, topup_product_id, image_url)
                    VALUES ($1, $2, $3)
                    ON CONFLICT (order_id, topup_product_id, image_url) DO NOTHING`,
                   [orderId, topup_product_id, image]
                 );
+                
+                // 🗑️ DELETE from topup_product_images (so it doesn't appear in API response)
+                await pool.query(
+                  `DELETE FROM topup_product_images WHERE topup_product_id = $1 AND image_url = $2`,
+                  [topup_product_id, image]
+                );
+                
+                console.log(`🗑️  Deleted image from topup_product_images: ${image}`);
               } catch (err) {
-                console.error(`⚠️  Error storing image: ${err}`);
+                console.error(`⚠️  Error processing image: ${err}`);
               }
             }
             
@@ -5594,8 +7519,21 @@ async function startServer() {
         // Debt is calculated dynamically from orders table in statement endpoint
         // This prevents double-counting
 
+        // Get the images that were stored for this order
+        const storedImagesResult = await pool.query(
+          `SELECT image_url FROM order_images WHERE order_id = $1 ORDER BY created_at ASC`,
+          [orderId]
+        );
+        
+        const storedImages = storedImagesResult.rows.map(row => row.image_url);
+
         console.log(`\n✅ ========== TOPUP PURCHASE COMPLETED SUCCESSFULLY ==========\n`);
-        res.json({ success: true, order_id: orderId, message: "✓ تم إتمام الشراء بنجاح" });
+        res.json({ 
+          success: true, 
+          order_id: orderId, 
+          message: "✓ تم إتمام الشراء بنجاح",
+          images: storedImages
+        });
       } catch (error) {
         console.error(`\n❌ ========== TOPUP PURCHASE FAILED ==========`);
         console.error(`Error details:`, (error as any).message);
@@ -5615,26 +7553,42 @@ async function startServer() {
            FROM order_images oi
            JOIN topup_products tp ON oi.topup_product_id = tp.id
            WHERE oi.order_id = $1
-           ORDER BY oi.created_at ASC`,
+           ORDER BY oi.topup_product_id, oi.created_at ASC`,
           [orderId]
         );
 
         if (imagesResult.rows.length === 0) {
-          return res.status(404).json({ error: "No images found for this order", images: [] });
+          return res.status(404).json({ error: "No images found for this order", images: [], grouped_by_product: {} });
         }
 
-        const images = imagesResult.rows.map(row => ({
-          image_url: row.image_url,
-          image_data: row.image_data,
-          product_id: row.topup_product_id,
-          amount: row.amount,
-          price: row.price
-        }));
+        // Group images by product_id
+        const groupedByProduct: {[key: number]: any[]} = {};
+        const allImages: any[] = [];
+        
+        imagesResult.rows.forEach(row => {
+          const productId = row.topup_product_id;
+          
+          if (!groupedByProduct[productId]) {
+            groupedByProduct[productId] = [];
+          }
+          
+          const imageObj = {
+            image_url: row.image_url,
+            image_data: row.image_data,
+            product_id: productId,
+            amount: row.amount,
+            price: row.price
+          };
+          
+          groupedByProduct[productId].push(imageObj);
+          allImages.push(imageObj);
+        });
 
         res.json({
           order_id: orderId,
-          images: images,
-          count: images.length
+          images: allImages,
+          grouped_by_product: groupedByProduct,
+          count: allImages.length
         });
       } catch (error) {
         console.error('❌ Error fetching order images:', error);
@@ -5659,40 +7613,21 @@ async function startServer() {
 
         const order = orderResult.rows[0];
 
-        // جلب المنتجات المطلوبة في الطلب من جدول order_items
-        const itemsResult = await pool.query(
-          `SELECT topup_product_id, quantity FROM order_items WHERE order_id = $1`,
+        // جلب الصور المحفوظة مع الطلب من جدول order_images
+        const imagesResult = await pool.query(
+          `SELECT image_url FROM order_images WHERE order_id = $1 ORDER BY created_at ASC`,
           [orderId]
         );
 
-        if (itemsResult.rows.length === 0) {
-          return res.status(400).json({ error: "No items found for this order", codes: [] });
-        }
-
-        // جلب الأكواد لكل منتج في الطلب
-        let allCodes: string[] = [];
-        for (const item of itemsResult.rows) {
-          const productResult = await pool.query(
-            `SELECT codes FROM topup_products WHERE id = $1`,
-            [item.topup_product_id]
-          );
-
-          if (productResult.rows.length > 0) {
-            const product = productResult.rows[0];
-            if (product.codes && Array.isArray(product.codes)) {
-              // خذ أول X أكواد حسب الكمية المطلوبة
-              const codesToAdd = product.codes.slice(0, item.quantity);
-              allCodes = [...allCodes, ...codesToAdd];
-            }
-          }
-        }
+        const imageUrls = imagesResult.rows.map(row => row.image_url);
 
         res.json({
           order_id: orderId,
           store_id: order.store_id,
           status: order.status,
-          codes: allCodes,
-          count: allCodes.length
+          codes: imageUrls,  // Send images as codes
+          images: imageUrls,  // Also send as images
+          count: imageUrls.length
         });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
@@ -5729,7 +7664,7 @@ async function startServer() {
         for (const item of itemsResult.rows) {
           // Get product codes
           const productResult = await pool.query(
-            `SELECT codes, image_urls FROM topup_products WHERE id = $1`,
+            `SELECT codes, images FROM topup_products WHERE id = $1`,
             [item.topup_product_id]
           );
 
@@ -5740,8 +7675,8 @@ async function startServer() {
               allCodes = [...allCodes, ...codesToAdd];
             }
             // جمع روابط الصور
-            if (product.image_urls && Array.isArray(product.image_urls)) {
-              imageUrls = [...imageUrls, ...product.image_urls];
+            if (product.images && Array.isArray(product.images)) {
+              imageUrls = [...imageUrls, ...product.images];
             }
           }
         }
@@ -5766,7 +7701,7 @@ async function startServer() {
         let imagesAdded = 0;
         for (const imageUrl of imageUrls) {
           try {
-            // إذا كانت صورة من Railway (uploads/)
+            // إذا كانت صورة من التخزين المحلي (uploads/)
             if (imageUrl.includes('/uploads/') || fs.existsSync(imageUrl)) {
               const fileName = path.basename(imageUrl);
               archive.file(imageUrl, { name: `images/${fileName}` });
@@ -5815,7 +7750,7 @@ async function startServer() {
                 // تحديث قاعدة البيانات - تنظيف صور المنتج إذا كانت كل صوره تم حذفها
                 for (const item of itemsResult.rows) {
                   await pool.query(
-                    `UPDATE topup_products SET image_urls = '{}' WHERE id = $1`,
+                    `UPDATE topup_products SET images = '[]' WHERE id = $1`,
                     [item.topup_product_id]
                   );
                 }
@@ -5881,7 +7816,7 @@ async function startServer() {
           // Update customer debt (reduce by order amount)
           if (order.customer_id) {
             const debtUpdateRes = await pool.query(
-              `UPDATE customers SET current_debt = GREATEST(0, current_debt - $1), updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING current_debt`,
+              `UPDATE customers SET current_debt = GREATEST(0, current_debt - $1) WHERE id = $2 RETURNING current_debt`,
               [orderAmount, order.customer_id]
             );
             console.log(`💳 [TOPUP ORDER DELETE] Customer ${order.customer_id} debt reduced by ${orderAmount}. New debt: ${debtUpdateRes.rows[0]?.current_debt || 0}`);
@@ -5913,35 +7848,79 @@ async function startServer() {
     
     // ========== AUCTION ENDPOINTS ==========
 
-    // GET all active auctions
+    const ensureAuctionSaleColumns = async () => {
+      await pool.query(`
+        ALTER TABLE auctions
+        ADD COLUMN IF NOT EXISTS final_sale_price NUMERIC,
+        ADD COLUMN IF NOT EXISTS sold_bidder_bid_id INTEGER,
+        ADD COLUMN IF NOT EXISTS sold_bidder_name TEXT,
+        ADD COLUMN IF NOT EXISTS sold_bidder_phone TEXT,
+        ADD COLUMN IF NOT EXISTS sold_at TIMESTAMP NULL
+      `);
+    };
+
+    // GET all active/pending auctions for regular stores with the real auction row id
     app.get("/api/auctions/active", async (req, res) => {
       try {
-        // Update auctions that have ended
-        await pool.query(`
-          UPDATE auctions 
-          SET status = 'completed' 
-          WHERE status = 'active' 
-          AND (auction_date::timestamp + auction_end_time::time) <= NOW()
-        `);
+        await ensureAuctionSaleColumns();
+        const includeSold = String(req.query.includeSold || '').toLowerCase() === 'true';
 
         const result = await pool.query(`
           SELECT 
-            a.*,
+            a.id as id,
+            a.id as auction_id,
+            COALESCE(p.id, a.product_id) as product_id,
             p.name as product_name,
             p.image_url,
-            p.store_id,
+            COALESCE(p.store_id, a.store_id) as store_id,
             s.store_name,
-            COALESCE(a.current_highest_price, a.starting_price) as highest_bid,
-            (SELECT COUNT(*) FROM auction_bids WHERE auction_id = a.id) as total_bids
+            COALESCE(a.starting_price, p.auction_price) as starting_price,
+            COALESCE(
+              (SELECT MAX(ab.bid_price) FROM auction_bids ab WHERE ab.auction_id = a.id),
+              a.current_highest_price,
+              p.auction_price
+            ) as current_highest_price,
+            COALESCE(
+              (SELECT MAX(ab.bid_price) FROM auction_bids ab WHERE ab.auction_id = a.id),
+              a.current_highest_price,
+              p.auction_price
+            ) as highest_bid,
+            TO_CHAR(COALESCE(a.auction_date, p.auction_date), 'YYYY-MM-DD') as auction_date,
+            TO_CHAR(COALESCE(a.auction_start_time, p.auction_start_time), 'HH24:MI') as auction_start_time,
+            TO_CHAR(COALESCE(a.auction_end_time, p.auction_end_time), 'HH24:MI') as auction_end_time,
+            COALESCE(p.is_auction, true) as is_auction,
+            a.final_sale_price,
+            a.sold_bidder_bid_id,
+            a.sold_bidder_name,
+            a.sold_bidder_phone,
+            a.sold_at,
+            CASE
+              WHEN a.sold_at IS NOT NULL THEN 'sold'
+              WHEN COALESCE(a.auction_date, p.auction_date) < CURRENT_DATE
+                OR (COALESCE(a.auction_date, p.auction_date) = CURRENT_DATE AND COALESCE(a.auction_end_time, p.auction_end_time) < CURRENT_TIME)
+                THEN 'ended'
+              WHEN COALESCE(a.auction_date, p.auction_date) > CURRENT_DATE
+                OR (COALESCE(a.auction_date, p.auction_date) = CURRENT_DATE AND COALESCE(a.auction_start_time, p.auction_start_time) > CURRENT_TIME)
+                THEN 'pending'
+              ELSE COALESCE(a.status, 'active')
+            END as status,
+            COALESCE((SELECT COUNT(*) FROM auction_bids ab WHERE ab.auction_id = a.id), 0) as total_bids
           FROM auctions a
-          JOIN products p ON a.product_id = p.id
-          JOIN stores s ON a.store_id = s.id
-          WHERE a.status IN ('active', 'completed')
-          ORDER BY a.auction_end_time ASC
-        `);
-        res.json(result.rows);
+          LEFT JOIN products p ON p.id = a.product_id
+          LEFT JOIN stores s ON COALESCE(p.store_id, a.store_id) = s.id
+          WHERE COALESCE(a.auction_date, p.auction_date) IS NOT NULL
+          AND COALESCE(a.auction_start_time, p.auction_start_time) IS NOT NULL
+          AND COALESCE(a.auction_end_time, p.auction_end_time) IS NOT NULL
+          AND COALESCE(a.starting_price, p.auction_price) IS NOT NULL
+          AND COALESCE(s.store_type, 'regular') != 'topup'
+          AND ($1::boolean = true OR a.sold_at IS NULL)
+          ORDER BY COALESCE(a.auction_date, p.auction_date) ASC, COALESCE(a.auction_end_time, p.auction_end_time) ASC
+        `, [includeSold]);
+
+        res.json(result.rows || []);
       } catch (error) {
-        res.status(500).json({ error: (error as any).message });
+        console.error('❌ Auctions API error:', error);
+        res.json([]); // Return empty array instead of 500 error
       }
     });
 
@@ -5953,6 +7932,7 @@ async function startServer() {
         const auctionResult = await pool.query(`
           SELECT 
             a.*,
+            a.auction_date::text as auction_date_formatted,
             p.name as product_name,
             p.image_url,
             p.description,
@@ -5977,11 +7957,63 @@ async function startServer() {
           ORDER BY ab.bid_price DESC, ab.bid_time ASC
         `, [auctionId]);
 
+        const auctionData = auctionResult.rows[0];
+        
         res.json({
-          auction: auctionResult.rows[0],
+          auction: {
+            ...auctionData,
+            auction_date: auctionData.auction_date_formatted
+          },
           bids: bidsResult.rows
         });
       } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // GET auction data by product ID (for edit form) - reads from products table columns
+    app.get("/api/auctions", async (req, res) => {
+      try {
+        const productId = req.query.productId ? parseInt(req.query.productId as string) : null;
+        
+        if (!productId) {
+          return res.status(400).json({ error: 'productId is required' });
+        }
+        
+        // Read directly from products table columns (NEW: consolidated data)
+        const productResult = await pool.query(`
+          SELECT 
+            p.id,
+            p.id as product_id,
+            p.store_id,
+            p.is_auction,
+            p.auction_price as starting_price,
+            p.auction_price as current_highest_price,
+            to_char(p.auction_date, 'YYYY-MM-DD') as auction_date,
+            to_char(p.auction_start_time, 'HH24:MI') as auction_start_time,
+            to_char(p.auction_end_time, 'HH24:MI') as auction_end_time
+          FROM products p
+          WHERE p.id = $1
+          AND p.is_auction = true
+        `, [productId]);
+
+        if (productResult.rows.length === 0) {
+          console.log('⚠️ No auction found for product:', productId);
+          return res.status(404).json(null);
+        }
+
+        const auctionData = productResult.rows[0];
+        
+        console.log('✅ Sending auction data from products table:');
+        console.log('  product_id:', auctionData.product_id);
+        console.log('  auction_date:', auctionData.auction_date);
+        console.log('  auction_start_time:', auctionData.auction_start_time);
+        console.log('  auction_end_time:', auctionData.auction_end_time);
+        console.log('  starting_price:', auctionData.starting_price);
+        
+        res.json(auctionData);
+      } catch (error) {
+        console.error('Error fetching auction by product ID:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -5991,8 +8023,30 @@ async function startServer() {
       try {
         const { product_id, auction_date, auction_start_time, auction_end_time, starting_price } = req.body;
 
+        console.log('📝 AUCTION REQUEST RECEIVED:', {
+          product_id,
+          auction_date,
+          auction_start_time,
+          auction_end_time,
+          starting_price,
+          types: {
+            product_id: typeof product_id,
+            auction_date: typeof auction_date,
+            auction_start_time: typeof auction_start_time,
+            auction_end_time: typeof auction_end_time,
+            starting_price: typeof starting_price
+          }
+        });
+
         // Validate inputs
         if (!product_id || !auction_date || !auction_start_time || !auction_end_time || !starting_price) {
+          console.error('❌ MISSING FIELDS:', {
+            product_id: !product_id ? 'MISSING' : 'OK',
+            auction_date: !auction_date ? 'MISSING' : 'OK',
+            auction_start_time: !auction_start_time ? 'MISSING' : 'OK',
+            auction_end_time: !auction_end_time ? 'MISSING' : 'OK',
+            starting_price: !starting_price ? 'MISSING' : 'OK'
+          });
           return res.status(400).json({ error: 'Missing required fields' });
         }
 
@@ -6011,12 +8065,13 @@ async function startServer() {
 
         const store_id = productResult.rows[0].store_id;
 
-        // Create auction
         const result = await pool.query(`
           INSERT INTO auctions (product_id, store_id, auction_date, auction_start_time, auction_end_time, starting_price, current_highest_price, status)
-          VALUES ($1, $2, $3, $4, $5, $6, $6, 'active')
+          VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
           RETURNING *
-        `, [product_id, store_id, auction_date, auction_start_time, auction_end_time, starting_price]);
+        `, [product_id, store_id, auction_date, auction_start_time, auction_end_time, starting_price, 0]);
+
+        console.log('✅ AUCTION CREATED:', result.rows[0]);
 
         // Update product to mark as auction
         await pool.query(`
@@ -6027,6 +8082,7 @@ async function startServer() {
 
         res.status(201).json(result.rows[0]);
       } catch (error) {
+        console.error('❌ ERROR CREATING AUCTION:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -6072,10 +8128,10 @@ async function startServer() {
           return res.status(400).json({ error: `Bid must be higher than ${minBidPrice}` });
         }
 
-        // Place bid (customer_id can be null for anonymous bids)
+        // Place bid (bidder_id is null for anonymous bids, customer_id can also be null)
         const bidResult = await pool.query(`
-          INSERT INTO auction_bids (auction_id, customer_id, bid_price, customer_name, customer_phone)
-          VALUES ($1, $2, $3, $4, $5)
+          INSERT INTO auction_bids (auction_id, bidder_id, customer_id, bid_amount, customer_name, customer_phone, bid_price)
+          VALUES ($1, $2, $2, $3, $4, $5, $3)
           RETURNING *
         `, [auctionId, customer_id || null, bid_price, customer_name, customer_phone]);
 
@@ -6088,6 +8144,138 @@ async function startServer() {
 
         res.status(201).json(bidResult.rows[0]);
       } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Finalize auction sale and add to total sales
+    app.post("/api/auctions/:id/finalize", async (req, res) => {
+      try {
+        const auctionId = parseInt(req.params.id);
+        const {
+          final_sale_price,
+          sold_bidder_bid_id,
+          sold_bidder_name,
+          sold_bidder_phone
+        } = req.body;
+
+        await pool.query(`
+          ALTER TABLE stores
+          ADD COLUMN IF NOT EXISTS total_regular_sales NUMERIC DEFAULT 0
+        `);
+        await ensureAuctionSaleColumns();
+
+        if (!final_sale_price) {
+          return res.status(400).json({ error: 'Final sale price is required' });
+        }
+
+        // Get auction details
+        const auctionResult = await pool.query(`
+          SELECT a.*, p.store_id, p.name as product_name 
+          FROM auctions a
+          LEFT JOIN products p ON a.product_id = p.id
+          WHERE a.id = $1
+        `, [auctionId]);
+
+        if (auctionResult.rows.length === 0) {
+          return res.status(404).json({ error: 'Auction not found' });
+        }
+
+        const auction = auctionResult.rows[0];
+        const storeId = auction.store_id;
+
+        const previousSale = parseFloat(auction.final_sale_price || 0);
+        const newSaleAmount = parseFloat(final_sale_price);
+
+        // Persist selected buyer and sale amount so it can be reversed later
+        await pool.query(`
+          UPDATE auctions
+          SET final_sale_price = $1,
+              sold_bidder_bid_id = $2,
+              sold_bidder_name = $3,
+              sold_bidder_phone = $4,
+              sold_at = NOW(),
+              status = 'completed',
+              current_highest_price = $1
+          WHERE id = $5
+        `, [
+          newSaleAmount,
+          sold_bidder_bid_id || null,
+          sold_bidder_name || null,
+          sold_bidder_phone || null,
+          auctionId
+        ]);
+
+        const updatedTotalSales = await syncStoreAuctionSalesTotal(storeId);
+
+        await pool.query(`
+          UPDATE products
+          SET is_auction = true
+          WHERE id = $1
+        `, [auction.product_id]);
+
+        res.json({ 
+          success: true, 
+          message: 'تم حفظ المبيعة وإضافتها لإجمالي المبيعات',
+          sale_amount: newSaleAmount,
+          previous_sale_amount: previousSale,
+          new_total_sales: updatedTotalSales
+        });
+      } catch (error) {
+        console.error('❌ Error finalizing auction:', error);
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    app.delete("/api/auctions/:id/finalize", async (req, res) => {
+      try {
+        const auctionId = parseInt(req.params.id);
+
+        await pool.query(`
+          ALTER TABLE stores
+          ADD COLUMN IF NOT EXISTS total_regular_sales NUMERIC DEFAULT 0
+        `);
+        await ensureAuctionSaleColumns();
+
+        const auctionResult = await pool.query(`
+          SELECT a.final_sale_price, a.product_id, p.store_id
+          FROM auctions a
+          LEFT JOIN products p ON a.product_id = p.id
+          WHERE a.id = $1
+        `, [auctionId]);
+
+        if (auctionResult.rows.length === 0) {
+          return res.status(404).json({ error: 'Auction not found' });
+        }
+
+        const auction = auctionResult.rows[0];
+        const finalSalePrice = parseFloat(auction.final_sale_price || 0);
+
+        if (!finalSalePrice) {
+          return res.status(400).json({ error: 'لا توجد مبيعة مؤكدة لهذا المزاد' });
+        }
+
+        await pool.query(`
+          UPDATE auctions
+          SET final_sale_price = NULL,
+              sold_bidder_bid_id = NULL,
+              sold_bidder_name = NULL,
+              sold_bidder_phone = NULL,
+              sold_at = NULL,
+              status = 'active'
+          WHERE id = $1
+        `, [auctionId]);
+
+        const updatedTotalSales = await syncStoreAuctionSalesTotal(auction.store_id);
+
+        res.json({
+          success: true,
+          message: 'تم حذف المشتري المؤكد وتحديث إجمالي المبيعات',
+          removed_sale_amount: finalSalePrice,
+          new_total_sales: updatedTotalSales
+        });
+      } catch (error) {
+        console.error('❌ Error removing auction sale:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -6107,6 +8295,7 @@ async function startServer() {
         }
 
         const auction = auctionResult.rows[0];
+        const storeId = parseInt(auction.store_id);
 
         // Only allow deletion if auction is completed OR no bids placed
         const bidsResult = await pool.query(`
@@ -6135,6 +8324,10 @@ async function startServer() {
           WHERE auction_id = $1
         `, [auctionId]);
 
+        if (!Number.isNaN(storeId)) {
+          await syncStoreAuctionSalesTotal(storeId);
+        }
+
         res.json({ message: 'Auction deleted successfully' });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
@@ -6146,15 +8339,21 @@ async function startServer() {
       try {
         const auctionId = parseInt(req.params.id);
 
+        await ensureAuctionSaleColumns();
+
         const result = await pool.query(`
           SELECT 
             ab.id,
+            ab.bidder_id,
+            ab.customer_id,
             ab.customer_name,
             ab.customer_phone,
             ab.bid_price,
             ab.bid_time,
+            CASE WHEN a.sold_bidder_bid_id = ab.id THEN true ELSE false END as is_confirmed_sale,
             ROW_NUMBER() OVER (ORDER BY ab.bid_price DESC) as position
           FROM auction_bids ab
+          LEFT JOIN auctions a ON a.id = ab.auction_id
           WHERE ab.auction_id = $1
           ORDER BY ab.bid_price DESC, ab.bid_time DESC
         `, [auctionId]);
@@ -6267,8 +8466,11 @@ async function startServer() {
         }
 
         // Decrease current_debt by payment amount (payment reduces what customer owes)
+        // ⭐ starting_balance (الديون السابقة) must remain IMMUTABLE
         await pool.query(
-          `UPDATE customers SET current_debt = current_debt - $1 WHERE id = $2`,
+          `UPDATE customers SET 
+            current_debt = current_debt - $1
+           WHERE id = $2`,
           [amount, customer_id]
         );
 
@@ -6313,9 +8515,12 @@ async function startServer() {
         // Update current_debt based on the difference
         // If newAmount > oldAmount: customer paid more → debt decreases more (subtract difference)
         // If newAmount < oldAmount: customer paid less → debt increases (add difference)
+        // ⭐ starting_balance (الديون السابقة) must remain IMMUTABLE
         if (amountDifference !== 0) {
           await pool.query(
-            `UPDATE customers SET current_debt = current_debt + $1 WHERE id = $2`,
+            `UPDATE customers SET 
+              current_debt = current_debt + $1
+             WHERE id = $2`,
             [amountDifference, currentPayment.customer_id]
           );
         }
@@ -6359,8 +8564,11 @@ async function startServer() {
 
         // When a payment is deleted, add the payment amount back to current_debt
         // because the customer still owes what they were trying to pay
+        // ⭐ starting_balance (الديون السابقة) must remain IMMUTABLE
         await pool.query(
-          `UPDATE customers SET current_debt = current_debt + $1 WHERE id = $2`,
+          `UPDATE customers SET 
+            current_debt = current_debt + $1
+           WHERE id = $2`,
           [amount, customer_id]
         );
 
@@ -6520,11 +8728,11 @@ async function startServer() {
         
         // Add products
         const products = await pool.query(`
-          INSERT INTO topup_products (store_id, company_id, amount, price, retail_price, wholesale_price, images, is_active)
+          INSERT INTO topup_products (store_id, company_id, category_id, amount, price, retail_price, wholesale_price, images, is_active)
           VALUES 
-            (1, $1, 35000, 40000, 38000, 37000, $2, true),
-            (1, $3, 25000, 27500, 26500, 26000, $4, true),
-            (1, $5, 15000, 17500, 16500, 16000, $6, true)
+            (1, $1, 1, 35000, 40000, 38000, 37000, $2, true),
+            (1, $3, 1, 25000, 27500, 26500, 26000, $4, true),
+            (1, $5, 1, 15000, 17500, 16500, 16000, $6, true)
           RETURNING id, amount, price, array_length(images, 1) as images_count
         `, [
           companyIds['زين أثير'],
@@ -6696,9 +8904,223 @@ async function startServer() {
       }
     });
 
+    // === CLEANUP ENDPOINTS ===
+    
+    // Admin: Cleanup orphaned auctions (auctions for deleted products)
+    app.post("/api/admin/cleanup/orphaned-auctions", async (req, res) => {
+      try {
+        console.log("🧹 [ADMIN] Cleaning up orphaned auction records...");
+        
+        // Step 1: Count orphaned auctions before cleanup
+        const orphanedCountRes = await pool.query(`
+          SELECT COUNT(*) as count FROM auctions a
+          LEFT JOIN products p ON a.product_id = p.id
+          WHERE p.id IS NULL
+        `);
+        const orphanedCount = parseInt(orphanedCountRes.rows[0].count);
+        console.log(`📊 Found ${orphanedCount} orphaned auction records`);
+        
+        // Step 2: Get list of orphaned product IDs for verification
+        const orphanedIdsRes = await pool.query(`
+          SELECT DISTINCT a.product_id FROM auctions a
+          LEFT JOIN products p ON a.product_id = p.id
+          WHERE p.id IS NULL
+          ORDER BY a.product_id
+        `);
+        const orphanedIds = orphanedIdsRes.rows.map(r => r.product_id);
+        console.log(`🔍 Orphaned product IDs: ${orphanedIds.join(', ') || 'NONE'}`);
+        
+        // Step 3: Delete orphaned auctions using explicit product IDs
+        let deletedCount = 0;
+        if (orphanedCount > 0 && orphanedIds.length > 0) {
+          const placeholders = orphanedIds.map((_, i) => `$${i + 1}`).join(',');
+          const deleteQuery = `DELETE FROM auctions WHERE product_id IN (${placeholders})`;
+          console.log(`🗑️ Executing delete query with ${orphanedIds.length} product IDs...`);
+          
+          const deleteRes = await pool.query(deleteQuery, orphanedIds);
+          deletedCount = deleteRes.rowCount;
+          console.log(`✅ Deleted ${deletedCount} orphaned auction records`);
+        }
+        
+        // Step 4: Check if CASCADE DELETE constraint exists
+        const constraintRes = await pool.query(`
+          SELECT constraint_name FROM information_schema.table_constraints
+          WHERE table_name='auctions' 
+          AND constraint_type='FOREIGN KEY'
+          AND constraint_name='auctions_product_id_fkey'
+        `);
+        
+        let constraintStatus = 'exists';
+        const hasConstraint = constraintRes.rows.length > 0;
+        
+        if (!hasConstraint) {
+          try {
+            console.log("🔐 Adding CASCADE DELETE foreign key constraint...");
+            // Drop existing foreign key if any
+            await pool.query(`
+              ALTER TABLE auctions DROP CONSTRAINT IF EXISTS auctions_product_id_fkey
+            `);
+            
+            // Create new constraint with CASCADE DELETE
+            await pool.query(`
+              ALTER TABLE auctions
+              ADD CONSTRAINT auctions_product_id_fkey
+              FOREIGN KEY (product_id) REFERENCES products(id) 
+              ON DELETE CASCADE
+            `);
+            constraintStatus = 'added';
+            console.log("✅ CASCADE DELETE constraint added");
+          } catch (err: any) {
+            console.warn("⚠️ Could not add constraint:", err.message);
+            constraintStatus = 'error';
+          }
+        }
+        
+        // Step 5: Verify final count
+        const finalCountRes = await pool.query('SELECT COUNT(*) as count FROM auctions');
+        const finalCount = parseInt(finalCountRes.rows[0].count);
+        
+        console.log(`📊 Final auction count: ${finalCount}`);
+        
+        res.json({
+          success: true,
+          message: "✅ Orphaned auction cleanup completed",
+          cleanup: {
+            orphanedFound: orphanedCount,
+            orphanedProductIds: orphanedIds,
+            deleted: deletedCount,
+            finalAuctionCount: finalCount
+          },
+          constraint: {
+            status: constraintStatus,
+            exists: hasConstraint,
+            message: constraintStatus === 'added' 
+              ? 'CASCADE DELETE constraint added' 
+              : constraintStatus === 'exists'
+              ? 'CASCADE DELETE constraint already exists'
+              : 'Could not add CASCADE DELETE constraint'
+          }
+        });
+        
+      } catch (error) {
+        console.error("❌ Error during cleanup:", error);
+        res.status(500).json({ 
+          success: false,
+          error: (error as any).message 
+        });
+      }
+    });
+
+    // Admin: Direct auction inspection endpoint (for debugging)
+    app.get("/api/admin/auctions/inspect", async (req, res) => {
+      try {
+        const auctions = await pool.query('SELECT id, product_id, starting_price, start_time, status FROM auctions ORDER BY id LIMIT 20');
+        const products = await pool.query('SELECT id, name FROM products');
+        
+        res.json({
+          auctions: auctions.rows,
+          products: products.rows,
+          message: `${auctions.rows.length} auctions found, product_ids: ${auctions.rows.map(a => a.product_id).join(', ')}`
+        });
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Admin: Force cleanup with TRUNCATE (nuclear option)
+    app.post("/api/admin/cleanup/auctions-force", async (req, res) => {
+      try {
+        console.log("💥 [ADMIN] FORCE cleanup - truncating auctions table");
+        
+        // Disable constraint temporarily to allow truncate
+        await pool.query('ALTER TABLE auctions DISABLE TRIGGER ALL');
+        
+        // Truncate
+        const truncateRes = await pool.query('TRUNCATE auctions CASCADE');
+        
+        // Re-enable constraints
+        await pool.query('ALTER TABLE auctions ENABLE TRIGGER ALL');
+        
+        console.log("✅ Auctions table truncated");
+        
+        res.json({
+          success: true,
+          message: "✅ All auctions cleared (FORCE method)",
+          result: truncateRes
+        });
+      } catch (error) {
+        console.error("❌ Error:", error);
+        res.status(500).json({ 
+          success: false,
+          error: (error as any).message 
+        });
+      }
+    });
+
+    // Admin: Cleanup status with raw SQL results
+    app.get("/api/admin/cleanup/status", async (req, res) => {
+      try {
+        console.log("📊 [ADMIN] Checking cleanup status...");
+        
+        // Count total auctions
+        const totalRes = await pool.query('SELECT COUNT(*) as count FROM auctions');
+        const totalCount = totalRes.rows[0].count;
+        
+        // Count orphaned auctions
+        const orphanedRes = await pool.query(`
+          SELECT a.id, a.product_id FROM auctions a
+          LEFT JOIN products p ON a.product_id = p.id
+          WHERE p.id IS NULL
+        `);
+        const orphanedCount = orphanedRes.rows.length;
+        
+        // Check for valid auctions
+        const validRes = await pool.query(`
+          SELECT COUNT(DISTINCT a.id) as count FROM auctions a
+          JOIN products p ON a.product_id = p.id
+        `);
+        const validCount = validRes.rows[0].count;
+        
+        // Check constraint status
+        const constraintRes = await pool.query(`
+          SELECT constraint_name FROM information_schema.table_constraints
+          WHERE table_name='auctions' 
+          AND constraint_type='FOREIGN KEY'
+          AND constraint_name='auctions_product_id_fkey'
+        `);
+        const hasConstraint = constraintRes.rows.length > 0;
+        
+        res.json({
+          success: true,
+          status: {
+            totalAuctions: totalCount,
+            validAuctions: validCount,
+            orphanedAuctions: orphanedCount,
+            isClean: orphanedCount === 0
+          },
+          constraint: {
+            exists: hasConstraint,
+            name: 'auctions_product_id_fkey',
+            type: 'FOREIGN KEY',
+            cascadeDelete: hasConstraint
+          },
+          recommendation: orphanedCount > 0 
+            ? `Run POST /api/admin/cleanup/orphaned-auctions to remove ${orphanedCount} orphaned records`
+            : 'Database is clean!'
+        });
+        
+      } catch (error) {
+        console.error("❌ Error checking status:", error);
+        res.status(500).json({ 
+          success: false,
+          error: (error as any).message 
+        });
+      }
+    });
+
     // IMPORTANT: Serve static files AFTER all API routes to avoid conflicts
     // Serve uploads directory (for product images and downloads)
-    app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+    app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'), {
       maxAge: '1d',
       setHeaders: (res) => {
         // Images accessed for download - no cache
@@ -6706,19 +9128,102 @@ async function startServer() {
       }
     }));
     
-    // Serve assets with caching
-    app.use('/assets', express.static(path.join(distPath, "assets"), {
-      maxAge: '1y',
-      etag: false
-    }));
-    
-    // Serve other static files
-    app.use(express.static(distPath, {
-      extensions: ['html', 'js', 'css', 'json', 'svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'woff', 'woff2'],
-      index: false // Disable automatic index.html handling
-    }));
+    // Only serve dist assets if dist folder exists (production mode)
+    if (!isDev) {
+      // Serve assets with caching
+      app.use('/assets', express.static(path.join(distPath, "assets"), {
+        maxAge: '1y',
+        etag: false
+      }));
+      
+      // Serve other static files
+      app.use(express.static(distPath, {
+        extensions: ['html', 'js', 'css', 'json', 'svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'woff', 'woff2'],
+        index: false // Disable automatic index.html handling
+      }));
+    }
 
     // Catch-all route - serve index.html for all non-API, non-file requests (SPA routing)
+    // Admin endpoint: Recalculate customer debt from transactions
+    app.post('/api/admin/recalculate-debt', async (req, res) => {
+      try {
+        console.log('🔄 Recalculating customer debts...');
+        
+        // Get all topup store customers
+        const customersResult = await pool.query(`
+          SELECT id, name, phone, starting_balance, current_debt
+          FROM customers
+          WHERE store_id = (SELECT id FROM stores WHERE store_type = 'topup' LIMIT 1)
+          ORDER BY created_at DESC
+        `);
+        
+        console.log(`📊 Found ${customersResult.rows.length} customers`);
+        
+        const updates: any[] = [];
+        
+        // Calculate correct debt for each customer
+        for (const customer of customersResult.rows) {
+          const customerId = customer.id;
+          
+          // Get opening balance (starting_balance - immutable)
+          const openingBalance = Number(customer.starting_balance || 0);
+          
+          // Get all purchases
+          const ordersResult = await pool.query(`
+            SELECT COALESCE(SUM(total_amount), 0) as total_purchases
+            FROM topup_orders
+            WHERE customer_id = $1
+          `, [customerId]);
+          
+          const totalPurchases = Number(ordersResult.rows[0]?.total_purchases || 0);
+          
+          // Get all payments
+          const paymentsResult = await pool.query(`
+            SELECT COALESCE(SUM(amount), 0) as total_payments
+            FROM customer_payments
+            WHERE customer_id = $1
+          `, [customerId]);
+          
+          const totalPayments = Number(paymentsResult.rows[0]?.total_payments || 0);
+          
+          // Calculate correct debt: opening_balance + purchases - payments
+          const correctDebt = Math.max(0, openingBalance + totalPurchases - totalPayments);
+          
+          console.log(`👤 ${customer.name} (${customer.phone}): opening=${openingBalance}, purchases=${totalPurchases}, payments=${totalPayments}, calculated=${correctDebt}, old=${customer.current_debt}`);
+          
+          // Update if different
+          if (Math.abs(correctDebt - customer.current_debt) > 0.01) {
+            await pool.query(`
+              UPDATE customers
+              SET current_debt = $1
+              WHERE id = $2
+            `, [correctDebt, customerId]);
+            
+            updates.push({
+              id: customerId,
+              name: customer.name,
+              oldDebt: customer.current_debt,
+              newDebt: correctDebt,
+              openingBalance,
+              totalPurchases,
+              totalPayments
+            });
+            
+            console.log(`✅ Updated ${customer.name}: ${customer.current_debt} → ${correctDebt}`);
+          }
+        }
+        
+        res.json({
+          success: true,
+          message: `✅ Recalculated debt for ${updates.length} customers`,
+          updates: updates
+        });
+      } catch (error) {
+        console.error('❌ Error recalculating debt:', error);
+        res.status(500).json({ error: 'Failed to recalculate debt', details: (error as any).message });
+      }
+    });
+
     // Only serve HTML to browser requests, return 404 for API calls
     app.use("*", (req, res) => {
       // If it's an API route that wasn't caught above, return 404
@@ -6727,14 +9232,33 @@ async function startServer() {
       }
       
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      
+      // In dev mode, redirect to Vite dev server (requires NODE_ENV != production)
+      const nodeEnv = process.env.NODE_ENV;
+      if (nodeEnv !== 'production') {
+        // Development: redirect to local Vite server
+        return res.redirect('http://localhost:5173/');
+      }
+      
+      // Production: serve built files
       res.sendFile(path.join(distPath, "index.html"));
     });
     
     const PORT = Number.parseInt(process.env.PORT || "3000", 10);
     const server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`✅ Server is running on http://0.0.0.0:${PORT}`);
-      console.log(`📡 Test DB at: http://localhost:${PORT}/api/test-db`);
+      console.log(`✅ Server is running on 0.0.0.0:${PORT}`);
+      console.log(`📡 [PRODUCTION] Database connected via DATABASE_URL`);
     });
+
+    cleanupSoldAuctionImages().catch((error) => {
+      console.error('❌ Initial sold auction image cleanup failed:', error);
+    });
+
+    setInterval(() => {
+      cleanupSoldAuctionImages().catch((error) => {
+        console.error('❌ Scheduled sold auction image cleanup failed:', error);
+      });
+    }, 24 * 60 * 60 * 1000);
     
     server.on('error', (e: any) => {
       if (e.code === 'EADDRINUSE') {

@@ -1,6 +1,12 @@
 const { Pool } = require('pg');
+
+if (!process.env.DATABASE_URL) {
+  console.error('❌ [FATAL] DATABASE_URL not set - cloud-only configuration required.');
+  process.exit(1);
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:mlxLhMw1fZl6vNc@bayt-aneeq-prod-pg-cnpg-c.g.aivencloud.com:28854/bayt_aneeq_db?sslmode=require'
+  connectionString: process.env.DATABASE_URL
 });
 
 (async () => {

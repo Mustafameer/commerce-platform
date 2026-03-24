@@ -60,9 +60,4 @@ load_data.*
 migrate_to_*.mjs
 restore_*.cjs
 sync_*.mjs
-railway_*.mjs
 load_data.*
-migrate_to_*.mjs
-restore_*.cjs
-sync_*.mjs
-railway_*.mjs

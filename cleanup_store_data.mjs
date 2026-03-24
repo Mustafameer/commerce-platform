@@ -4,8 +4,13 @@ const { Pool } = pkg;
 
 dotenv.config();
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:123@localhost:5432/multi_ecommerce'
+if (!process.env.DATABASE_URL) {
+  console.error('❌ [FATAL] DATABASE_URL not set - cloud-only configuration required.');
+  process.exit(1);
+}
+
+const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL
 });
 
 async function deleteStoreData() {

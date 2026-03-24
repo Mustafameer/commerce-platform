@@ -1,14 +1,22 @@
 import pg from 'pg';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Load .env file
+dotenv.config();
 
 const { Pool } = pg;
 
-// Use Railway DATABASE_URL directly
+// Use DATABASE_URL from environment or .env
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
   console.error('❌ DATABASE_URL not set!');
   process.exit(1);
 }
+
+console.log('ℹ️  Using DATABASE_URL:', connectionString.substring(0, 50) + '...');
 
 const pool = new Pool({ connectionString });
 

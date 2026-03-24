@@ -1,11 +1,13 @@
 import pg from "pg";
 
 const { Pool } = pg;
-const pool = new Pool({
-  host: "localhost",
-  user: "postgres",
-  password: "123",
-  database: "multi_ecommerce",
+if (!process.env.DATABASE_URL) {
+  console.error('❌ [FATAL] DATABASE_URL not set - cloud-only configuration required.');
+  process.exit(1);
+}
+
+const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
   port: 5432,
 });
 

@@ -3,7 +3,7 @@ import pg from 'pg';
 const { Pool } = pg;
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQL@postgres.railway.internal:5432/railway'
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/multi_ecommerce'
 });
 
 async function cleanupBase64Images() {
