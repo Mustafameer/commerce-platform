@@ -16,10 +16,16 @@ import sharp from "sharp";
 // Fix: Ensure all admin endpoints use proper ID validation
 console.log("📡 [SERVER] Server module loading...");
 
-// 🔥 CRITICAL: Load .env first, always
-dotenv.config();
+// 🔥 CRITICAL: In production (Railway), DATABASE_URL will be set by environment
+// Only load .env if DATABASE_URL is not already set
+if (!process.env.DATABASE_URL) {
+  console.log("📝 Loading .env file (DATABASE_URL not in environment)...");
+  dotenv.config();
+} else {
+  console.log("✅ DATABASE_URL already set in environment (Railway), not loading from .env");
+}
 
-console.log("✅ [STARTUP] Dotenv configuration loaded");
+console.log("✅ [STARTUP] Environment configuration ready");
 
 // 🔴 CRITICAL: Validate DATABASE_URL immediately - MUST be set before any database operations
 console.log('\n🔍 [STARTUP] Validating required environment variables...');
