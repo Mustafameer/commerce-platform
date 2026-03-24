@@ -20,10 +20,12 @@ console.log("📡 [SERVER] Server module loading...");
 console.log('\n🚀 [STARTUP] PRODUCTION MODE - Railway PostgreSQL ONLY!');
 console.log('   LOCAL CONNECTIONS DISABLED - This must run on Railway\n');
 
-// Load .env ONLY if explicitly needed for development
-// In production, ALL variables come from Railway environment
-if (!process.env.DATABASE_URL && process.env.NODE_ENV !== 'production') {
-  console.log("📝 [DEV MODE] Loading .env for development...");
+// CRITICAL: In production (Railway), variables are set by platform
+// DO NOT override with .env files
+if (process.env.NODE_ENV === 'production') {
+  console.log("✅ [PRODUCTION MODE] Using Railway environment ONLY - loading NO .env files");
+} else {
+  console.log("📝 [DEVELOPMENT MODE] Loading .env for local development...");
   dotenv.config();
 }
 
@@ -118,21 +120,33 @@ const __dirname = path.dirname(__filename);
 console.log("📡 [SERVER] Creating database pool...");
 
 // 🚀 Railway PostgreSQL ONLY - No local fallback ever
-const RAILWAY_DB_URL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway';
+const RAILWAY_DB_PROXY = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@gondola.proxy.rlwy.net:42495/railway';
+const RAILWAY_INTERNAL = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@postgres.railway.internal:5432/railway';
 
 let connectionString = process.env.DATABASE_URL;
 
+console.log('🔍 [DB] Type of DATABASE_URL:', typeof connectionString);
+console.log('🔍 [DB] DATABASE_URL first 50 chars:', connectionString ? connectionString.substring(0, 50) : 'UNDEFINED');
+
+// MUST use Railway - reject absolutely everything else
 if (!connectionString) {
-  console.log('⚠️  [WARNING] DATABASE_URL not in environment - using hardcoded Railway URL as final fallback');
-  // ❌ NO LOCALHOST - RAILWAY ONLY
-  connectionString = RAILWAY_DB_URL;
-} else if (connectionString.includes('localhost') || connectionString.includes('127.0.0.1')) {
-  console.log('🚨 [CRITICAL ERROR] Attempted to use localhost database!');
-  console.log('   DATABASE_URL:', connectionString);
-  throw new Error('❌ LOCAL DATABASE CONNECTIONS NOT ALLOWED - Railway only! Remove localhost from DATABASE_URL.');
+  console.log('🚨 [FATAL] DATABASE_URL is not set in environment!');
+  throw new Error('FATAL: DATABASE_URL must be set by Railway environment. Check Railway dashboard variables.');
 }
 
-console.log('✅ [SERVER] Database Connection: Railway PostgreSQL proxy via tunnel');
+if (connectionString.includes('localhost') || connectionString.includes('127.0.0.1') || connectionString.includes('multi_ecommerce')) {
+  console.log('🚨 [CRITICAL ERROR] Attempted to use LOCAL database!');
+  console.log('   DATABASE_URL:', connectionString.substring(0, 80));
+  throw new Error('FATAL: LOCAL DATABASE NOT ALLOWED. Remove localhost/127.0.0.1/multi_ecommerce from DATABASE_URL. Use only Railway!');
+}
+
+if (!connectionString.includes('railway') && !connectionString.includes('gondola')) {
+  console.log('🚨 [CRITICAL ERROR] DATABASE_URL does NOT appear to be from Railway!');
+  console.log('   DATABASE_URL:', connectionString.substring(0, 80));
+  throw new Error('FATAL: DATABASE_URL must be from Railway PostgreSQL. Expected "railway" or "gondola" in connection string.');
+}
+
+console.log('✅ [SERVER] DATABASE_URL validated - using Railway PostgreSQL');
 
 const pool = new Pool({
   connectionString,
@@ -144,8 +158,8 @@ const pool = new Pool({
   }
 });
 
-console.log("✅ [SERVER] Database pool created");
-console.log("🔌 Database connection string:", connectionString.substring(0, 50) + "...");
+console.log("✅ [SERVER] Database pool created with Railway connection");
+console.log("🔌 [SERVER] Connecting to:", connectionString.includes('gondola') ? 'Railway (external proxy)' : 'Railway (internal)');
 
 // ✅ LOCAL IMAGE COMPRESSION & STORAGE (NO FIREBASE)
 async function uploadAndCompressImageLocally(base64Data: string, filename: string): Promise<string> {
