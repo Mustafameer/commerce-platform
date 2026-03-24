@@ -24,6 +24,12 @@ console.log("📡 [SERVER] Server module loading...");
 // Only load .env if DATABASE_URL is not already set
 if (!process.env.DATABASE_URL) {
   console.log("📝 Loading .env file (DATABASE_URL not in environment)...");
+  // In production, also try .env.production
+  if (process.env.NODE_ENV === 'production') {
+    console.log("📝 Production mode - also loading .env.production");
+    dotenv.config({ path: '.env.production' });
+  }
+  // Always try .env as fallback
   dotenv.config();
 } else {
   console.log("✅ DATABASE_URL already set in environment (Railway), not loading from .env");
