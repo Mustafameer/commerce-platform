@@ -24,6 +24,9 @@ export async function initializeDatabase(connectionString: string) {
   const client = new Pool({
     connectionString,
     connectionTimeoutMillis: 10000,
+    ssl: {
+      rejectUnauthorized: false
+    }
   });
 
   try {
