@@ -123,6 +123,9 @@ console.log("📡 [SERVER] Creating database pool...");
 
 let connectionString = process.env.DATABASE_URL;
 
+console.log('🔍 [DEBUG] Raw connectionString:', connectionString ? connectionString.substring(0, 80) + '...' : '❌ UNDEFINED');
+console.log('🔍 [DEBUG] Contains localhost?', connectionString && connectionString.includes('localhost') ? '✅ YES' : '❌ NO');
+
 // 🔥 CRITICAL FALLBACK: If DATABASE_URL is localhost (from .env), use Railway proxy instead
 // This happens when dotenv loads .env instead of .env.production
 if (connectionString && connectionString.includes('localhost')) {
@@ -131,6 +134,8 @@ if (connectionString && connectionString.includes('localhost')) {
   console.log('  Old:', connectionString.substring(0, 60) + '...');
   console.log('  New:', railwayUrl.substring(0, 60) + '...');
   connectionString = railwayUrl;
+} else {
+  console.log('✅ [SERVER] DATABASE_URL already contains Railway URL - no override needed');
 }
 
 console.log('✅ [SERVER] Using cloud DATABASE_URL from environment:', connectionString.substring(0, 60) + "...");
