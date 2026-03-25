@@ -322,9 +322,11 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
   const navItems = role === 'admin'
     ? [
         { icon: LayoutDashboard, label: 'لوحة التحكم', path: '/admin' },
-        { icon: Users, label: 'المستخدمون', path: '/admin/users' },
+        { icon: Users, label: 'المستخدمون', path: '/admin/users', count: counts?.users },
         { icon: StoreIcon, label: 'المتاجر', path: '/admin/stores', count: counts?.stores },
+        { icon: CheckCircle, label: 'طلبات الانضمام', path: '/admin/approvals', count: counts?.approvals },
         { icon: BarChart3, label: 'الإحصائيات', path: '/admin/stats' },
+        { icon: Settings, label: 'الإعدادات', path: '/admin/settings' },
       ]
     : [
         { icon: LayoutDashboard, label: 'لوحة التحكم', path: '/merchant' },
