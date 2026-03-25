@@ -12,6 +12,9 @@ coverage/
 *.key
 .secrets/
 credentials/
+*.db
+*_backup.sql
+commerce_backup.sql
 
 # Ignore diagnostic, testing, and utility scripts
 check_*.cjs
