@@ -220,17 +220,55 @@ const PLACEHOLDER_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/20
 const getSafeImageUrl = (url: string | null | undefined): string => {
   if (!url) return PLACEHOLDER_IMAGE;
 
+  const normalizedUrl = String(url).trim().replace(/\\/g, '/');
+
   // If it's a data URL or local, use it directly
-  if (url.startsWith('data:') || url.startsWith('/') || url.startsWith('http')) {
-    return url;
+  if (normalizedUrl.startsWith('data:') || normalizedUrl.startsWith('/') || normalizedUrl.startsWith('http') || normalizedUrl.startsWith('blob:')) {
+    return normalizedUrl;
+  }
+
+  if (normalizedUrl.startsWith('uploads/') || normalizedUrl.startsWith('public/uploads/')) {
+    return `/${normalizedUrl.replace(/^public\//, '')}`;
   }
 
   // Replace known placeholder hosts that fail in this environment
-  if (url.includes('via.placeholder')) {
+  if (normalizedUrl.includes('via.placeholder')) {
     return PLACEHOLDER_IMAGE;
   }
 
-  return url;
+  return normalizedUrl;
+};
+
+const getPrimaryProductImage = (product: any): string => {
+  if (!product) return PLACEHOLDER_IMAGE;
+
+  const galleryItems = Array.isArray(product.gallery)
+    ? product.gallery
+    : typeof product.gallery === 'string'
+      ? (() => {
+          try {
+            const parsed = JSON.parse(product.gallery);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch {
+            return [];
+          }
+        })()
+      : [];
+
+  const images = Array.isArray(product.images) ? product.images : [];
+  const firstGalleryImage = galleryItems.find((item: any) => typeof item === 'string' && item.trim().length > 0);
+  const firstImagesEntry = images.find((item: any) => {
+    if (typeof item === 'string') return item.trim().length > 0;
+    return item?.image_url || item?.url;
+  });
+
+  return getSafeImageUrl(
+    product.image_url ||
+    firstGalleryImage ||
+    firstImagesEntry?.image_url ||
+    firstImagesEntry?.url ||
+    null
+  );
 };
 
 // --- Components ---
@@ -8648,16 +8686,18 @@ const CustomerStorefront = () => {
               <div className="w-full">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
                   {productsByCategory[category].map((product) => {
-                    const hasImage = !!product.image_url;
+                    const productImage = getPrimaryProductImage(product);
+                    const hasImage = productImage !== PLACEHOLDER_IMAGE;
                     console.log('🎨 RENDERING CARD:', { 
                       id: product.id, 
                       name: product.name, 
                       image_url: product.image_url,
+                      resolved_image_url: productImage,
                       image_url_type: typeof product.image_url,
                       image_url_length: product.image_url ? String(product.image_url).length : 0,
                       hasImage: hasImage,
                       category: category,
-                      will_show_image: !!product.image_url ? 'YES ✅' : 'NO - WILL SHOW PACKAGE ❌'
+                      will_show_image: hasImage ? 'YES ✅' : 'NO - WILL SHOW PACKAGE ❌'
                     });
                     return (
                       <motion.div 
@@ -8672,9 +8712,9 @@ const CustomerStorefront = () => {
                         )}>
                           {/* Product Image */}
                           <div className={cn("aspect-square w-full overflow-hidden cursor-pointer", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
-                            {product.image_url ? (
+                            {hasImage ? (
                               <img 
-                                src={getSafeImageUrl(product.image_url)} 
+                                src={productImage} 
                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform" 
                                 alt={product.name}
                               />
@@ -9371,14 +9411,18 @@ const MarketplacePage = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
             {filteredProducts.map((p) => (
               <motion.div key={p.id} whileHover={{ y: -4 }}>
+                {(() => {
+                  const productImage = getPrimaryProductImage(p);
+                  const hasImage = productImage !== PLACEHOLDER_IMAGE;
+                  return (
                 <Card className={cn('h-full flex flex-col border-2 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group', isDarkMode ? 'bg-gray-800 border-green-700 hover:border-green-600' : 'bg-white border-green-500 hover:border-green-600')}>
                   {/* Image */}
                   <div
                     className={cn('aspect-square w-full overflow-hidden cursor-pointer', isDarkMode ? 'bg-gray-700' : 'bg-gray-100')}
                     onClick={() => setSelectedProduct(p)}
                   >
-                    {p.image_url ? (
-                      <img src={getSafeImageUrl(p.image_url)} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt={p.name} />
+                    {hasImage ? (
+                      <img src={productImage} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt={p.name} />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Package size={28} className={cn(isDarkMode ? 'text-gray-500' : 'text-gray-300')} />
@@ -9402,6 +9446,8 @@ const MarketplacePage = () => {
                     </div>
                   </div>
                 </Card>
+                  );
+                })()}
               </motion.div>
             ))}
           </div>
@@ -9428,13 +9474,13 @@ const MarketplacePage = () => {
             <div className={cn('w-full md:w-1/2 p-4 flex flex-col gap-4', isDarkMode ? 'bg-gray-700' : 'bg-gray-50')}>
               {/* Main Image */}
               <motion.div
-                key={selectedProduct.image_url}
+                key={getPrimaryProductImage(selectedProduct)}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className={cn('w-full aspect-square rounded-2xl overflow-hidden shadow-lg border-4 border-white', isDarkMode ? 'bg-gray-600' : 'bg-gray-100')}
               >
-                {selectedProduct.image_url ? (
-                  <img src={getSafeImageUrl(selectedProduct.image_url)} className="w-full h-full object-cover" alt={selectedProduct.name} />
+                {getPrimaryProductImage(selectedProduct) !== PLACEHOLDER_IMAGE ? (
+                  <img src={getPrimaryProductImage(selectedProduct)} className="w-full h-full object-cover" alt={selectedProduct.name} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <Package size={48} className={cn(isDarkMode ? 'text-gray-500' : 'text-gray-300')} />
@@ -9449,7 +9495,7 @@ const MarketplacePage = () => {
                   <div 
                     className="aspect-square rounded-lg overflow-hidden cursor-pointer ring-2 ring-indigo-500 ring-offset-1"
                   >
-                    <img src={getSafeImageUrl(selectedProduct.image_url)} className="w-full h-full object-cover" alt="main" />
+                    <img src={getPrimaryProductImage(selectedProduct)} className="w-full h-full object-cover" alt="main" />
                   </div>
 
                   {/* Other images */}
@@ -9462,7 +9508,7 @@ const MarketplacePage = () => {
                       }}
                       className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-indigo-500 hover:ring-offset-1 transition-all opacity-70 hover:opacity-100"
                     >
-                      <img src={img} className="w-full h-full object-cover" alt={`gallery-${idx}`} />
+                      <img src={getSafeImageUrl(img)} className="w-full h-full object-cover" alt={`gallery-${idx}`} />
                     </div>
                   ))}
                 </div>
