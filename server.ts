@@ -15,8 +15,10 @@ import sharp from "sharp";
 // ============================================================
 // DATABASE CONNECTION - CLOUD ONLY (RAILWAY)
 // ============================================================
-// Load environment variables
-dotenv.config();
+// Load environment variables only in development
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 // Use DATABASE_URL from environment
 const databaseUrl = process.env.DATABASE_URL;
