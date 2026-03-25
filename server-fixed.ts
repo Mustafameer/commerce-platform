@@ -4,17 +4,27 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 
-dotenv.config();
+// Load dotenv only in development
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Use DATABASE_URL from environment - must be set!
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error('[DB] ERROR: DATABASE_URL is not set!');
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || "postgresql://postgres:123@localhost:5432/multi_ecommerce"
+  connectionString: databaseUrl,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-console.log("🔌 Database connection string:", process.env.DATABASE_URL || "postgresql://postgres:123@localhost:5432/multi_ecommerce");
+console.log("🔌 Database connection string:", databaseUrl.substring(0, 50) + "...");
 
 async function testConnection() {
   try {
