@@ -5,6 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { initializeDatabase } from "./db-init.ts";
+import { getAppOrigin, getDatabaseSslConfig, getRequiredDatabaseUrl } from "./db-config.ts";
 import fs from "fs";
 import { mkdir, unlink } from "fs/promises";
 import crypto from "crypto";
@@ -20,12 +21,7 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
 }
 
-// Use DATABASE_URL from environment
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl) {
-  throw new Error('[DB] ERROR: DATABASE_URL is not set in environment variables');
-}
+const databaseUrl = getRequiredDatabaseUrl();
 
 console.log('[DB] Connecting to Cloud Database (Railway)');
 console.log('[DB] URL:', databaseUrl.substring(0, 50) + '...');
@@ -57,7 +53,7 @@ const __dirname = path.dirname(__filename);
 // Create database pool for Railway (cloud database)
 const pool = new Pool({
   connectionString: databaseUrl,
-  ssl: { rejectUnauthorized: false },
+  ssl: getDatabaseSslConfig(),
   connectionTimeoutMillis: 15000,
   idleTimeoutMillis: 30000,
   max: 10,
@@ -254,7 +250,7 @@ async function syncStoreAuctionSalesTotal(storeId: number): Promise<number> {
 async function testConnection() {
   try {
     console.log("ًں”„ Testing database connection...");
-    console.log("ًں”Œ Using connection string:", (process.env.DATABASE_URL || "").substring(0, 50) + "...");
+    console.log("ًں”Œ Using connection string:", databaseUrl.substring(0, 50) + "...");
     
     const result = await pool.query("SELECT NOW()");
     console.log("âœ… Database connection successful!");
@@ -1278,7 +1274,7 @@ async function startServer() {
       // Load/restore data from backup if database is empty
       // ًں”¥ CRITICAL: Use the same connection string used for pool!
       try {
-        await initializeDatabase(process.env.DATABASE_URL || "");
+        await initializeDatabase(databaseUrl);
       } catch (error: any) {
         console.warn("âڑ ï¸ڈ  Database initialization warning (continuing):", error.message?.substring(0, 100));
       }
@@ -1300,19 +1296,20 @@ async function startServer() {
     
     const app = express();
     const isDev = process.env.NODE_ENV !== 'production';
-    
-    // Configure CORS for local development only.
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://127.0.0.1:5173',
-      'http://127.0.0.1:3000',
-    ];
-    
+
+    const allowedOrigins = [getAppOrigin()];
+
     console.log('ًں”’ [CORS] Allowed origins:', allowedOrigins);
     
     app.use(cors({
-      origin: allowedOrigins,
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+
+        callback(new Error('CORS origin is not allowed'));
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires'],

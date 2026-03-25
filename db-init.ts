@@ -2,19 +2,19 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
+import { getDatabaseSslConfig, getRequiredDatabaseUrl } from './db-config.ts';
 
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export async function initializeDatabase(connectionString: string) {
-  // Use DATABASE_URL from environment directly - no overrides
-  const dbUrl = process.env.DATABASE_URL || connectionString;
+  const dbUrl = connectionString || getRequiredDatabaseUrl();
   
   const client = new Pool({
     connectionString: dbUrl,
     connectionTimeoutMillis: 10000,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: getDatabaseSslConfig(),
   });
 
   try {
