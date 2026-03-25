@@ -1265,28 +1265,6 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
       setAppliedCoupon(null);
       setVerificationModal(null);
       
-      // Refresh customer statement if it's open - update the display automatically
-      if (showCustomerStatement && selectedCustomerStatement?.id) {
-        setTimeout(async () => {
-          try {
-            console.log('🔄 Refreshing statement after purchase for customer:', selectedCustomerStatement.id);
-            const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
-            if (statementRes.ok) {
-              const data = await statementRes.json();
-              console.log('✅ Statement refreshed:', {
-                customer_id: data.customer.id,
-                current_debt: data.customer.current_debt,
-                transactions_count: data.transactions?.length || 0
-              });
-              setSelectedCustomerStatement(data.customer);
-              setCustomerTransactions(Array.isArray(data.transactions) ? data.transactions : []);
-            }
-          } catch (err) {
-            console.error('Failed to refresh statement after purchase:', err);
-          }
-        }, 300);
-      }
-      
       if (orderConfirmations.length > 0) {
         const confirmation = {
           type: 'topup',
