@@ -13,8 +13,11 @@ coverage/
 .secrets/
 credentials/
 *.db
+*.sql
 *_backup.sql
 commerce_backup.sql
+uploads/
+public/uploads/
 
 # Ignore diagnostic, testing, and utility scripts
 check_*.cjs

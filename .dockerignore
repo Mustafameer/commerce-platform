@@ -10,6 +10,11 @@ README.md
 dist
 build
 *.log
+.db
+*.sql
+*_backup.sql
+uploads
+public/uploads
 .next
 out
 .turbo
