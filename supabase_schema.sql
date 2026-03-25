@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS stores (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   is_active BOOLEAN DEFAULT FALSE,
-  percentage_enabled BOOLEAN DEFAULT TRUE,
+  percentage_enabled BOOLEAN DEFAULT FALSE,
   subscription_paid BOOLEAN DEFAULT FALSE,
   commission_percentage DECIMAL(5, 2) DEFAULT 0,
   primary_color TEXT DEFAULT '#4F46E5',

@@ -61,7 +61,7 @@ async function initDb() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         is_active BOOLEAN DEFAULT FALSE,
-        percentage_enabled BOOLEAN DEFAULT TRUE,
+        percentage_enabled BOOLEAN DEFAULT FALSE,
         subscription_paid BOOLEAN DEFAULT FALSE,
         primary_color TEXT DEFAULT '#4F46E5'
       );

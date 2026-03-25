@@ -820,6 +820,27 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
       }
     }
     
+    // For regular stores: Only fill name, leave phone empty for customer to enter
+    if (!isTopupCart) {
+      const customerData = localStorage.getItem('customerData');
+      if (customerData) {
+        try {
+          const data = JSON.parse(customerData);
+          if (data.name) setName(data.name);
+          if (data.phone) setPhone(data.phone);
+          console.log('✅ Loaded from customerData:', data);
+          return;
+        } catch (err) {
+          console.error('⚠️ Error parsing customerData:', err);
+        }
+      }
+      
+      // For regular store: Leave phone empty (customer enters their own number)
+      // Don't autofill from user.phone to avoid confusion with store owner phone
+      console.log('ℹ️ Regular store: Phone field left empty for customer to enter');
+      return;
+    }
+    
     // ثانياً: إذا لم يكن topupCustomer، جرب customerData
     const customerData = localStorage.getItem('customerData');
     if (customerData) {
@@ -1241,6 +1262,28 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 
       setAppliedCoupon(null);
       setVerificationModal(null);
+      
+      // Refresh customer statement if it's open - update the display automatically
+      if (showCustomerStatement && selectedCustomerStatement?.id) {
+        setTimeout(async () => {
+          try {
+            console.log('🔄 Refreshing statement after purchase for customer:', selectedCustomerStatement.id);
+            const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
+            if (statementRes.ok) {
+              const data = await statementRes.json();
+              console.log('✅ Statement refreshed:', {
+                customer_id: data.customer.id,
+                current_debt: data.customer.current_debt,
+                transactions_count: data.transactions?.length || 0
+              });
+              setSelectedCustomerStatement(data.customer);
+              setCustomerTransactions(Array.isArray(data.transactions) ? data.transactions : []);
+            }
+          } catch (err) {
+            console.error('Failed to refresh statement after purchase:', err);
+          }
+        }, 300);
+      }
       
       if (orderConfirmations.length > 0) {
         const confirmation = {
@@ -2319,16 +2362,27 @@ const LoginPage = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(''); // Clear error first
+    console.log('🔐 محاولة تسجيل الدخول:', { phone, password });
+    
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, password }),
       });
+      
+      console.log('📥 الاستجابة:', res.status, res.ok);
+      
       if (res.ok) {
         const user = await res.json();
+        console.log('✅ بيانات المستخدم:', user);
         setUser(user);
-        if (user.role === 'admin') navigate('/admin');
+        console.log('🔄 تم حفظ البيانات، الآن التوجيه...');
+        if (user.role === 'admin') {
+          console.log('🎯 توجيه إلى /admin');
+          navigate('/admin');
+        }
         else if (user.role === 'merchant') {
           // Check store type for correct routing
           if (user.store_type === 'topup') {
@@ -2339,9 +2393,11 @@ const LoginPage = () => {
         }
         else navigate('/');
       } else {
+        console.log('❌ خطأ من الـ API');
         setError('رقم الهاتف أو كلمة المرور غير صحيحة');
       }
     } catch (err) {
+      console.error('❌ خطأ:', err);
       setError('حدث خطأ ما');
     }
   };
@@ -2640,7 +2696,7 @@ const RegisterMerchantPage = () => {
             </div>
 
             <div>
-              <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>معرّف تليجرام أو رقم الهاتف</label>
+              <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>رقم الهاتف</label>
               <input 
                 type="tel" 
                 required
@@ -5847,8 +5903,8 @@ const MerchantDashboard = () => {
                               name: cust.name,
                               phone: cust.phone,
                               password: cust.password || '',
-                              starting_balance: String(cust.starting_balance || 0),
-                              credit_limit: String(cust.credit_limit || 0),
+                              starting_balance: Math.floor(cust.starting_balance || 0).toString(),
+                              credit_limit: Math.floor(cust.credit_limit || 0).toString(),
                               notes: cust.notes || '',
                               customer_type: cust.customer_type || 'cash'
                             });
@@ -7609,7 +7665,7 @@ const MerchantDashboard = () => {
                           } else if (transaction.type === 'debit') {
                             displayType = 'خصم';
                           } else if (transaction.type === 'topup') {
-                            displayType = 'بطاقة شحن';
+                            displayType = transaction.description || 'بطاقة شحن';
                           } else {
                             displayType = transaction.description || transaction.type || 'معاملة';
                           }
@@ -10721,6 +10777,16 @@ const MerchantTopupDashboard = () => {
         }
         console.log('📌 Setting transactions:', transactions.length);
         setCustomerTransactions(transactions);
+        
+        // ✅ CRITICAL FIX: Also update customer data (credit_limit, current_debt) from fresh API response
+        if (data.customer) {
+          console.log('✅ Updating customer data from API:', {
+            id: data.customer.id,
+            current_debt: data.customer.current_debt,
+            credit_limit: data.customer.credit_limit
+          });
+          setSelectedCustomerStatement(data.customer);
+        }
       } else {
         console.error('❌ API Error:', data);
         setCustomerTransactions([]);
@@ -11212,6 +11278,29 @@ const MerchantTopupDashboard = () => {
     }
   };
 
+  // 🎯 Handle create product for TOPUP merchant dashboard
+  const handleCreateProductTopup = () => {
+    if (!user?.store_id) {
+      alert("عذراً، لم يتم العثور على معرّف المتجر!");
+      return;
+    }
+    console.log('🎯 handleCreateProductTopup triggered');
+    setProductForm({
+      company_id: '',
+      amount: '',
+      price: '',
+      bulk_price: '',
+      quantity_type: 'unit',
+      category_id: ''
+    });
+    setProductImages([]);
+    setExistingProductImages([]);
+    setIsEditingProduct(null);
+    console.log('🎯 About to setShowProductModal(true)');
+    setShowProductModal(true);
+    console.log('🎯 setShowProductModal called - modal should appear!');
+  };
+
   // 🖼️ Compress image using Canvas API
   const compressImage = (file: File, maxWidth: number = 1200, maxHeight: number = 1200, quality: number = 0.7): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -11367,54 +11456,34 @@ const MerchantTopupDashboard = () => {
           }
         }
         
-        // After uploading new images, update product with images (for both new and edited products)
+        // After uploading new images, update product metadata (without images)
         try {
-          // Combine existing images + newly uploaded images
-          const allImages = isEditingProduct 
-            ? [...existingProductImages, ...uploadedImageUrls]
-            : uploadedImageUrls; // For new products, use only newly uploaded images
+          // DO NOT send images in PUT - images are managed separately via topup_product_images table
+          // Only send to update product metadata (amount, price, company, etc.)
           
-          console.log('📦 Before PUT request:');
-          console.log('  existingProductImages:', existingProductImages.length, existingProductImages);
-          console.log('  uploadedImageUrls:', uploadedImageUrls.length, uploadedImageUrls);
-          console.log('  allImages:', allImages.length, allImages);
+          console.log('🔄 Updating product metadata (images handled separately)');
+            
+          const updateResponse = await fetch(`/api/topup/products/${productId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              store_id: topupStoreId,
+              company_id: parseInt(productForm.company_id),
+              amount: parseInt(productForm.amount),
+              price: parseInt(productForm.price),
+              bulk_price: productForm.bulk_price ? parseInt(productForm.bulk_price) : parseInt(productForm.price),
+              quantity_type: productForm.quantity_type
+              // ❌ NO images field - images are ONLY stored in topup_product_images table
+            })
+          });
           
-          if (allImages.length > 0 || isEditingProduct) {
-            console.log('🔄 Updating product with combined images:', allImages.length, 'total');
-            
-            // 🔥 CRITICAL: Filter out any base64 data URLs - send ONLY actual URLs
-            const validImages = allImages.filter((img: any) => {
-              const isUrl = typeof img === 'string' && (img.startsWith('/uploads/') || img.startsWith('http'));
-              const isBase64 = typeof img === 'string' && (img.startsWith('data:') || img.startsWith('{'));
-              if (isBase64) {
-                console.warn('⚠️ Filtering out base64/JSON data:', img.substring(0, 50) + '...');
-              }
-              return isUrl;
-            });
-            console.log('✅ After filtering - valid URLs only:', validImages.length, validImages);
-            
-            const updateImageResponse = await fetch(`/api/topup/products/${productId}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                store_id: topupStoreId,
-                company_id: parseInt(productForm.company_id),
-                amount: parseInt(productForm.amount),
-                price: parseInt(productForm.price),
-                bulk_price: productForm.bulk_price ? parseInt(productForm.bulk_price) : parseInt(productForm.price),
-                quantity_type: productForm.quantity_type,
-                images: validImages // Send ONLY valid URLs (no base64!)
-              })
-            });
-            
-            if (updateImageResponse.ok) {
-              console.log('✅ Product images updated successfully');
-            } else {
-              console.warn('⚠️ Failed to update product images, status:', updateImageResponse.status);
-            }
+          if (updateResponse.ok) {
+            console.log('✅ Product metadata updated successfully');
+          } else {
+            console.warn('⚠️ Failed to update product metadata, status:', updateResponse.status);
           }
         } catch (err) {
-          console.warn('⚠️ Error updating product images:', err);
+          console.warn('⚠️ Error updating product metadata:', err);
         }
 
         alert(isEditingProduct ? 'تم التحديث بنجاح' : 'تمت الإضافة بنجاح');
@@ -11894,9 +11963,9 @@ const MerchantTopupDashboard = () => {
             <div className="space-y-6">
               <button
                 onClick={() => {
-                  console.log('✅ Add Product button clicked!');
-                  // Use the proper handler instead of manual setProductForm
-                  handleCreateProduct();
+                  console.log('✅ Add Product button clicked in TOPUP merchant!');
+                  // Call the TOPUP-specific handler
+                  handleCreateProductTopup();
                 }}
                 className="px-6 py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700 flex items-center gap-2"
               >
@@ -11932,17 +12001,33 @@ const MerchantTopupDashboard = () => {
                   {/* Products Grid - Modern Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {group.products.map((product: any) => {
-                      // Parse product images
+                      // Parse product images - handle both object and string formats
                       let productImages: string[] = [];
                       if (product.images) {
                         if (Array.isArray(product.images)) {
-                          productImages = product.images.filter((img: any) => img && String(img).length > 0);
+                          productImages = product.images
+                            .map((img: any) => {
+                              // If it's an object with url property, extract the URL
+                              if (typeof img === 'object' && img !== null && img.url) {
+                                return img.url;
+                              }
+                              // If it's a string, use it directly
+                              return typeof img === 'string' ? img : null;
+                            })
+                            .filter((img: any) => img && String(img).length > 0);
                         } else if (typeof product.images === 'string') {
                           try {
                             const parsed = JSON.parse(product.images);
-                            productImages = Array.isArray(parsed) 
-                              ? parsed.filter((img: any) => img && String(img).length > 0)
-                              : [];
+                            if (Array.isArray(parsed)) {
+                              productImages = parsed
+                                .map((img: any) => {
+                                  if (typeof img === 'object' && img !== null && img.url) {
+                                    return img.url;
+                                  }
+                                  return typeof img === 'string' ? img : null;
+                                })
+                                .filter((img: any) => img && String(img).length > 0);
+                            }
                           } catch (e) {
                             productImages = [];
                           }
@@ -12393,7 +12478,7 @@ const MerchantTopupDashboard = () => {
                               {/* Edit button */}
                               <button 
                                 onClick={() => {
-                                  setCustomerForm({ name: customer.name, phone: customer.phone, password: customer.password || '', starting_balance: (customer.starting_balance || 0).toString(), credit_limit: (customer.credit_limit || 0).toString(), notes: customer.notes || '', customer_type: customer.customer_type || 'cash' });
+                                  setCustomerForm({ name: customer.name, phone: customer.phone, password: customer.password || '', starting_balance: Math.floor(customer.starting_balance || 0).toString(), credit_limit: Math.floor(customer.credit_limit || 0).toString(), notes: customer.notes || '', customer_type: customer.customer_type || 'cash' });
                                   setIsEditingCustomer(customer.id);
                                   setShowCustomerModal(true);
                                 }}
@@ -12843,11 +12928,16 @@ const MerchantTopupDashboard = () => {
                 <div>
                   <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>💳 حد الائتمان (د.ع) <span className="text-red-500">*</span></label>
                   <input
-                    type="number"
-                    value={customerForm.credit_limit}
-                    onChange={(e) => setCustomerForm({ ...customerForm, credit_limit: e.target.value })}
+                    type="text"
+                    inputMode="numeric"
+                    value={Math.floor(parseFloat(customerForm.credit_limit) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                    onChange={(e) => {
+                      const num = e.target.value.replace(/,/g, '');
+                      if (/^\d*$/.test(num)) {
+                        setCustomerForm({ ...customerForm, credit_limit: num });
+                      }
+                    }}
                     placeholder="0"
-                    min="0"
                     className={cn("w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-500" : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-indigo-500")}
                   />
                 </div>
@@ -12858,11 +12948,16 @@ const MerchantTopupDashboard = () => {
                 <div>
                   <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>💰 ديون سابقة (د.ع) <span className="text-red-500">*</span></label>
                   <input
-                    type="number"
-                    value={customerForm.starting_balance}
-                    onChange={(e) => setCustomerForm({ ...customerForm, starting_balance: e.target.value })}
+                    type="text"
+                    inputMode="numeric"
+                    value={Math.floor(parseFloat(customerForm.starting_balance) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                    onChange={(e) => {
+                      const num = e.target.value.replace(/,/g, '');
+                      if (/^\d*$/.test(num)) {
+                        setCustomerForm({ ...customerForm, starting_balance: num });
+                      }
+                    }}
                     placeholder="0"
-                    min="0"
                     className={cn("w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-500" : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-indigo-500")}
                   />
                 </div>
@@ -13102,7 +13197,15 @@ const MerchantTopupDashboard = () => {
                         const isPayment = tx.is_payment === true;
                         const debit = isPayment ? 0 : Math.abs(tx.amount || 0);
                         const credit = isPayment ? Math.abs(tx.amount || 0) : 0;
-                        console.log(`📊 Row ${idx}:`, { description: tx.description, type: tx.type, is_payment: tx.is_payment, debit, credit });
+                        console.log(`📊 Statement Row ${idx}:`, { 
+                          description: tx.description, 
+                          description_bytes: Array.from(tx.description || '').map(c => c.charCodeAt(0)),
+                          type: tx.type, 
+                          is_payment: tx.is_payment, 
+                          debit, 
+                          credit,
+                          source: tx.source
+                        });
                         return (
                           <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
                             <td className={cn("px-4 py-3 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
@@ -15197,7 +15300,7 @@ const TopupStorefront = () => {
                               } else if (txType === 'debit') {
                                 txDescription = 'خصم';
                               } else if (txType === 'topup') {
-                                txDescription = 'بطاقة شحن';
+                                txDescription = transaction.description || 'بطاقة شحن';
                               } else if (txType === 'payment') {
                                 txDescription = '✓ دفعة';
                               }

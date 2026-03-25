@@ -13,30 +13,20 @@ import archiver from "archiver";
 import multer from "multer";
 import sharp from "sharp";
 // ============================================================
-// DATABASE CONNECTION - LOCAL ONLY
+// DATABASE CONNECTION - CLOUD ONLY (RAILWAY)
 // ============================================================
-// Always load local environment variables for this workspace.
+// Load environment variables
 dotenv.config();
 
-const DEFAULT_LOCAL_DATABASE_URL = 'postgresql://postgres:123@localhost:5432/multi_ecommerce';
+// Use DATABASE_URL from environment
+const databaseUrl = process.env.DATABASE_URL;
 
-function isLocalDatabaseUrl(connectionString: string): boolean {
-  return connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+if (!databaseUrl) {
+  throw new Error('[DB] ERROR: DATABASE_URL is not set in environment variables');
 }
 
-const configuredDbUrl = process.env.DATABASE_URL || '';
-const resolvedLocalDbUrl = isLocalDatabaseUrl(configuredDbUrl)
-  ? configuredDbUrl
-  : DEFAULT_LOCAL_DATABASE_URL;
-
-if (!isLocalDatabaseUrl(configuredDbUrl)) {
-  console.log('[DB] Ignoring non-local DATABASE_URL and forcing local PostgreSQL');
-}
-
-process.env.DATABASE_URL = resolvedLocalDbUrl;
-
-console.log('[DB] Local PostgreSQL only');
-console.log('[DB] Connecting to:', process.env.DATABASE_URL);
+console.log('[DB] Connecting to Cloud Database (Railway)');
+console.log('[DB] URL:', databaseUrl.substring(0, 50) + '...');
 
 // Firebase (optional - only needed if using Firebase Storage for images)
 const serviceAccount = {
@@ -62,16 +52,16 @@ const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Create database pool using the resolved local connection string.
+// Create database pool for Railway (cloud database)
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: false,
+  connectionString: databaseUrl,
+  ssl: { rejectUnauthorized: false },
   connectionTimeoutMillis: 15000,
   idleTimeoutMillis: 30000,
   max: 10,
 });
 
-console.log('[DB] Pool created. NODE_ENV:', process.env.NODE_ENV || 'development');
+console.log('[DB] Pool created for Railway');
 
 function createSlug(text: string): string {
   const slug = text
@@ -327,7 +317,7 @@ async function initDb() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         is_active BOOLEAN DEFAULT FALSE,
-        percentage_enabled BOOLEAN DEFAULT TRUE,
+        percentage_enabled BOOLEAN DEFAULT FALSE,
         subscription_paid BOOLEAN DEFAULT FALSE,
         commission_percentage DECIMAL(5, 2) DEFAULT 0,
         primary_color TEXT DEFAULT '#4F46E5'
@@ -583,7 +573,7 @@ async function runMigrations() {
     // Add percentage_enabled column to stores if it doesn't exist
     await pool.query(`
       ALTER TABLE stores
-      ADD COLUMN IF NOT EXISTS percentage_enabled BOOLEAN DEFAULT TRUE;
+      ADD COLUMN IF NOT EXISTS percentage_enabled BOOLEAN DEFAULT FALSE;
     `);
     console.log("âœ… Migration: percentage_enabled column ensured in stores");
     
@@ -617,7 +607,7 @@ async function runMigrations() {
     await pool.query(`
       UPDATE stores
       SET 
-        percentage_enabled = true,
+        percentage_enabled = false,
         commission_percentage = CASE 
           WHEN commission_percentage IS NULL OR commission_percentage = 0 THEN 10
           ELSE commission_percentage
@@ -1175,9 +1165,9 @@ async function seedData() {
       // Create admin user
       await pool.query(
         "INSERT INTO users (name, phone, email, password, role, is_active) VALUES ($1, $2, $3, $4, $5, $6)",
-        ['Admin', 'admin', 'admin@commerce.local', 'password', 'admin', true]
+        ['Admin', 'admin', 'admin@commerce.local', 'admin', 'admin', true]
       );
-      console.log("âœ… Admin user created: phone: admin, password: password");
+      console.log("âœ… Admin user created: phone: admin, password: admin");
     }
 
     // Check if app settings exist
@@ -1579,7 +1569,7 @@ async function startServer() {
           await client.release();
         }
       } catch (error) {
-        console.error("â‌Œ ط®ط·ط£ ظپظٹ ط­ط°ظپ ط§ظ„ط¨ظٹط§ظ†ط§طھ:", error);
+        console.error("خطأ ظپظٹ ط­ط°ظپ ط§ظ„ط¨ظٹط§ظ†ط§طھ:", error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -3960,7 +3950,19 @@ async function startServer() {
         );
 
         const productId = result.rows[0].id;
-        const savedProduct = result.rows[0];
+        let savedProduct = result.rows[0];
+
+        // ✅ Fetch the product with category_name using JOIN
+        const fullProductResult = await client.query(
+          `SELECT products.*, categories.name as category_name
+           FROM products 
+           LEFT JOIN categories ON products.category_id = categories.id
+           WHERE products.id = $1`,
+          [productId]
+        );
+        if (fullProductResult.rows.length > 0) {
+          savedProduct = fullProductResult.rows[0];
+        }
 
         if (isAuctionBoolean && parsedAuctionDate && parsedStartTime && parsedEndTime && parsedPrice !== null) {
           const auctionInsert = await client.query(
@@ -4235,6 +4237,19 @@ async function startServer() {
           [category_id || null, name, price, stock, finalImageUrl, description, galleryArray, effectiveIsAuction, parsedAuctionDate, parsedStartTime, parsedEndTime, parsedPrice, parseInt(id)]
         );
 
+        // ✅ Fetch the product with category_name using JOIN
+        let responseProduct = result.rows[0];
+        const fullProductResult = await client.query(
+          `SELECT products.*, categories.name as category_name
+           FROM products 
+           LEFT JOIN categories ON products.category_id = categories.id
+           WHERE products.id = $1`,
+          [parseInt(id)]
+        );
+        if (fullProductResult.rows.length > 0) {
+          responseProduct = fullProductResult.rows[0];
+        }
+
         const currentAuctionId = currentAuctionData.auction_id;
         const storeId = currentAuctionData.store_id;
         const hasCompleteAuctionValues = !!(parsedAuctionDate && parsedStartTime && parsedEndTime && parsedPrice !== null);
@@ -4289,14 +4304,13 @@ async function startServer() {
         
         console.log('âœ…âœ…âœ… Product updated:');
         console.log('  - Product ID:', id);
-        console.log('  - is_auction (saved):', result.rows[0].is_auction);
-        console.log('  - auction_date (saved):', result.rows[0].auction_date);
-        console.log('  - auction_start_time (saved):', result.rows[0].auction_start_time);
-        console.log('  - auction_end_time (saved):', result.rows[0].auction_end_time);
-        console.log('  - auction_price (saved):', result.rows[0].auction_price);
+        console.log('  - is_auction (saved):', responseProduct.is_auction);
+        console.log('  - auction_date (saved):', responseProduct.auction_date);
+        console.log('  - auction_start_time (saved):', responseProduct.auction_start_time);
+        console.log('  - auction_end_time (saved):', responseProduct.auction_end_time);
+        console.log('  - auction_price (saved):', responseProduct.auction_price);
         
         // âœ… Convert dates to strings before sending response (same as GET endpoint)
-        const responseProduct = result.rows[0];
         if (responseProduct.auction_date) {
           responseProduct.auction_date = new Date(responseProduct.auction_date).toISOString().split('T')[0];
         }
@@ -5067,7 +5081,7 @@ async function startServer() {
           creditLimit: customer.credit_limit,
           message: canProceed 
             ? (isNearLimit ? `طھط­ط°ظٹط±: ط§ظ„ط±طµظٹط¯ ط§ظ„ظ…طھط¨ظ‚ظٹ: ${availableCredit - amount}` : "ظٹظ…ظƒظ† ط§ظ„ظ…طھط§ط¨ط¹ط©")
-            : `ط§ط¹طھط°ط±: ط§ظ„ط±طµظٹط¯ ط§ظ„ظ…طھط§ط­ ${availableCredit} ط£ظ‚ظ„ ظ…ظ† ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…ط·ظ„ظˆط¨ ${amount}`
+            : `ط§ط¹طھط°ط±: ط§ظ„ط±طµظٹط¯ ط§ظ„ظ…طھط§ط­ ${availableCredit} أقل من المبلغ المطلوب ${amount}`
         });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
@@ -5414,12 +5428,10 @@ async function startServer() {
         let ordersResult = { rows: [] };
         try {
           ordersResult = await pool.query(
-            `SELECT 
-              o.id, o.customer_id, o.total_amount,
-              o.status, o.created_at
-             FROM topup_orders o
-             WHERE o.customer_id = $1
-             ORDER BY o.created_at ASC`,
+            `SELECT id, topup_customer_id as customer_id, total_amount,
+             status, created_at
+             FROM orders WHERE topup_customer_id = $1 AND is_topup_order = true
+             ORDER BY created_at ASC`,
             [customerIdNum]
           );
           console.log(`ًں“¦ [STATEMENT] Topup Orders query - Customer: ${customerIdNum}, Found: ${ordersResult.rows.length}`);
@@ -5456,7 +5468,7 @@ async function startServer() {
             id: o.id,
             created_at: o.created_at instanceof Date ? o.created_at.toISOString() : String(o.created_at),
             type: 'topup',
-            description: `ط´ط±ط§ط، - ${o.total_amount || 0} ط¯.ط¹`,
+            description: 'شراء بطاقات شحن',
             amount: Number(o.total_amount || 0),
             is_payment: false,
             source: 'topup_order'
@@ -5465,7 +5477,7 @@ async function startServer() {
             id: p.id,
             created_at: p.created_at instanceof Date ? p.created_at.toISOString() : String(p.created_at),
             type: 'payment',
-            description: 'ط¯ظپط¹ط©',
+            description: 'دفعة',
             amount: Number(p.amount || 0),
             is_payment: true,
             source: 'payment'
@@ -5479,7 +5491,7 @@ async function startServer() {
           id: 0,
           created_at: customer.created_at instanceof Date ? customer.created_at.toISOString() : String(customer.created_at),
           type: 'opening',
-          description: 'ط¯ظٹظˆظ† ط³ط§ط¨ظ‚ط©',
+          description: 'ديون سابقة',
           amount: openingBalance,
           is_payment: false,
           source: 'opening',
@@ -5512,6 +5524,22 @@ async function startServer() {
         // Combine: other transactions in REVERSE order (newest first), opening balance LAST (always at bottom)
         const transactions = [...otherTransactionsWithBalance.reverse(), openingBalanceRow];
         
+        // Ensure correct descriptions regardless of source data
+        const transactionsWithCorrectDescriptions = transactions.map(tx => {
+          let description = tx.description;
+          
+          // Override description based on source (to fix any corrupted data)
+          if (tx.source === 'opening') {
+            description = 'ديون سابقة';
+          } else if (tx.source === 'payment') {
+            description = 'دفعة';
+          } else if (tx.source === 'topup_order') {
+            description = 'شراء بطاقات شحن';
+          }
+          
+          return { ...tx, description };
+        });
+        
         // Calculate final current balance
         const finalBalance = otherTransactionsWithBalance.length > 0 
           ? otherTransactionsWithBalance[otherTransactionsWithBalance.length - 1].balance 
@@ -5529,7 +5557,7 @@ async function startServer() {
             current_debt: Number(finalBalance) || 0,
             starting_balance: Number(customer.starting_balance) || 0
           },
-          transactions: Array.isArray(transactions) ? transactions : [],
+          transactions: Array.isArray(transactionsWithCorrectDescriptions) ? transactionsWithCorrectDescriptions : [],
           current_debt: Number(finalBalance) || 0,
           credit_limit: Number(customer.credit_limit) || 0,
           starting_balance: Number(customer.starting_balance) || 0
@@ -6234,7 +6262,7 @@ async function startServer() {
           values.push(processedLogo);
         }
         
-        updates.push(`updated_at = NOW()`);
+        // Add the ID to values for WHERE clause
         values.push(id);
         
         const query = `UPDATE topup_companies SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`;
@@ -6417,11 +6445,34 @@ async function startServer() {
           [storeId, limit, offset]
         );
         
-        // Transform response: add images array from gallery
-        const transformedRows = result.rows.map((row: any) => ({
-          ...row,
-          images: Array.isArray(row.gallery) ? row.gallery.map((img: any) => img.url) : []
-        }));
+        // Transform response: extract valid image URLs from gallery and stored images
+        const transformedRows = result.rows.map((row: any) => {
+          // Extract URLs from gallery (from topup_product_images)
+          const galleryUrls = Array.isArray(row.gallery) 
+            ? row.gallery.map((img: any) => img.url).filter((url: any) => url)
+            : [];
+          
+          // Also try to parse the stored images column for backward compatibility
+          let storedUrls: string[] = [];
+          if (row.images) {
+            if (Array.isArray(row.images)) {
+              storedUrls = row.images
+                .map((img: any) => {
+                  if (typeof img === 'object' && img !== null && img.url) {
+                    return img.url;
+                  }
+                  if (typeof img === 'string' && (img.startsWith('/') || img.startsWith('http'))) {
+                    return img;
+                  }
+                  return null;
+                })
+                .filter((url: any) => url);
+            }
+          }
+          
+          const allImages = [...galleryUrls, ...storedUrls];
+          return { ...row, images: allImages.length > 0 ? allImages : [] };
+        });
         
         res.json(transformedRows);
       } catch (error) {
@@ -6476,11 +6527,81 @@ async function startServer() {
           [storeId, limit, offset]
         );
         
-        // Transform response: add images array from gallery
-        const transformedRows = result.rows.map((row: any) => ({
-          ...row,
-          images: Array.isArray(row.gallery) ? row.gallery.map((img: any) => img.url) : []
-        }));
+        // Transform response: extract image URLs from gallery (topup_product_images table)
+        // NO LONGER merging storedUrls - only use gallery which is the single source of truth
+        const transformedRows = result.rows.map((row: any) => {
+          const galleryUrls = Array.isArray(row.gallery) 
+            ? row.gallery.map((img: any) => img.url).filter((url: any) => url)
+            : [];
+          
+          return { ...row, images: galleryUrls.length > 0 ? galleryUrls : [] };
+        });
+        
+        res.json(transformedRows);
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+    // Get topup products (default to store 13 - topup store with actual data)
+    app.get("/api/topup/products", async (req, res) => {
+      try {
+        // Redirect to default topup store
+        const defaultStore = 13; // Default topup store
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : 500;
+        const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+        
+        // No cache - always get fresh data
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        
+        const result = await pool.query(
+          `SELECT 
+            tp.id,
+            tp.store_id,
+            tp.company_id,
+            tp.amount,
+            tp.price,
+            tp.retail_price,
+            tp.wholesale_price,
+            tp.wholesale_price AS bulk_price,
+            tp.images,
+            tp.codes,
+            tp.is_active,
+            tc.name as company_name,
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'id', tpi.id,
+                  'url', tpi.image_url,
+                  'hash', tpi.image_hash,
+                  'type', tpi.image_type,
+                  'uploaded_at', tpi.uploaded_at
+                ) ORDER BY tpi.id ASC
+              ) FILTER (WHERE tpi.id IS NOT NULL),
+              '[]'::json
+            ) AS gallery
+          FROM topup_products tp
+          LEFT JOIN topup_companies tc ON tp.company_id = tc.id
+          LEFT JOIN topup_product_images tpi ON tp.id = tpi.topup_product_id
+          WHERE tp.store_id = $1
+          GROUP BY tp.id, tp.store_id, tp.company_id, tp.amount, tp.price, tp.retail_price, tp.wholesale_price, tp.images, tp.codes, tp.is_active, tc.id, tc.name
+          ORDER BY tp.id DESC
+          LIMIT $2 OFFSET $3`,
+          [defaultStore, limit, offset]
+        );
+        
+        // Transform response: extract image URLs from gallery only (no duplication)
+        const transformedRows = result.rows.map((row: any) => {
+          // Extract URLs from gallery (from topup_product_images table)
+          const galleryUrls = Array.isArray(row.gallery) 
+            ? row.gallery.map((img: any) => img.url).filter((url: any) => url)
+            : [];
+          
+          return {
+            ...row,
+            images: galleryUrls.length > 0 ? galleryUrls : []
+          };
+        });
         
         res.json(transformedRows);
       } catch (error) {
@@ -6552,7 +6673,8 @@ async function startServer() {
     app.put("/api/topup/products/:id", async (req, res) => {
       try {
         const { id } = req.params;
-        const { amount, price, bulk_price, retail_price, wholesale_price, available_codes, images } = req.body;
+        // Extract only metadata fields - ignore 'images' to prevent storage duplication
+        const { amount, price, bulk_price, retail_price, wholesale_price, available_codes } = req.body;
         
         // No cache for modifications
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -6589,8 +6711,8 @@ async function startServer() {
           values.push(available_codes);
         }
         
-        // Handle images array - send as array (PostgreSQL will handle conversion)
-        if (images !== undefined && Array.isArray(images)) {
+        // Images are NOT updated in PUT - managed exclusively via topup_product_images
+        if (false && images !== undefined && Array.isArray(images)) {
           // ًں”¥ CRITICAL: Filter out base64/JSON - keep ONLY valid URLs
           const validImages = images.filter((img: any) => {
             const isValidUrl = typeof img === 'string' && (img.startsWith('/uploads/') || img.startsWith('http'));
@@ -6984,7 +7106,7 @@ async function startServer() {
         console.log('ًں’¾ Saving images to local storage...');
         
         // Create uploads directory if needed
-        const uploadsDir = path.join(__dirname, 'uploads', 'topup', String(store_id), String(topup_product_id));
+        const uploadsDir = path.join(__dirname, 'public', 'uploads', 'topup', String(store_id), String(topup_product_id));
         await mkdir(uploadsDir, { recursive: true });
         
         for (const file of files) {
@@ -7062,9 +7184,9 @@ async function startServer() {
           console.warn('âڑ ï¸ڈ No new images uploaded');
         }
 
-        let message = `طھظ… طھط­ظ…ظٹظ„ ${uploadedUrls.length} طµظˆط±ط© ط¬ط¯ظٹط¯ط© ط¨ظ†ط¬ط§ط­`;
+        let message = `Successfully uploaded ${uploadedUrls.length} images`;
         if (duplicateUrls.length > 0) {
-          message += ` (طھظ… طھط®ط·ظٹ ${duplicateUrls.length} طµظˆط± ظ…ظƒط±ط±ط©)`;
+          message += ` (${duplicateUrls.length} duplicates)`;
         }
 
         console.log('âœ… Images uploaded successfully:', { 
@@ -7074,13 +7196,12 @@ async function startServer() {
           total_size_mb: (files.reduce((sum, f) => sum + f.size, 0) / 1024 / 1024).toFixed(2)
         });
 
-        // Return ALL images (existing + new), not just the new ones
-        const allImages = [...existingImageUrls, ...uploadedUrls];
+        // Return uploaded image URLs only
+        // Existing images will be retrieved fresh from topup_product_images via GET endpoint
         res.json({ 
           success: true, 
           message, 
-          image_urls: uploadedUrls,
-          all_images: allImages
+          image_urls: uploadedUrls
         });
       } catch (error) {
         console.error('â‌Œ Error uploading images:', error);
@@ -7191,7 +7312,7 @@ async function startServer() {
             console.log(`âœ… Customer found by ID: ${foundCustomerId}`);
           } else {
             console.error(`â‌Œ Customer ID ${customer_id} not found for store ${parsedStoreId}`);
-            return res.status(403).json({ error: "â‌Œ ط§ظ„ط¹ظ…ظٹظ„ ط؛ظٹط± ظ…ط³ط¬ظ„" });
+            return res.status(403).json({ error: "العميل غير مسجل" });
           }
         }
         
@@ -7215,7 +7336,7 @@ async function startServer() {
                 `INSERT INTO customers (store_id, phone, name, current_debt, starting_balance, is_active)
                  VALUES ($1, $2, $3, 0, 0, true)
                  RETURNING id`,
-                [parsedStoreId, phone, `ط¹ظ…ظٹظ„ ط¬ط¯ظٹط¯ - ${phone}`]
+                [parsedStoreId, phone, `عميل جديد - ${phone}`]
               );
               
               foundCustomerId = insertRes.rows[0].id;
@@ -7245,10 +7366,10 @@ async function startServer() {
                   console.log(`âœ… Using customer: ID=${foundCustomerId}`);
                 } else {
                   console.error(`â‌Œ Constraint violation but customer not found`);
-                  return res.status(500).json({ error: "â‌Œ ط®ط·ط£ ظپظٹ ط§ظ„ط¨ظٹط§ظ†ط§طھ" });
+                  return res.status(500).json({ error: "خطأ في البيانات" });
                 }
               } else {
-                return res.status(500).json({ error: `â‌Œ ط®ط·ط£: ${insertErr.message}` });
+                return res.status(500).json({ error: `خطأ: ${insertErr.message}` });
               }
             }
           }
@@ -7257,7 +7378,7 @@ async function startServer() {
         // Step 3: Verify we have a valid customer ID
         if (!foundCustomerId || typeof foundCustomerId !== 'number') {
           console.error(`â‌Œ CRITICAL: Invalid foundCustomerId=${foundCustomerId}`);
-          return res.status(400).json({ error: "â‌Œ ظپط´ظ„ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط¹ظ…ظٹظ„" });
+          return res.status(400).json({ error: "فشل التحقق من العميل" });
         }
 
         console.log(`âœ… Customer verified: ID=${foundCustomerId}`);
@@ -7272,7 +7393,7 @@ async function startServer() {
         
         if (creditRes.rows.length === 0) {
           console.error(`â‌Œ CRITICAL: Customer ${foundCustomerId} disappeared!`);
-          return res.status(500).json({ error: "â‌Œ ط®ط·ط£ ظپظٹ ط§ظ„ط¨ظٹط§ظ†ط§طھ" });
+          return res.status(500).json({ error: "خطأ في البيانات" });
         }
         
         const creditLimit = creditRes.rows[0].credit_limit;
@@ -7295,7 +7416,7 @@ async function startServer() {
         
         if (availableCredit < total_amount) {
           return res.status(403).json({ 
-            error: `â‌Œ ط§ظ„ط±طµظٹط¯ ط§ظ„ظ…طھط§ط­ ${availableCredit} ط£ظ‚ظ„ ظ…ظ† ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…ط·ظ„ظˆط¨ ${total_amount}` 
+            error: `الرصيد المتاح ${availableCredit} أقل من المبلغ المطلوب ${total_amount}` 
           });
         }
 
@@ -7307,12 +7428,12 @@ async function startServer() {
 
         if (!foundCustomerId || typeof foundCustomerId !== 'number' || foundCustomerId <= 0) {
           console.error(`â‌Œ CRITICAL: foundCustomerId is invalid!`);
-          return res.status(400).json({ error: "â‌Œ ظ…ط¹ط±ظپ ط§ظ„ط¹ظ…ظٹظ„ ط؛ظٹط± طµط­ظٹط­" });
+          return res.status(400).json({ error: "معرف العميل غير صحيح" });
         }
 
         if (!parsedStoreId || typeof parsedStoreId !== 'number' || parsedStoreId <= 0) {
           console.error(`â‌Œ CRITICAL: parsedStoreId is invalid!`);
-          return res.status(400).json({ error: "â‌Œ ظ…ط¹ط±ظپ ط§ظ„ظ…طھط¬ط± ط؛ظٹط± طµط­ظٹط­" });
+          return res.status(400).json({ error: "معرف المتجر غير صحيح" });
         }
 
         // Double-check customer still exists
@@ -9079,18 +9200,24 @@ async function startServer() {
       }
     }));
     
-    // Only serve dist assets if dist folder exists (production mode)
-    if (!isDev) {
+    // Always serve dist folder if it exists
+    if (fs.existsSync(distPath)) {
       // Serve assets with caching
       app.use('/assets', express.static(path.join(distPath, "assets"), {
         maxAge: '1y',
         etag: false
       }));
       
-      // Serve other static files
+      // Serve all static files from dist
       app.use(express.static(distPath, {
-        extensions: ['html', 'js', 'css', 'json', 'svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'woff', 'woff2'],
-        index: false // Disable automatic index.html handling
+        extensions: ['html', 'js', 'css', 'json', 'svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'woff', 'woff2', 'ico', 'webmanifest'],
+        setHeaders: (res, filepath) => {
+          if (filepath.endsWith('.html')) {
+            res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+          } else if (filepath.match(/\.(js|css|woff|woff2|ttf)$/)) {
+            res.set('Cache-Control', 'public, max-age=31536000, immutable');
+          }
+        }
       }));
     }
 
@@ -9184,14 +9311,7 @@ async function startServer() {
       
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       
-      // In dev mode, redirect to Vite dev server (requires NODE_ENV != production)
-      const nodeEnv = process.env.NODE_ENV;
-      if (nodeEnv !== 'production') {
-        // Development: redirect to local Vite server
-        return res.redirect('http://localhost:5173/');
-      }
-      
-      // Production: serve built files
+      // Always serve built files from dist on port 3000
       res.sendFile(path.join(distPath, "index.html"));
     });
     
