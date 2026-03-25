@@ -21,8 +21,10 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
 }
 
+const DEPLOY_MARKER = 'cloud-only-marker-20260325-1732';
 const databaseUrl = getRequiredDatabaseUrl();
 
+console.log('[DEPLOY]', DEPLOY_MARKER);
 console.log('[DB] Connecting to Cloud Database (Railway)');
 console.log('[DB] URL:', databaseUrl.substring(0, 50) + '...');
 
@@ -9316,6 +9318,7 @@ async function startServer() {
     
     const PORT = Number.parseInt(process.env.PORT || "3000", 10);
     const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[DEPLOY] Active marker: ${DEPLOY_MARKER}`);
       console.log(`âœ… Server is running on 0.0.0.0:${PORT}`);
       console.log(`ًں“، [PRODUCTION] Database connected via DATABASE_URL`);
     });
