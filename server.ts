@@ -3502,6 +3502,8 @@ async function startServer() {
         
         // âœ… CRITICAL: Convert dates to text format to avoid JavaScript Date object conversion
         let query = `SELECT products.*, 
+          COALESCE(NULLIF(products.image_url, ''), first_product_image.image_url) as image_url,
+          COALESCE(product_image_gallery.images, '[]'::json) as images,
           wholesale_price AS bulk_price, 
           stores.store_name, 
           stores.primary_color, 
@@ -3513,12 +3515,28 @@ async function startServer() {
         FROM products 
         LEFT JOIN stores ON products.store_id = stores.id 
         LEFT JOIN categories ON products.category_id = categories.id 
+        LEFT JOIN LATERAL (
+          SELECT pi.image_url
+          FROM product_images pi
+          WHERE pi.product_id = products.id
+            AND COALESCE(NULLIF(pi.image_url, ''), '') <> ''
+          ORDER BY pi.id DESC
+          LIMIT 1
+        ) first_product_image ON true
+        LEFT JOIN LATERAL (
+          SELECT json_agg(pi.image_url ORDER BY pi.id DESC) as images
+          FROM product_images pi
+          WHERE pi.product_id = products.id
+            AND COALESCE(NULLIF(pi.image_url, ''), '') <> ''
+        ) product_image_gallery ON true
         WHERE products.is_active = true AND (stores.store_type IS NULL OR stores.store_type != 'topup') 
         ORDER BY products.created_at DESC`;
         let params: any[] = [];
         
         if (storeId) {
           query = `SELECT products.*, 
+            COALESCE(NULLIF(products.image_url, ''), first_product_image.image_url) as image_url,
+            COALESCE(product_image_gallery.images, '[]'::json) as images,
             wholesale_price AS bulk_price, 
             stores.store_name, 
             stores.primary_color, 
@@ -3530,6 +3548,20 @@ async function startServer() {
           FROM products 
           LEFT JOIN stores ON products.store_id = stores.id 
           LEFT JOIN categories ON products.category_id = categories.id 
+          LEFT JOIN LATERAL (
+            SELECT pi.image_url
+            FROM product_images pi
+            WHERE pi.product_id = products.id
+              AND COALESCE(NULLIF(pi.image_url, ''), '') <> ''
+            ORDER BY pi.id DESC
+            LIMIT 1
+          ) first_product_image ON true
+          LEFT JOIN LATERAL (
+            SELECT json_agg(pi.image_url ORDER BY pi.id DESC) as images
+            FROM product_images pi
+            WHERE pi.product_id = products.id
+              AND COALESCE(NULLIF(pi.image_url, ''), '') <> ''
+          ) product_image_gallery ON true
           WHERE products.store_id = $1 AND products.is_active = true AND (stores.store_type IS NULL OR stores.store_type != 'topup') 
           ORDER BY products.created_at DESC`;
           params = [parseInt(storeId)];
