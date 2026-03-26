@@ -58,6 +58,43 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+type ThemeContextValue = {
+  isDarkMode: boolean;
+  setIsDarkMode: React.Dispatch<React.SetStateAction<boolean>>;
+};
+
+const ThemeContext = React.createContext<ThemeContextValue | undefined>(undefined);
+
+const ThemeProvider = ({
+  children,
+  isDarkMode,
+  setIsDarkMode,
+}: {
+  children: React.ReactNode;
+  isDarkMode: boolean;
+  setIsDarkMode: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDarkMode);
+  }, [isDarkMode]);
+
+  return (
+    <ThemeContext.Provider value={{ isDarkMode, setIsDarkMode }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+const useTheme = () => {
+  const context = React.useContext(ThemeContext);
+
+  if (!context) {
+    throw new Error('useTheme must be used within ThemeProvider');
+  }
+
+  return context;
+};
+
 // --- API Configuration ---
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 console.log(`🛠️ API_BASE_URL initialized: "${API_BASE_URL}" ${API_BASE_URL ? '✅' : '⚠️ EMPTY'}`);
