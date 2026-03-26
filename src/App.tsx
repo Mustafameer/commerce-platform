@@ -95,6 +95,31 @@ const useTheme = () => {
   return context;
 };
 
+// --- Constants ---
+// Local SVG placeholder instead of external resources
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" font-size="14" fill="%239ca3af" text-anchor="middle" dominant-baseline="middle" font-family="system-ui"%3Eاضافة صورة%3C/text%3E%3Cpath d="M80 120 L100 100 L120 120" stroke="%239ca3af" stroke-width="2" fill="none"/%3E%3C/svg%3E';
+
+const getSafeImageUrl = (url: string | null | undefined): string => {
+  if (!url) return PLACEHOLDER_IMAGE;
+
+  const normalizedUrl = String(url).trim().replace(/\\/g, '/');
+
+  if (
+    normalizedUrl.startsWith('data:') ||
+    normalizedUrl.startsWith('/') ||
+    normalizedUrl.startsWith('http') ||
+    normalizedUrl.startsWith('blob:')
+  ) {
+    return normalizedUrl;
+  }
+
+  if (normalizedUrl.includes('via.placeholder')) {
+    return PLACEHOLDER_IMAGE;
+  }
+
+  return normalizedUrl;
+};
+
 // --- API Configuration ---
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 console.log(`🛠️ API_BASE_URL initialized: "${API_BASE_URL}" ${API_BASE_URL ? '✅' : '⚠️ EMPTY'}`);
