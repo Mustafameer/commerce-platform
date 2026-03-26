@@ -73,22 +73,20 @@ function createSlug(text: string): string {
     .replace(/^-|-$/g, '');
   return slug || `store-${Date.now()}`;
 }
+
+function isPersistentFileStorageAvailable(): boolean {
+  return process.env.NODE_ENV !== 'production';
+}
+
 // âœ… LOCAL IMAGE COMPRESSION & STORAGE (NO FIREBASE)
 async function uploadAndCompressImageLocally(base64Data: string, filename: string): Promise<string> {
   try {
-    const uploadsDir = path.join(__dirname, 'public', 'uploads', 'products');
-    await mkdir(uploadsDir, { recursive: true });
-    
     // Remove data URL prefix if present
     const base64String = base64Data.replace(/^data:image\/\w+;base64,/, '');
-    
-    // Create unique filename
-    const uniqueFilename = `${Date.now()}_${Math.random().toString(36).substring(7)}_${filename}`;
-    const filePath = path.join(uploadsDir, uniqueFilename);
-    
+
     // Convert base64 to buffer and COMPRESS with Sharp
     const buffer = Buffer.from(base64String, 'base64');
-    
+
     // Compress and optimize image
     const compressedBuffer = await sharp(buffer)
       .resize(1200, 1200, {
@@ -97,7 +95,21 @@ async function uploadAndCompressImageLocally(base64Data: string, filename: strin
       })
       .jpeg({ quality: 80, progressive: true })
       .toBuffer();
-    
+
+    if (!isPersistentFileStorageAvailable()) {
+      const dataUrl = `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
+      const sizeKB = (compressedBuffer.length / 1024).toFixed(2);
+      console.log(`âœ… Image compressed and stored inline for production (${sizeKB}KB)`);
+      return dataUrl;
+    }
+
+    const uploadsDir = path.join(__dirname, 'public', 'uploads', 'products');
+    await mkdir(uploadsDir, { recursive: true });
+
+    // Create unique filename
+    const uniqueFilename = `${Date.now()}_${Math.random().toString(36).substring(7)}_${filename}`;
+    const filePath = path.join(uploadsDir, uniqueFilename);
+
     // Write compressed image to disk
     await new Promise<void>((resolve, reject) => {
       fs.writeFile(filePath, compressedBuffer, (err) => {
@@ -8896,14 +8908,9 @@ async function startServer() {
         // If image_url contains data:image, save to disk
         if (image_url.startsWith('data:')) {
           try {
-            const base64Data = image_url.replace(/^data:image\/[^;]+;base64,/, '');
-            const buffer = Buffer.from(base64Data, 'base64');
-            savedFileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${image_type === 'png' ? 'png' : 'jpg'}`;
-            const filePath = path.join(uploadsPath, savedFileName);
-            
-            fs.writeFileSync(filePath, buffer);
-            finalImageUrl = `/uploads/products/${savedFileName}`;
-            console.log(`âœ… Image saved to disk: ${finalImageUrl}`);
+            finalImageUrl = await uploadAndCompressImageLocally(image_url, `product_${productId}_${Date.now()}.${image_type === 'png' ? 'png' : 'jpg'}`);
+            savedFileName = finalImageUrl.startsWith('/uploads/products/') ? finalImageUrl.split('/').pop() || '' : '';
+            console.log(`âœ… Product image stored: ${savedFileName || 'inline-data-url'}`);
           } catch (e) {
             console.warn('âڑ ï¸ڈ Could not save image to disk, using base64 in DB:', e);
           }
