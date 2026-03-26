@@ -9242,10 +9242,13 @@ async function startServer() {
     
     // Always serve dist folder if it exists
     if (fs.existsSync(distPath)) {
-      // Serve assets with caching
+      // Serve assets without long-lived caching to avoid stale frontend bundles after deploys
       app.use('/assets', express.static(path.join(distPath, "assets"), {
-        maxAge: '1y',
-        etag: false
+        maxAge: 0,
+        etag: true,
+        setHeaders: (res) => {
+          res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        }
       }));
       
       // Serve all static files from dist
@@ -9255,7 +9258,7 @@ async function startServer() {
           if (filepath.endsWith('.html')) {
             res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
           } else if (filepath.match(/\.(js|css|woff|woff2|ttf)$/)) {
-            res.set('Cache-Control', 'public, max-age=31536000, immutable');
+            res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
           }
         }
       }));

@@ -120,6 +120,12 @@ const getSafeImageUrl = (url: string | null | undefined): string => {
   return normalizedUrl;
 };
 
+const FRONTEND_BUILD_ID = '20260326-1520';
+
+if (typeof window !== 'undefined') {
+  (window as any).__APP_BUILD_ID__ = FRONTEND_BUILD_ID;
+}
+
 // --- API Configuration ---
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 console.log(`🛠️ API_BASE_URL initialized: "${API_BASE_URL}" ${API_BASE_URL ? '✅' : '⚠️ EMPTY'}`);
