@@ -1161,42 +1161,23 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 
     setIsConfirmingOrder(true);
     try {
-      // First try to get customer_id from localStorage (topup customer data)
+      // Regular store checkout must not send customer_id.
+      // Production currently rejects regular orders when customer_id is present.
       let customerId = null;
-      const savedCustomer = isTopupCart ? localStorage.getItem('topupCustomer') : null;
-      if (savedCustomer) {
-        try {
-          const topupCustData = JSON.parse(savedCustomer);
-          customerId = topupCustData.id;
-        } catch (e) {
-          console.error('Error parsing topupCustomer:', e);
-        }
-      }
-      
-      // Fallback to user.id or try to create guest customer
-      if (!customerId && user?.id) {
-        customerId = user.id;
-      }
-      
-      if (!customerId) {
-        try {
-          const guestRes = await fetch('/api/admin/add-user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: name.trim() || phone.trim(),
-              phone: phone.trim(),
-              role: 'customer',
-              password: 'guest123'
-            })
-          });
-          
-          if (guestRes.ok) {
-            const guestUser = await guestRes.json();
-            customerId = guestUser.id;
+
+      if (isTopupCart) {
+        const savedCustomer = localStorage.getItem('topupCustomer');
+        if (savedCustomer) {
+          try {
+            const topupCustData = JSON.parse(savedCustomer);
+            customerId = topupCustData.id;
+          } catch (e) {
+            console.error('Error parsing topupCustomer:', e);
           }
-        } catch (err) {
-          console.error('Failed to create guest customer:', err);
+        }
+
+        if (!customerId && user?.id) {
+          customerId = user.id;
         }
       }
       
