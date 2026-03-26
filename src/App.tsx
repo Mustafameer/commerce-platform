@@ -1202,21 +1202,34 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
       
       const itemsByStore = enrichedItems.reduce((acc: any, item) => {
         const storeId = item.store_id;
+        const storeType = isTopupCart ? 'topup' : 'regular';
         if (!acc[storeId]) {
           acc[storeId] = {
             items: [],
-            store_type: isTopupCart ? 'topup' : 'regular'
+            store_type: storeType
           };
         }
-        acc[storeId].items.push({
-          product_id: item.id,
-          quantity: item.quantity,
-          price: item.price,
-          product_name: (item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name,
-          company_name: (item.store_name && item.store_name !== 'undefined') ? item.store_name : 'بدون شركة',
-          image_url: item.image_url,
-          topup_codes: item.topup_codes
-        });
+
+        if (storeType === 'topup') {
+          acc[storeId].items.push({
+            product_id: item.id,
+            quantity: item.quantity,
+            price: item.price,
+            name: item.name,
+            product_name: (item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name,
+            company_name: (item.store_name && item.store_name !== 'undefined') ? item.store_name : 'بدون شركة',
+            images: Array.isArray(item.images) ? item.images : [],
+            selectedImagesForPurchase: Array.isArray(item.selectedImagesForPurchase) ? item.selectedImagesForPurchase : [],
+            topup_codes: item.topup_codes
+          });
+        } else {
+          acc[storeId].items.push({
+            product_id: item.id,
+            quantity: item.quantity,
+            price: item.price
+          });
+        }
+
         return acc;
       }, {});
 
