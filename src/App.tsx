@@ -239,36 +239,73 @@ const getSafeImageUrl = (url: string | null | undefined): string => {
   return normalizedUrl;
 };
 
+const getImageCandidateValue = (item: any): string | null => {
+  if (!item) return null;
+
+  if (typeof item === 'string') {
+    const value = item.trim();
+    return value.length > 0 ? value : null;
+  }
+
+  const value = item.image_url || item.url || item.src || item.path;
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+};
+
+const parseImageCollection = (value: any): string[] => {
+  if (!value) return [];
+
+  if (Array.isArray(value)) {
+    return value.map(getImageCandidateValue).filter(Boolean) as string[];
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        return parseImageCollection(JSON.parse(trimmed));
+      } catch {
+        return [trimmed];
+      }
+    }
+
+    return [trimmed];
+  }
+
+  const singleValue = getImageCandidateValue(value);
+  return singleValue ? [singleValue] : [];
+};
+
+const getProductImageCandidates = (product: any): string[] => {
+  if (!product) return [];
+
+  const candidates = [
+    ...parseImageCollection(product.image_url),
+    ...parseImageCollection(product.gallery),
+    ...parseImageCollection(product.images)
+  ].map(getSafeImageUrl);
+
+  return Array.from(new Set(candidates.filter((candidate) => candidate && candidate !== PLACEHOLDER_IMAGE)));
+};
+
+const handleImageFallback = (event: React.SyntheticEvent<HTMLImageElement>, candidates: string[]) => {
+  const currentIndex = Number(event.currentTarget.dataset.imageIndex || '0');
+  const nextIndex = currentIndex + 1;
+
+  if (nextIndex < candidates.length) {
+    event.currentTarget.dataset.imageIndex = String(nextIndex);
+    event.currentTarget.src = candidates[nextIndex];
+    return;
+  }
+
+  event.currentTarget.onerror = null;
+  event.currentTarget.src = PLACEHOLDER_IMAGE;
+};
+
 const getPrimaryProductImage = (product: any): string => {
-  if (!product) return PLACEHOLDER_IMAGE;
-
-  const galleryItems = Array.isArray(product.gallery)
-    ? product.gallery
-    : typeof product.gallery === 'string'
-      ? (() => {
-          try {
-            const parsed = JSON.parse(product.gallery);
-            return Array.isArray(parsed) ? parsed : [];
-          } catch {
-            return [];
-          }
-        })()
-      : [];
-
-  const images = Array.isArray(product.images) ? product.images : [];
-  const firstGalleryImage = galleryItems.find((item: any) => typeof item === 'string' && item.trim().length > 0);
-  const firstImagesEntry = images.find((item: any) => {
-    if (typeof item === 'string') return item.trim().length > 0;
-    return item?.image_url || item?.url;
-  });
-
-  return getSafeImageUrl(
-    product.image_url ||
-    firstGalleryImage ||
-    firstImagesEntry?.image_url ||
-    firstImagesEntry?.url ||
-    null
-  );
+  const candidates = getProductImageCandidates(product);
+  return candidates[0] || PLACEHOLDER_IMAGE;
 };
 
 // --- Components ---
@@ -8284,7 +8321,7 @@ const CustomerStorefront = () => {
 
   useEffect(() => {
     if (selectedProduct) {
-      setMainImage(selectedProduct.image_url);
+      setMainImage(getPrimaryProductImage(selectedProduct));
       
       // Load auction details if this product is an auction
       if ((selectedProduct as any).is_auction && (selectedProduct as any).auction_id) {
@@ -8433,7 +8470,7 @@ const CustomerStorefront = () => {
     }
     
     // Regular product modal - existing code
-    const gallery = [selectedProduct.image_url, ...(selectedProduct.gallery || [])].filter(Boolean);
+    const gallery = getProductImageCandidates(selectedProduct);
     
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
@@ -8464,7 +8501,7 @@ const CustomerStorefront = () => {
                   onClick={() => setMainImage(img)}
                   className={`aspect-square rounded-xl overflow-hidden cursor-pointer transition-all ${mainImage === img ? 'ring-4 ring-indigo-500 ring-offset-2' : 'hover:scale-105 opacity-70 hover:opacity-100'}`}
                 >
-                  <img src={img} className="w-full h-full object-cover" />
+                  <img src={getSafeImageUrl(img)} className="w-full h-full object-cover" />
                 </div>
               ))}
             </div>
@@ -8728,6 +8765,7 @@ const CustomerStorefront = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
                   {productsByCategory[category].map((product) => {
                     const productImage = getPrimaryProductImage(product);
+                    const productImageCandidates = getProductImageCandidates(product);
                     const hasImage = productImage !== PLACEHOLDER_IMAGE;
                     console.log('🎨 RENDERING CARD:', { 
                       id: product.id, 
@@ -8756,6 +8794,8 @@ const CustomerStorefront = () => {
                             {hasImage ? (
                               <img 
                                 src={productImage} 
+                                data-image-index="0"
+                                onError={(event) => handleImageFallback(event, productImageCandidates)}
                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform" 
                                 alt={product.name}
                               />
@@ -9454,6 +9494,7 @@ const MarketplacePage = () => {
               <motion.div key={p.id} whileHover={{ y: -4 }}>
                 {(() => {
                   const productImage = getPrimaryProductImage(p);
+                  const productImageCandidates = getProductImageCandidates(p);
                   const hasImage = productImage !== PLACEHOLDER_IMAGE;
                   return (
                 <Card className={cn('h-full flex flex-col border-2 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group', isDarkMode ? 'bg-gray-800 border-green-700 hover:border-green-600' : 'bg-white border-green-500 hover:border-green-600')}>
@@ -9463,7 +9504,7 @@ const MarketplacePage = () => {
                     onClick={() => setSelectedProduct(p)}
                   >
                     {hasImage ? (
-                      <img src={productImage} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt={p.name} />
+                      <img src={productImage} data-image-index="0" onError={(event) => handleImageFallback(event, productImageCandidates)} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt={p.name} />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Package size={28} className={cn(isDarkMode ? 'text-gray-500' : 'text-gray-300')} />
