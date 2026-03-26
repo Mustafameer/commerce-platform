@@ -112,142 +112,18 @@ const formatDateOnly = (dateStr: string | Date) => {
     }
     
     const date = new Date(dateStr);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  } catch (e) {
-    return dateStr.toString();
-  }
-};
-
-// --- Sound Notification ---
-const playAddToCartSound = () => {
-  try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    
-    // First tone - higher frequency (bell-like)
-    const oscillator1 = audioContext.createOscillator();
-    const gainNode1 = audioContext.createGain();
-    oscillator1.connect(gainNode1);
-    gainNode1.connect(audioContext.destination);
-    oscillator1.frequency.setValueAtTime(1000, audioContext.currentTime);
-    gainNode1.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-    oscillator1.start(audioContext.currentTime);
-    oscillator1.stop(audioContext.currentTime + 0.15);
-    
-    // Second tone - lower frequency for depth
-    const oscillator2 = audioContext.createOscillator();
-    const gainNode2 = audioContext.createGain();
-    oscillator2.connect(gainNode2);
-    gainNode2.connect(audioContext.destination);
-    oscillator2.frequency.setValueAtTime(700, audioContext.currentTime + 0.1);
-    gainNode2.gain.setValueAtTime(0, audioContext.currentTime);
-    gainNode2.gain.setValueAtTime(0.2, audioContext.currentTime + 0.1);
-    gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
-    oscillator2.start(audioContext.currentTime + 0.1);
-    oscillator2.stop(audioContext.currentTime + 0.25);
-  } catch (error) {
-    // Ignore audio errors on browsers that block autoplay.
-  }
-};
-
-// --- Clear All Data Function ---
-const clearAllData = async () => {
-  try {
-    // Call API to clear database
-    const response = await fetch('/api/clear-all', { method: 'POST' });
-    const result = await response.json();
-
-    if (result.success) {
-      // Clear localStorage
-      localStorage.clear();
-
-      // Clear sessionStorage
-      sessionStorage.clear();
-
-      // Clear all cookies
-      document.cookie.split(";").forEach((c) => {
-        document.cookie = c
-          .replace(/^ +/, "")
-          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-      });
-
-      console.log('✅ تم مسح جميع البيانات بنجاح!');
-
-      // Redirect to home
-      window.location.href = '/';
-    }
-  } catch (error) {
-    console.error('❌ خطأ في مسح البيانات:', error);
-    alert('حدث خطأ أثناء مسح البيانات');
-  }
-}
-
-// --- Theme Context ---
-const ThemeContext = React.createContext<{ isDarkMode: boolean; setIsDarkMode: (value: boolean) => void }>({ isDarkMode: true, setIsDarkMode: () => {} });
-const useTheme = () => React.useContext(ThemeContext);
-
-const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [isDarkMode, setIsDarkMode] = useState(true);
-
-  // Load theme preference from localStorage on mount
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('themeMode');
-    if (savedTheme !== null) {
-      setIsDarkMode(JSON.parse(savedTheme));
-    }
-  }, []);
-
-  // Save theme preference to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('themeMode', JSON.stringify(isDarkMode));
-  }, [isDarkMode]);
-
-  return (
-    <ThemeContext.Provider value={{ isDarkMode, setIsDarkMode }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-};
-
-// --- Constants ---
-// Local SVG placeholder instead of external resources
-const PLACEHOLDER_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" font-size="14" fill="%239ca3af" text-anchor="middle" dominant-baseline="middle" font-family="system-ui"%3Eاضافة صورة%3C/text%3E%3Cpath d="M80 120 L100 100 L120 120" stroke="%239ca3af" stroke-width="2" fill="none"/%3E%3C/svg%3E';
-
-// Helper to get safe image URL (fallback only for broken placeholder hosts)
-const getSafeImageUrl = (url: string | null | undefined): string => {
-  if (!url) return PLACEHOLDER_IMAGE;
-
-  const normalizedUrl = String(url).trim().replace(/\\/g, '/');
-
-  // If it's a data URL or local, use it directly
-  if (normalizedUrl.startsWith('data:') || normalizedUrl.startsWith('/') || normalizedUrl.startsWith('http') || normalizedUrl.startsWith('blob:')) {
-    return normalizedUrl;
-  }
-
-  if (normalizedUrl.startsWith('uploads/') || normalizedUrl.startsWith('public/uploads/')) {
-    return `/${normalizedUrl.replace(/^public\//, '')}`;
-  }
-
-  // Replace known placeholder hosts that fail in this environment
-  if (normalizedUrl.includes('via.placeholder')) {
-    return PLACEHOLDER_IMAGE;
-  }
-
-  return normalizedUrl;
-};
-
-const getImageCandidateValue = (item: any): string | null => {
-  if (!item) return null;
-
-  if (typeof item === 'string') {
-    const value = item.trim();
-    return value.length > 0 ? value : null;
-  }
-
-  const value = item.image_url || item.url || item.src || item.path;
+    return (
+      <RegularProductModal
+        product={selectedProduct}
+        isDarkMode={isDarkMode}
+        primaryColor={primaryColor}
+        appLabel={displayAppName || appName}
+        quantities={quantities}
+        setQuantities={setQuantities}
+        onAddToCart={handleAddToCart}
+        onClose={() => setSelectedProduct(null)}
+      />
+    );
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 };
 
@@ -332,6 +208,170 @@ const Card = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivEle
       {...props}
     >
       {children}
+    </div>
+  );
+};
+
+const RegularProductModal = ({
+  product,
+  isDarkMode,
+  primaryColor,
+  appLabel,
+  quantities,
+  setQuantities,
+  onAddToCart,
+  onClose,
+}: {
+  product: any;
+  isDarkMode: boolean;
+  primaryColor: string;
+  appLabel: string;
+  quantities: Record<number, number>;
+  setQuantities: React.Dispatch<React.SetStateAction<Record<number, number>>>;
+  onAddToCart: (product: any) => void;
+  onClose: () => void;
+}) => {
+  const [mainImage, setMainImage] = useState<string>('');
+
+  useEffect(() => {
+    if (product) {
+      setMainImage(getPrimaryProductImage(product));
+    }
+  }, [product]);
+
+  if (!product) return null;
+
+  const gallery = getProductImageCandidates(product);
+  const quantity = quantities[product.id] || 1;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className={cn("rounded-[2.5rem] w-full max-w-5xl max-h-[95vh] overflow-hidden shadow-2xl flex flex-col md:flex-row relative", isDarkMode ? "bg-gray-800" : "bg-white")}
+      >
+        <button onClick={onClose} className={cn("absolute top-4 right-4 z-20 p-3 backdrop-blur-xl border rounded-full transition-all", isDarkMode ? "bg-gray-700/40 border-gray-600/50 text-gray-300 hover:bg-gray-700" : "bg-white/20 border-white/30 text-gray-400 hover:bg-gray-100")}>
+          <X size={24} />
+        </button>
+
+        <div className={cn("md:w-1/2 p-4 md:p-8 flex flex-col gap-6 overflow-y-auto min-h-0", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
+          <motion.div
+            key={mainImage}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full aspect-square relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white"
+          >
+            <img src={getSafeImageUrl(mainImage)} className="w-full h-full object-cover" />
+            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/20 to-transparent"></div>
+          </motion.div>
+
+          <div className={cn("grid grid-cols-4 gap-3 p-3 rounded-2xl border shadow-sm", isDarkMode ? "bg-gray-600 border-gray-500" : "bg-white border-black/5")}>
+            {gallery.map((img, idx) => (
+              <div
+                key={idx}
+                onClick={() => setMainImage(img)}
+                className={`aspect-square rounded-xl overflow-hidden cursor-pointer transition-all ${mainImage === img ? 'ring-4 ring-indigo-500 ring-offset-2' : 'hover:scale-105 opacity-70 hover:opacity-100'}`}
+              >
+                <img src={getSafeImageUrl(img)} className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="md:w-1/2 p-6 md:p-8 flex flex-col justify-between gap-6">
+          <div className="space-y-4">
+            <div className="mb-2">
+              <span className={cn("px-4 py-1.5 rounded-xl text-[10px] font-normal uppercase tracking-widest border inline-block", isDarkMode ? "bg-indigo-900/30 text-indigo-400 border-indigo-700" : "bg-indigo-50 text-indigo-600 border-indigo-100")}>{appLabel}</span>
+              <h2 className={cn('text-3xl sm:text-4xl font-normal mt-4 tracking-tight leading-tight', isDarkMode ? 'text-white' : 'text-gray-900')}>{product.name}</h2>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className={cn("text-xs font-normal uppercase tracking-widest border-b pb-2", isDarkMode ? "text-gray-500 border-gray-600" : "text-gray-400 border-black/5")}>وصف المنتج</h4>
+              <p className={cn('text-lg leading-relaxed font-medium', isDarkMode ? 'text-gray-300' : 'text-gray-600')}>{product.description}</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div className={cn('p-4 rounded-xl border', isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200')}>
+                <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>المخزون المتاح</p>
+                <p className={cn('font-bold text-2xl', product.stock === 0 ? 'text-red-600' : 'text-green-600')}>
+                  {product.stock === 0 ? 'غير متوفر' : `${product.stock} متاح`}
+                </p>
+              </div>
+              <div className={cn('p-4 rounded-xl border', isDarkMode ? 'bg-green-900/30 border-green-700' : 'bg-green-50 border-green-200')}>
+                <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-green-400' : 'text-green-600')}>الحالة</p>
+                <p className={cn('font-bold text-xl', isDarkMode ? 'text-green-300' : 'text-green-700')}>منتج أصلي ✓</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4 pt-6 border-t" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
+            <div>
+              <label className={cn('block mb-2 text-xs font-normal uppercase', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>اختر الكمية</label>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setQuantities(prev => ({
+                    ...prev,
+                    [product.id]: Math.max(1, (prev[product.id] || 1) - 1)
+                  }))}
+                  className={cn('p-3 rounded-lg transition-all active:scale-95', isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700')}
+                >
+                  <Minus size={20} />
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  max={product.stock || 999}
+                  value={quantity}
+                  onChange={(e) => setQuantities(prev => ({
+                    ...prev,
+                    [product.id]: Math.max(1, Math.min(product.stock || 999, parseInt(e.target.value) || 1))
+                  }))}
+                  className={cn('flex-1 px-4 py-3 text-center text-lg font-normal rounded-lg border outline-none transition-all', isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900')}
+                />
+                <button
+                  onClick={() => setQuantities(prev => ({
+                    ...prev,
+                    [product.id]: Math.min(product.stock || 999, (prev[product.id] || 1) + 1)
+                  }))}
+                  className={cn('p-3 rounded-lg transition-all active:scale-95', isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700')}
+                >
+                  <Plus size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className={cn('p-4 rounded-lg border-2', isDarkMode ? 'bg-indigo-900/30 border-indigo-700' : 'bg-indigo-50 border-indigo-200')}>
+                <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>السعر النهائي</p>
+                <p className={cn('text-2xl sm:text-3xl font-bold', isDarkMode ? 'text-indigo-300' : 'text-indigo-900')}>
+                  {formatCurrency(product.price * quantity)}
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  onAddToCart(product);
+                  onClose();
+                }}
+                disabled={product.stock === 0}
+                className={cn('w-full py-4 rounded-xl text-white font-normal text-lg transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100')}
+                style={{ backgroundColor: product.stock === 0 ? '#999' : primaryColor }}
+              >
+                <ShoppingCart size={20} />
+                إضافة للسلة ({quantity})
+              </button>
+
+              <button
+                onClick={onClose}
+                className={cn('w-full py-3 rounded-xl font-normal text-base transition-all border-2', isDarkMode ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50')}
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 };
@@ -9533,159 +9573,16 @@ const MarketplacePage = () => {
 
       {/* Product modal */}
       {selectedProduct && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className={cn('rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl relative flex flex-col md:flex-row', isDarkMode ? 'bg-gray-800' : 'bg-white')}
-          >
-            <button
-              onClick={() => setSelectedProduct(null)}
-              className={cn('absolute top-4 right-4 z-20 p-2 rounded-full transition-all', isDarkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}
-            >
-              <X size={24} />
-            </button>
-
-            {/* Gallery Section */}
-            <div className={cn('w-full md:w-1/2 p-4 flex flex-col gap-4', isDarkMode ? 'bg-gray-700' : 'bg-gray-50')}>
-              {/* Main Image */}
-              <motion.div
-                key={getPrimaryProductImage(selectedProduct)}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className={cn('w-full aspect-square rounded-2xl overflow-hidden shadow-lg border-4 border-white', isDarkMode ? 'bg-gray-600' : 'bg-gray-100')}
-              >
-                {getPrimaryProductImage(selectedProduct) !== PLACEHOLDER_IMAGE ? (
-                  <img src={getPrimaryProductImage(selectedProduct)} className="w-full h-full object-cover" alt={selectedProduct.name} />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Package size={48} className={cn(isDarkMode ? 'text-gray-500' : 'text-gray-300')} />
-                  </div>
-                )}
-              </motion.div>
-
-              {/* Image Gallery Thumbnails */}
-              {selectedProduct.gallery && selectedProduct.gallery.length > 0 && (
-                <div className={cn('grid grid-cols-4 gap-2 p-3 rounded-xl border', isDarkMode ? 'bg-gray-600 border-gray-500' : 'bg-white border-gray-200')}>
-                  {/* Main image thumbnail */}
-                  <div 
-                    className="aspect-square rounded-lg overflow-hidden cursor-pointer ring-2 ring-indigo-500 ring-offset-1"
-                  >
-                    <img src={getPrimaryProductImage(selectedProduct)} className="w-full h-full object-cover" alt="main" />
-                  </div>
-
-                  {/* Other images */}
-                  {selectedProduct.gallery.map((img: string, idx: number) => (
-                    <div
-                      key={idx}
-                      onClick={() => {
-                        // Note: This would require additional state to track main image if needed
-                        console.log('Switching to gallery image:', img);
-                      }}
-                      className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-indigo-500 hover:ring-offset-1 transition-all opacity-70 hover:opacity-100"
-                    >
-                      <img src={getSafeImageUrl(img)} className="w-full h-full object-cover" alt={`gallery-${idx}`} />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Product Details and Purchase Section */}
-            <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-between gap-6">
-              <div className="space-y-4">
-                <div className="mb-2">
-                  <span className={cn("px-4 py-1.5 rounded-xl text-[10px] font-normal uppercase tracking-widest border inline-block", isDarkMode ? "bg-indigo-900/30 text-indigo-400 border-indigo-700" : "bg-indigo-50 text-indigo-600 border-indigo-100")}>{selectedProduct.store_name || appName}</span>
-                  <h2 className={cn('text-3xl sm:text-4xl font-normal mt-4 tracking-tight leading-tight', isDarkMode ? 'text-white' : 'text-gray-900')}>{selectedProduct.name}</h2>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className={cn("text-xs font-normal uppercase tracking-widest border-b pb-2", isDarkMode ? "text-gray-500 border-gray-600" : "text-gray-400 border-black/5")}>وصف المنتج</h4>
-                  <p className={cn('text-lg leading-relaxed font-medium', isDarkMode ? 'text-gray-300' : 'text-gray-600')}>{selectedProduct.description}</p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <div className={cn('p-4 rounded-xl border', isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200')}>
-                    <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>المخزون المتاح</p>
-                    <p className={cn('font-bold text-2xl', selectedProduct.stock === 0 ? 'text-red-600' : 'text-green-600')}>
-                      {selectedProduct.stock === 0 ? 'غير متوفر' : `${selectedProduct.stock} متاح`}
-                    </p>
-                  </div>
-                  <div className={cn('p-4 rounded-xl border', isDarkMode ? 'bg-green-900/30 border-green-700' : 'bg-green-50 border-green-200')}>
-                    <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-green-400' : 'text-green-600')}>الحالة</p>
-                    <p className={cn('font-bold text-xl', isDarkMode ? 'text-green-300' : 'text-green-700')}>منتج أصلي ✓</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-6 border-t" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
-                <div>
-                  <label className={cn('block mb-2 text-xs font-normal uppercase', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>اختر الكمية</label>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setQuantities(prev => ({
-                        ...prev,
-                        [selectedProduct.id]: Math.max(1, (prev[selectedProduct.id] || 1) - 1)
-                      }))}
-                      className={cn('p-3 rounded-lg transition-all active:scale-95', isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700')}
-                    >
-                      <Minus size={20} />
-                    </button>
-                    <input
-                      type="number"
-                      min="1"
-                      max={selectedProduct.stock || 999}
-                      value={quantities[selectedProduct.id] || 1}
-                      onChange={(e) => setQuantities(prev => ({
-                        ...prev,
-                        [selectedProduct.id]: Math.max(1, Math.min(selectedProduct.stock || 999, parseInt(e.target.value) || 1))
-                      }))}
-                      className={cn('flex-1 px-4 py-3 text-center text-lg font-normal rounded-lg border outline-none transition-all', isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900')}
-                    />
-                    <button
-                      onClick={() => setQuantities(prev => ({
-                        ...prev,
-                        [selectedProduct.id]: Math.min(selectedProduct.stock || 999, (prev[selectedProduct.id] || 1) + 1)
-                      }))}
-                      className={cn('p-3 rounded-lg transition-all active:scale-95', isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700')}
-                    >
-                      <Plus size={20} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className={cn('p-4 rounded-lg border-2', isDarkMode ? 'bg-indigo-900/30 border-indigo-700' : 'bg-indigo-50 border-indigo-200')}>
-                    <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>السعر النهائي</p>
-                    <p className={cn('text-2xl sm:text-3xl font-bold', isDarkMode ? 'text-indigo-300' : 'text-indigo-900')}>
-                      {formatCurrency(selectedProduct.price * (quantities[selectedProduct.id] || 1))}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      handleAddToCart(selectedProduct);
-                      setSelectedProduct(null);
-                    }}
-                    disabled={selectedProduct.stock === 0}
-                    className={cn('w-full py-4 rounded-xl text-white font-normal text-lg transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100')}
-                    style={{ backgroundColor: selectedProduct.stock === 0 ? '#999' : primaryColor }}
-                  >
-                    <ShoppingCart size={20} />
-                    إضافة للسلة ({quantities[selectedProduct.id] || 1})
-                  </button>
-
-                  <button
-                    onClick={() => setSelectedProduct(null)}
-                    className={cn('w-full py-3 rounded-xl font-normal text-base transition-all border-2', isDarkMode ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50')}
-                  >
-                    إغلاق
-                  </button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
+        <RegularProductModal
+          product={selectedProduct}
+          isDarkMode={isDarkMode}
+          primaryColor={primaryColor}
+          appLabel={selectedProduct.store_name || appName}
+          quantities={quantities}
+          setQuantities={setQuantities}
+          onAddToCart={handleAddToCart}
+          onClose={() => setSelectedProduct(null)}
+        />
       )}
 
       {/* Auction Details Modal */}
