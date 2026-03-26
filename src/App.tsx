@@ -9594,25 +9594,30 @@ const MarketplacePage = () => {
             {/* Product Details and Purchase Section */}
             <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-between gap-6">
               <div className="space-y-4">
-                <h2 className={cn('text-3xl font-normal', isDarkMode ? 'text-white' : 'text-gray-900')}>{selectedProduct.name}</h2>
-                <p className={cn('text-base leading-relaxed', isDarkMode ? 'text-gray-300' : 'text-gray-600')}>{selectedProduct.description}</p>
+                <div className="mb-2">
+                  <span className={cn("px-4 py-1.5 rounded-xl text-[10px] font-normal uppercase tracking-widest border inline-block", isDarkMode ? "bg-indigo-900/30 text-indigo-400 border-indigo-700" : "bg-indigo-50 text-indigo-600 border-indigo-100")}>{selectedProduct.store_name || appName}</span>
+                  <h2 className={cn('text-3xl sm:text-4xl font-normal mt-4 tracking-tight leading-tight', isDarkMode ? 'text-white' : 'text-gray-900')}>{selectedProduct.name}</h2>
+                </div>
 
-                {/* Product Details */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
-                  <div className={cn('p-3 rounded-lg border', isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200')}>
+                <div className="space-y-4">
+                  <h4 className={cn("text-xs font-normal uppercase tracking-widest border-b pb-2", isDarkMode ? "text-gray-500 border-gray-600" : "text-gray-400 border-black/5")}>وصف المنتج</h4>
+                  <p className={cn('text-lg leading-relaxed font-medium', isDarkMode ? 'text-gray-300' : 'text-gray-600')}>{selectedProduct.description}</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <div className={cn('p-4 rounded-xl border', isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200')}>
                     <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>المخزون المتاح</p>
-                    <p className={cn('font-bold text-lg', selectedProduct.stock === 0 ? 'text-red-600' : 'text-green-600')}>
+                    <p className={cn('font-bold text-2xl', selectedProduct.stock === 0 ? 'text-red-600' : 'text-green-600')}>
                       {selectedProduct.stock === 0 ? 'غير متوفر' : `${selectedProduct.stock} متاح`}
                     </p>
                   </div>
-                  <div className={cn('p-3 rounded-lg border', isDarkMode ? 'bg-green-900/30 border-green-700' : 'bg-green-50 border-green-200')}>
+                  <div className={cn('p-4 rounded-xl border', isDarkMode ? 'bg-green-900/30 border-green-700' : 'bg-green-50 border-green-200')}>
                     <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-green-400' : 'text-green-600')}>الحالة</p>
-                    <p className={cn('font-bold', isDarkMode ? 'text-green-300' : 'text-green-700')}>منتج أصلي ✓</p>
+                    <p className={cn('font-bold text-xl', isDarkMode ? 'text-green-300' : 'text-green-700')}>منتج أصلي ✓</p>
                   </div>
                 </div>
               </div>
 
-              {/* Purchase Section */}
               <div className="space-y-4 pt-6 border-t" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
                 <div>
                   <label className={cn('block mb-2 text-xs font-normal uppercase', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>اختر الكمية</label>
@@ -9649,7 +9654,6 @@ const MarketplacePage = () => {
                   </div>
                 </div>
 
-                {/* Price and Buy Button */}
                 <div className="space-y-3">
                   <div className={cn('p-4 rounded-lg border-2', isDarkMode ? 'bg-indigo-900/30 border-indigo-700' : 'bg-indigo-50 border-indigo-200')}>
                     <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>السعر النهائي</p>
