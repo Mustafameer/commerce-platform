@@ -110,20 +110,30 @@ const formatDateOnly = (dateStr: string | Date) => {
       const [year, month, day] = dateStr.split('-');
       return `${day}/${month}/${year}`;
     }
-    
+
     const date = new Date(dateStr);
-    return (
-      <RegularProductModal
-        product={selectedProduct}
-        isDarkMode={isDarkMode}
-        primaryColor={primaryColor}
-        appLabel={displayAppName || appName}
-        quantities={quantities}
-        setQuantities={setQuantities}
-        onAddToCart={handleAddToCart}
-        onClose={() => setSelectedProduct(null)}
-      />
-    );
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('en-GB');
+  } catch {
+    return '';
+  }
+};
+
+const getImageCandidateValue = (value: any): string | null => {
+  if (!value) return null;
+
+  if (typeof value === 'object') {
+    if ('image_url' in value) {
+      return getImageCandidateValue(value.image_url);
+    }
+
+    if ('url' in value) {
+      return getImageCandidateValue(value.url);
+    }
+
+    return null;
+  }
+
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 };
 
@@ -8503,144 +8513,20 @@ const CustomerStorefront = () => {
       );
     }
     
-    // Regular product modal - existing code
-    const gallery = getProductImageCandidates(selectedProduct);
-    
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className={cn("rounded-[2.5rem] w-full max-w-5xl max-h-[95vh] overflow-hidden shadow-2xl flex flex-col md:flex-row relative", isDarkMode ? "bg-gray-800" : "bg-white")}
-        >
-          <button onClick={() => setSelectedProduct(null)} className={cn("absolute top-4 right-4 z-20 p-3 backdrop-blur-xl border rounded-full transition-all", isDarkMode ? "bg-gray-700/40 border-gray-600/50 text-gray-300 hover:bg-gray-700" : "bg-white/20 border-white/30 text-gray-400 hover:bg-gray-100")}>
-            <X size={24} />
-          </button>
-
-          <div className={cn("md:w-1/2 p-4 md:p-8 flex flex-col gap-6 overflow-y-auto min-h-0", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-            <motion.div 
-              key={mainImage}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="w-full aspect-square relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white"
-            >
-              <img src={getSafeImageUrl(mainImage)} className="w-full h-full object-cover" />
-              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/20 to-transparent"></div>
-            </motion.div>
-            
-            <div className={cn("grid grid-cols-4 gap-3 p-3 rounded-2xl border shadow-sm", isDarkMode ? "bg-gray-600 border-gray-500" : "bg-white border-black/5")}>
-              {gallery.map((img, idx) => (
-                <div 
-                  key={idx} 
-                  onClick={() => setMainImage(img)}
-                  className={`aspect-square rounded-xl overflow-hidden cursor-pointer transition-all ${mainImage === img ? 'ring-4 ring-indigo-500 ring-offset-2' : 'hover:scale-105 opacity-70 hover:opacity-100'}`}
-                >
-                  <img src={getSafeImageUrl(img)} className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="md:w-1/2 p-6 md:p-12 flex flex-col overflow-y-auto">
-            <div className="mb-8">
-              <span className={cn("px-4 py-1.5 rounded-xl text-[10px] font-normal uppercase tracking-widest border", isDarkMode ? "bg-indigo-900/30 text-indigo-400 border-indigo-700" : "bg-indigo-50 text-indigo-600 border-indigo-100")}>{appName}</span>
-              <h2 className={cn("text-4xl font-normal mt-4 tracking-tight leading-tight", isDarkMode ? "text-gray-100" : "text-gray-900")}>{selectedProduct.name}</h2>
-            </div>
-            
-            <div className="flex-1 space-y-6">
-              <div className="space-y-4">
-                <h4 className={cn("text-xs font-normal uppercase tracking-widest border-b pb-2", isDarkMode ? "text-gray-500 border-gray-600" : "text-gray-400 border-black/5")}>وصف المنتج</h4>
-                <p className={cn("text-lg leading-relaxed font-medium", isDarkMode ? "text-gray-300" : "text-gray-600")}>{selectedProduct.description}</p>
-              </div>
-
-              {/* Auction Details */}
-              {(selectedProduct as any).is_auction && (
-                <div className={cn("p-4 rounded-2xl border", isDarkMode ? "bg-amber-900/30 border-amber-700" : "bg-amber-50/50 border-amber-200")}>
-                  {auctionLoading ? (
-                    <div className="flex items-center justify-center py-4">
-                      <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
-                      <span className={cn("mr-2 text-sm font-normal", isDarkMode ? "text-amber-400" : "text-amber-600")}>جاري تحميل تفاصيل المزاد...</span>
-                    </div>
-                  ) : auctionData ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-lg">🏆</span>
-                        <h4 className={cn("font-bold", isDarkMode ? "text-amber-300" : "text-amber-700")}>تفاصيل المزاد</h4>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <span className={cn("font-normal block text-[11px]", isDarkMode ? "text-amber-300" : "text-amber-600")}>📅 تاريخ المزاد</span>
-                          <span className={cn("font-bold", isDarkMode ? "text-amber-100" : "text-amber-900")} title={formatDateOnly(auctionData.auction_date)}>
-                            {formatDateOnly(auctionData.auction_date)}
-                          </span>
-                        </div>
-                        
-                        <div>
-                          <span className={cn("font-normal block text-[11px]", isDarkMode ? "text-amber-300" : "text-amber-600")}>⏱️ وقت البدء</span>
-                          <span className={cn("font-bold", isDarkMode ? "text-amber-100" : "text-amber-900")}>
-                            {auctionData.auction_start_time}
-                          </span>
-                        </div>
-                        
-                        <div>
-                          <span className={cn("font-normal block text-[11px]", isDarkMode ? "text-amber-300" : "text-amber-600")}>⏲️ وقت النهاية</span>
-                          <span className={cn("font-bold", isDarkMode ? "text-amber-100" : "text-amber-900")}>
-                            {auctionData.auction_end_time}
-                          </span>
-                        </div>
-                        
-                        <div>
-                          <span className={cn("font-normal block text-[11px]", isDarkMode ? "text-amber-300" : "text-amber-600")}>💰 السعر الأساسي</span>
-                          <span className={cn("font-bold", isDarkMode ? "text-amber-100" : "text-amber-900")}>
-                            {formatCurrency(auctionData.starting_price)}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {auctionData.current_highest_price && (
-                        <div className={cn("mt-3 p-2 rounded border-l-4", isDarkMode ? "bg-purple-900/30 border-purple-500" : "bg-purple-50/50 border-purple-400")}>
-                          <span className={cn("text-[11px] font-normal block", isDarkMode ? "text-purple-300" : "text-purple-600")}>أعلى عرض حالياً</span>
-                          <span className={cn("font-bold text-lg", isDarkMode ? "text-purple-100" : "text-purple-900")}>
-                            {formatCurrency(auctionData.current_highest_price)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              )}
-            </div>
-            
-            <div className="mt-8 space-y-4">
-              <div className="flex justify-between items-end pb-8 border-b border-black/5">
-                <div>
-                  <p className="text-[10px] text-gray-400 font-normal uppercase mb-1">السعر النهائي</p>
-                  <p className={cn("text-5xl font-normal tabular-nums", isDarkMode ? "text-white" : "text-gray-900")}>
-                    {formatCurrency(selectedProduct.price)}
-                  </p>
-                </div>
-
-              </div>
-
-              <button 
-                onClick={() => {
-                  addItem(selectedProduct);
-                  playAddToCartSound();
-                  setSelectedProduct(null);
-                }}
-                className="w-full py-6 rounded-3xl text-white font-normal text-2xl shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 group"
-                style={{ backgroundColor: primaryColor }}
-              >
-                <div className="bg-white/20 p-2 rounded-xl group-hover:rotate-12 transition-transform">
-                  <ShoppingCart size={28} />
-                </div>
-                إضافة لسلّة المشتريات
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      </div>
+      <RegularProductModal
+        product={selectedProduct}
+        isDarkMode={isDarkMode}
+        primaryColor={primaryColor}
+        appLabel={displayAppName || appName}
+        quantities={quantities}
+        setQuantities={setQuantities}
+        onAddToCart={(product) => {
+          addItem(product);
+          playAddToCartSound();
+        }}
+        onClose={() => setSelectedProduct(null)}
+      />
     );
   };
 
