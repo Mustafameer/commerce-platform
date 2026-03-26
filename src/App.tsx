@@ -907,6 +907,43 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
     console.log('ℹ️ No user data available');
   }, [isTopupCart, user?.id, user?.name, user?.phone]);
 
+  const fetchCustomerByPhone = async (storeId: number | string, customerPhone: string) => {
+    const response = await fetch(`/api/customers?storeId=${storeId}&phone=${encodeURIComponent(customerPhone)}`);
+    return readJsonResponse(response, `Customer lookup failed with status ${response.status}`);
+  };
+
+  const readJsonResponse = async (response: Response, fallbackMessage: string) => {
+    const contentType = response.headers.get('content-type') || '';
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      if (contentType.includes('application/json')) {
+        try {
+          const errorData = responseText ? JSON.parse(responseText) : null;
+          throw new Error(errorData?.error || fallbackMessage);
+        } catch {
+          throw new Error(responseText || fallbackMessage);
+        }
+      }
+
+      throw new Error(responseText || fallbackMessage);
+    }
+
+    if (!responseText) {
+      return null;
+    }
+
+    if (!contentType.includes('application/json')) {
+      throw new Error(responseText || fallbackMessage);
+    }
+
+    try {
+      return JSON.parse(responseText);
+    } catch {
+      throw new Error(responseText || fallbackMessage);
+    }
+  };
+
   // التحقق من العميل في قاعدة البيانات عند تغيير رقم الهاتف
   useEffect(() => {
     if (!phone || phone.length < 10) {
@@ -924,8 +961,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
         const storeId = items[0]?.store_id;
         if (!storeId) return;
 
-        const res = await fetch(`/api/customers?storeId=${storeId}&phone=${encodeURIComponent(phone)}`);
-        const data = await res.json();
+        const data = await fetchCustomerByPhone(storeId, phone);
 
         if (!isMounted) return;
 
@@ -1046,8 +1082,13 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
       }
 
       // Request 1: Verify customer in database
-      const verifyRes = await fetch(`/api/customers?storeId=${storeId}&phone=${encodeURIComponent(phone)}`);
-      const customerData = await verifyRes.json();
+      let customerData = null;
+
+      try {
+        customerData = await fetchCustomerByPhone(storeId, phone);
+      } catch (verifyError) {
+        console.error('Customer verification request failed, continuing with guest checkout:', verifyError);
+      }
 
       let verifiedCustomer = customerData;
       
@@ -1200,7 +1241,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               })
             });
 
-            const data = await res.json();
+            const data = await readJsonResponse(res, 'فشل إنشاء طلب الشحن');
             if (!res.ok) {
               throw new Error(data.error || 'فشل إنشاء طلب الشحن');
             }
@@ -1213,7 +1254,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             if (itemImages.length === 0) {
               try {
                 const imagesRes = await fetch(`/api/topup/order-images/${data.order_id}`);
-                const imagesData = await imagesRes.json();
+                const imagesData = await readJsonResponse(imagesRes, 'فشل جلب صور طلب الشحن');
                 
                 if (imagesData.images && Array.isArray(imagesData.images)) {
                   itemImages = imagesData.images;
@@ -1293,7 +1334,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             body: JSON.stringify(orderPayload),
           });
 
-          const data = await res.json();
+          const data = await readJsonResponse(res, 'فشل في إتمام الطلب');
           if (!res.ok) {
             throw new Error(data.error || 'فشل في إتمام الطلب');
           }
