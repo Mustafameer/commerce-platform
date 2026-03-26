@@ -10229,7 +10229,7 @@ const StoresPage = () => {
                 className="cursor-pointer h-full w-full flex justify-center"
               >
                 <Card className={cn(
-                  "h-full w-full max-w-[150px] min-h-[320px] flex flex-col overflow-hidden group rounded-[1.5rem] border-2 shadow-sm hover:shadow-xl transition-all duration-300",
+                  "h-full w-full max-w-[150px] min-h-[300px] flex flex-col overflow-hidden group rounded-[1.5rem] border-2 shadow-sm hover:shadow-xl transition-all duration-300",
                   isDarkMode ? "border-amber-400 bg-gray-800 ring-1 ring-amber-500/40" : "border-amber-500 bg-white ring-1 ring-amber-300/80"
                 )}>
                   {/* Store Logo Badge - Always Visible */}
