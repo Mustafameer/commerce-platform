@@ -10220,21 +10220,27 @@ const StoresPage = () => {
           </div>
         ) : (
           <div className="max-w-[75%] mx-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 auto-rows-max">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 auto-rows-max justify-items-center">
             {stores.map((store) => (
               <motion.div
                 key={store.id}
                 whileHover={{ y: -4 }}
                 onClick={() => handleStoreClick(store)}
-                className="cursor-pointer"
+                className="cursor-pointer h-full w-full flex justify-center"
               >
-                <Card className="h-full flex flex-col border-none shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group w-full">
+                <Card className={cn(
+                  "h-full w-full max-w-[180px] min-h-[290px] flex flex-col overflow-hidden group rounded-[1.5rem] border-2 shadow-sm hover:shadow-xl transition-all duration-300",
+                  isDarkMode ? "border-amber-400 bg-gray-800 ring-1 ring-amber-500/40" : "border-amber-500 bg-white ring-1 ring-amber-300/80"
+                )}>
                   {/* Store Logo Badge - Always Visible */}
-                  <div className="p-0 flex items-center justify-center h-24 overflow-hidden rounded-t-lg bg-white">
+                  <div className={cn(
+                    "p-0 flex items-center justify-center aspect-square w-full overflow-hidden border-b",
+                    isDarkMode ? "bg-white border-amber-500/40" : "bg-white border-amber-200"
+                  )}>
                     {storesWithLogos.has(store.id) && storesWithLogos.get(store.id) ? (
                       <img 
                         src={storesWithLogos.get(store.id)} 
-                        className="w-auto h-auto max-w-[95%] max-h-[95%] object-contain" 
+                        className="w-auto h-auto max-w-[84%] max-h-[84%] object-contain" 
                         alt={store.store_name}
                         onError={(e) => console.error("Logo load error for", store.store_name)}
                       />
@@ -10254,27 +10260,27 @@ const StoresPage = () => {
                   </div>
 
                   {/* Store Info */}
-                  <div className="p-3 flex-1 flex flex-col justify-between gap-2">
+                  <div className="p-3.5 flex-1 flex flex-col justify-between gap-2.5">
                     <div>
-                      <h3 className={cn("font-normal text-xs line-clamp-1 group-hover:text-indigo-300 transition-colors mb-1", isDarkMode ? "text-white" : "text-gray-900")}>
+                      <h3 className={cn("font-normal text-base leading-tight line-clamp-2 min-h-[2.8rem] group-hover:text-indigo-300 transition-colors mb-1", isDarkMode ? "text-white" : "text-gray-900")}>
                         {store.store_name}
                       </h3>
-                      <p className={cn("text-[10px] font-normal line-clamp-2", isDarkMode ? "text-gray-300" : "text-gray-600")}>
+                      <p className={cn("text-[11px] font-normal line-clamp-2 min-h-[2.2rem]", isDarkMode ? "text-gray-300" : "text-gray-600")}>
                         {store.description || 'متجر متخصص'}
                       </p>
                     </div>
 
                     {/* Store Owner */}
                     {store.owner_name && (
-                      <div className="text-[9px]">
+                      <div className="text-[10px] space-y-1">
                         <p className={cn("font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>صاحب المتجر</p>
-                        <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>{store.owner_name}</p>
+                        <p className={cn("font-normal line-clamp-2", isDarkMode ? "text-white" : "text-gray-900")}>{store.owner_name}</p>
                       </div>
                     )}
 
                     {/* Visit Button */}
                     <button 
-                      className="mt-1 w-full py-1.5 px-1 rounded-md font-normal text-white text-[9px] transition-all transform hover:scale-105 active:scale-95 shadow-sm"
+                      className="mt-1 w-full py-2 px-3 rounded-xl font-normal text-white text-xs transition-all transform hover:scale-105 active:scale-95 shadow-sm"
                       style={{ backgroundColor: primaryColor }}
                     >
                       زيارة المتجر
