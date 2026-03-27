@@ -930,6 +930,8 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               store_name: fullProduct.store_name || cartItem.store_name,
               company_name: fullProduct.company_name,
               category_name: fullProduct.category_name,
+              images: fullProduct.images || cartItem.images,
+              gallery: fullProduct.gallery || cartItem.gallery,
               image_url: fullProduct.image_url || cartItem.image_url,
               store_type: isTopupCart ? 'topup' : 'regular'
             };
@@ -1837,11 +1839,37 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {enrichedItems.map((item) => (
+                  {enrichedItems.map((item) => {
+                    const imageCandidates = getProductImageCandidates(item);
+                    const itemImage = imageCandidates[0];
+
+                    return (
                     <tr key={item.id} className={isDarkMode ? "border-gray-700" : "border-gray-200"}>
                       <td className={cn("px-6 py-4 border-t", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                        {console.log('Enriched item:', { id: item.id, name: item.name, store_name: item.store_name })}
-                        {(item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name || `[بدون اسم - رقم: ${item.id}]`}
+                        <div className="flex items-center gap-3">
+                          {itemImage ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedImage(itemImage);
+                                setShowImageModal(true);
+                              }}
+                              className={cn("h-14 w-14 overflow-hidden rounded-xl border flex-shrink-0", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50")}
+                              title="عرض الصورة"
+                            >
+                              <img
+                                src={itemImage}
+                                alt={item.name || 'صورة المنتج'}
+                                className="h-full w-full object-cover"
+                                data-image-index="0"
+                                onError={(event) => handleImageFallback(event, imageCandidates)}
+                              />
+                            </button>
+                          ) : null}
+                          <div className="min-w-0">
+                            {(item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name || `[بدون اسم - رقم: ${item.id}]`}
+                          </div>
+                        </div>
                       </td>
                       <td className={cn("px-6 py-4 border-t text-center", isDarkMode ? "text-gray-300" : "text-gray-700")}>
                         <div className="flex items-center justify-center gap-2">
@@ -1881,22 +1909,47 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
 
             <div className="space-y-4 md:hidden">
-              {enrichedItems.map((item) => (
+              {enrichedItems.map((item) => {
+                const imageCandidates = getProductImageCandidates(item);
+                const itemImage = imageCandidates[0];
+
+                return (
                 <div key={item.id} className={cn("rounded-2xl border p-4", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50")}>
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className={cn("font-normal text-sm leading-6 break-words", isDarkMode ? "text-gray-100" : "text-gray-900")}>
-                        {(item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name || `[بدون اسم - رقم: ${item.id}]`}
-                      </h3>
-                      <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                        سعر الوحدة: {formatCurrency(getItemPrice(item, customerType || user?.customer_type))}
-                      </p>
+                    <div className="min-w-0 flex items-start gap-3">
+                      {itemImage ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedImage(itemImage);
+                            setShowImageModal(true);
+                          }}
+                          className={cn("h-16 w-16 overflow-hidden rounded-2xl border flex-shrink-0", isDarkMode ? "border-gray-700 bg-gray-900" : "border-gray-200 bg-white")}
+                          title="عرض الصورة"
+                        >
+                          <img
+                            src={itemImage}
+                            alt={item.name || 'صورة المنتج'}
+                            className="h-full w-full object-cover"
+                            data-image-index="0"
+                            onError={(event) => handleImageFallback(event, imageCandidates)}
+                          />
+                        </button>
+                      ) : null}
+                      <div className="min-w-0">
+                        <h3 className={cn("font-normal text-sm leading-6 break-words", isDarkMode ? "text-gray-100" : "text-gray-900")}>
+                          {(item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name || `[بدون اسم - رقم: ${item.id}]`}
+                        </h3>
+                        <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>
+                          سعر الوحدة: {formatCurrency(getItemPrice(item, customerType || user?.customer_type))}
+                        </p>
+                      </div>
                     </div>
                     <button 
                       onClick={() => removeItem(item.id)}
@@ -1929,7 +1982,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
 
