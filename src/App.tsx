@@ -15179,7 +15179,7 @@ const TopupStorefront = () => {
                     <h4 className={cn("text-sm font-bold mb-3", isDarkMode ? "text-white" : "text-gray-900")}>
                       📊 المعاملات {isLoadingStatement && <span className="text-xs font-normal">(جاري التحميل...)</span>}
                     </h4>
-                    <div className={cn("border rounded-lg overflow-x-auto", isDarkMode ? "border-gray-700 bg-gray-900/30" : "border-gray-200 bg-gray-50")}>
+                    <div className={cn("border rounded-lg overflow-hidden", isDarkMode ? "border-gray-700 bg-gray-900/30" : "border-gray-200 bg-gray-50")}>
                       {console.log('📋 Statement Modal Debug:', { 
                         showAccountStatement, 
                         isLoadingStatement, 
@@ -15197,9 +15197,9 @@ const TopupStorefront = () => {
                           <p className="text-xs">قد لم يتم تحميل البيانات بعد. حاول مرة أخرى.</p>
                         </div>
                       ) : (
-                        <div className="overflow-x-auto">
+                        <div className="max-h-[22rem] overflow-auto">
                         <table className="w-full text-xs border-collapse">
-                          <thead className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
+                          <thead className={cn("sticky top-0 z-10", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
                             <tr>
                               <th className={cn("px-3 py-2 text-right font-bold border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
                               <th className={cn("px-3 py-2 text-right font-bold border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
