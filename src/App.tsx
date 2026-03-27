@@ -15678,8 +15678,11 @@ const TopupOrderDetails = () => {
   const navigate = useNavigate();
   
   const [codes, setCodes] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   // Refresh customer debt when page loads
   const refreshCustomerDebt = async () => {
@@ -15723,18 +15726,59 @@ const TopupOrderDetails = () => {
   useEffect(() => {
     // Refresh customer debt when page loads
     refreshCustomerDebt();
-    
-    // Fetch order codes
-    fetch(`/api/topup/order-codes/${orderId}`)
-      .then(r => r.json())
-      .then(data => {
-        setCodes(data.codes);
+
+    const loadOrderData = async () => {
+      try {
+        let loadedImages: string[] = [];
+        let loadedCodes: string[] = [];
+
+        try {
+          const imagesRes = await fetch(`/api/topup/order-images/${orderId}`);
+          if (imagesRes.ok) {
+            const imagesData = await imagesRes.json();
+            loadedImages = parseImageCollection(imagesData.images).map(getSafeImageUrl);
+          }
+        } catch (error) {
+          console.error('[TopupOrderDetails] Error loading order-images:', error);
+        }
+
+        try {
+          const codesRes = await fetch(`/api/topup/order-codes/${orderId}`);
+          const codesData = await codesRes.json();
+          loadedCodes = Array.isArray(codesData.codes) ? codesData.codes : [];
+
+          if (loadedImages.length === 0) {
+            loadedImages = parseImageCollection(codesData.images || codesData.codes).map(getSafeImageUrl);
+          }
+
+          if (loadedImages.length === 0 && codesData.store_id) {
+            const productsRes = await fetch(`/api/topup/products/${codesData.store_id}`);
+            if (productsRes.ok) {
+              const productsData = await productsRes.json();
+              if (Array.isArray(productsData)) {
+                const matchingProduct = productsData.find((product: any) => {
+                  const amountValue = Number(product?.amount ?? product?.price ?? 0);
+                  return loadedCodes.some((code: string) => String(code).includes(String(amountValue)));
+                });
+
+                if (matchingProduct) {
+                  loadedImages = getProductImageCandidates(matchingProduct);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error loading codes:', error);
+        }
+
+        setCodes(loadedCodes);
+        setImages(Array.from(new Set(loadedImages.filter(Boolean))).slice(0, Math.max(loadedCodes.length, loadedImages.length, 1)));
+      } finally {
         setLoading(false);
-      })
-      .catch(error => {
-        console.error('Error loading codes:', error);
-        setLoading(false);
-      });
+      }
+    };
+
+    loadOrderData();
   }, [orderId]);
 
   const copyAllCodes = () => {
@@ -15762,12 +15806,52 @@ const TopupOrderDetails = () => {
             <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>احفظ هذه الأكواد في مكان آمن</p>
           </div>
 
-          <div className="p-6 space-y-3">
-            {codes.map((code, idx) => (
-              <div key={idx} className={cn("p-4 rounded-lg border-2 font-mono text-lg font-normal", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}>
-                {code}
+          <div className="p-6 border-b border-gray-200 space-y-3">
+            <h3 className={cn("font-normal text-base", isDarkMode ? "text-gray-200" : "text-gray-800")}>الصور</h3>
+            {images.length > 0 ? (
+              <div className="flex flex-wrap gap-3">
+                {images.map((imageUrl, idx) => {
+                  const imageCandidates = parseImageCollection(imageUrl);
+                  const primaryImage = imageCandidates[0] || PLACEHOLDER_IMAGE;
+
+                  return (
+                    <button
+                      key={`${primaryImage}-${idx}`}
+                      type="button"
+                      className="cursor-pointer"
+                      onClick={() => {
+                        setSelectedImage(primaryImage);
+                        setShowImageModal(true);
+                      }}
+                    >
+                      <img
+                        src={primaryImage}
+                        data-image-index="0"
+                        alt={`صورة ${idx + 1}`}
+                        className="w-20 h-20 object-cover rounded-lg border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all"
+                        onError={(event) => handleImageFallback(event, imageCandidates)}
+                      />
+                    </button>
+                  );
+                })}
               </div>
-            ))}
+            ) : (
+              <p className="text-sm text-gray-500">لا توجد صور متاحة</p>
+            )}
+          </div>
+
+          <div className="p-6 space-y-3">
+            {codes.length > 0 ? (
+              codes.map((code, idx) => (
+                <div key={idx} className={cn("p-4 rounded-lg border-2 font-mono text-lg font-normal", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}>
+                  {code}
+                </div>
+              ))
+            ) : (
+              <div className={cn("p-4 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-300" : "bg-white border-gray-200 text-gray-500")}>
+                لا توجد أكواد متاحة لهذا الطلب
+              </div>
+            )}
           </div>
 
           <div className={cn("p-4 border-t", isDarkMode ? "border-gray-700" : "border-gray-200")}>
@@ -15791,6 +15875,20 @@ const TopupOrderDetails = () => {
         >
           ← العودة للمتجر
         </button>
+
+        {showImageModal && selectedImage && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setShowImageModal(false)}>
+            <div className="relative max-w-2xl max-h-screen" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setShowImageModal(false)}
+                className="absolute -top-10 right-0 text-white text-2xl font-bold hover:text-gray-300"
+              >
+                ✕
+              </button>
+              <img src={selectedImage} alt="صورة كاملة" className="w-full h-full object-contain rounded-lg" onError={(e: any) => e.target.style.display = 'none'} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
