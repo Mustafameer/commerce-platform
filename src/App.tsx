@@ -13005,23 +13005,32 @@ const MerchantTopupDashboard = () => {
               const availableBalance = Math.max(0, creditLimit - currentDebt);
 
               return (
-                <div className={cn("p-6 border-b grid grid-cols-3 gap-4", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
+                <div className={cn("p-4 sm:p-6 border-b grid grid-cols-3 gap-2 sm:gap-4", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
                   {/* Credit Limit */}
-                  <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-blue-900/30 border border-blue-700/50" : "bg-blue-50 border border-blue-200")}>
-                    <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-blue-300" : "text-blue-600")}>حد الائتمان</p>
-                    <p className={cn("text-2xl font-semibold", isDarkMode ? "text-blue-300" : "text-blue-700")}>{ formatNumber(creditLimit) } د.ع</p>
+                  <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-blue-900/30 border border-blue-700/50" : "bg-blue-50 border border-blue-200")}>
+                    <p className={cn("text-[10px] sm:text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-blue-300" : "text-blue-600")}>حد الائتمان</p>
+                    <p className={cn("text-[clamp(0.95rem,4vw,1.5rem)] font-semibold leading-tight break-words", isDarkMode ? "text-blue-300" : "text-blue-700")}>
+                      {formatNumber(creditLimit)}
+                      <span className="block text-[0.9em]">د.ع</span>
+                    </p>
                   </div>
                   
                   {/* Current Debt */}
-                  <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-red-900/30 border border-red-700/50" : "bg-red-50 border border-red-200")}>
-                    <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
-                    <p className={cn("text-2xl font-semibold", isDarkMode ? "text-red-300" : "text-red-700")}>{formatNumber(currentDebt)} د.ع</p>
+                  <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-red-900/30 border border-red-700/50" : "bg-red-50 border border-red-200")}>
+                    <p className={cn("text-[10px] sm:text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
+                    <p className={cn("text-[clamp(0.95rem,4vw,1.5rem)] font-semibold leading-tight break-words", isDarkMode ? "text-red-300" : "text-red-700")}>
+                      {formatNumber(currentDebt)}
+                      <span className="block text-[0.9em]">د.ع</span>
+                    </p>
                   </div>
 
                   {/* Available Balance */}
-                  <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-green-900/30 border border-green-700/50" : "bg-green-50 border border-green-200")}>
-                    <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-green-300" : "text-green-600")}>الرصيد الحالي</p>
-                    <p className={cn("text-2xl font-semibold", isDarkMode ? "text-green-300" : "text-green-700")}>{formatNumber(availableBalance)} د.ع</p>
+                  <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-green-900/30 border border-green-700/50" : "bg-green-50 border border-green-200")}>
+                    <p className={cn("text-[10px] sm:text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-green-300" : "text-green-600")}>الرصيد الحالي</p>
+                    <p className={cn("text-[clamp(0.95rem,4vw,1.5rem)] font-semibold leading-tight break-words", isDarkMode ? "text-green-300" : "text-green-700")}>
+                      {formatNumber(availableBalance)}
+                      <span className="block text-[0.9em]">د.ع</span>
+                    </p>
                   </div>
                 </div>
               );
