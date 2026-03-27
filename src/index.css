@@ -69,25 +69,6 @@ html, body {
   display: none;
 }
 
-/* Debug indicators */
-[data-dashboard-layout="desktop"]::before {
-  display: none;
-}
-
-[data-dashboard-layout="mobile"]::before {
-  content: '📱 MOBILE LAYOUT (<768px)';
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  background: #16a34a;
-  color: white;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  z-index: 9998;
-  font-family: monospace;
-}
-
 /* RTL-friendly utilities */
 [dir="rtl"] {
   direction: rtl;
