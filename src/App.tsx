@@ -268,6 +268,17 @@ const getProductImageCandidates = (product: any): string[] => {
   return Array.from(new Set(candidates.filter((candidate) => candidate && candidate !== PLACEHOLDER_IMAGE)));
 };
 
+const getOrderItemImageCandidates = (item: any): string[] => {
+  if (!item) return [];
+
+  const candidates = [
+    ...parseImageCollection(item.product_images),
+    ...getProductImageCandidates(item)
+  ].map(getSafeImageUrl);
+
+  return Array.from(new Set(candidates.filter((candidate) => candidate && candidate !== PLACEHOLDER_IMAGE)));
+};
+
 const handleImageFallback = (event: React.SyntheticEvent<HTMLImageElement>, candidates: string[]) => {
   const currentIndex = Number(event.currentTarget.dataset.imageIndex || '0');
   const nextIndex = currentIndex + 1;
@@ -1456,6 +1467,17 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               }
             }
 
+            if (productImages.length === 0) {
+              const fallbackItemImages = getProductImageCandidates(item)
+                .slice(0, item.quantity)
+                .map((url: string) => ({ image_url: url, product_id: item.product_id }));
+
+              if (fallbackItemImages.length > 0) {
+                console.log(`  ⚠️ Using fallback product images from cart item for product ${item.product_id}`);
+                productImages = fallbackItemImages;
+              }
+            }
+
             console.log(`📱 Product ${item.product_id} images count: ${productImages.length}`);
             allCodes = [...allCodes, ...productImages];
             confirmationItems.push({
@@ -1554,8 +1576,15 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             {orderConfirmation.confirmations.map((conf: any, idx: number) => 
               conf.items.map((item: any, itemIdx: number) => {
                 // Use product-specific images if available, otherwise fall back to codes
-                let availableCodes = item.product_images || [];
+                let availableCodes = parseImageCollection(item.product_images).map((imageUrl: string) => ({ image_url: imageUrl }));
                 
+                if (!Array.isArray(availableCodes) || availableCodes.length === 0) {
+                  const fallbackItemImages = getOrderItemImageCandidates(item).slice(0, item.quantity || 0);
+                  if (fallbackItemImages.length > 0) {
+                    availableCodes = fallbackItemImages.map((imageUrl: string) => ({ image_url: imageUrl }));
+                  }
+                }
+
                 if (!Array.isArray(availableCodes) || availableCodes.length === 0) {
                   // Fallback to old logic
                   let codes = conf.codes;
@@ -1586,10 +1615,11 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                     {availableCodes.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {availableCodes.map((imageObj: any, cIdx: number) => {
-                          const imageUrl = imageObj.image_url || imageObj;
+                          const imageCandidates = parseImageCollection(imageObj.image_url || imageObj);
+                          const imageUrl = imageCandidates[0] || PLACEHOLDER_IMAGE;
                           return (
                             <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImage(imageUrl); setShowImageModal(true); }}>
-                              <img src={imageUrl} alt={`صورة ${cIdx + 1}`} className="w-16 h-16 object-cover rounded-lg border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(e: any) => e.target.style.display = 'none'} />
+                              <img src={imageUrl} data-image-index="0" alt={`صورة ${cIdx + 1}`} className="w-16 h-16 object-cover rounded-lg border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(event) => handleImageFallback(event, imageCandidates)} />
                             </div>
                           );
                         })}
@@ -1617,8 +1647,15 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                 {orderConfirmation.confirmations.map((conf: any, idx: number) => 
                   conf.items.map((item: any, itemIdx: number) => {
                     // Use product-specific images if available
-                    let availableCodes = item.product_images || [];
+                    let availableCodes = parseImageCollection(item.product_images).map((imageUrl: string) => ({ image_url: imageUrl }));
                     
+                    if (!Array.isArray(availableCodes) || availableCodes.length === 0) {
+                      const fallbackItemImages = getOrderItemImageCandidates(item).slice(0, item.quantity || 0);
+                      if (fallbackItemImages.length > 0) {
+                        availableCodes = fallbackItemImages.map((imageUrl: string) => ({ image_url: imageUrl }));
+                      }
+                    }
+
                     if (!Array.isArray(availableCodes) || availableCodes.length === 0) {
                       // Fallback to old logic
                       let codes = conf.codes;
@@ -1662,10 +1699,11 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                           {availableCodes.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                               {availableCodes.map((imageObj: any, cIdx: number) => {
-                                const imageUrl = imageObj.image_url || imageObj;
+                                const imageCandidates = parseImageCollection(imageObj.image_url || imageObj);
+                                const imageUrl = imageCandidates[0] || PLACEHOLDER_IMAGE;
                                 return (
                                   <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImage(imageUrl); setShowImageModal(true); }}>
-                                    <img src={imageUrl} alt={`صورة ${cIdx + 1}`} className="w-12 h-12 object-cover rounded border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(e: any) => e.target.style.display = 'none'} />
+                                    <img src={imageUrl} data-image-index="0" alt={`صورة ${cIdx + 1}`} className="w-12 h-12 object-cover rounded border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(event) => handleImageFallback(event, imageCandidates)} />
                                   </div>
                                 );
                               })}
