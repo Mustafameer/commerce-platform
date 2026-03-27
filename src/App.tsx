@@ -7787,10 +7787,10 @@ const MerchantDashboard = () => {
                     <span className={cn("ml-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>جاري تحميل المعاملات...</span>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="max-h-[18rem] overflow-auto">
                     <table className="w-full text-right text-xs md:text-sm border-collapse">
                       <thead>
-                        <tr className={cn("border-b sticky top-0", isDarkMode ? "border-gray-600 bg-gray-700" : "border-gray-200 bg-gray-50")}>
+                        <tr className={cn("border-b sticky top-0 z-10", isDarkMode ? "border-gray-600 bg-gray-700" : "border-gray-200 bg-gray-50")}>
                           <th className={cn("px-2 md:px-4 py-2 font-bold text-xs border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
                           <th className={cn("px-2 md:px-4 py-2 font-bold text-xs border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
                           <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>مدين (Debit)</th>
@@ -15197,7 +15197,7 @@ const TopupStorefront = () => {
                           <p className="text-xs">قد لم يتم تحميل البيانات بعد. حاول مرة أخرى.</p>
                         </div>
                       ) : (
-                        <div className="max-h-[22rem] overflow-auto">
+                        <div className="max-h-[18rem] overflow-auto">
                         <table className="w-full text-xs border-collapse">
                           <thead className={cn("sticky top-0 z-10", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
                             <tr>
