@@ -7268,8 +7268,6 @@ async function startServer() {
               [topup_product_id, imageBase64, imageUrl, imageHash, file.mimetype]
             );
 
-            uploadedUrls.push(imageUrl);
-            console.log(`âœ… Image processed: ${file.originalname} (${(file.size / 1024).toFixed(2)} KB) â†’ ${imageUrl}`);
           } catch (uploadErr) {
             console.error('â‌Œ Error saving image locally:', uploadErr);
           }
@@ -7666,25 +7664,38 @@ async function startServer() {
             }
             
             // Store used images in order_images table AND delete from topup_product_images
-            for (const image of usedImages) {
+            for (const imageUrl of usedImages) {
               try {
-                // Store in order_images
+                // Find the ORIGINAL image URL for this compressed URL
+                const originalImageResult = await pool.query(
+                  `SELECT image_url_original FROM topup_product_images 
+                   WHERE topup_product_id = $1 AND image_url = $2
+                   LIMIT 1`,
+                  [topup_product_id, imageUrl]
+                );
+                
+                // Use original if found, otherwise use the URL as-is
+                const imageUrlToStore = originalImageResult.rows.length > 0 
+                  ? originalImageResult.rows[0].image_url_original 
+                  : imageUrl;
+                
+                // Store the ORIGINAL image in order_images (not the compressed one)
                 await pool.query(
                   `INSERT INTO order_images (order_id, topup_product_id, image_url)
                    VALUES ($1, $2, $3)
                    ON CONFLICT (order_id, topup_product_id, image_url) DO NOTHING`,
-                  [orderId, topup_product_id, image]
+                  [orderId, topup_product_id, imageUrlToStore]
                 );
                 
-                // ًں—‘ï¸ڈ DELETE from topup_product_images (so it doesn't appear in API response)
+                // Delete from topup_product_images (so it doesn't appear in catalog)
                 await pool.query(
                   `DELETE FROM topup_product_images WHERE topup_product_id = $1 AND image_url = $2`,
-                  [topup_product_id, image]
+                  [topup_product_id, imageUrl]
                 );
                 
-                console.log(`ًں—‘ï¸ڈ  Deleted image from topup_product_images: ${image}`);
+                console.log(`Stored original image for order: ${imageUrlToStore}`);
               } catch (err) {
-                console.error(`âڑ ï¸ڈ  Error processing image: ${err}`);
+                console.error(`Error processing image: ${err}`);
               }
             }
             
