@@ -10640,6 +10640,7 @@ const MerchantTopupDashboard = () => {
 
   // Store ID - for topup system, use user's store_id if available, otherwise find first topup store
   const [topupStoreId, setTopupStoreId] = useState<number | null>(null);
+  const dashboardRequestRef = useRef(0);
   
   // Clean up old localStorage entries on mount
   useEffect(() => {
@@ -10665,15 +10666,17 @@ const MerchantTopupDashboard = () => {
           return;
         }
 
+        const topupStores = data.filter((store: any) => store?.store_type === 'topup');
         const userStore = user?.store_id
           ? data.find((store: any) => Number(store.id) === Number(user.store_id))
           : null;
-        const topupStore = data.find((store: any) => store.store_type === 'topup');
-        const resolvedStore = userStore || topupStore || data[0];
+        const userTopupStore = topupStores.find((store: any) => Number(store.id) === Number(user?.store_id));
+        const resolvedStore = userTopupStore || topupStores[0] || userStore || data[0];
         const resolvedStoreId = Number(resolvedStore?.id) || null;
 
         console.log('🔍 Resolved topup store:', {
           userStoreId: user?.store_id,
+          topupStoreIds: topupStores.map((store: any) => store.id),
           resolvedStoreId,
           resolvedStoreType: resolvedStore?.store_type,
         });
@@ -10693,15 +10696,17 @@ const MerchantTopupDashboard = () => {
   }, [user?.store_id]);
 
   // Function to refresh dashboard data
-  const refreshDashboardData = async () => {
+  const refreshDashboardData = async (targetStoreId: number | null = topupStoreId) => {
     try {
       // ⛔ CRITICAL: Validate topupStoreId before making ANY API calls
-      if (!topupStoreId || topupStoreId === null || topupStoreId === undefined) {
-        console.warn('⛔ ABORT: Invalid topupStoreId:', topupStoreId);
+      if (!targetStoreId || targetStoreId === null || targetStoreId === undefined) {
+        console.warn('⛔ ABORT: Invalid topupStoreId:', targetStoreId);
         return;
       }
+
+      const requestId = ++dashboardRequestRef.current;
       
-      console.log('🔄 Refreshing dashboard data for store:', topupStoreId);
+      console.log('🔄 Refreshing dashboard data for store:', targetStoreId, 'request:', requestId);
       
       // Add timeout to prevent hanging
       const timeout = new Promise((_, reject) => 
@@ -10722,46 +10727,53 @@ const MerchantTopupDashboard = () => {
         ]);
 
       const [comp, prod, cust, ordersData] = await Promise.all([
-        fetchWithTimeout(`/api/topup/companies/${topupStoreId}`).catch((err) => {
+        fetchWithTimeout(`/api/topup/companies/${targetStoreId}`).catch((err) => {
           console.error('❌ Companies fetch failed:', err.message);
-          return [];
+          return null;
         }),
-        fetchWithTimeout(`/api/topup/products/${topupStoreId}`).catch((err) => {
+        fetchWithTimeout(`/api/topup/products/${targetStoreId}`).catch((err) => {
           console.error('❌ Products fetch failed:', err.message);
-          return [];
+          return null;
         }),
-        fetchWithTimeout(`/api/topup/customers/${topupStoreId}`).catch((err) => {
+        fetchWithTimeout(`/api/topup/customers/${targetStoreId}`).catch((err) => {
           console.error('❌ Customers fetch failed:', err.message);
-          return [];
+          return null;
         }),
-        fetchWithTimeout(`/api/topup/orders?storeId=${topupStoreId}`).catch((err) => {
+        fetchWithTimeout(`/api/topup/orders?storeId=${targetStoreId}`).catch((err) => {
           console.error('❌ Orders fetch failed:', err.message);
-          return [];
+          return null;
         }),
       ]);
+
+      if (requestId !== dashboardRequestRef.current) {
+        console.warn('⏭️ Ignoring stale dashboard response for store:', targetStoreId, 'request:', requestId);
+        return;
+      }
+
+      const nextCompanies = Array.isArray(comp) ? comp : companies;
+      const nextProducts = Array.isArray(prod) ? prod : products;
+      const nextCustomers = Array.isArray(cust) ? cust : customers;
+      const nextOrders = Array.isArray(ordersData) ? ordersData : orders;
       
       console.log('📊 Dashboard Data Loaded:', {
-        companies: comp,
-        products: prod,
-        customers: cust,
-        orders: ordersData
+        companies: nextCompanies,
+        products: nextProducts,
+        customers: nextCustomers,
+        orders: nextOrders
       });
       
-      setCompanies(Array.isArray(comp) ? comp : []);
-      setProducts(Array.isArray(prod) ? prod : []);
-      setCustomers(Array.isArray(cust) ? cust : []);
-      setOrders(Array.isArray(ordersData) ? ordersData : []);
+      setCompanies(nextCompanies);
+      setProducts(nextProducts);
+      setCustomers(nextCustomers);
+      setOrders(nextOrders);
       
       // Calculate stats with both products and orders
-      const calculatedStats = calculateStats(
-        Array.isArray(prod) ? prod : [],
-        Array.isArray(ordersData) ? ordersData : []
-      );
+      const calculatedStats = calculateStats(nextProducts, nextOrders);
       
       console.log('📈 Calculated Stats:', calculatedStats);
       
       setStats({
-        totalOrders: Array.isArray(ordersData) ? ordersData.length : 0,
+        totalOrders: nextOrders.length,
         totalRevenue: calculatedStats.totalRevenue,
         totalCodes: calculatedStats.totalCodes,
         activeCodes: calculatedStats.totalCodes - calculatedStats.usedCodes
