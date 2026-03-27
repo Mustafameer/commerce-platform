@@ -1717,7 +1717,13 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                   const zipUrl = URL.createObjectURL(zipBlob);
                   const link = document.createElement('a');
                   link.href = zipUrl;
-                  link.download = `صور_الطلب_${new Date().toISOString().slice(0, 10)}.zip`;
+                  
+                  // اسم الملف يتضمن التاريخ والوقت
+                  const now = new Date();
+                  const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+                  const timeStr = now.toISOString().slice(11, 19).replace(/:/g, '-'); // HH-MM-SS
+                  link.download = `صور_الطلب_${dateStr}_${timeStr}.zip`;
+                  
                   document.body.appendChild(link);
                   link.click();
                   document.body.removeChild(link);
