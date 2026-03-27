@@ -14486,18 +14486,10 @@ const TopupStorefront = () => {
     setAuthPassword('');
     setPhone('');
     setShowAuthForm(false);
-    setShowDirectTopupAuthModal(true);
     alert('تم تسجيل خروجك');
+    const targetSlug = rawStoreId || storeId || 'store';
+    navigate(`/stores?openTopup=1&topupSlug=${encodeURIComponent(targetSlug)}`, { replace: true });
   };
-
-  useEffect(() => {
-    if (isLoadingStore || loading || !actualStoreId) return;
-
-    if (!customer?.customer_id) {
-      setShowAuthForm(false);
-      setShowDirectTopupAuthModal(true);
-    }
-  }, [actualStoreId, isLoadingStore, loading, customer?.customer_id]);
 
   // Check credit before making purchase
   const checkCreditBeforePurchase = async () => {
@@ -15059,10 +15051,7 @@ const TopupStorefront = () => {
             ) : (
               <div className="space-y-3">
                 <button 
-                  onClick={() => {
-                    setShowAuthForm(false);
-                    setShowDirectTopupAuthModal(true);
-                  }}
+                  onClick={() => navigate(`/stores?openTopup=1&topupSlug=${encodeURIComponent(rawStoreId || storeId || 'store')}`, { replace: true })}
                   className={cn("w-full py-2 px-3 rounded text-sm font-normal text-white", isDarkMode ? "bg-red-900 hover:bg-red-800" : "bg-red-600 hover:bg-red-700")}
                 >
                   🔓 دخول
@@ -15084,96 +15073,6 @@ const TopupStorefront = () => {
               </div>
             )}
           </div>
-
-          {showDirectTopupAuthModal && !customer && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" dir="rtl">
-              <Card className={cn("w-full max-w-md", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className={cn("text-xl font-normal", isDarkMode ? "text-white" : "text-gray-900")}>دخول متجر البطاقات</h2>
-                    <button
-                      onClick={() => {
-                        setShowDirectTopupAuthModal(false);
-                        setDirectTopupAuthName('');
-                        setDirectTopupAuthPhone('');
-                        setDirectTopupAuthError('');
-                      }}
-                      className={cn("p-1 rounded hover:bg-gray-100", isDarkMode ? "hover:bg-gray-700" : "")}
-                    >
-                      <X size={20} className={isDarkMode ? "text-gray-400" : "text-gray-600"} />
-                    </button>
-                  </div>
-
-                  <p className={cn("text-sm mb-4", isDarkMode ? "text-gray-400" : "text-gray-600")}>أدخل بيانات الحساب للتحقق</p>
-
-                  {directTopupAuthError && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 items-start">
-                      <AlertCircle size={16} className="text-red-600 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-red-700 font-normal">{directTopupAuthError}</p>
-                    </div>
-                  )}
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>الاسم</label>
-                      <input
-                        type="text"
-                        value={directTopupAuthName}
-                        onChange={(e) => {
-                          setDirectTopupAuthName(e.target.value);
-                          setDirectTopupAuthError('');
-                        }}
-                        placeholder="أدخل الاسم"
-                        className={cn("w-full px-4 py-2 rounded-lg font-normal text-sm border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-300 text-gray-900")}
-                      />
-                    </div>
-
-                    <div>
-                      <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>رقم الهاتف</label>
-                      <input
-                        type="tel"
-                        value={directTopupAuthPhone}
-                        onChange={(e) => {
-                          setDirectTopupAuthPhone(e.target.value);
-                          setDirectTopupAuthError('');
-                        }}
-                        placeholder="أدخل رقم الهاتف"
-                        className={cn("w-full px-4 py-2 rounded-lg font-normal text-sm border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-300 text-gray-900")}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3 mt-6">
-                    <button
-                      onClick={() => {
-                        setShowDirectTopupAuthModal(false);
-                        setDirectTopupAuthName('');
-                        setDirectTopupAuthPhone('');
-                        setDirectTopupAuthError('');
-                      }}
-                      className={cn("flex-1 px-4 py-2 rounded-lg font-normal text-sm transition-colors", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-gray-200" : "bg-gray-100 hover:bg-gray-200 text-gray-800")}
-                    >
-                      إلغاء
-                    </button>
-                    <button
-                      onClick={handleDirectTopupVerification}
-                      disabled={directTopupAuthLoading}
-                      className="flex-1 px-4 py-2 rounded-lg font-normal text-sm text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-                    >
-                      {directTopupAuthLoading ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          جاري التحقق...
-                        </>
-                      ) : (
-                        <>التحقق ودخول المتجر</>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          )}
 
           {/* Account Statement Modal */}
           {showAccountStatement && customer && (
