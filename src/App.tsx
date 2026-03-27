@@ -164,6 +164,30 @@ const formatCurrency = (amount: number | string) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'IQD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(rounded);
 };
 
+// Play sound when item is added to cart
+const playAddToCartSound = () => {
+  try {
+    // Create a simple beep using Web Audio API
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800; // 800 Hz tone
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.1);
+  } catch (error) {
+    console.log('Audio playback not available:', error);
+  }
+};
+
 // Format number without decimals and with thousands separator
 const formatNumber = (num: number | string) => {
   const n = typeof num === 'string' ? parseFloat(num) : num;
