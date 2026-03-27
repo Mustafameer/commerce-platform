@@ -7758,23 +7758,26 @@ const MerchantDashboard = () => {
               </div>
 
               {/* Customer Credit Info */}
-              <div className={cn("p-6 grid grid-cols-3 gap-4 border-b", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
-                <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-blue-900/30" : "bg-blue-50")}>
-                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-blue-300" : "text-blue-600")}>حد الائتمان</p>
-                  <p className={cn("text-lg font-bold", isDarkMode ? "text-blue-400" : "text-blue-700")}>
-                    {formatCurrency(selectedCustomerStatement.credit_limit || 0)}
+              <div className={cn("p-4 sm:p-6 grid grid-cols-3 gap-2 sm:gap-4 border-b", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
+                <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-blue-900/30" : "bg-blue-50")}>
+                  <p className={cn("text-[10px] sm:text-xs font-normal mb-1", isDarkMode ? "text-blue-300" : "text-blue-600")}>حد الائتمان</p>
+                  <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-blue-400" : "text-blue-700")}>
+                    {Math.round(Number(selectedCustomerStatement.credit_limit) || 0).toLocaleString('en-US')}
+                    <span className="block text-[0.9em]">د.ع</span>
                   </p>
                 </div>
-                <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-red-900/30" : "bg-red-50")}>
-                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
-                  <p className={cn("text-lg font-bold", isDarkMode ? "text-red-400" : "text-red-700")}>
-                    {formatCurrency(selectedCustomerStatement.current_debt || 0)}
+                <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-red-900/30" : "bg-red-50")}>
+                  <p className={cn("text-[10px] sm:text-xs font-normal mb-1", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
+                  <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-red-400" : "text-red-700")}>
+                    {Math.round(Number(selectedCustomerStatement.current_debt) || 0).toLocaleString('en-US')}
+                    <span className="block text-[0.9em]">د.ع</span>
                   </p>
                 </div>
-                <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-green-900/30" : "bg-green-50")}>
-                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-green-300" : "text-green-600")}>الرصيد المتاح</p>
-                  <p className={cn("text-lg font-bold", isDarkMode ? "text-green-400" : "text-green-700")}>
-                    {formatCurrency((selectedCustomerStatement.credit_limit || 0) - (selectedCustomerStatement.current_debt || 0))}
+                <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-green-900/30" : "bg-green-50")}>
+                  <p className={cn("text-[10px] sm:text-xs font-normal mb-1", isDarkMode ? "text-green-300" : "text-green-600")}>الرصيد المتاح</p>
+                  <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-green-400" : "text-green-700")}>
+                    {Math.round((Number(selectedCustomerStatement.credit_limit) || 0) - (Number(selectedCustomerStatement.current_debt) || 0)).toLocaleString('en-US')}
+                    <span className="block text-[0.9em]">د.ع</span>
                   </p>
                 </div>
               </div>
@@ -15119,11 +15122,12 @@ const TopupStorefront = () => {
                   </div>
 
                   {/* Quick Stats Row */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-blue-900/20 border-blue-600" : "bg-blue-50 border-blue-300")}>
-                      <p className={cn("text-[11px] font-normal mb-1", isDarkMode ? "text-blue-400" : "text-blue-600")}>حد الائتمان</p>
-                      <p className={cn("text-lg font-bold", isDarkMode ? "text-blue-300" : "text-blue-600")}>
-                        {Math.round(Number(customer.credit_limit) || 0)?.toLocaleString('en-US')} د.ع
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                    <div className={cn("min-w-0 p-2 sm:p-3 rounded-lg border-2", isDarkMode ? "bg-blue-900/20 border-blue-600" : "bg-blue-50 border-blue-300")}>
+                      <p className={cn("text-[10px] sm:text-[11px] font-normal mb-1", isDarkMode ? "text-blue-400" : "text-blue-600")}>حد الائتمان</p>
+                      <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-blue-300" : "text-blue-600")}>
+                        {Math.round(Number(customer.credit_limit) || 0)?.toLocaleString('en-US')}
+                        <span className="block text-[0.9em]">د.ع</span>
                       </p>
                     </div>
                     <div className={cn("p-3 rounded-lg border-2 hidden", isDarkMode ? "bg-purple-900/20 border-purple-600" : "bg-purple-50 border-purple-300")}>
@@ -15132,9 +15136,9 @@ const TopupStorefront = () => {
                         {Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')} د.ع
                       </p>
                     </div>
-                    <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-yellow-900/20 border-yellow-600" : "bg-yellow-50 border-yellow-300")}>
-                      <p className={cn("text-[11px] font-normal mb-1", isDarkMode ? "text-yellow-400" : "text-yellow-600")}>الديون الحالية</p>
-                      <p className={cn("text-lg font-bold", isDarkMode ? "text-yellow-300" : "text-yellow-600")}>
+                    <div className={cn("min-w-0 p-2 sm:p-3 rounded-lg border-2", isDarkMode ? "bg-yellow-900/20 border-yellow-600" : "bg-yellow-50 border-yellow-300")}>
+                      <p className={cn("text-[10px] sm:text-[11px] font-normal mb-1", isDarkMode ? "text-yellow-400" : "text-yellow-600")}>الديون الحالية</p>
+                      <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-yellow-300" : "text-yellow-600")}>
                         {(() => {
                           // حساب آخر رصيد من المعاملات
                           if (statementTransactions && statementTransactions.length > 0) {
@@ -15143,22 +15147,23 @@ const TopupStorefront = () => {
                             return finalDebt.toLocaleString('en-US');
                           }
                           return Math.round(Number(customer.current_debt) || 0).toLocaleString('en-US');
-                        })()} د.ع
+                        })()}
+                        <span className="block text-[0.9em]">د.ع</span>
                       </p>
                     </div>
-                    <div className={cn("p-3 rounded-lg border-2", (() => {
+                    <div className={cn("min-w-0 p-2 sm:p-3 rounded-lg border-2", (() => {
                       const currentDebt = statementTransactions && statementTransactions.length > 0 
                         ? Number(statementTransactions[0]?.balance || 0)
                         : Number(customer.current_debt || 0);
                       return (Number(customer.credit_limit || 0) - currentDebt) <= 0 ? (isDarkMode ? "bg-red-900/20 border-red-600" : "bg-red-50 border-red-300") : (isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300");
                     })())}>
-                      <p className={cn("text-[11px] font-normal mb-1", (() => {
+                      <p className={cn("text-[10px] sm:text-[11px] font-normal mb-1", (() => {
                         const currentDebt = statementTransactions && statementTransactions.length > 0 
                           ? Number(statementTransactions[0]?.balance || 0)
                           : Number(customer.current_debt || 0);
                         return (Number(customer.credit_limit || 0) - currentDebt) <= 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-green-400" : "text-green-600");
                       })())}>الرصيد المتاح</p>
-                      <p className={cn("text-lg font-bold", (() => {
+                      <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", (() => {
                         const currentDebt = statementTransactions && statementTransactions.length > 0 
                           ? Number(statementTransactions[0]?.balance || 0)
                           : Number(customer.current_debt || 0);
@@ -15169,7 +15174,8 @@ const TopupStorefront = () => {
                             ? Number(statementTransactions[0]?.balance || 0)
                             : Number(customer.current_debt || 0);
                           return Math.round(Math.max(0, Number(customer.credit_limit || 0) - currentDebt)).toLocaleString('en-US');
-                        })()} د.ع
+                        })()}
+                        <span className="block text-[0.9em]">د.ع</span>
                       </p>
                     </div>
                   </div>
