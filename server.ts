@@ -64,14 +64,82 @@ const pool = new Pool({
 console.log('[DB] Pool created for Railway');
 
 function createSlug(text: string): string {
-  const slug = text
+  const normalizedText = (text || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  const slug = normalizedText
     .toLocaleLowerCase()
-    .replace(/[^a-z0-9\u0600-\u06FF\s-]/g, '')
-    .replace(/[\u0600-\u06FF]+/g, 'store')
+    .replace(/[^a-z0-9\s-]/g, ' ')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
-  return slug || `store-${Date.now()}`;
+
+  return slug;
+}
+
+function isClientStoreSlug(slug: string | null | undefined): boolean {
+  return !!slug && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
+}
+
+function isBrokenGeneratedStoreSlug(slug: string | null | undefined): boolean {
+  return !!slug && /^store(?:-store)+(?:-[a-z0-9]+)*$/.test(slug);
+}
+
+function getPublicStoreSlug(store: { id?: number; store_name?: string; slug?: string | null }): string {
+  if (isClientStoreSlug(store.slug) && !isBrokenGeneratedStoreSlug(store.slug)) {
+    return store.slug as string;
+  }
+
+  const englishSlug = createSlug(store.store_name || '');
+  if (englishSlug) {
+    return englishSlug;
+  }
+
+  if (store.id) {
+    return `store-${store.id}`;
+  }
+
+  return `store-${Date.now()}`;
+}
+
+async function generateUniqueStoreSlug(storeName: string, excludeStoreId?: number): Promise<string> {
+  const baseSlug = createSlug(storeName || '') || 'store';
+  let candidateSlug = baseSlug;
+  let suffix = 2;
+
+  while (true) {
+    const params = excludeStoreId ? [candidateSlug, excludeStoreId] : [candidateSlug];
+    const query = excludeStoreId
+      ? 'SELECT id FROM stores WHERE slug = $1 AND id <> $2 LIMIT 1'
+      : 'SELECT id FROM stores WHERE slug = $1 LIMIT 1';
+    const slugCheck = await pool.query(query, params);
+
+    if (slugCheck.rows.length === 0) {
+      return candidateSlug;
+    }
+
+    candidateSlug = `${baseSlug}-${suffix}`;
+    suffix++;
+  }
+}
+
+async function findStoreByPublicSlug(publicSlug: string): Promise<any | null> {
+  const result = await pool.query(
+    'SELECT id, store_name, slug FROM stores WHERE is_active = true OR is_active IS NULL'
+  );
+
+  const matchedStore = result.rows.find((store: any) => getPublicStoreSlug(store) === publicSlug);
+  return matchedStore || null;
+}
+
+async function withPublicStoreSlug(store: any): Promise<any> {
+  const publicSlug = getPublicStoreSlug(store);
+
+  return {
+    ...store,
+    slug: publicSlug,
+  };
 }
 
 function isPersistentFileStorageAvailable(): boolean {
@@ -1098,8 +1166,8 @@ async function runMigrations() {
         console.log('\nًں”چ Found VARCHAR columns in database:');
         
         // Group by table
-        const byTable = {};
-        for (const col of allVarcharCols.rows) {
+        const byTable: Record<string, any[]> = {};
+        for (const col of allVarcharCols.rows as any[]) {
           if (!byTable[col.table_name]) byTable[col.table_name] = [];
           byTable[col.table_name].push(col);
         }
@@ -1107,7 +1175,7 @@ async function runMigrations() {
         // Convert all VARCHAR columns to TEXT
         for (const [tableName, cols] of Object.entries(byTable)) {
           console.log(`\nًں“ٹ Table: ${tableName}`);
-          for (const col of cols) {
+          for (const col of cols as any[]) {
             console.log(`   - ${col.column_name}: ${col.data_type}(${col.character_maximum_length})`);
             try {
               await pool.query(`
@@ -1614,11 +1682,12 @@ async function startServer() {
         console.log('ًں”چ SQL Query:', query.substring(0, 200) + '...');
         
         const result = await pool.query(query, [limitNum, offsetNum]);
+        const storesWithPublicSlugs = await Promise.all(result.rows.map(withPublicStoreSlug));
         
         console.log('âœ… Stores fetched:', { count: result.rows.length, stores: result.rows.map((s: any) => ({ id: s.id, name: s.store_name })) });
         
         res.set('Cache-Control', 'public, max-age=60'); // 1 minute
-        res.json(result.rows);
+        res.json(storesWithPublicSlugs);
       } catch (error) {
         console.error('â‌Œ Error fetching stores:', { error: error instanceof Error ? error.message : error, stack: error instanceof Error ? error.stack : '' });
         res.status(500).json({ error: (error as any).message || 'Failed to fetch stores' });
@@ -1653,7 +1722,8 @@ async function startServer() {
           console.log(`   - ID:${s.id} | ${s.store_name} | Status:${s.status} | Active:${s.is_active}`);
         });
         
-        res.json(result.rows);
+        const storesWithPublicSlugs = await Promise.all(result.rows.map(withPublicStoreSlug));
+        res.json(storesWithPublicSlugs);
       } catch (error) {
         console.error("â‌Œ Admin stores error:", error);
         res.status(500).json({ error: (error as any).message });
@@ -1675,7 +1745,7 @@ async function startServer() {
           return res.status(404).json({ error: 'Store not found' });
         }
         
-        const store = result.rows[0];
+        const store = await withPublicStoreSlug(result.rows[0]);
         res.json({
           ...store,
           owner_name: store.owner_name || store.owner_name_from_user || 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ',
@@ -1713,11 +1783,24 @@ async function startServer() {
         const queryTime = Date.now() - startTime;
         console.log(`  âœ… Query completed in ${queryTime}ms, rows: ${result.rows.length}`);
         
+        let matchedByComputedSlug = false;
+
+        if (result.rows.length === 0 && !isNumericId) {
+          const matchedStore = await findStoreByPublicSlug(slug);
+          if (matchedStore) {
+            matchedByComputedSlug = true;
+            result = await pool.query('SELECT * FROM stores WHERE id = $1 LIMIT 1', [matchedStore.id]);
+          }
+        }
+
         if (result.rows.length === 0) {
           return res.status(404).json({ error: 'Store not found' });
         }
         
-        const store = result.rows[0];
+        const store = await withPublicStoreSlug(result.rows[0]);
+        if (matchedByComputedSlug && result.rows[0].slug !== store.slug) {
+          await pool.query('UPDATE stores SET slug = $1 WHERE id = $2', [store.slug, result.rows[0].id]);
+        }
         const totalTime = Date.now() - startTime;
         console.log(`  âœ… Total time: ${totalTime}ms`);
         res.json(store);
@@ -1762,13 +1845,7 @@ async function startServer() {
         }
         
         // 3. Create store slug
-        let storeSlug = createSlug(store_name);
-        
-        // Check if slug already exists and make it unique
-        const slugCheck = await pool.query("SELECT id FROM stores WHERE slug = $1", [storeSlug]);
-        if (slugCheck.rows.length > 0) {
-          storeSlug = `${storeSlug}-${Date.now()}`;
-        }
+        const storeSlug = await generateUniqueStoreSlug(store_name);
         
         // 4. Create store with owner_id (pending approval)
         const result = await pool.query(
@@ -1824,14 +1901,14 @@ async function startServer() {
           let store_slug = null;
           if (user.role === 'merchant' && user.store_id) {
             const storeResult = await pool.query(
-              "SELECT store_type, is_active, status, slug FROM stores WHERE id = $1",
+              "SELECT id, store_name, store_type, is_active, status, slug FROM stores WHERE id = $1",
               [user.store_id]
             );
             if (storeResult.rows.length > 0) {
               store_type = storeResult.rows[0].store_type;
               store_active = storeResult.rows[0].is_active;
               store_status = storeResult.rows[0].status;
-              store_slug = storeResult.rows[0].slug;
+              store_slug = getPublicStoreSlug(storeResult.rows[0]);
             }
           }
           
@@ -1964,13 +2041,7 @@ async function startServer() {
           userId = userResult.rows[0].id;
         }
 
-        let storeSlug = createSlug(store_name || 'store');
-        
-        // Check if slug already exists and make it unique
-        const slugCheck = await pool.query("SELECT id FROM stores WHERE slug = $1", [storeSlug]);
-        if (slugCheck.rows.length > 0) {
-          storeSlug = `${storeSlug}-${Date.now()}`;
-        }
+        const storeSlug = await generateUniqueStoreSlug(store_name || 'store');
         
         const storeResult = await pool.query(
           "INSERT INTO stores (owner_id, store_name, owner_name, owner_phone, slug, category, store_type, is_active, status) VALUES ($1, $2, $3, $4, $5, $6, $7, false, 'pending') RETURNING *",
@@ -2143,6 +2214,11 @@ async function startServer() {
             updates.push(`store_name = $${paramIndex++}`);
             // Trim whitespace and handle empty strings
             values.push(app_name.trim() === '' ? null : app_name);
+            if (app_name.trim() !== '') {
+              const nextSlug = await generateUniqueStoreSlug(app_name.trim(), storeIdInt);
+              updates.push(`slug = $${paramIndex++}`);
+              values.push(nextSlug);
+            }
           }
           if (logo_url !== undefined) {
             updates.push(`logo_url = $${paramIndex++}`);
@@ -2501,7 +2577,7 @@ async function startServer() {
         if (orderResult.rows.length === 0) {
           await client.query('ROLLBACK');
           console.log(`â‌Œ [RETURN ORDER] Order not found: ${orderId}`);
-          return res.status(404).json({ error: "Order not found" });
+          throw new Error('Order not found');
         }
 
         const order = orderResult.rows[0];
@@ -4187,10 +4263,10 @@ async function startServer() {
         console.log('  currentPriceStr:', currentPriceStr);
         
         // Parse auction data if provided, otherwise preserve existing
-        let parsedAuctionDate = currentDateStr; // Preserve existing
-        let parsedStartTime = currentStartTimeStr; // Preserve existing
-        let parsedEndTime = currentEndTimeStr; // Preserve existing
-        let parsedPrice = currentPriceStr; // Preserve existing
+        let parsedAuctionDate: string | null = currentDateStr; // Preserve existing
+        let parsedStartTime: string | null = currentStartTimeStr; // Preserve existing
+        let parsedEndTime: string | null = currentEndTimeStr; // Preserve existing
+        let parsedPrice: string | number | null = currentPriceStr; // Preserve existing
         
         // Determine effective is_auction value
         let effectiveIsAuction = is_auction === true || is_auction === 'true' ? true : 
@@ -4708,6 +4784,11 @@ async function startServer() {
         if (store_name !== undefined) {
           updates.push(`store_name = $${paramCount}`);
           values.push(store_name);
+          paramCount++;
+
+          const nextSlug = await generateUniqueStoreSlug(store_name, storeId);
+          updates.push(`slug = $${paramCount}`);
+          values.push(nextSlug);
           paramCount++;
         }
         
@@ -6756,22 +6837,7 @@ async function startServer() {
           values.push(available_codes);
         }
         
-        // Images are NOT updated in PUT - managed exclusively via topup_product_images
-        if (false && images !== undefined && Array.isArray(images)) {
-          // ًں”¥ CRITICAL: Filter out base64/JSON - keep ONLY valid URLs
-          const validImages = images.filter((img: any) => {
-            const isValidUrl = typeof img === 'string' && (img.startsWith('/uploads/') || img.startsWith('http'));
-            const isBase64OrJson = typeof img === 'string' && (img.startsWith('data:') || img.startsWith('{'));
-            if (isBase64OrJson) {
-              console.warn('âڑ ï¸ڈ [PUT] Rejecting base64/JSON data from request:', img.substring(0, 50));
-            }
-            return isValidUrl;
-          });
-          console.log('ًں“¸ [PUT] Updating product images:', validImages.length, 'valid URLs (filtered from', images.length, 'total)');
-          console.log('ًں“‹ [PUT] Valid images to save:', validImages);
-          updates.push(`images = $${paramCount++}`);
-          values.push(validImages); // Pass array directly - PostgreSQL driver handles conversion
-        }
+        // Images are NOT updated in PUT - managed exclusively via topup_product_images.
         
         values.push(id);
         
