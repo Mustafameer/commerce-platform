@@ -1467,7 +1467,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               product_images: productImages
             });
             
-            console.log('✅ Confirmation item created with', productImages.length, 'images');}
+            console.log('✅ Confirmation item created with', productImages.length, 'images');
           }
 
           // Create single confirmation with all items
