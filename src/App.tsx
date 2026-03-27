@@ -1400,44 +1400,37 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             let itemImages: any[] = data.images || [];
             let productImages: any[] = [];
             
-            // Fallback: Fetch images if not in response
-            if (itemImages.length === 0) {
-              try {
-                const imagesRes = await fetch(`/api/topup/order-images/${data.order_id}`);
-                const imagesData = await readJsonResponse(imagesRes, 'فشل جلب صور طلب الشحن');
-                
-                if (imagesData.images && Array.isArray(imagesData.images)) {
-                  itemImages = imagesData.images;
-                } else if (Array.isArray(imagesData)) {
-                  itemImages = imagesData;
-                }
-                
-                console.log('🖼️ Fetched images from API (fallback):', {
-                  orderId: data.order_id,
-                  imagesCount: itemImages.length,
-                  grouped: imagesData.grouped_by_product
-                });
-              } catch (err) {
-                console.error('Failed to fetch topup images:', err);
-              }
-            } else {
-              console.log('🖼️ Got images from purchase response:', {
+            // Always fetch fresh images from order-images endpoint (images API has product info)
+            try {
+              console.log('📦 Fetching fresh images from order-images endpoint...');
+              const imagesRes = await fetch(`/api/topup/order-images/${data.order_id}`);
+              const imagesData = await readJsonResponse(imagesRes, 'فشل جلب صور طلب الشحن');
+              
+              console.log('🖼️ Fetched images response:', {
                 orderId: data.order_id,
-                imagesCount: itemImages.length
+                imagesCount: imagesData.images?.length || 0,
+                hasGrouped: !!imagesData.grouped_by_product
               });
+              
+              // Use grouped images for this product
+              if (imagesData.grouped_by_product && imagesData.grouped_by_product[item.product_id]) {
+                productImages = imagesData.grouped_by_product[item.product_id];
+                console.log(`  ✓ Found ${productImages.length} images for product ${item.product_id}`);
+              } else if (imagesData.images && Array.isArray(imagesData.images)) {
+                // Fallback: filter by product_id from flat list
+                productImages = imagesData.images.filter((img: any) => img.product_id === item.product_id);
+                console.log(`  ✓ Filtered to ${productImages.length} images for product ${item.product_id}`);
+              }
+            } catch (err) {
+              console.error('❌ Error fetching images from order-images:', err);
+              // Last resort fallback: use purchase response images
+              if (itemImages.length > 0 && typeof itemImages[0] === 'string') {
+                console.log('  ⚠️ Using fallback images from purchase response');
+                productImages = itemImages.slice(0, item.quantity).map((url: string) => ({ image_url: url }));
+              }
             }
 
-            // Filter images for this product only
-            productImages = itemImages.filter((img: any) => {
-              const productId = typeof img === 'string' ? item.product_id : img.product_id;
-              return img.product_id === item.product_id || typeof img === 'string';
-            });
-
-            // If productImages is empty and itemImages contains strings, use item.images directly
-            if (productImages.length === 0 && Array.isArray(itemImages) && itemImages.length > 0 && typeof itemImages[0] === 'string') {
-              productImages = itemImages.slice(0, item.quantity).map((url: string) => ({ image_url: url }));
-            }
-
+            console.log(`📱 Product ${item.product_id} images count: ${productImages.length}`);
             allCodes = [...allCodes, ...productImages];
             confirmationItems.push({
               ...item,
@@ -1449,6 +1442,8 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                 : 'غير محدد',
               product_images: productImages
             });
+            
+            console.log('✅ Confirmation item created with', productImages.length, 'images');}
           }
 
           // Create single confirmation with all items
@@ -1717,13 +1712,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                   const zipUrl = URL.createObjectURL(zipBlob);
                   const link = document.createElement('a');
                   link.href = zipUrl;
-                  
-                  // اسم الملف يتضمن التاريخ والوقت
-                  const now = new Date();
-                  const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
-                  const timeStr = now.toISOString().slice(11, 19).replace(/:/g, '-'); // HH-MM-SS
-                  link.download = `صور_الطلب_${dateStr}_${timeStr}.zip`;
-                  
+                  link.download = `صور_الطلب_${new Date().toISOString().slice(0, 10)}.zip`;
                   document.body.appendChild(link);
                   link.click();
                   document.body.removeChild(link);
