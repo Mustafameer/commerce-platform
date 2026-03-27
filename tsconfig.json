@@ -22,5 +22,20 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "api/**/*.ts",
+    "server.ts",
+    "vite.config.ts",
+    "db-config.ts",
+    "db-init.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "public",
+    "uploads"
+  ]
 }

@@ -1,5 +1,5 @@
 import pkg from 'pg';
-const { Pool, Client } = pkg;
+const { Pool } = pkg;
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -27,8 +27,8 @@ const railwayPool = new Pool({
 const colors = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
-const LOCAL_DB = 'postgresql://postgres:123@localhost:5432/multi_ecommerce';
-const RAILWAY_DB = 'postgresql://postgres:yQOzKdveBhDOEKrDYHOFkkUptQQLmFBQ@web-production-9efff.up.railway.app:5432/railway';
+  red: '\x1b[31m',
+  green: '\x1b[32m',
   yellow: '\x1b[33m',
   cyan: '\x1b[36m',
   blue: '\x1b[34m'

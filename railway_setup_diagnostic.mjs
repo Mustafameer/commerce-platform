@@ -110,9 +110,9 @@ async function checkAndAddData() {
     console.log('🎉 Railway database ready for TopupStorefront!');
     
   } catch (error) {
-    console.error('❌ Error:', (error as any).message);
-    if ((error as any).detail) {
-      console.error('   Details:', (error as any).detail);
+    console.error('❌ Error:', error.message);
+    if (error.detail) {
+      console.error('   Details:', error.detail);
     }
   } finally {
     await pool.end();

@@ -1,0 +1,17 @@
+File: 9455 lines
+
+Found 0 uploadedUrls.push statements:
+
+Looking for undefined 'imageUrl' variable:
+  Line 189: const imageUrl = `/uploads/products/${uniqueFilename}`;
+  Line 191: console.log(`âœ… Image saved & compressed: ${imageUrl} (${sizeKB}KB)`);
+  Line 192: return imageUrl;
+  Line 263: const imageUrls = new Set<string>();
+  Line 265: imageUrls.add(String(row.image_url));
+  Line 270: imageUrls.add(item);
+  Line 274: for (const imageUrl of imageUrls) {
+  Line 276: const deleted = await deleteLocalUploadIfExists(imageUrl);
+  Line 281: console.warn(`âڑ ï¸ڈ Failed to delete sold auction image: ${imageUrl}`, error);
+  Line 7262: const imageUrl = `/uploads/topup/${store_id}/${topup_product_id}/${fileName}`;
+
+Total undefined imageUrl references: 30

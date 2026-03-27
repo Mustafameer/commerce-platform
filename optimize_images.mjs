@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import archiver from 'archiver';
 
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
 
@@ -9,7 +8,7 @@ async function compressOldImages() {
     console.log('🗜️ ضغط الصور القديمة لتوفير المساحة\n');
     
     // Get all files
-    const files = fs.readdirSync(uploadsDir, { recursive: true }) as string[];
+    const files = fs.readdirSync(uploadsDir, { recursive: true });
     
     const now = Date.now();
     const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);

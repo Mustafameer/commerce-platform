@@ -4,7 +4,7 @@ fetch('http://localhost:3000/api/products?storeId=1')
   .then(products => {
     console.log('=== API RESPONSE ===');
     console.log('Total products:', products.length);
-    const product95 = products.find((p: any) => p.id === 95);
+    const product95 = products.find((p) => p.id === 95);
     if (product95) {
       console.log('Product 95 found:', {
         id: product95.id,
@@ -16,7 +16,7 @@ fetch('http://localhost:3000/api/products?storeId=1')
       });
     } else {
       console.log('Product 95 NOT found');
-      console.log('Available product IDs:', products.map((p: any) => p.id).slice(0, 10));
+      console.log('Available product IDs:', products.map((p) => p.id).slice(0, 10));
     }
   })
   .catch(e => console.error('Error:', e));

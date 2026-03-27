@@ -89,7 +89,9 @@ export async function initializeDatabase(connectionString: string) {
           id SERIAL PRIMARY KEY,
           store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
           product_id INTEGER NOT NULL REFERENCES topup_products(id) ON DELETE CASCADE,
+          topup_product_id INTEGER,
           image_url TEXT,
+          image_url_original TEXT,
           image_hash VARCHAR(255) NOT NULL,
           image_data TEXT,
           image_type VARCHAR(50) DEFAULT 'svg',
@@ -104,6 +106,8 @@ export async function initializeDatabase(connectionString: string) {
       await client.query(`
         ALTER TABLE topup_product_images
         ADD COLUMN IF NOT EXISTS image_url TEXT,
+        ADD COLUMN IF NOT EXISTS image_url_original TEXT,
+        ADD COLUMN IF NOT EXISTS topup_product_id INTEGER,
         ADD COLUMN IF NOT EXISTS image_hash VARCHAR(255),
         ADD COLUMN IF NOT EXISTS uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       `).catch(() => {});

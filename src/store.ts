@@ -62,7 +62,7 @@ interface CartState {
 }
 
 const createCartStore = (storageKey: string) =>
-  create<CartState>(
+  create<CartState>()(
     persist(
       (set, get) => ({
         items: [],
@@ -70,7 +70,9 @@ const createCartStore = (storageKey: string) =>
         addItem: (product) => {
           const items = get().items;
           const existing = items.find((i) => i.id === product.id);
-          const quantityToAdd = product.quantity || 1;
+          const quantityToAdd = 'quantity' in product && typeof product.quantity === 'number'
+            ? product.quantity
+            : 1;
           if (existing) {
             set({
               items: items.map((i) =>
