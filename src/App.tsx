@@ -9858,6 +9858,7 @@ const StoresPage = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showTopupAuthModal, setShowTopupAuthModal] = useState(false);
   const [selectedTopupStore, setSelectedTopupStore] = useState<any>(null);
+  const [isolatedTopupAuthFlow, setIsolatedTopupAuthFlow] = useState(false);
   const [topupAuthName, setTopupAuthName] = useState('');
   const [topupAuthPhone, setTopupAuthPhone] = useState('');
   const [topupAuthError, setTopupAuthError] = useState('');
@@ -9931,6 +9932,7 @@ const StoresPage = () => {
     });
 
     if (matchedTopupStore) {
+      setIsolatedTopupAuthFlow(true);
       setSelectedTopupStore(matchedTopupStore);
       setTopupAuthName('');
       setTopupAuthPhone('');
@@ -9964,6 +9966,7 @@ const StoresPage = () => {
     // If topup store, show auth modal instead of navigating directly
     if (store.store_type === 'topup') {
       console.log(`🏪 Store clicked: ID=${store.id}, Name=${store.name}, Slug=${store.slug}`);
+      setIsolatedTopupAuthFlow(false);
       setSelectedTopupStore(store);
       setTopupAuthName('');
       setTopupAuthPhone('');
@@ -10039,6 +10042,7 @@ const StoresPage = () => {
         // Close modal and navigate
         setShowTopupAuthModal(false);
         setSelectedTopupStore(null);
+        setIsolatedTopupAuthFlow(false);
         setTopupAuthName('');
         setTopupAuthPhone('');
         setTopupAuthError('');
@@ -10071,9 +10075,28 @@ const StoresPage = () => {
     );
   }
 
+  const closeTopupAuthModal = () => {
+    setShowTopupAuthModal(false);
+    setSelectedTopupStore(null);
+    setTopupAuthName('');
+    setTopupAuthPhone('');
+    setTopupAuthError('');
+
+    if (isolatedTopupAuthFlow) {
+      setIsolatedTopupAuthFlow(false);
+      navigate('/stores', { replace: true });
+      return;
+    }
+
+    setIsolatedTopupAuthFlow(false);
+  };
+
+  const showIsolatedTopupAuthScreen = isolatedTopupAuthFlow && showTopupAuthModal && selectedTopupStore;
+
   return (
-    <div className={cn("min-h-screen pb-28 md:pb-0 flex flex-col", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-gradient-to-b from-indigo-50 to-white text-gray-900")} dir="rtl">
+    <div className={cn("min-h-screen pb-28 md:pb-0 flex flex-col", showIsolatedTopupAuthScreen ? (isDarkMode ? "bg-gray-950 text-gray-100" : "bg-white text-gray-900") : (isDarkMode ? "bg-gray-900 text-gray-100" : "bg-gradient-to-b from-indigo-50 to-white text-gray-900"))} dir="rtl">
       {/* Header */}
+      {!showIsolatedTopupAuthScreen && (
       <div className={cn("border-b sticky top-0 z-40", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5")}>
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
           <Link
@@ -10087,23 +10110,18 @@ const StoresPage = () => {
           <div className="w-8 sm:w-16"></div>
         </div>
       </div>
+      )}
 
       {/* Stores Grid */}
       {/* Topup Store Auth Modal */}
       {showTopupAuthModal && selectedTopupStore && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" dir="rtl">
+        <div className={cn("fixed inset-0 flex items-center justify-center z-50 p-4", showIsolatedTopupAuthScreen ? (isDarkMode ? "bg-gray-950" : "bg-white") : "bg-black/50")} dir="rtl">
           <Card className={cn("w-full max-w-md", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className={cn("text-xl font-normal", isDarkMode ? "text-white" : "text-gray-900")}>دخول متجر البطاقات</h2>
                 <button
-                  onClick={() => {
-                    setShowTopupAuthModal(false);
-                    setSelectedTopupStore(null);
-                    setTopupAuthName('');
-                    setTopupAuthPhone('');
-                    setTopupAuthError('');
-                  }}
+                  onClick={closeTopupAuthModal}
                   className={cn("p-1 rounded hover:bg-gray-100", isDarkMode ? "hover:bg-gray-700" : "")}
                 >
                   <X size={20} className={isDarkMode ? "text-gray-400" : "text-gray-600"} />
@@ -10151,13 +10169,7 @@ const StoresPage = () => {
 
               <div className="flex gap-3 mt-6">
                 <button
-                  onClick={() => {
-                    setShowTopupAuthModal(false);
-                    setSelectedTopupStore(null);
-                    setTopupAuthName('');
-                    setTopupAuthPhone('');
-                    setTopupAuthError('');
-                  }}
+                  onClick={closeTopupAuthModal}
                   className={cn("flex-1 px-4 py-2 rounded-lg font-normal text-sm transition-colors", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-gray-200" : "bg-gray-100 hover:bg-gray-200 text-gray-800")}
                 >
                   إلغاء
@@ -10182,6 +10194,7 @@ const StoresPage = () => {
         </div>
       )}
 
+      {!showIsolatedTopupAuthScreen && (
       <main className="flex-1 max-w-7xl mx-auto px-4 py-6 sm:py-12 w-full">
         {stores.length === 0 ? (
           <div className="text-center py-20">
@@ -10264,8 +10277,9 @@ const StoresPage = () => {
           </div>
         )}
       </main>
+      )}
 
-      <MobileFooterNav />
+      {!showIsolatedTopupAuthScreen && <MobileFooterNav />}
     </div>
   );
 };
