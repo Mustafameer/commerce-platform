@@ -21,7 +21,7 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
 }
 
-const DEPLOY_MARKER = 'cloud-only-marker-20260325-1732';
+const DEPLOY_MARKER = 'cloud-only-marker-20260327-2235';
 const databaseUrl = getRequiredDatabaseUrl();
 
 console.log('[DEPLOY]', DEPLOY_MARKER);
@@ -145,6 +145,19 @@ async function withPublicStoreSlug(store: any): Promise<any> {
 function isPersistentFileStorageAvailable(): boolean {
   return process.env.NODE_ENV !== 'production';
 }
+function buildTopupImageUrl(imageUrl: string | null | undefined, imageData?: string | null, imageType?: string | null): string | null {
+  if (typeof imageUrl === 'string' && imageUrl.startsWith('data:')) {
+    return imageUrl;
+  }
+
+  if (!isPersistentFileStorageAvailable() && imageData) {
+    const mimeType = imageType || 'image/jpeg';
+    return `data:${mimeType};base64,${imageData}`;
+  }
+
+  return imageUrl || null;
+}
+
 
 // âœ… LOCAL IMAGE COMPRESSION & STORAGE (NO FIREBASE)
 async function uploadAndCompressImageLocally(base64Data: string, filename: string): Promise<string> {
@@ -6553,6 +6566,7 @@ async function startServer() {
                 json_build_object(
                   'id', tpi.id,
                   'url', tpi.image_url,
+                  'image_data', tpi.image_data,
                   'hash', tpi.image_hash,
                   'type', tpi.image_type,
                   'uploaded_at', tpi.uploaded_at
@@ -6573,31 +6587,18 @@ async function startServer() {
         
         // Transform response: extract valid image URLs from gallery and stored images
         const transformedRows = result.rows.map((row: any) => {
-          // Extract URLs from gallery (from topup_product_images)
-          const galleryUrls = Array.isArray(row.gallery) 
-            ? row.gallery.map((img: any) => img.url).filter((url: any) => url)
+          const gallery = Array.isArray(row.gallery)
+            ? row.gallery
+                .map((img: any) => ({
+                  ...img,
+                  url: buildTopupImageUrl(img.url, img.image_data, img.type)
+                }))
+                .filter((img: any) => img.url)
             : [];
-          
-          // Also try to parse the stored images column for backward compatibility
-          let storedUrls: string[] = [];
-          if (row.images) {
-            if (Array.isArray(row.images)) {
-              storedUrls = row.images
-                .map((img: any) => {
-                  if (typeof img === 'object' && img !== null && img.url) {
-                    return img.url;
-                  }
-                  if (typeof img === 'string' && (img.startsWith('/') || img.startsWith('http'))) {
-                    return img;
-                  }
-                  return null;
-                })
-                .filter((url: any) => url);
-            }
-          }
-          
-          const allImages = [...galleryUrls, ...storedUrls];
-          return { ...row, images: allImages.length > 0 ? allImages : [] };
+
+          const galleryUrls = gallery.map((img: any) => img.url);
+
+          return { ...row, gallery, images: galleryUrls.length > 0 ? galleryUrls : [] };
         });
         
         res.json(transformedRows);
@@ -6636,6 +6637,7 @@ async function startServer() {
                 json_build_object(
                   'id', tpi.id,
                   'url', tpi.image_url,
+                  'image_data', tpi.image_data,
                   'hash', tpi.image_hash,
                   'type', tpi.image_type,
                   'uploaded_at', tpi.uploaded_at
@@ -6656,11 +6658,18 @@ async function startServer() {
         // Transform response: extract image URLs from gallery (topup_product_images table)
         // NO LONGER merging storedUrls - only use gallery which is the single source of truth
         const transformedRows = result.rows.map((row: any) => {
-          const galleryUrls = Array.isArray(row.gallery) 
-            ? row.gallery.map((img: any) => img.url).filter((url: any) => url)
+          const gallery = Array.isArray(row.gallery)
+            ? row.gallery
+                .map((img: any) => ({
+                  ...img,
+                  url: buildTopupImageUrl(img.url, img.image_data, img.type)
+                }))
+                .filter((img: any) => img.url)
             : [];
-          
-          return { ...row, images: galleryUrls.length > 0 ? galleryUrls : [] };
+
+          const galleryUrls = gallery.map((img: any) => img.url);
+
+          return { ...row, gallery, images: galleryUrls.length > 0 ? galleryUrls : [] };
         });
         
         res.json(transformedRows);
@@ -6676,10 +6685,10 @@ async function startServer() {
         const defaultStore = 13; // Default topup store
         const limit = req.query.limit ? parseInt(req.query.limit as string) : 500;
         const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
-        
+
         // No cache - always get fresh data
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-        
+
         const result = await pool.query(
           `SELECT 
             tp.id,
@@ -6699,6 +6708,7 @@ async function startServer() {
                 json_build_object(
                   'id', tpi.id,
                   'url', tpi.image_url,
+                  'image_data', tpi.image_data,
                   'hash', tpi.image_hash,
                   'type', tpi.image_type,
                   'uploaded_at', tpi.uploaded_at
@@ -6715,20 +6725,26 @@ async function startServer() {
           LIMIT $2 OFFSET $3`,
           [defaultStore, limit, offset]
         );
-        
-        // Transform response: extract image URLs from gallery only (no duplication)
+
         const transformedRows = result.rows.map((row: any) => {
-          // Extract URLs from gallery (from topup_product_images table)
-          const galleryUrls = Array.isArray(row.gallery) 
-            ? row.gallery.map((img: any) => img.url).filter((url: any) => url)
+          const gallery = Array.isArray(row.gallery)
+            ? row.gallery
+                .map((img: any) => ({
+                  ...img,
+                  url: buildTopupImageUrl(img.url, img.image_data, img.type)
+                }))
+                .filter((img: any) => img.url)
             : [];
-          
+
+          const galleryUrls = gallery.map((img: any) => img.url);
+
           return {
             ...row,
+            gallery,
             images: galleryUrls.length > 0 ? galleryUrls : []
           };
         });
-        
+
         res.json(transformedRows);
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
@@ -7646,66 +7662,44 @@ async function startServer() {
           
           // Handle images - store them in order_images table
           if (imagesArray.length > 0) {
-            // Use selected images if provided, otherwise use first 'quantity' images
+            const normalizedSelectedImages = Array.isArray(selected_images)
+              ? selected_images.map((value: any) => String(value))
+              : [];
+
             let usedImages = [];
-            let remainingImages = imagesArray;
-            
-            if (Array.isArray(selected_images) && selected_images.length > 0) {
-              // Use only the selected images
-              usedImages = selected_images.filter((img: string) => imagesArray.includes(img));
-              // Remove selected images from remaining
-              remainingImages = imagesArray.filter((img: string) => !usedImages.includes(img));
-              console.log(`ًں–¼ï¸ڈ  Using ${usedImages.length} selected images. Remaining: ${remainingImages.length}`);
-            } else {
-              // Fallback: use first 'quantity' images
-              usedImages = imagesArray.slice(0, quantity);
-              remainingImages = imagesArray.slice(quantity);
-              console.log(`ًں–¼ï¸ڈ  Using first ${usedImages.length} images. Remaining: ${remainingImages.length}`);
-            }
-            
-            // Store used images in order_images table AND delete from topup_product_images
-            for (const imageUrl of usedImages) {
-              try {
-                // Find the ORIGINAL image URL for this compressed URL
-                const originalImageResult = await pool.query(
-                  `SELECT image_url_original FROM topup_product_images 
-                   WHERE topup_product_id = $1 AND image_url = $2
-                   LIMIT 1`,
-                  [topup_product_id, imageUrl]
-                );
-                
-                // Use original if found, otherwise use the URL as-is
-                const imageUrlToStore = originalImageResult.rows.length > 0 
-                  ? originalImageResult.rows[0].image_url_original 
-                  : imageUrl;
-                
-                // Store the ORIGINAL image in order_images (not the compressed one)
-                await pool.query(
-                  `INSERT INTO order_images (order_id, topup_product_id, image_url)
-                   VALUES ($1, $2, $3)
-                   ON CONFLICT (order_id, topup_product_id, image_url) DO NOTHING`,
-                  [orderId, topup_product_id, imageUrlToStore]
-                );
-                
-                // Delete from topup_product_images (so it doesn't appear in catalog)
-                await pool.query(
-                  `DELETE FROM topup_product_images WHERE topup_product_id = $1 AND image_url = $2`,
-                  [topup_product_id, imageUrl]
-                );
-                
-                console.log(`Stored original image for order: ${imageUrlToStore}`);
-              } catch (err) {
-                console.error(`Error processing image: ${err}`);
+
+            if (normalizedSelectedImages.length > 0) {
+              usedImages = imagesArray.filter((img: any) =>
+                normalizedSelectedImages.includes(String(img.url)) ||
+                normalizedSelectedImages.includes(String(img.id))
+              );
+
+              if (usedImages.length === 0) {
+                usedImages = imagesArray.slice(0, Math.min(quantity, imagesArray.length));
+                console.log(`Using fallback product images: ${usedImages.length}`);
+              } else {
+                console.log(`Using selected product images: ${usedImages.length}`);
               }
+            } else {
+              usedImages = imagesArray.slice(0, Math.min(quantity, imagesArray.length));
+              console.log(`Using available product images: ${usedImages.length}`);
             }
-            
-            // Update product with remaining images
-            await pool.query(
-              `UPDATE topup_products SET images = $1 WHERE id = $2`,
-              [remainingImages, topup_product_id]
-            );
-            
-            console.log(`âœ… Topup product images updated - remaining: ${remainingImages.length}`);
+
+            for (const imageObj of usedImages) {
+              const imageUrl = imageObj?.url || imageObj?.image_url || imageObj;
+              if (!imageUrl) {
+                continue;
+              }
+
+              await pool.query(
+                `INSERT INTO order_images (order_id, topup_product_id, image_url)
+                 VALUES ($1, $2, $3)
+                 ON CONFLICT (order_id, topup_product_id, image_url) DO NOTHING`,
+                [orderId, topup_product_id, imageUrl]
+              );
+            }
+
+            console.log(`Stored ${usedImages.length} order images for topup product ${topup_product_id}`);
           }
         }
 
@@ -7741,39 +7735,90 @@ async function startServer() {
       try {
         const { orderId } = req.params;
 
-        // ط¬ظ„ط¨ طµظˆط± ط§ظ„ط·ظ„ط¨ ظ…ظ† ط¬ط¯ظˆظ„ order_images
         const imagesResult = await pool.query(
-          `SELECT oi.image_url, oi.image_data, oi.topup_product_id, tp.amount, tp.price
+          `SELECT oi.image_url,
+                  COALESCE(oi.image_data, tpi.image_data) AS image_data,
+                  COALESCE(tpi.image_type, 'image/jpeg') AS image_type,
+                  oi.topup_product_id,
+                  tp.amount,
+                  tp.price
            FROM order_images oi
            JOIN topup_products tp ON oi.topup_product_id = tp.id
+           LEFT JOIN topup_product_images tpi
+             ON tpi.topup_product_id = oi.topup_product_id
+            AND (tpi.image_url = oi.image_url OR tpi.image_url_original = oi.image_url)
            WHERE oi.order_id = $1
            ORDER BY oi.topup_product_id, oi.created_at ASC`,
           [orderId]
         );
 
         if (imagesResult.rows.length === 0) {
-          return res.status(404).json({ error: "No images found for this order", images: [], grouped_by_product: {} });
+          const orderItemsResult = await pool.query(
+            `SELECT oi.topup_product_id, oi.quantity, tp.amount, tp.price
+             FROM order_items oi
+             JOIN topup_products tp ON oi.topup_product_id = tp.id
+             WHERE oi.order_id = $1 AND oi.topup_product_id IS NOT NULL
+             ORDER BY oi.id ASC`,
+            [orderId]
+          );
+
+          if (orderItemsResult.rows.length === 0) {
+            return res.status(404).json({ error: "No images found for this order", images: [], grouped_by_product: {} });
+          }
+
+          const groupedByProduct: {[key: number]: any[]} = {};
+          const allImages: any[] = [];
+
+          for (const item of orderItemsResult.rows) {
+            const fallbackImagesResult = await pool.query(
+              `SELECT image_url, image_data, image_type
+               FROM topup_product_images
+               WHERE topup_product_id = $1
+               ORDER BY id ASC
+               LIMIT $2`,
+              [item.topup_product_id, Math.max(1, Number(item.quantity) || 1)]
+            );
+
+            groupedByProduct[item.topup_product_id] = fallbackImagesResult.rows.map((row: any) => {
+              const imageObj = {
+                image_url: buildTopupImageUrl(row.image_url, row.image_data, row.image_type),
+                image_data: row.image_data,
+                product_id: item.topup_product_id,
+                amount: item.amount,
+                price: item.price
+              };
+              allImages.push(imageObj);
+              return imageObj;
+            }).filter((imageObj: any) => imageObj.image_url);
+          }
+
+          return res.json({
+            order_id: orderId,
+            images: allImages,
+            grouped_by_product: groupedByProduct,
+            count: allImages.length,
+            fallback: true
+          });
         }
 
-        // Group images by product_id
         const groupedByProduct: {[key: number]: any[]} = {};
         const allImages: any[] = [];
-        
+
         imagesResult.rows.forEach(row => {
           const productId = row.topup_product_id;
-          
+
           if (!groupedByProduct[productId]) {
             groupedByProduct[productId] = [];
           }
-          
+
           const imageObj = {
-            image_url: row.image_url,
+            image_url: buildTopupImageUrl(row.image_url, row.image_data, row.image_type),
             image_data: row.image_data,
             product_id: productId,
             amount: row.amount,
             price: row.price
           };
-          
+
           groupedByProduct[productId].push(imageObj);
           allImages.push(imageObj);
         });
@@ -7789,7 +7834,6 @@ async function startServer() {
         res.status(500).json({ error: (error as any).message });
       }
     });
-
     // Get order codes after purchase (legacy - still supported)
     app.get("/api/topup/order-codes/:orderId", async (req, res) => {
       try {
@@ -9466,3 +9510,5 @@ async function startServer() {
 }
 
 startServer();
+
+
