@@ -1343,7 +1343,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             product_name: (item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name,
             company_name: (item.store_name && item.store_name !== 'undefined') ? item.store_name : 'بدون شركة',
             images: Array.isArray(item.images) ? item.images : [],
-            selectedImagesForPurchase: Array.isArray(item.selectedImagesForPurchase) ? item.selectedImagesForPurchase : [],
+            gallery: Array.isArray(item.gallery) ? item.gallery : [],
             topup_codes: item.topup_codes
           });
         } else {
@@ -1411,7 +1411,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                 phone: phone.trim(),
                 address: address.trim(),
                 total_amount: itemAmount - itemDiscount,
-                selected_images: item.selectedImagesForPurchase || item.images || []
+                selected_images: (item.gallery && Array.isArray(item.gallery) ? item.gallery.map((img: any) => typeof img === 'string' ? img : img.url) : item.images) || []
               })
             });
 
