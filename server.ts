@@ -1663,7 +1663,7 @@ async function startServer() {
           await client.release();
         }
       } catch (error) {
-        console.error("ÎØÃ ÙÙŠ Ø­Ø°Ù Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª:", error);
+        console.error("ï¿½ï¿½ï¿½ ÙÙŠ Ø­Ø°Ù Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª:", error);
         res.status(500).json({ error: (error as any).message });
       }
     });
@@ -5220,7 +5220,7 @@ async function startServer() {
           creditLimit: customer.credit_limit,
           message: canProceed 
             ? (isNearLimit ? `ØªØ­Ø°ÙŠØ±: Ø§Ù„Ø±ØµÙŠØ¯ Ø§Ù„Ù…ØªØ¨Ù‚ÙŠ: ${availableCredit - amount}` : "ÙŠÙ…ÙƒÙ† Ø§Ù„Ù…ØªØ§Ø¨Ø¹Ø©")
-            : `Ø§Ø¹ØªØ°Ø±: Ø§Ù„Ø±ØµÙŠØ¯ Ø§Ù„Ù…ØªØ§Ø­ ${availableCredit} ÃŞá ãä ÇáãÈáÛ ÇáãØáæÈ ${amount}`
+            : `Ø§Ø¹ØªØ°Ø±: Ø§Ù„Ø±ØµÙŠØ¯ Ø§Ù„Ù…ØªØ§Ø­ ${availableCredit} ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ${amount}`
         });
       } catch (error) {
         res.status(500).json({ error: (error as any).message });
@@ -5607,7 +5607,7 @@ async function startServer() {
             id: o.id,
             created_at: o.created_at instanceof Date ? o.created_at.toISOString() : String(o.created_at),
             type: 'topup',
-            description: 'ÔÑÇÁ ÈØÇŞÇÊ ÔÍä',
+            description: 'ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½',
             amount: Number(o.total_amount || 0),
             is_payment: false,
             source: 'topup_order'
@@ -5616,7 +5616,7 @@ async function startServer() {
             id: p.id,
             created_at: p.created_at instanceof Date ? p.created_at.toISOString() : String(p.created_at),
             type: 'payment',
-            description: 'ÏİÚÉ',
+            description: 'ï¿½ï¿½ï¿½ï¿½',
             amount: Number(p.amount || 0),
             is_payment: true,
             source: 'payment'
@@ -5630,7 +5630,7 @@ async function startServer() {
           id: 0,
           created_at: customer.created_at instanceof Date ? customer.created_at.toISOString() : String(customer.created_at),
           type: 'opening',
-          description: 'Ïíæä ÓÇÈŞÉ',
+          description: 'ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½',
           amount: openingBalance,
           is_payment: false,
           source: 'opening',
@@ -5669,11 +5669,11 @@ async function startServer() {
           
           // Override description based on source (to fix any corrupted data)
           if (tx.source === 'opening') {
-            description = 'Ïíæä ÓÇÈŞÉ';
+            description = 'ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½';
           } else if (tx.source === 'payment') {
-            description = 'ÏİÚÉ';
+            description = 'ï¿½ï¿½ï¿½ï¿½';
           } else if (tx.source === 'topup_order') {
-            description = 'ÔÑÇÁ ÈØÇŞÇÊ ÔÍä';
+            description = 'ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½';
           }
           
           return { ...tx, description };
@@ -7437,7 +7437,7 @@ async function startServer() {
             console.log(`âœ… Customer found by ID: ${foundCustomerId}`);
           } else {
             console.error(`âŒ Customer ID ${customer_id} not found for store ${parsedStoreId}`);
-            return res.status(403).json({ error: "ÇáÚãíá ÛíÑ ãÓÌá" });
+            return res.status(403).json({ error: "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½" });
           }
         }
         
@@ -7461,7 +7461,7 @@ async function startServer() {
                 `INSERT INTO customers (store_id, phone, name, current_debt, starting_balance, is_active)
                  VALUES ($1, $2, $3, 0, 0, true)
                  RETURNING id`,
-                [parsedStoreId, phone, `Úãíá ÌÏíÏ - ${phone}`]
+                [parsedStoreId, phone, `ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ - ${phone}`]
               );
               
               foundCustomerId = insertRes.rows[0].id;
@@ -7491,10 +7491,10 @@ async function startServer() {
                   console.log(`âœ… Using customer: ID=${foundCustomerId}`);
                 } else {
                   console.error(`âŒ Constraint violation but customer not found`);
-                  return res.status(500).json({ error: "ÎØÃ İí ÇáÈíÇäÇÊ" });
+                  return res.status(500).json({ error: "ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" });
                 }
               } else {
-                return res.status(500).json({ error: `ÎØÃ: ${insertErr.message}` });
+                return res.status(500).json({ error: `ï¿½ï¿½ï¿½: ${insertErr.message}` });
               }
             }
           }
@@ -7503,7 +7503,7 @@ async function startServer() {
         // Step 3: Verify we have a valid customer ID
         if (!foundCustomerId || typeof foundCustomerId !== 'number') {
           console.error(`âŒ CRITICAL: Invalid foundCustomerId=${foundCustomerId}`);
-          return res.status(400).json({ error: "İÔá ÇáÊÍŞŞ ãä ÇáÚãíá" });
+          return res.status(400).json({ error: "ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" });
         }
 
         console.log(`âœ… Customer verified: ID=${foundCustomerId}`);
@@ -7518,7 +7518,7 @@ async function startServer() {
         
         if (creditRes.rows.length === 0) {
           console.error(`âŒ CRITICAL: Customer ${foundCustomerId} disappeared!`);
-          return res.status(500).json({ error: "ÎØÃ İí ÇáÈíÇäÇÊ" });
+          return res.status(500).json({ error: "ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" });
         }
         
         const creditLimit = creditRes.rows[0].credit_limit;
@@ -7541,7 +7541,7 @@ async function startServer() {
         
         if (availableCredit < total_amount) {
           return res.status(403).json({ 
-            error: `ÇáÑÕíÏ ÇáãÊÇÍ ${availableCredit} ÃŞá ãä ÇáãÈáÛ ÇáãØáæÈ ${total_amount}` 
+            error: `ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ${availableCredit} ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ${total_amount}` 
           });
         }
 
@@ -7553,12 +7553,12 @@ async function startServer() {
 
         if (!foundCustomerId || typeof foundCustomerId !== 'number' || foundCustomerId <= 0) {
           console.error(`âŒ CRITICAL: foundCustomerId is invalid!`);
-          return res.status(400).json({ error: "ãÚÑİ ÇáÚãíá ÛíÑ ÕÍíÍ" });
+          return res.status(400).json({ error: "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½" });
         }
 
         if (!parsedStoreId || typeof parsedStoreId !== 'number' || parsedStoreId <= 0) {
           console.error(`âŒ CRITICAL: parsedStoreId is invalid!`);
-          return res.status(400).json({ error: "ãÚÑİ ÇáãÊÌÑ ÛíÑ ÕÍíÍ" });
+          return res.status(400).json({ error: "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½" });
         }
 
         // Double-check customer still exists
