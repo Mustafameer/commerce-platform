@@ -121,7 +121,7 @@ const getSafeImageUrl = (url: string | null | undefined): string => {
   return normalizedUrl;
 };
 
-const FRONTEND_BUILD_ID = '20260328-2315';
+const FRONTEND_BUILD_ID = '20260328-2345';
 
 if (typeof window !== 'undefined') {
   (window as any).__APP_BUILD_ID__ = FRONTEND_BUILD_ID;
@@ -15910,6 +15910,7 @@ const TopupOrderDetails = () => {
 };
 
 export default App;
+
 
 
 
