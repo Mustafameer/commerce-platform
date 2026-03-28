@@ -55,71 +55,6 @@ import { useAuthStore, useRegularCartStore, useSettingsStore, useSearchStore, us
 import type { User, Store, Product, Order } from './types';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-
-const UI_TEXT = {
-  roleLabel: {
-    admin: '\u0627\u0644\u0625\u062f\u0627\u0631\u0629',
-    merchant: '\u0627\u0644\u062a\u0627\u062c\u0631',
-  },
-  dashboardLayout: {
-    admin: {
-      dashboard: '\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629',
-      users: '\u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u0648\u0646',
-      stores: '\u0627\u0644\u0645\u062a\u0627\u062c\u0631',
-      approvals: '\u0637\u0644\u0628\u0627\u062a \u0627\u0644\u062a\u0641\u0639\u064a\u0644',
-      stats: '\u0627\u0644\u0625\u062d\u0635\u0627\u0621\u0627\u062a',
-      settings: '\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a',
-    },
-    merchant: {
-      dashboard: '\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629',
-      products: '\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a',
-      categories: '\u0627\u0644\u062a\u0635\u0646\u064a\u0641\u0627\u062a',
-      auctions: '\u0627\u0644\u0645\u0632\u0627\u062f\u0627\u062a',
-      orders: '\u0627\u0644\u0637\u0644\u0628\u0627\u062a',
-      coupons: '\u0627\u0644\u0642\u0633\u0627\u0626\u0645',
-      customers: '\u0627\u0644\u0639\u0645\u0644\u0627\u0621',
-      settings: '\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a',
-    },
-  },
-  loginRequired: {
-    title: '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0645\u0637\u0644\u0648\u0628',
-    description: '\u064a\u062c\u0628 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0623\u0648\u0644\u0627\u064b \u062d\u062a\u0649 \u062a\u062a\u0645\u0643\u0646 \u0645\u0646 \u0645\u062a\u0627\u0628\u0639\u0629 \u0647\u0630\u0647 \u0627\u0644\u0639\u0645\u0644\u064a\u0629 \u0648\u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u062d\u0633\u0627\u0628\u0643.',
-    close: '\u0625\u063a\u0644\u0627\u0642',
-    login: '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644',
-  },
-  dashboardMenu: {
-    title: '\u0623\u0642\u0633\u0627\u0645 \u0644\u0648\u062d\u0629 \u0627\u0644\u062a\u062d\u0643\u0645',
-    stats: '\u0627\u0644\u0625\u062d\u0635\u0627\u0621\u0627\u062a',
-    products: '\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a',
-    orders: '\u0627\u0644\u0637\u0644\u0628\u0627\u062a',
-    customers: '\u0627\u0644\u0639\u0645\u0644\u0627\u0621',
-    coupons: '\u0627\u0644\u0642\u0633\u0627\u0626\u0645',
-    auctions: '\u0627\u0644\u0645\u0632\u0627\u062f\u0627\u062a',
-    settings: '\u0627\u0644\u0625\u0639\u062f\u0627\u062f\u0627\u062a',
-  },
-  dashboardCommon: {
-    rolePrefix: '\u0644\u0648\u062d\u0629',
-    openMenu: '\u0641\u062a\u062d \u0627\u0644\u0642\u0627\u0626\u0645\u0629',
-    searchPlaceholder: '\u0628\u062d\u062b...',
-    viewStore: '\u0639\u0631\u0636 \u0627\u0644\u0645\u062a\u062c\u0631',
-    logout: '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c',
-    lightMode: '\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0641\u0627\u062a\u062d',
-    darkMode: '\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u062f\u0627\u0643\u0646',
-  },
-  loginPage: {
-    backToPlatform: '\u0627\u0644\u0639\u0648\u062f\u0629 \u0644\u0644\u0645\u0646\u0635\u0629',
-    backToPublicPlatform: '\u0627\u0644\u0639\u0648\u062f\u0629 \u0644\u0644\u0645\u0646\u0635\u0629 \u0627\u0644\u0639\u0627\u0645\u0629',
-    welcomeBack: '\u0623\u0647\u0644\u0627 \u0628\u0639\u0648\u062f\u062a\u0643 \u0644\u0644\u0645\u0646\u0635\u0629',
-    phoneLabel: '\u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062a\u0641',
-    passwordLabel: '\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631',
-    openStorePrompt: '\u0647\u0644 \u062a\u0631\u064a\u062f \u0641\u062a\u062d \u0645\u062a\u062c\u0631\u0643 \u0627\u0644\u062e\u0627\u0635\u061f \u0633\u062c\u0644 \u0643\u062a\u0627\u062c\u0631 \u0627\u0644\u0622\u0646',
-    browseAsGuest: '\u062a\u0635\u0641\u062d \u0627\u0644\u0645\u0646\u0635\u0629 \u0643\u0632\u0627\u0626\u0631',
-    invalidCredentials: '\u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062a\u0641 \u0623\u0648 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u063a\u064a\u0631 \u0635\u062d\u064a\u062d\u0629',
-    genericError: '\u062d\u062f\u062b \u062e\u0637\u0623 \u0645\u0627',
-    lightMode: '\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0641\u0627\u062a\u062d',
-    darkMode: '\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u062f\u0627\u0643\u0646',
-  },
-} as const;
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -186,7 +121,7 @@ const getSafeImageUrl = (url: string | null | undefined): string => {
   return normalizedUrl;
 };
 
-const FRONTEND_BUILD_ID = '20260329-0106';
+const FRONTEND_BUILD_ID = '20260328-2345';
 
 if (typeof window !== 'undefined') {
   (window as any).__APP_BUILD_ID__ = FRONTEND_BUILD_ID;
@@ -584,6 +519,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
 
   useEffect(() => {
     const storeId = user?.role === 'merchant' ? user.store_id : '';
+    const roleParam = user?.role || '';
 
     fetch('/api/settings' + (storeId ? '?storeId=' + storeId + '&role=' + roleParam : '?role=' + roleParam))
       .then(res => res.json())
@@ -611,22 +547,22 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
 
   const navItems = role === 'admin'
     ? [
-        { icon: LayoutDashboard, label: UI_TEXT.dashboardLayout.admin.dashboard, path: '/admin' },
-        { icon: Users, label: UI_TEXT.dashboardLayout.admin.users, path: '/admin/users', count: counts?.users },
-        { icon: StoreIcon, label: UI_TEXT.dashboardLayout.admin.stores, path: '/admin/stores', count: counts?.stores },
-        { icon: CheckCircle, label: UI_TEXT.dashboardLayout.admin.approvals, path: '/admin/approvals', count: counts?.approvals },
-        { icon: BarChart3, label: UI_TEXT.dashboardLayout.admin.stats, path: '/admin/stats' },
-        { icon: Settings, label: UI_TEXT.dashboardLayout.admin.settings, path: '/admin/settings' },
+        { icon: LayoutDashboard, label: 'الرئيسية', path: '/admin' },
+        { icon: Users, label: 'المستخدمون', path: '/admin/users', count: counts?.users },
+        { icon: StoreIcon, label: 'المتاجر', path: '/admin/stores', count: counts?.stores },
+        { icon: CheckCircle, label: 'طلبات التفعيل', path: '/admin/approvals', count: counts?.approvals },
+        { icon: BarChart3, label: 'الإحصاءات', path: '/admin/stats' },
+        { icon: Settings, label: 'الإعدادات', path: '/admin/settings' },
       ]
     : [
-        { icon: LayoutDashboard, label: UI_TEXT.dashboardLayout.merchant.dashboard, path: '/merchant' },
-        { icon: Package, label: UI_TEXT.dashboardLayout.merchant.products, path: '/merchant/products', count: counts?.products },
-        { icon: Layout, label: UI_TEXT.dashboardLayout.merchant.categories, path: '/merchant/categories', count: counts?.categories },
-        { icon: Zap, label: UI_TEXT.dashboardLayout.merchant.auctions, path: '/merchant/auctions', count: counts?.auctions },
-        { icon: ShoppingCart, label: UI_TEXT.dashboardLayout.merchant.orders, path: '/merchant/orders', count: counts?.orders },
-        { icon: Ticket, label: UI_TEXT.dashboardLayout.merchant.coupons, path: '/merchant/coupons', count: counts?.coupons },
-        { icon: Users, label: UI_TEXT.dashboardLayout.merchant.customers, path: '/merchant/customers', count: counts?.customers },
-        { icon: Settings, label: UI_TEXT.dashboardLayout.merchant.settings, path: '/merchant/settings' },
+        { icon: LayoutDashboard, label: 'الرئيسية', path: '/merchant' },
+        { icon: Package, label: 'المنتجات', path: '/merchant/products', count: counts?.products },
+        { icon: Layout, label: 'التصنيفات', path: '/merchant/categories', count: counts?.categories },
+        { icon: Zap, label: 'المزادات', path: '/merchant/auctions', count: counts?.auctions },
+        { icon: ShoppingCart, label: 'الطلبات', path: '/merchant/orders', count: counts?.orders },
+        { icon: Ticket, label: 'القسائم', path: '/merchant/coupons', count: counts?.coupons },
+        { icon: Users, label: 'العملاء', path: '/merchant/customers', count: counts?.customers },
+        { icon: Settings, label: 'الإعدادات', path: '/merchant/settings' },
       ];
 
   const isNavItemActive = (path: string) => {
@@ -648,7 +584,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className={cn('p-2 rounded-lg transition-colors flex-shrink-0', isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100')}
-              aria-label={UI_TEXT.dashboardCommon.openMenu}
+              aria-label={'فتح القائمة'}
             >
               {sidebarOpen ? <X size={22} className={isDarkMode ? 'text-gray-100' : 'text-gray-900'} /> : <Menu size={22} className={isDarkMode ? 'text-gray-100' : 'text-gray-900'} />}
             </button>
@@ -664,7 +600,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
                   ? 'bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800'
                   : 'bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100'
               )}
-              title={isDarkMode ? UI_TEXT.dashboardCommon.lightMode : UI_TEXT.dashboardCommon.darkMode}
+              title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}
             >
               {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -673,7 +609,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
             <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2', isDarkMode ? 'text-gray-500' : 'text-gray-400')} size={16} />
             <input
               type="text"
-              placeholder={UI_TEXT.dashboardCommon.searchPlaceholder}
+              placeholder={'بحث...'}
               value={dashboardQuery}
               onChange={(e) => setDashboardQuery(e.target.value)}
               className={cn('w-full pl-9 pr-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition-colors text-sm', isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500' : 'bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400')}
@@ -698,7 +634,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
               <div className="min-w-0">
                 <h3 className={cn('text-lg font-normal truncate', isDarkMode ? 'text-gray-100' : 'text-gray-900')}>{settings.app_name}</h3>
                 <p className={cn('text-xs', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>
-                  {UI_TEXT.dashboardCommon.rolePrefix} {role === 'admin' ? UI_TEXT.roleLabel.admin : UI_TEXT.roleLabel.merchant}
+                  {'لوحة'} {role === 'admin' ? 'الإدارة' : 'التاجر'}
                 </p>
               </div>
               {settings.logo_url ? (
@@ -749,7 +685,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
                 className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-normal', isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-indigo-600 text-white hover:bg-indigo-700')}
               >
                 <ExternalLink size={18} className="flex-shrink-0" />
-                <span className="truncate">{UI_TEXT.dashboardCommon.viewStore}</span>
+                <span className="truncate">{'عرض المتجر'}</span>
               </Link>
             )}
             <button
@@ -757,7 +693,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
               className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm', isDarkMode ? 'text-red-400 hover:bg-red-900/30' : 'text-red-600 hover:bg-red-50')}
             >
               <LogOut size={18} />
-              <span className="truncate">{UI_TEXT.dashboardCommon.logout}</span>
+              <span className="truncate">{'تسجيل الخروج'}</span>
             </button>
           </div>
         </div>
@@ -796,7 +732,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
             <div>
               <h1 className={cn('text-lg font-normal tracking-tighter mb-0.5', isDarkMode ? 'text-blue-400' : 'text-indigo-600')}>{settings.app_name}</h1>
               <p className={cn('text-[9px] uppercase tracking-[0.2em] font-normal italic', isDarkMode ? 'text-gray-500' : 'text-gray-400')}>
-                {UI_TEXT.dashboardCommon.rolePrefix} {role === 'admin' ? UI_TEXT.roleLabel.admin : UI_TEXT.roleLabel.merchant}
+                {'لوحة'} {role === 'admin' ? 'الإدارة' : 'التاجر'}
               </p>
             </div>
           </div>
@@ -840,7 +776,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
             >
               <div className="flex items-center gap-3">
                 <ExternalLink size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform flex-shrink-0" />
-                <span className="truncate">{UI_TEXT.dashboardCommon.viewStore}</span>
+                <span className="truncate">{'عرض المتجر'}</span>
               </div>
             </Link>
           )}
@@ -850,7 +786,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
             className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm', isDarkMode ? 'text-red-400 hover:bg-red-900/30' : 'text-red-600 hover:bg-red-50')}
           >
             <LogOut size={18} />
-            <span className="truncate">{UI_TEXT.dashboardCommon.logout}</span>
+            <span className="truncate">{'تسجيل الخروج'}</span>
           </button>
         </div>
       </aside>
@@ -867,7 +803,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
                   ? 'bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800'
                   : 'bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100'
               )}
-              title={isDarkMode ? UI_TEXT.dashboardCommon.lightMode : UI_TEXT.dashboardCommon.darkMode}
+              title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
@@ -876,7 +812,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
               <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2', isDarkMode ? 'text-gray-500' : 'text-gray-400')} size={18} />
               <input
                 type="text"
-                placeholder={UI_TEXT.dashboardCommon.searchPlaceholder}
+                placeholder={'بحث...'}
                 value={dashboardQuery}
                 onChange={(e) => setDashboardQuery(e.target.value)}
                 className={cn('pl-10 pr-4 py-2 border rounded-xl focus:outline-none focus:ring-2 w-64 transition-colors', isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500' : 'bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400')}
@@ -905,8 +841,10 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
   const { isDarkMode } = useTheme();
   const isTopupCart = cartMode === 'topup';
   const [couponCode, setCouponCode] = useState('');
+  const [couponError, setCouponError] = useState('');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [orderConfirmation, setOrderConfirmation] = useState<any>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -1028,6 +966,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
         const data = JSON.parse(topupData);
         console.log('âœ… Initial load - Found topupCustomer:', data);
         setName(data.name || '');
+        setPhone(data.phone || '');
       } catch (err) {
         console.error('âڑ ï¸ڈ Error in initial check:', err);
       }
@@ -2707,6 +2646,7 @@ const StorePageMobileFooter = ({ storeSlug, cartCount, isTopup = false }: { stor
 
 const LoginPage = () => {
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { setUser } = useAuthStore();
   const { isDarkMode, setIsDarkMode } = useTheme();
@@ -2756,11 +2696,11 @@ const LoginPage = () => {
           navigate('/');
         }
       } else {
-        setError(UI_TEXT.loginPage.invalidCredentials);
+        setError('رقم الهاتف أو كلمة المرور غير صحيحة');
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError(UI_TEXT.loginPage.genericError);
+      setError('حدث خطأ ما');
     }
   };
 
@@ -2769,7 +2709,7 @@ const LoginPage = () => {
       <div className={cn('border-b py-4 px-6', isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-black/5')}>
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <Link to="/" className="text-indigo-600 font-normal text-sm hover:text-indigo-700 transition-colors">
-            {UI_TEXT.loginPage.backToPlatform}
+            {'العودة للمنصة'}
           </Link>
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
@@ -2779,7 +2719,7 @@ const LoginPage = () => {
                 ? 'bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800'
                 : 'bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100'
             )}
-            title={isDarkMode ? UI_TEXT.loginPage.lightMode : UI_TEXT.loginPage.darkMode}
+            title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}
           >
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
@@ -2793,7 +2733,7 @@ const LoginPage = () => {
         >
           <Link to="/" className="inline-flex items-center gap-2 text-indigo-600 font-normal mb-6 hover:gap-3 transition-all">
             <ChevronRight size={20} className="rotate-180" />
-            <span>{UI_TEXT.loginPage.backToPublicPlatform}</span>
+            <span>{'العودة للمنصة العامة'}</span>
           </Link>
           <Card className="p-8">
             <div className="text-center mb-8">
@@ -2803,13 +2743,13 @@ const LoginPage = () => {
                 </div>
               ) : null}
               <h1 className="text-4xl font-normal tracking-tighter text-indigo-600">{adminAppName}</h1>
-              <p className="text-gray-500 mt-2">{UI_TEXT.loginPage.welcomeBack}</p>
+              <p className="text-gray-500 mt-2">{'أهلا بعودتك إلى المنصة'}</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className={cn('block text-sm font-normal mb-1', isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-                  {UI_TEXT.loginPage.phoneLabel}
+                  {'رقم الهاتف'}
                 </label>
                 <input
                   type="text"
@@ -2822,7 +2762,7 @@ const LoginPage = () => {
               </div>
               <div>
                 <label className={cn('block text-sm font-normal mb-1', isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-                  {UI_TEXT.loginPage.passwordLabel}
+                  {'كلمة المرور'}
                 </label>
                 <input
                   type="password"
@@ -2835,16 +2775,16 @@ const LoginPage = () => {
               </div>
               {error && <p className={cn('text-sm font-medium', isDarkMode ? 'text-red-400' : 'text-red-500')}>{error}</p>}
               <Button type="submit" className="w-full bg-indigo-600 text-white py-4 hover:bg-indigo-700 shadow-lg shadow-indigo-200">
-                {UI_TEXT.loginRequired.login}
+                {'تسجيل الدخول'}
               </Button>
             </form>
 
             <div className="mt-6 space-y-3 text-center">
               <Link to="/register-merchant" className="block text-sm font-normal text-indigo-600 hover:text-indigo-700">
-                {UI_TEXT.loginPage.openStorePrompt}
+                {'هل تريد فتح متجرك الخاص سجل كتاجر الآن'}
               </Link>
               <Link to="/" className={cn('block text-sm font-normal', isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700')}>
-                {UI_TEXT.loginPage.browseAsGuest}
+                {'تصفح المنصة كزائر'}
               </Link>
             </div>
           </Card>
@@ -2864,7 +2804,9 @@ const RegisterMerchantPage = () => {
   
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     password: '',
+    phone: '',
     storeName: '',
     category: 'ط¹ط§ظ…',
     storeType: 'regular'
@@ -3178,10 +3120,11 @@ const AdminDashboard = () => {
   const { dashboardQuery } = useSearchStore();
   const adminLogoUploadRef = useRef<HTMLInputElement>(null);
 
-  const [adminConfig, setAdminConfig] = useState({ app_name: '', admin_commission_percentage: 0 });
+  const [adminConfig, setAdminConfig] = useState({ app_name: '', logo_url: '', admin_commission_percentage: 0 });
   
   // Filter states
   const [dateFromFilter, setDateFromFilter] = useState('');
+  const [dateToFilter, setDateToFilter] = useState('');
   const [subscriptionFilter, setSubscriptionFilter] = useState('all'); // 'all', 'paid', 'unpaid'
 
   const filteredStores = stores.filter(s => {
@@ -3191,12 +3134,20 @@ const AdminDashboard = () => {
     }
     // Apply filters only if there's a query
     return ((s as any).store_name || s.name || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
-    (s.owner_phone || '').toLowerCase().includes(dashboardQuery.toLowerCase());
+    (s.owner_name || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
+    (s.owner_phone || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
+    ((s as any).slug || '').toLowerCase().includes(dashboardQuery.toLowerCase());
   });
 
   const filteredPendingStores = pendingStores.filter(s => 
     ((s as any).store_name || s.name || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
-    (s.owner_phone || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
+    (s.owner_name || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
+    (s.owner_phone || '').toLowerCase().includes(dashboardQuery.toLowerCase())
+  );
+
+  const filteredUsers = users.filter(u => 
+    (u.name && u.name.toLowerCase().includes(dashboardQuery.toLowerCase())) ||
+    (u.phone || '').toLowerCase().includes(dashboardQuery.toLowerCase()) ||
     (u.role && u.role.toLowerCase().includes(dashboardQuery.toLowerCase()))
   );
 
@@ -3232,6 +3183,7 @@ const AdminDashboard = () => {
             const commValue = parseFloat(data.admin_commission_percentage);
             setAdminConfig({
               app_name: data.app_name || appName || '',
+              logo_url: data.logo_url || logoUrl || '',
               admin_commission_percentage: isNaN(commValue) ? 0 : commValue
             });
           }
@@ -3363,6 +3315,9 @@ const AdminDashboard = () => {
     store: any | null;
     customPhone: string;
   }>({ store: null, customPhone: '' });
+
+  const handleApprove = async (store: any) => {
+    setApproveDialog({ store, customPhone: store.owner_phone || '' });
   };
 
   // Filter orders based on criteria
@@ -3727,8 +3682,8 @@ const AdminDashboard = () => {
     console.log('renderStoresTable called - limit:', limit);
     console.log('stores.length:', stores.length, 'dashboardQuery:', dashboardQuery, 'filteredStores:', filteredStores.length);
     // Always show all stores if no search query, otherwise show filtered
-    const displayedStores = limit ?
-      (dashboardQuery && dashboardQuery.trim() !== '' ? filteredStores.slice(0, limit) : stores.slice(0, limit))
+    const displayedStores = limit ? 
+      (dashboardQuery && dashboardQuery.trim() !== '' ? filteredStores.slice(0, limit) : stores.slice(0, limit)) 
       : (dashboardQuery && dashboardQuery.trim() !== '' ? filteredStores : stores);
     console.log('displayedStores.length:', displayedStores.length, 'showing:', displayedStores.map((s: any) => s.store_name || s.name).join(', '));
     return (
@@ -4404,51 +4359,67 @@ const AdminDashboard = () => {
           
           <div className={cn("p-6 flex flex-col gap-3 border-t", isDarkMode ? "border-gray-700" : "border-gray-50")}>
             <div className="flex gap-3">
-              <Button
-                onClick={() => {
-                  // Basic check for Iraqi numbers prefix
-                  let waPhone = cleanPhone;
-                  if (cleanPhone.startsWith('07') && cleanPhone.length === 11) {
-                    waPhone = '964' + cleanPhone.substring(1);
-                  }
-                  // Open WhatsApp share with message
-                  const whatsappUrl = `https://wa.me/${waPhone}?text=${encodedMsg}`;
-                  window.open(whatsappUrl, '_blank');
-                  // Close the dialog
-                  setApproveDialog({ store: null, customPhone: '' });
-                }}
-                className="w-full bg-emerald-500 text-white py-4 font-normal rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-100"
+              <Button 
+                onClick={() => setApproveDialog({ store: null, customPhone: '' })}
+                className={cn("flex-1 py-3 font-normal rounded-xl", isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-500")}
               >
-                <Send size={20} />
-                <span>Send via WhatsApp</span>
+                ط¥ظ„ط؛ط§ط،
+              </Button>
+              <Button 
+                onClick={confirmApproval}
+                className="flex-[2] bg-indigo-600 text-white py-3 px-8 font-normal rounded-xl"
+              >
+                طھط­ط¯ظٹط« ط§ظ„ط­ط§ظ„ط© ظˆطھظپط¹ظٹظ„
               </Button>
             </div>
-            <p className="text-[10px] text-center text-gray-400 font-medium">Manual step: activate first, then send to sync store status.</p>
+            
+            <Button 
+              onClick={() => {
+                const encodedMsg = encodeURIComponent(messagePreview);
+                const cleanPhone = approveDialog.customPhone.replace(/[\s\-\(\)]/g, '');
+                // Basic check for Iraqi numbers prefix
+                let waPhone = cleanPhone;
+                if (cleanPhone.startsWith('07') && cleanPhone.length === 11) {
+                  waPhone = '964' + cleanPhone.substring(1);
+                }
+                // Open WhatsApp share with message
+                const whatsappUrl = `https://wa.me/${waPhone}?text=${encodedMsg}`;
+                window.open(whatsappUrl, '_blank');
+                // Close the dialog
+                setApproveDialog({ store: null, customPhone: '' });
+              }}
+              className="w-full bg-emerald-500 text-white py-4 font-normal rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-100"
+            >
+              <Send size={20} />
+              <span>ط¥ط±ط³ط§ظ„ ط§ظ„ط±ط³ط§ظ„ط© ط¹ط¨ط± ظˆط§طھط³ط§ط¨ ظٹط¯ظˆظٹط§ظ‹</span>
+            </Button>
+            <p className="text-[10px] text-center text-gray-400 font-medium">ط®ط·ظˆط© ظٹط¯ظˆظٹط©: ط§ط¶ط؛ط· طھظپط¹ظٹظ„ ط£ظˆظ„ط§ظ‹ ط«ظ… ط¥ط±ط³ط§ظ„ ظ„ط¶ظ…ط§ظ† طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„ظ…طھط¬ط±</p>
           </div>
         </motion.div>
       </div>
     );
   };
   return (
-    <DashboardLayout
+    <DashboardLayout 
       title={
-        effectiveSection === 'users' ? '\u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u0648\u0646' :
-        effectiveSection === 'approvals' ? '\u0637\u0644\u0628\u0627\u062a \u0627\u0644\u0627\u0646\u0636\u0645\u0627\u0645' :
-        (effectiveSection === 'stores' || effectiveSection === 'store') ? '\u0627\u0644\u0645\u062a\u0627\u062c\u0631' :
-        effectiveSection === 'stats' ? '\u0627\u0644\u0625\u062d\u0635\u0627\u0621\u0627\u062a' :
-        '\u0646\u0638\u0631\u0629 \u0639\u0627\u0645\u0629'
-      }
+        section === 'users' ? "ط§ظ„ظ…ط³طھط®ط¯ظ…ظˆظ†" : 
+        section === 'approvals' ? "ط·ظ„ط¨ط§طھ ط§ظ„ط§ظ†ط¶ظ…ط§ظ…" : 
+        section === 'stores' ? "ط§ظ„ظ…طھط§ط¬ط±" : 
+        section === 'stats' ? "ط§ظ„ط¥ط­طµط§ط¦ظٹط§طھ" : 
+        "ظ†ط¸ط±ط© ط¹ط§ظ…ط©"
+      } 
       role="admin"
       counts={sidebarCounts}
     >
       <>
-        {effectiveSection === 'users' ? renderUsers() :
-         effectiveSection === 'approvals' ? renderApprovals() :
-         (effectiveSection === 'stores' || effectiveSection === 'store') ? renderStoresTable() :
-         effectiveSection === 'stats' ? renderStats() :
-         effectiveSection === 'settings' ? renderSettings() :
+        {console.log('AdminDashboard - section:', section, 'effectiveSection:', effectiveSection, 'stores count:', stores.length)}
+        {effectiveSection === 'users' ? renderUsers() : 
+         effectiveSection === 'approvals' ? renderApprovals() : 
+         (effectiveSection === 'stores' || effectiveSection === 'store') ? renderStoresTable() : 
+         effectiveSection === 'stats' ? renderStats() : 
+         effectiveSection === 'settings' ? renderSettings() : 
          renderOverview()}
-        {renderApproveModal()}
+         {renderApproveModal()}
       </>
     </DashboardLayout>
   );
@@ -4509,7 +4480,7 @@ const MerchantDashboard = () => {
     auctions: Array.isArray(auctions) ? auctions.filter(a => !a.sold_at).length : 0
   };
 
-  const [merchantConfig, setMerchantConfig] = useState({ app_name: '', primary_color: '#4F46E5' });
+  const [merchantConfig, setMerchantConfig] = useState({ app_name: '', logo_url: '', primary_color: '#4F46E5' });
 
   // Order Details
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
@@ -4532,9 +4503,15 @@ const MerchantDashboard = () => {
   });
   const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
   const [salesDateFrom, setSalesDateFrom] = useState('');
+  const [salesDateTo, setSalesDateTo] = useState('');
   const [salesTypeFilter, setSalesTypeFilter] = useState<'all' | 'order' | 'auction'>('all');
   const [isLoadingSalesData, setIsLoadingSalesData] = useState(false);
   const [salesReportError, setSalesReportError] = useState('');
+
+  // Auction Save Modal
+  const [showAuctionSaveModal, setShowAuctionSaveModal] = useState(false);
+  const [selectedAuctionForSave, setSelectedAuctionForSave] = useState<any>(null);
+  const [finalSalePrice, setFinalSalePrice] = useState('');
 
   // Modal states
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -4545,21 +4522,30 @@ const MerchantDashboard = () => {
   const [isEditingProduct, setIsEditingProduct] = useState<number | null>(null);
   const [isEditingCustomer, setIsEditingCustomer] = useState<number | null>(null);
 
-  const [categoryForm, setCategoryForm] = useState({ name: '' });
+  const [categoryForm, setCategoryForm] = useState({ name: '', image_url: '' });
   const [customerForm, setCustomerForm] = useState({
     name: '',
+    phone: '',
     password: '',
+    starting_balance: '',
     credit_limit: '',
+    notes: '',
     customer_type: 'cash'
   });
   const [productForm, setProductForm] = useState({
     name: '',
+    description: '',
     price: '',
+    retail_price: '',
     wholesale_price: '',
+    stock: '',
     image_url: '',
+    category_id: '',
     gallery: [] as string[],
     topup_codes_text: '',
+    auction_date: '',
     auction_start_time: '',
+    auction_end_time: '',
     auction_price: '',
     is_auction: false
   });
@@ -4640,7 +4626,8 @@ const MerchantDashboard = () => {
     discount_type: 'percentage',
     discount_value: '',
     min_order_value: '0',
-    expiry_date: ''
+    expiry_date: '',
+    usage_limit: ''
   });
 
   // Customer Statement Modal States
@@ -4648,7 +4635,11 @@ const MerchantDashboard = () => {
   const [selectedCustomerStatement, setSelectedCustomerStatement] = useState<any>(null);
   const [selectedCustomerForPayments, setSelectedCustomerForPayments] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
-  const [paymentForm, setPaymentForm] = useState({ amount: '', notes: '');
+  const [paymentForm, setPaymentForm] = useState({ amount: '', payment_method: '', notes: '' });
+  const [isEditingPayment, setIsEditingPayment] = useState<number | null>(null);
+  const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
+  const [isLoadingCustomerTransactions, setIsLoadingCustomerTransactions] = useState(false);
+  const [merchantPaymentAmount, setMerchantPaymentAmount] = useState('');
   const [isProcessingMerchantPayment, setIsProcessingMerchantPayment] = useState(false);
   
   // Edit transaction state
@@ -4769,6 +4760,7 @@ const MerchantDashboard = () => {
             // Ensure all required fields are present, use defaults if missing
             setMerchantConfig({
               app_name: data.app_name || '',
+              logo_url: data.logo_url || '',
               primary_color: data.primary_color || '#4F46E5'
             });
             console.log('ًں“‹ Loaded merchant settings:', { app_name: data.app_name, logo_url: data.logo_url ? 'âœ“' : 'âœ—', primary_color: data.primary_color });
@@ -4913,6 +4905,7 @@ const MerchantDashboard = () => {
 
   const handleResetSalesFilters = async () => {
     setSalesDateFrom('');
+    setSalesDateTo('');
     setSalesTypeFilter('all');
     await fetchSalesReport({ saleType: 'all' });
   };
@@ -4925,12 +4918,18 @@ const MerchantDashboard = () => {
     console.log('ًںژ¯ handleCreateProduct triggered');
     setProductForm({
       name: '',
+      description: '',
       price: '',
+      retail_price: '',
       wholesale_price: '',
+      stock: '',
       image_url: '',
+      category_id: categories.length > 0 ? categories[0].id.toString() : '',
       gallery: [],
       topup_codes_text: '',
+      auction_date: '',
       auction_start_time: '',
+      auction_end_time: '',
       auction_price: '',
       is_auction: false
     });
@@ -4962,10 +4961,19 @@ const MerchantDashboard = () => {
       // Initialize base form data
       let formData = {
         name: p.name,
-        description: p.description || '' : (p.price?.toString() || '') : '') : '',
-        category_id: p.category_id?.toString() || (categories.length > 0 ? categories[0].id.toString() : '',
+        description: p.description || '',
+        price: isTopupStore ? '' : (p.price?.toString() || ''),
+        retail_price: isTopupStore ? (p.retail_price?.toString() || '') : '',
+        wholesale_price: isTopupStore ? (p.wholesale_price?.toString() || '') : '',
+        stock: (p.stock || 0).toString(),
+        image_url: p.image_url || '',
+        category_id: p.category_id?.toString() || (categories.length > 0 ? categories[0].id.toString() : ''),
+        gallery: parsedGallery,
+        topup_codes_text: '',
         auction_date: '',
+        auction_start_time: '',
         auction_end_time: '',
+        auction_price: '',
         is_auction: false
       };
       
@@ -4981,7 +4989,9 @@ const MerchantDashboard = () => {
       if (isAuction && p.id) {
         // âœ… SIMPLE: Data now comes as strings from API (converted by TO_CHAR in SQL)
         let parsedDate = String(p.auction_date || '').trim();
+        let parsedStartTime = String(p.auction_start_time || '').trim();
         let parsedEndTime = String(p.auction_end_time || '').trim();
+        let parsedPrice = String(p.auction_price || '').trim();
         
         console.log('âœ¨ Auction data from API (already formatted as strings):');
         console.log('   - auction_date:', parsedDate, '(type:', typeof parsedDate + ')');
@@ -5035,7 +5045,8 @@ const MerchantDashboard = () => {
   };
 
   const normalizeAuctionDate = (value: string) => {
-    const trimmed = String(value || '';
+    const trimmed = String(value || '').trim();
+    if (!trimmed) return '';
     if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
     const slashMatch = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
     if (slashMatch) {
@@ -5119,8 +5130,10 @@ const MerchantDashboard = () => {
       const auctionEndInput = document.querySelector('input[name="auction_end_time"]') as HTMLInputElement | null;
       const auctionPriceInput = document.querySelector('input[name="auction_price"]') as HTMLInputElement | null;
 
-      const auctionDateValue = normalizeAuctionDate(auctionDateInput?.value || productForm.auction_date || '').trim();
+      const auctionDateValue = normalizeAuctionDate(auctionDateInput?.value || productForm.auction_date || '');
+      const auctionStartValue = String(auctionStartInput?.value || productForm.auction_start_time || '').trim();
       const auctionEndValue = String(auctionEndInput?.value || productForm.auction_end_time || '').trim();
+      const auctionPriceValue = String(auctionPriceInput?.value || productForm.auction_price || '').trim();
 
       // For regular store: use regular price
       body.stock = parseInt(productForm.stock);
@@ -5281,12 +5294,18 @@ const MerchantDashboard = () => {
         setTopupCodesPreview([]);
         setProductForm({
           name: '',
+          description: '',
           price: '',
+          retail_price: '',
           wholesale_price: '',
+          stock: '',
           image_url: '',
+          category_id: '',
           gallery: [],
           topup_codes_text: '',
+          auction_date: '',
           auction_start_time: '',
+          auction_end_time: '',
           auction_price: '',
           is_auction: false
         });
@@ -5326,7 +5345,7 @@ const MerchantDashboard = () => {
       alert("ط¹ط°ط±ط§ظ‹طŒ ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ…ط¹ط±ظ‘ظپ ط§ظ„ظ…طھط¬ط± ط§ظ„ط®ط§طµ ط¨ظƒ.");
       return;
     }
-    setCategoryForm({ name: '' });
+    setCategoryForm({ name: '', image_url: '' });
     setIsEditingCategory(null);
     setShowCategoryModal(true);
   };
@@ -5426,7 +5445,14 @@ const MerchantDashboard = () => {
           starting_balance: parseFloat(customerForm.starting_balance) || 0,
           credit_limit: parseFloat(customerForm.credit_limit) || 0,
           customer_type: customerForm.customer_type || 'cash',
-          notes: customerForm.notes || '', phone: '', starting_balance: '', notes: '', customer_type: 'cash' });
+          notes: customerForm.notes || ''
+        })
+      });
+
+      if (res.ok) {
+        alert("âœ… طھظ…طھ ط¥ط¶ط§ظپط© ط§ظ„ط¹ظ…ظٹظ„ ط¨ظ†ط¬ط§ط­");
+        setShowCustomerModal(false);
+        setCustomerForm({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
         
         // Refresh customers list
         const updated = await fetch(`/api/merchant/customers?storeId=${user.store_id}`).then(r => r.json());
@@ -5464,7 +5490,15 @@ const MerchantDashboard = () => {
           starting_balance: parseFloat(customerForm.starting_balance) || 0,
           credit_limit: parseFloat(customerForm.credit_limit) || 0,
           customer_type: customerForm.customer_type || 'cash',
-          notes: customerForm.notes || '', phone: '', starting_balance: '', notes: '', customer_type: 'cash' });
+          notes: customerForm.notes || ''
+        })
+      });
+
+      if (res.ok) {
+        alert("âœ… طھظ… طھط­ط¯ظٹط« ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظٹظ„ ط¨ظ†ط¬ط§ط­");
+        setShowCustomerModal(false);
+        setIsEditingCustomer(null);
+        setCustomerForm({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
         
         // Refresh customers list
         const updated = await fetch(`/api/merchant/customers?storeId=${user.store_id}`).then(r => r.json());
@@ -5692,7 +5726,84 @@ const MerchantDashboard = () => {
                     </label>
                     <input 
                       type="text" 
-                      value={productForm.image_url.startsWith('data:') ? '').trim();
+                      value={productForm.image_url.startsWith('data:') ? '' : productForm.image_url}
+                      onChange={(e) => updateProductForm({ image_url: e.target.value })}
+                      placeholder="ط£ظˆ ط¶ط¹ ط±ط§ط¨ط·ط§ظ‹ ظ…ط¨ط§ط´ط±ط§ظ‹..."
+                      className={cn("w-full px-5 py-3 border rounded-xl font-normal outline-none text-xs mt-2", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 border-black/5 placeholder-gray-400")}
+                    />
+                  </div>
+
+                  {/* Gallery Images */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>طµظˆط± ط¥ط¶ط§ظپظٹط©:</p>
+                      <span className={cn("text-[10px] font-normal px-2 py-1 rounded", isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600")}>{(productForm.gallery || []).length} طµظˆط±</span>
+                    </div>
+                    <label className="cursor-pointer group relative">
+                      <div className={cn("w-full h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all", isDarkMode ? "border-gray-600 bg-gray-700 group-hover:bg-gray-600 group-hover:border-gray-500" : "border-blue-100 bg-blue-50/30 group-hover:bg-blue-50 group-hover:border-blue-300")}>
+                        <Plus size={24} className={isDarkMode ? "text-gray-400 mb-1" : "text-blue-400 mb-1"} />
+                        <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-blue-600")}>ط£ط¶ظپ طµظˆط± ط¥ط¶ط§ظپظٹط© (ط§ط®طھظٹط§ط±ظٹ)</p>
+                      </div>
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        multiple
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          const gallery = [...(productForm.gallery || [])];
+                          for (const file of files) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              gallery.push(reader.result as string);
+                              setProductForm(prev => ({...prev, gallery: [...gallery]}));
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Gallery Preview */}
+                  {(productForm.gallery || []).length > 0 && (
+                    <div className="space-y-2">
+                      <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>ظ…ط¹ط§ظٹظ†ط© ط§ظ„طµظˆط± ط§ظ„ط¥ط¶ط§ظپظٹط©:</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(productForm.gallery || []).map((img, idx) => (
+                          <div key={idx} className="relative group">
+                            <img src={img} className="w-full h-24 object-cover rounded-lg" alt={`gallery-${idx}`} />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newGallery = productForm.gallery.filter((_, i) => i !== idx);
+                                setProductForm(prev => ({...prev, gallery: newGallery}));
+                              }}
+                              className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Auction for Regular Stores */}
+            {!isTopupStore && (
+              <div className="space-y-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <label className={cn("flex items-center gap-2 cursor-pointer text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                  <input 
+                    type="checkbox" 
+                    checked={productForm.is_auction || false}
+                    onChange={(e) => {
+                      const isAuction = e.target.checked;
+
+                      if (isAuction) {
+                        const syncedPrice = String(productForm.price || productForm.auction_price || '').trim();
                         updateProductForm({
                           is_auction: true,
                           price: syncedPrice,
@@ -5944,7 +6055,7 @@ const MerchantDashboard = () => {
             <Button 
               onClick={() => {
                 setIsEditingCustomer(null);
-                setCustomerForm({ name: '', password: '', credit_limit: '', customer_type: 'cash' });
+                setCustomerForm({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
                 setShowCustomerModal(true);
               }}
               className={cn("px-4 py-2 rounded-xl text-sm font-normal transition-all shadow-sm", isDarkMode ? "bg-green-700 hover:bg-green-600 text-white" : "bg-green-600 hover:bg-green-700 text-white")}
@@ -6032,6 +6143,9 @@ const MerchantDashboard = () => {
                               name: cust.name,
                               phone: cust.phone,
                               password: cust.password || '',
+                              starting_balance: Math.floor(cust.starting_balance || 0).toString(),
+                              credit_limit: Math.floor(cust.credit_limit || 0).toString(),
+                              notes: cust.notes || '',
                               customer_type: cust.customer_type || 'cash'
                             });
                             setShowCustomerModal(true);
@@ -6098,7 +6212,8 @@ const MerchantDashboard = () => {
               discount_type: 'percentage',
               discount_value: '',
               min_order_value: '0',
-              expiry_date: ''
+              expiry_date: '',
+              usage_limit: ''
             });
             setShowCouponModal(true);
           }}
@@ -6304,7 +6419,8 @@ const MerchantDashboard = () => {
           discount_type: 'percentage',
           discount_value: '',
           min_order_value: '0',
-          expiry_date: ''
+          expiry_date: '',
+          usage_limit: ''
         });
         alert("âœ“ طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظ‚ط³ظٹظ…ط© ط¨ظ†ط¬ط§ط­!");
       } else {
@@ -8014,7 +8130,82 @@ const MerchantDashboard = () => {
                         <button
                           onClick={() => {
                             setEditingTransactionId(null);
-                            setEditingTransactionAmount('', '', 'height=600,width=800');
+                            setEditingTransactionAmount('');
+                          }}
+                          className={cn("flex-1 px-4 py-2 rounded-lg font-normal transition-all border", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600" : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200")}
+                        >
+                          ط¥ظ„ط؛ط§ط،
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+
+              {/* Payment Input Section */}
+              <div className={cn("p-4 md:p-6 border-t", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
+                <h4 className={cn("font-normal text-sm mb-4", isDarkMode ? "text-gray-300" : "text-gray-700")}>
+                  ًں’³ طھط³ط¬ظٹظ„ ط¯ظپط¹ط© ظٹط¯ظˆظٹط© ظ…ظ† ط§ظ„طھط§ط¬ط±
+                </h4>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1 relative">
+                    <input
+                      type="number"
+                      value={merchantPaymentAmount}
+                      onChange={(e) => setMerchantPaymentAmount(e.target.value)}
+                      placeholder="ط£ط¯ط®ظ„ ظ…ط¨ظ„ط؛ ط§ظ„ط¯ظپط¹ط©"
+                      className={cn("w-full px-4 py-3 border rounded-lg focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-normal outline-none pl-12", isDarkMode ? "bg-gray-600 border-gray-500 text-gray-100 placeholder-gray-400" : "bg-white border-black/5 placeholder-gray-400")}
+                    />
+                    <span className={cn("absolute left-3 top-1/2 -translate-y-1/2 font-normal text-sm", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط¯.ط£</span>
+                  </div>
+                  <button
+                    onClick={handleAddMerchantPayment}
+                    disabled={isProcessingMerchantPayment || !merchantPaymentAmount}
+                    className={cn("px-6 py-3 rounded-lg font-normal text-white transition-all flex items-center gap-2", isProcessingMerchantPayment ? "opacity-50 cursor-not-allowed" : "hover:scale-105 active:scale-95")}
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    {isProcessingMerchantPayment ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ط¬ط§ط±ظٹ...
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={18} />
+                        ط¥ط¶ط§ظپط© ط§ظ„ط¯ظپط¹ط©
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <div className={cn("p-4 border-t flex justify-end gap-3", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
+                <button
+                  onClick={() => setShowCustomerStatement(false)}
+                  className={cn("px-6 py-2 rounded-lg font-normal transition-all", isDarkMode ? "bg-gray-600 hover:bg-gray-500 text-gray-100" : "bg-gray-200 hover:bg-gray-300 text-gray-700")}
+                >
+                  ط¥ط؛ظ„ط§ظ‚
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Invoice Modal */}
+        {invoiceModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" dir="rtl">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={cn("rounded-2xl w-full max-w-4xl shadow-2xl max-h-[90vh] overflow-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
+            >
+              <div className={cn("p-6 border-b sticky top-0 flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
+                <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ظپط§طھظˆط±ط© #{invoiceModal.id}</h3>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => {
+                      const printWindow = window.open('', '', 'height=600,width=800');
                       if (printWindow) {
                         printWindow.document.write(invoiceModal.html);
                         printWindow.document.close();
@@ -8052,6 +8243,8 @@ const CustomerStorefront = () => {
   const storeId = slug; // Use slug as storeId
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [mainImage, setMainImage] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ط§ظ„ظƒظ„');
   const [showNewOnly, setShowNewOnly] = useState(false);
   const [storeName, setStoreName] = useState('');
@@ -8186,6 +8379,7 @@ const CustomerStorefront = () => {
 
         if (storeRes && !storeRes.error) {
           setStoreName(storeRes.store_name || '');
+          setDisplayAppName(storeRes.store_name || '');
           setDisplayLogoUrl(storeRes.store_logo || storeRes.logo_url || '');
           const isTopup = storeRes.store_type === 'topup';
           setStoreType(isTopup ? 'topup' : 'regular');
@@ -8714,7 +8908,9 @@ const MarketplacePage = () => {
   const [selectedAuction, setSelectedAuction] = useState<any>(null);
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [showCartModal, setShowCartModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('', customer_name: '' });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [auctionBidForm, setAuctionBidForm] = useState({ bid_price: '', customer_name: '', customer_phone: '' });
   const [bidSubmitting, setBidSubmitting] = useState(false);
   const [bidMessage, setBidMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -8897,7 +9093,7 @@ const MarketplacePage = () => {
         }
         
         // Clear form
-        setAuctionBidForm({ bid_price: '', customer_phone: '' });
+        setAuctionBidForm({ bid_price: '', customer_name: '', customer_phone: '' });
       } else {
         const errData = await res.json();
         setBidMessage({ type: 'error', text: errData.error || 'ظپط´ظ„ طھظ‚ط¯ظٹظ… ط§ظ„ط¹ط±ط¶' });
@@ -9762,7 +9958,19 @@ const StoresPage = () => {
   const [selectedTopupStore, setSelectedTopupStore] = useState<any>(null);
   const [isolatedTopupAuthFlow, setIsolatedTopupAuthFlow] = useState(false);
   const [topupAuthName, setTopupAuthName] = useState('');
-  const [topupAuthError, setTopupAuthError] = useState('';
+  const [topupAuthPhone, setTopupAuthPhone] = useState('');
+  const [topupAuthError, setTopupAuthError] = useState('');
+  const [topupAuthLoading, setTopupAuthLoading] = useState(false);
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { appName, primaryColor } = useSettingsStore();
+  const { isDarkMode } = useTheme();
+
+  const buildStoreLogosMap = (storeList: any[]) => {
+    const logoMap = new Map<number, string>();
+
+    for (const store of storeList) {
+      let resolvedLogo = store.logo_url || '';
       const savedSettings = localStorage.getItem(`storeSettings_${store.id}`);
 
       if (savedSettings) {
@@ -9825,6 +10033,7 @@ const StoresPage = () => {
       setIsolatedTopupAuthFlow(true);
       setSelectedTopupStore(matchedTopupStore);
       setTopupAuthName('');
+      setTopupAuthPhone('');
       setTopupAuthError('');
       setShowTopupAuthModal(true);
     }
@@ -9858,9 +10067,21 @@ const StoresPage = () => {
       setIsolatedTopupAuthFlow(false);
       setSelectedTopupStore(store);
       setTopupAuthName('');
-      setTopupAuthError('';
+      setTopupAuthPhone('');
+      setTopupAuthError('');
+      setShowTopupAuthModal(true);
+    } else {
+      navigate(`/store/${store.slug}`);
+    }
+  };
+
+  // Helper function to normalize phone numbers for comparison
+  const normalizePhone = (phone: string): string => {
+    if (!phone) return '';
     // Remove all spaces and dashes
     let normalized = phone.replace(/[\s\-()]/g, '');
+    // Remove leading + if exists
+    normalized = normalized.replace(/^\+/, '');
     // If starts with country code 964, keep it or convert to 07xxx format
     if (normalized.startsWith('964')) {
       normalized = '0' + normalized.substring(3);
@@ -9921,6 +10142,7 @@ const StoresPage = () => {
         setSelectedTopupStore(null);
         setIsolatedTopupAuthFlow(false);
         setTopupAuthName('');
+        setTopupAuthPhone('');
         setTopupAuthError('');
         
         // Wait a bit to ensure localStorage is synced, then navigate
@@ -9955,6 +10177,7 @@ const StoresPage = () => {
     setShowTopupAuthModal(false);
     setSelectedTopupStore(null);
     setTopupAuthName('');
+    setTopupAuthPhone('');
     setTopupAuthError('');
 
     if (isolatedTopupAuthFlow) {
@@ -10020,6 +10243,20 @@ const StoresPage = () => {
                     value={topupAuthName}
                     onChange={(e) => {
                       setTopupAuthName(e.target.value);
+                      setTopupAuthError('');
+                    }}
+                    placeholder="ط£ط¯ط®ظ„ ط§ظ„ط§ط³ظ…"
+                    className={cn("w-full px-4 py-2 rounded-lg font-normal text-sm border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-300 text-gray-900")}
+                  />
+                </div>
+
+                <div>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ</label>
+                  <input
+                    type="tel"
+                    value={topupAuthPhone}
+                    onChange={(e) => {
+                      setTopupAuthPhone(e.target.value);
                       setTopupAuthError('');
                     }}
                     placeholder="ط£ط¯ط®ظ„ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ"
@@ -10362,11 +10599,27 @@ const MerchantTopupDashboard = () => {
   const [selectedCustomerStatement, setSelectedCustomerStatement] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
-  const [paymentForm, setPaymentForm] = useState({ amount: '', logo_url: '', amount: '', bulk_price: '', quantity_type: 'unit', category_id: '', phone: '', starting_balance: '', notes: '', customer_type: 'cash' });
-  const [storeSettings, setStoreSettings] = useState({ store_name: '' });
+  const [paymentForm, setPaymentForm] = useState({ amount: '' });
+  const [isEditingPayment, setIsEditingPayment] = useState<number | null>(null);
+  const [isLoadingCustomerTransactions, setIsLoadingCustomerTransactions] = useState(false);
+  const [isEditingCustomer, setIsEditingCustomer] = useState<number | null>(null);
+  const [isEditingProduct, setIsEditingProduct] = useState<number | null>(null);
+  const [isEditingCompany, setIsEditingCompany] = useState<number | null>(null);
+  const [selectedProductForCodes, setSelectedProductForCodes] = useState<number | null>(null);
+
+  // Form states
+  const [companyForm, setCompanyForm] = useState({ name: '', logo_url: '' });
+  const [productForm, setProductForm] = useState({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
+  const [productImages, setProductImages] = useState<File[]>([]);
+  const [existingProductImages, setExistingProductImages] = useState<string[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [customerForm, setCustomerForm] = useState({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
+  const [storeSettings, setStoreSettings] = useState({ store_name: '', logo_url: '' });
   const [storeLogoBg, setStoreLogoFile] = useState<File | null>(null);
   const [logoUploadLoading, setLogoUploadLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string>('');
+  const [dashboardLogo, setDashboardLogo] = useState<string>('');
   const [logoRefreshKey, setLogoRefreshKey] = useState(0);
   const [storeInfo, setStoreInfo] = useState<any>(null);
 
@@ -10667,7 +10920,8 @@ const MerchantTopupDashboard = () => {
         const data = await res.json();
         if (data) {
           setStoreSettings({
-            store_name: data.store_name || ''
+            store_name: data.store_name || '',
+            logo_url: data.logo_url || ''
           });
         }
       } catch (error) {
@@ -11024,7 +11278,7 @@ const MerchantTopupDashboard = () => {
       if (response.ok) {
         alert(isEditingCompany ? 'طھظ… ط§ظ„طھط­ط¯ظٹط« ط¨ظ†ط¬ط§ط­' : 'طھظ…طھ ط§ظ„ط¥ط¶ط§ظپط© ط¨ظ†ط¬ط§ط­');
         setShowCompanyModal(false);
-        setCompanyForm({ name: '' });
+        setCompanyForm({ name: '', logo_url: '' });
         const reloadStoreId = Number(responseData?.store_id || topupStoreId);
         if (reloadStoreId && reloadStoreId !== topupStoreId) {
           setTopupStoreId(reloadStoreId);
@@ -11072,7 +11326,7 @@ const MerchantTopupDashboard = () => {
       if (response.ok) {
         alert(isEditingCustomer ? 'طھظ… ط§ظ„طھط­ط¯ظٹط« ط¨ظ†ط¬ط§ط­' : 'طھظ…طھ ط§ظ„ط¥ط¶ط§ظپط© ط¨ظ†ط¬ط§ط­');
         setShowCustomerModal(false);
-        setCustomerForm({ name: '', password: '', credit_limit: '', customer_type: 'cash' });
+        setCustomerForm({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
         // Reload customers
         const res = await fetch(`/api/topup/customers/${topupStoreId}`);
         const data = await res.json();
@@ -11096,7 +11350,9 @@ const MerchantTopupDashboard = () => {
     console.log('ًںژ¯ handleCreateProductTopup triggered');
     setProductForm({
       company_id: '',
+      amount: '',
       price: '',
+      bulk_price: '',
       quantity_type: 'unit',
       category_id: ''
     });
@@ -11295,7 +11551,7 @@ const MerchantTopupDashboard = () => {
 
         alert(isEditingProduct ? 'طھظ… ط§ظ„طھط­ط¯ظٹط« ط¨ظ†ط¬ط§ط­' : 'طھظ…طھ ط§ظ„ط¥ط¶ط§ظپط© ط¨ظ†ط¬ط§ط­');
         setShowProductModal(false);
-        setProductForm({ company_id: '', price: '', quantity_type: 'unit', category_id: '' });
+        setProductForm({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
         setProductImages([]);
         setExistingProductImages([]);
         
@@ -11702,7 +11958,7 @@ const MerchantTopupDashboard = () => {
             <div className="space-y-6">
               <button
                 onClick={() => {
-                  setCompanyForm({ name: '' });
+                  setCompanyForm({ name: '', logo_url: '' });
                   setIsEditingCompany(null);
                   setShowCompanyModal(true);
                 }}
@@ -11883,6 +12139,7 @@ const MerchantTopupDashboard = () => {
                                     amount: product.amount.toString(), 
                                     price: product.price.toString(), 
                                     bulk_price: product.bulk_price?.toString() || '', 
+                                    category_id: '', 
                                     quantity_type: product.quantity_type || 'unit' 
                                   });
                                   setProductImages([]);
@@ -12200,7 +12457,7 @@ const MerchantTopupDashboard = () => {
               <div className="flex gap-3">
                 <button
                   onClick={() => {
-                    setCustomerForm({ name: '', password: '', credit_limit: '', customer_type: 'cash' });
+                    setCustomerForm({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
                     setIsEditingCustomer(null);
                     setShowCustomerModal(true);
                   }}
@@ -12284,7 +12541,7 @@ const MerchantTopupDashboard = () => {
                               {/* Edit button */}
                               <button 
                                 onClick={() => {
-                                  setCustomerForm({ name: customer.name, phone: customer.phone, password: customer.password || '', customer_type: customer.customer_type || 'cash' });
+                                  setCustomerForm({ name: customer.name, phone: customer.phone, password: customer.password || '', starting_balance: Math.floor(customer.starting_balance || 0).toString(), credit_limit: Math.floor(customer.credit_limit || 0).toString(), notes: customer.notes || '', customer_type: customer.customer_type || 'cash' });
                                   setIsEditingCustomer(customer.id);
                                   setShowCustomerModal(true);
                                 }}
@@ -13354,14 +13611,37 @@ const TopupStorefront = () => {
   
   const [storeInfo, setStoreInfo] = useState<any>(null);
   const [storeLogo, setStoreLogo] = useState<string>('');
+  const [actualStoreId, setActualStoreId] = useState<number | null>(null);
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  const [selectedCompany, setSelectedCompany] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [refreshProductsKey, setRefreshProductsKey] = useState(0);  // Trigger for refreshing products
+
+  // Auth state
+  const [showAuthForm, setShowAuthForm] = useState(false);
+  const [authPhone, setAuthPhone] = useState('');
   const [authPassword, setAuthPassword] = useState('');
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [customer, setCustomer] = useState<any>(null);
+  const [showAccountStatement, setShowAccountStatement] = useState(false);
+  const [statementTransactions, setStatementTransactions] = useState<any[]>([]);
+  const [isLoadingStatement, setIsLoadingStatement] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState('');
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   
   // Purchase form state
   const [showPurchaseForm, setShowPurchaseForm] = useState(false);
-  const [purchaseForm, setPurchaseForm] = useState({ name: '', customer_type: 'cash' });
+  const [purchaseForm, setPurchaseForm] = useState({ name: '', phone: '', customer_type: 'cash' });
   
   // Credit system states
   const [creditStatus, setCreditStatus] = useState<any>(null);
@@ -13388,6 +13668,7 @@ const TopupStorefront = () => {
           setCustomer(customerData);
           setPurchaseForm({
             name: customerData.name || '',
+            phone: customerData.phone || '',
             customer_type: customerData.customer_type || 'cash'
           });
         } catch (err) {
@@ -13403,6 +13684,7 @@ const TopupStorefront = () => {
             console.log('âœ… TopupStorefront: Fallback to customerData:', data);
             setPurchaseForm({
               name: data.name || '',
+              phone: data.phone || '',
               customer_type: data.customer_type || 'cash'
             });
           } catch (err) {
@@ -13853,6 +14135,7 @@ const TopupStorefront = () => {
         // Also auto-fill purchase form from localStorage customer data
         setPurchaseForm({
           name: customerData.name || '',
+          phone: customerData.phone || '',
           customer_type: customerData.customer_type || 'cash'
         });
         console.log('âœ… Loaded customer from topupCustomer:', customerData);
@@ -13867,6 +14150,7 @@ const TopupStorefront = () => {
           const data = JSON.parse(fallbackData);
           setPurchaseForm({
             name: data.name || '',
+            phone: data.phone || '',
             customer_type: data.customer_type || 'cash'
           });
           console.log('âœ… Loaded purchase form from customerData:', data);
@@ -13961,6 +14245,7 @@ const TopupStorefront = () => {
           setCustomer(customerData);
           setPurchaseForm({
             name: customerData.name || '',
+            phone: customerData.phone || '',
             customer_type: customerData.customer_type || 'cash'
           });
         } catch (err) {
@@ -14048,7 +14333,17 @@ const TopupStorefront = () => {
   }, [products, selectedProduct?.id]);
 
   const filteredProducts = products.filter(p => {
-    if (!selectedCompany || selectedCompany.trim() === '').toLowerCase();
+    if (!selectedCompany || selectedCompany.trim() === '') return true;
+    
+    // Filter by company_id (numeric match from dropdown value)
+    const selectedId = parseInt(selectedCompany);
+    if (!isNaN(selectedId)) {
+      return p.company_id === selectedId;
+    }
+    
+    // Fallback: search by company name if not numeric
+    const searchTerm = selectedCompany.trim().toLowerCase();
+    const companyName = (p.company_name || '').toLowerCase();
     return companyName.includes(searchTerm);
   });
 
@@ -14324,6 +14619,7 @@ const TopupStorefront = () => {
     localStorage.removeItem('customerData');
     useSettingsStore.getState().resetSettings(); // Reset settings when logging out
     setAuthPhone('');
+    setAuthPassword('');
     setPhone('');
     setShowAuthForm(false);
     alert('طھظ… طھط³ط¬ظٹظ„ ط®ط±ظˆط¬ظƒ');
@@ -14474,6 +14770,7 @@ const TopupStorefront = () => {
           const data = JSON.parse(savedCustomerData);
           setPurchaseForm({
             name: data.name || '',
+            phone: data.phone || '',
             customer_type: data.customer_type || 'cash'
           });
         } catch (err) {
@@ -14570,7 +14867,7 @@ const TopupStorefront = () => {
         localStorage.removeItem('customerData');
         playAddToCartSound();
         setShowPurchaseForm(false);
-        setPurchaseForm({ name: '', customer_type: 'cash' });
+        setPurchaseForm({ name: '', phone: '', customer_type: 'cash' });
         
         // ًں”„ IMMEDIATE Update: Add new transaction to statement INSTANTLY
         if (customer?.customer_id) {
@@ -15197,7 +15494,7 @@ const TopupStorefront = () => {
                   <button
                     onClick={() => {
                       setShowPurchaseForm(false);
-                      setPurchaseForm({ name: '', customer_type: 'cash' });
+                      setPurchaseForm({ name: '', phone: '', customer_type: 'cash' });
                     }}
                     className={cn("py-2 rounded-lg text-white font-normal text-sm transition-all hover:scale-[1.02] active:scale-95", isDarkMode ? "bg-gray-700" : "bg-gray-400")}
                   >
@@ -15598,10 +15895,6 @@ const TopupOrderDetails = () => {
 };
 
 export default App;
-
-
-
-
 
 
 
