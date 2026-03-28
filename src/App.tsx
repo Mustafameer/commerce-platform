@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import * as React from 'react';
 // 🖼️ Image Upload System v2.0 - Refresh Build
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useParams, useNavigate, useSearchParams } from 'react-router-dom';
@@ -121,7 +121,7 @@ const getSafeImageUrl = (url: string | null | undefined): string => {
   return normalizedUrl;
 };
 
-const FRONTEND_BUILD_ID = '20260326-1520';
+const FRONTEND_BUILD_ID = '20260328-2236';
 
 if (typeof window !== 'undefined') {
   (window as any).__APP_BUILD_ID__ = FRONTEND_BUILD_ID;
