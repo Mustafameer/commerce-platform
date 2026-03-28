@@ -11821,7 +11821,7 @@ const MerchantTopupDashboard = () => {
           <div className={cn("mt-8 pt-8 border-t", isDarkMode ? "border-gray-800" : "border-gray-200")}>
             <div className={cn("p-4 rounded-lg mb-4", isDarkMode ? "bg-gray-800" : "bg-gray-100")}>
               <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>أنت مسجل بصفة</p>
-              <p className={cn("font-normal mb-4", isDarkMode ? "text-gray-100" : "text-gray-900")}>{user?.name || 'طھط§ط¬ط±'}</p>
+              <p className={cn("font-normal mb-4", isDarkMode ? "text-gray-100" : "text-gray-900")}>{user?.name || 'تاجر'}</p>
             </div>
           </div>
         </div>
@@ -11908,7 +11908,7 @@ const MerchantTopupDashboard = () => {
                                 <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{i + 1}. {p.company_name}</p>
                                 <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>المبلغ: {formatNumber(p.amount || 0)} د.ع</p>
                               </div>
-                              <span className={cn("text-sm font-normal font-mono", isDarkMode ? "text-green-400" : "text-green-600")}>{(p.images && Array.isArray(p.images)) ? p.images.filter((img: any) => img && String(img).length > 0).length : 0} طµظˆط±ط©</span>
+                              <span className={cn("text-sm font-normal font-mono", isDarkMode ? "text-green-400" : "text-green-600")}>{(p.images && Array.isArray(p.images)) ? p.images.filter((img: any) => img && String(img).length > 0).length : 0} صورة</span>
                             </div>
                           ))}
                       </div>
@@ -11940,7 +11940,7 @@ const MerchantTopupDashboard = () => {
                                 <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{i + 1}. {c.name}</p>
                                 <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>الإيرادات: {Number(c.totalRevenue || 0).toLocaleString('en-US')} د.ع</p>
                               </div>
-                              <span className={cn("text-xs px-2 py-1 rounded", isDarkMode ? "bg-green-900 text-green-300" : "bg-green-100 text-green-700")}>ظ†ط´ط·ط©</span>
+                              <span className={cn("text-xs px-2 py-1 rounded", isDarkMode ? "bg-green-900 text-green-300" : "bg-green-100 text-green-700")}>نشطة</span>
                             </div>
                           ))}
                       </div>
@@ -11971,7 +11971,7 @@ const MerchantTopupDashboard = () => {
                 <table className="w-full">
                   <thead>
                     <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ط§ط³ظ…</th>
+                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الاسم</th>
                       <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الإجراءات</th>
                     </tr>
                   </thead>
@@ -12057,7 +12057,7 @@ const MerchantTopupDashboard = () => {
                       {group.company_name}
                     </h3>
                     <span className={cn("ml-auto px-3 py-1 rounded-full text-sm font-medium", isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-700")}>
-                      {group.products.length} ظ…ظ†طھط¬
+                      {group.products.length} منتج
                     </span>
                   </div>
 
@@ -12119,7 +12119,7 @@ const MerchantTopupDashboard = () => {
                             {/* Price Info */}
                             <div className="space-y-2">
                               <div className="flex justify-between items-center text-sm">
-                                <span className={isDarkMode ? "text-gray-400" : "text-gray-700"}>ط§ظ„ط³ط¹ط±:</span>
+                                <span className={isDarkMode ? "text-gray-400" : "text-gray-700"}>السعر:</span>
                                 <span className={cn("font-semibold", isDarkMode ? "text-green-400" : "text-green-600")}>{formatNumber(product.price)} ط¯.ط¹</span>
                               </div>
                               {product.bulk_price && (
@@ -12158,7 +12158,7 @@ const MerchantTopupDashboard = () => {
                                 }}
                                 className={cn("flex-1 p-2 rounded-lg transition-all flex items-center justify-center gap-1 text-sm font-medium", isDarkMode ? "bg-green-900/40 text-green-400 hover:bg-green-900/60" : "bg-green-50 text-green-600 hover:bg-green-100")}
                               >
-                                <Upload size={14} /> ط£ظƒظˆط§ط¯ ({product.images?.filter((img: any) => img && String(img).length > 0).length || 0})
+                                <Upload size={14} /> أكواد ({product.images?.filter((img: any) => img && String(img).length > 0).length || 0})
                               </button>
                               <button 
                                 onClick={async () => {
@@ -12245,7 +12245,7 @@ const MerchantTopupDashboard = () => {
                       {/* Row 2: Price & Bulk Price */}
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>ط§ظ„ط³ط¹ط±</label>
+                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>السعر</label>
                           <input
                             type="number"
                             value={productForm.price}
@@ -12472,9 +12472,9 @@ const MerchantTopupDashboard = () => {
                   <table className="w-full">
                     <thead>
                       <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ط§ط³ظ…</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الاسم</th>
                         <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الهاتف</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ظ†ظˆط¹</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>النوع</th>
                         <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>حد الائتمان</th>
                         <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ديون سابقة</th>
                         <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الديون الحالية</th>
@@ -12616,7 +12616,7 @@ const MerchantTopupDashboard = () => {
                         <tr key={order.id} className={cn("border-t hover:bg-opacity-50", isDarkMode ? "border-gray-700 hover:bg-gray-700" : "border-gray-200 hover:bg-gray-50")}>
                           <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>#{order.id}</td>
                           <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>{order.phone || 'غير محدد'}</td>
-                          <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>{order.company_name && order.product_amount ? `${order.company_name} - ${order.product_amount}` : order.company_name || 'ظ…ظ†طھط¬'}</td>
+                          <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>{order.company_name && order.product_amount ? `${order.company_name} - ${order.product_amount}` : order.company_name || 'منتج'}</td>
                           <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>{order.total_amount} ط¯.ط¹</td>
                           <td className={cn("px-6 py-4 text-right text-sm font-medium", isDarkMode ? order.status === 'completed' ? "text-green-400" : order.status === 'pending' ? "text-yellow-400" : "text-red-400" : order.status === 'completed' ? "text-green-600" : order.status === 'pending' ? "text-yellow-600" : "text-red-600")}>
                             {order.status === 'completed' ? '✓ مكتمل' : order.status === 'pending' ? '⏳ معلق' : order.status === 'returned' ? '↩️ مسترجع' : 'ملغي'}
