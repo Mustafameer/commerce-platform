@@ -520,12 +520,10 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
   useEffect(() => {
     const storeId = user?.role === 'merchant' ? user.store_id : '';
     const roleParam = user?.role || '';
-    console.log("ًں”„ DashboardLayout fetching settings:", { storeId, roleParam });
 
-    fetch(`/api/settings${storeId ? `?storeId=${storeId}&role=${roleParam}` : `?role=${roleParam}`}`)
+    fetch('/api/settings' + (storeId ? '?storeId=' + storeId + '&role=' + roleParam : '?role=' + roleParam))
       .then(res => res.json())
       .then(data => {
-        console.log("ًں“¥ DashboardLayout received settings:", data);
         if (data && !data.error) {
           const settingsData = {
             app_name: data.app_name || appName,
@@ -534,11 +532,10 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
 
           setSettings(settingsData);
           useSettingsStore.getState().setSettings(settingsData);
-          console.log("âœ… Settings updated in both local and Zustand store:", settingsData);
         }
       })
       .catch((err) => {
-        console.error("â‌Œ Failed to fetch settings:", err);
+        console.error('Failed to fetch settings:', err);
       });
   }, [appName, user?.role, user?.store_id]);
 
@@ -550,22 +547,22 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
 
   const navItems = role === 'admin'
     ? [
-        { icon: LayoutDashboard, label: 'ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ…', path: '/admin' },
-        { icon: Users, label: 'ط§ظ„ظ…ط³طھط®ط¯ظ…ظˆظ†', path: '/admin/users', count: counts?.users },
-        { icon: StoreIcon, label: 'ط§ظ„ظ…طھط§ط¬ط±', path: '/admin/stores', count: counts?.stores },
-        { icon: CheckCircle, label: 'ط·ظ„ط¨ط§طھ ط§ظ„ط§ظ†ط¶ظ…ط§ظ…', path: '/admin/approvals', count: counts?.approvals },
-        { icon: BarChart3, label: 'ط§ظ„ط¥ط­طµط§ط¦ظٹط§طھ', path: '/admin/stats' },
-        { icon: Settings, label: 'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ', path: '/admin/settings' },
+        { icon: LayoutDashboard, label: UI_TEXT.dashboardLayout.admin.dashboard, path: '/admin' },
+        { icon: Users, label: UI_TEXT.dashboardLayout.admin.users, path: '/admin/users', count: counts?.users },
+        { icon: StoreIcon, label: UI_TEXT.dashboardLayout.admin.stores, path: '/admin/stores', count: counts?.stores },
+        { icon: CheckCircle, label: UI_TEXT.dashboardLayout.admin.approvals, path: '/admin/approvals', count: counts?.approvals },
+        { icon: BarChart3, label: UI_TEXT.dashboardLayout.admin.stats, path: '/admin/stats' },
+        { icon: Settings, label: UI_TEXT.dashboardLayout.admin.settings, path: '/admin/settings' },
       ]
     : [
-        { icon: LayoutDashboard, label: 'ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ…', path: '/merchant' },
-        { icon: Package, label: 'ط§ظ„ظ…ظ†طھط¬ط§طھ', path: '/merchant/products', count: counts?.products },
-        { icon: Layout, label: 'ط§ظ„ط£ظ‚ط³ط§ظ…', path: '/merchant/categories', count: counts?.categories },
-        { icon: Zap, label: 'ط§ظ„ظ…ط²ط§ط¯ط§طھ', path: '/merchant/auctions', count: counts?.auctions },
-        { icon: ShoppingCart, label: 'ط§ظ„ط·ظ„ط¨ط§طھ', path: '/merchant/orders', count: counts?.orders },
-        { icon: Ticket, label: 'ظ‚ط³ط§ط¦ظ… ط§ظ„ط®طµظ…', path: '/merchant/coupons', count: counts?.coupons },
-        { icon: Users, label: 'ط§ظ„ط¹ظ…ظ„ط§ط،', path: '/merchant/customers', count: counts?.customers },
-        { icon: Settings, label: 'ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…طھط¬ط±', path: '/merchant/settings' },
+        { icon: LayoutDashboard, label: UI_TEXT.dashboardLayout.merchant.dashboard, path: '/merchant' },
+        { icon: Package, label: UI_TEXT.dashboardLayout.merchant.products, path: '/merchant/products', count: counts?.products },
+        { icon: Layout, label: UI_TEXT.dashboardLayout.merchant.categories, path: '/merchant/categories', count: counts?.categories },
+        { icon: Zap, label: UI_TEXT.dashboardLayout.merchant.auctions, path: '/merchant/auctions', count: counts?.auctions },
+        { icon: ShoppingCart, label: UI_TEXT.dashboardLayout.merchant.orders, path: '/merchant/orders', count: counts?.orders },
+        { icon: Ticket, label: UI_TEXT.dashboardLayout.merchant.coupons, path: '/merchant/coupons', count: counts?.coupons },
+        { icon: Users, label: UI_TEXT.dashboardLayout.merchant.customers, path: '/merchant/customers', count: counts?.customers },
+        { icon: Settings, label: UI_TEXT.dashboardLayout.merchant.settings, path: '/merchant/settings' },
       ];
 
   const isNavItemActive = (path: string) => {
@@ -573,77 +570,75 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
     if (path === rootPath) {
       return location.pathname === path;
     }
-    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+    return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
   if (isMobile) {
-    // Mobile Layout
     return (
-      <div className={cn("flex flex-col h-screen w-screen overflow-hidden", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} 
+      <div className={cn('flex flex-col h-screen w-screen overflow-hidden', isDarkMode ? 'bg-gray-900' : 'bg-[#F5F5F5]')}
         data-dashboard-layout="mobile"
         dir="rtl"
       >
-        {/* Mobile Header */}
-        <div className={cn("border-b px-4 py-3 sticky top-0 z-30 backdrop-blur-sm", isDarkMode ? "bg-gray-800/95 border-gray-700" : "bg-white/95 border-black/5")}>
+        <div className={cn('border-b px-4 py-3 sticky top-0 z-30 backdrop-blur-sm', isDarkMode ? 'bg-gray-800/95 border-gray-700' : 'bg-white/95 border-black/5')}>
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className={cn("p-2 rounded-lg transition-colors flex-shrink-0", isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100")}
-              aria-label="ظپطھط­ ط§ظ„ظ‚ط§ط¦ظ…ط©"
+              className={cn('p-2 rounded-lg transition-colors flex-shrink-0', isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100')}
+              aria-label={UI_TEXT.dashboardCommon.openMenu}
             >
-              {sidebarOpen ? <X size={22} className={isDarkMode ? "text-gray-100" : "text-gray-900"} /> : <Menu size={22} className={isDarkMode ? "text-gray-100" : "text-gray-900"} />}
+              {sidebarOpen ? <X size={22} className={isDarkMode ? 'text-gray-100' : 'text-gray-900'} /> : <Menu size={22} className={isDarkMode ? 'text-gray-100' : 'text-gray-900'} />}
             </button>
             <div className="min-w-0 flex-1 text-center">
-              <h2 className={cn("text-base font-normal truncate", isDarkMode ? "text-gray-100" : "text-gray-900")}>{title}</h2>
-              <p className={cn("text-[10px] truncate", isDarkMode ? "text-gray-400" : "text-gray-500")}>{settings.app_name}</p>
+              <h2 className={cn('text-base font-normal truncate', isDarkMode ? 'text-gray-100' : 'text-gray-900')}>{title}</h2>
+              <p className={cn('text-[10px] truncate', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>{settings.app_name}</p>
             </div>
-            <button 
+            <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className={cn(
-                "p-2 rounded-lg border transition-all flex items-center justify-center flex-shrink-0",
-                isDarkMode 
-                  ? "bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800" 
-                  : "bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100"
+                'p-2 rounded-lg border transition-all flex items-center justify-center flex-shrink-0',
+                isDarkMode
+                  ? 'bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800'
+                  : 'bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100'
               )}
-              title={isDarkMode ? "ط§ظ„ظˆط¶ط¹ ط§ظ„ظپط§طھط­" : "ط§ظ„ظˆط¶ط¹ ط§ظ„ط¯ط§ظƒظ†"}
+              title={isDarkMode ? UI_TEXT.dashboardCommon.lightMode : UI_TEXT.dashboardCommon.darkMode}
             >
               {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
           </div>
           <div className="relative mt-3">
-            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2", isDarkMode ? "text-gray-500" : "text-gray-400")} size={16} />
-            <input 
-              type="text" 
-              placeholder="ط¨ط­ط«..." 
+            <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2', isDarkMode ? 'text-gray-500' : 'text-gray-400')} size={16} />
+            <input
+              type="text"
+              placeholder={UI_TEXT.dashboardCommon.searchPlaceholder}
               value={dashboardQuery}
               onChange={(e) => setDashboardQuery(e.target.value)}
-              className={cn("w-full pl-9 pr-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition-colors text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500" : "bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400")}
+              className={cn('w-full pl-9 pr-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition-colors text-sm', isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500' : 'bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400')}
             />
           </div>
         </div>
 
-        {/* Mobile Menu Drawer Overlay */}
         {sidebarOpen && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 z-40"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
-        {/* Mobile Menu Drawer */}
         <div className={cn(
-          "fixed inset-y-0 right-0 z-50 w-72 max-w-[85vw] transform border-l transition-transform",
-          sidebarOpen ? "-translate-x-0" : "translate-x-full",
-          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5"
+          'fixed inset-y-0 right-0 z-50 w-72 max-w-[85vw] transform border-l transition-transform',
+          sidebarOpen ? '-translate-x-0' : 'translate-x-full',
+          isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-black/5'
         )}>
-          <div className={cn("p-5 border-b", isDarkMode ? "border-gray-700" : "border-black/5")}>
+          <div className={cn('p-5 border-b', isDarkMode ? 'border-gray-700' : 'border-black/5')}>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <h3 className={cn("text-lg font-normal truncate", isDarkMode ? "text-gray-100" : "text-gray-900")}>{settings.app_name}</h3>
-                <p className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-500")}>ظ„ظˆط­ط© {role === 'admin' ? 'ط§ظ„ط¥ط¯ط§ط±ط©' : 'ط§ظ„طھط§ط¬ط±'}</p>
+                <h3 className={cn('text-lg font-normal truncate', isDarkMode ? 'text-gray-100' : 'text-gray-900')}>{settings.app_name}</h3>
+                <p className={cn('text-xs', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>
+                  {UI_TEXT.dashboardCommon.rolePrefix} {role === 'admin' ? UI_TEXT.roleLabel.admin : UI_TEXT.roleLabel.merchant}
+                </p>
               </div>
               {settings.logo_url ? (
-                <div className={cn("w-14 h-14 rounded-full overflow-hidden ring-2 flex-shrink-0", isDarkMode ? "ring-gray-600 bg-gray-700" : "ring-indigo-100 bg-gray-50")}>
+                <div className={cn('w-14 h-14 rounded-full overflow-hidden ring-2 flex-shrink-0', isDarkMode ? 'ring-gray-600 bg-gray-700' : 'ring-indigo-100 bg-gray-50')}>
                   <img src={settings.logo_url} className="w-full h-full object-cover" alt="logo" />
                 </div>
               ) : (
@@ -663,10 +658,10 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
                   setSidebarOpen(false);
                 }}
                 className={cn(
-                  "flex items-center justify-between px-4 py-3 rounded-xl transition-colors group",
+                  'flex items-center justify-between px-4 py-3 rounded-xl transition-colors group',
                   isNavItemActive(item.path)
-                    ? (isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-indigo-50 text-indigo-600")
-                    : (isDarkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-indigo-50 hover:text-indigo-600")
+                    ? (isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-indigo-50 text-indigo-600')
+                    : (isDarkMode ? 'text-gray-300 hover:bg-gray-700 hover:text-blue-400' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-600')
                 )}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -674,162 +669,158 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
                   <span className="font-medium text-sm truncate">{item.label}</span>
                 </div>
                 {item.count !== undefined && item.count > 0 && (
-                  <span className={cn("text-[10px] font-normal px-2 py-0.5 rounded-full ring-2 shadow-sm flex-shrink-0", isDarkMode ? "bg-blue-900 text-blue-300 ring-gray-700" : "bg-indigo-100 text-indigo-600 ring-white")}>
+                  <span className={cn('text-[10px] font-normal px-2 py-0.5 rounded-full ring-2 shadow-sm flex-shrink-0', isDarkMode ? 'bg-blue-900 text-blue-300 ring-gray-700' : 'bg-indigo-100 text-indigo-600 ring-white')}>
                     {item.count}
                   </span>
                 )}
               </Link>
             ))}
           </nav>
-          <div className={cn("p-3 border-t space-y-2", isDarkMode ? "border-gray-700" : "border-black/5")}>
+          <div className={cn('p-3 border-t space-y-2', isDarkMode ? 'border-gray-700' : 'border-black/5')}>
             {role === 'merchant' && user?.store_slug && (
-              <Link 
-                to={`/store/${user.store_slug}`} 
+              <Link
+                to={'/store/' + user.store_slug}
                 target="_blank"
                 onClick={() => setSidebarOpen(false)}
-                className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-normal", isDarkMode ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-indigo-600 text-white hover:bg-indigo-700")}
+                className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-normal', isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-indigo-600 text-white hover:bg-indigo-700')}
               >
                 <ExternalLink size={18} className="flex-shrink-0" />
-                <span className="truncate">ط¹ط±ط¶ ط§ظ„ظ…طھط¬ط±</span>
+                <span className="truncate">{UI_TEXT.dashboardCommon.viewStore}</span>
               </Link>
             )}
             <button
               onClick={handleLogout}
-              className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm", isDarkMode ? "text-red-400 hover:bg-red-900/30" : "text-red-600 hover:bg-red-50")}
+              className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm', isDarkMode ? 'text-red-400 hover:bg-red-900/30' : 'text-red-600 hover:bg-red-50')}
             >
               <LogOut size={18} />
-              <span className="truncate">طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬</span>
+              <span className="truncate">{UI_TEXT.dashboardCommon.logout}</span>
             </button>
           </div>
         </div>
 
-        {/* Mobile Content */}
         <div className="flex-1 overflow-y-auto">
-          <div className={cn("px-4 py-4 pb-28", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
+          <div className={cn('px-4 py-4 pb-28', isDarkMode ? 'bg-gray-900' : 'bg-[#F5F5F5]')}>
             {children}
           </div>
         </div>
 
-        {/* Mobile Footer Navigation */}
         <MobileFooterNav />
       </div>
     );
   }
 
-  // Desktop Layout
   return (
-    <div className={cn("h-screen w-screen overflow-hidden flex-row", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} 
+    <div className={cn('h-screen w-screen overflow-hidden flex-row', isDarkMode ? 'bg-gray-900' : 'bg-[#F5F5F5]')}
       data-dashboard-layout="desktop"
       dir="rtl"
     >
-      {/* Sidebar */}
       <aside className={cn(
-        "relative w-64 h-screen border-r flex-col overflow-hidden flex",
-        isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5"
+        'relative w-64 h-screen border-r flex-col overflow-hidden flex',
+        isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-black/5'
       )}>
-        <div className={cn("p-6 text-center border-b flex-shrink-0", isDarkMode ? "border-gray-700" : "border-black/5")}>
-        <div className="flex flex-col items-center gap-3">
-          {settings.logo_url ? (
-            <div className={cn("w-20 h-20 rounded-full overflow-hidden ring-4 shadow-lg flex items-center justify-center flex-shrink-0", isDarkMode ? "ring-gray-700 bg-gray-700" : "ring-indigo-50 bg-gray-50")}>
-              <img src={settings.logo_url} className="w-full h-full object-cover" alt="logo" />
+        <div className={cn('p-6 text-center border-b flex-shrink-0', isDarkMode ? 'border-gray-700' : 'border-black/5')}>
+          <div className="flex flex-col items-center gap-3">
+            {settings.logo_url ? (
+              <div className={cn('w-20 h-20 rounded-full overflow-hidden ring-4 shadow-lg flex items-center justify-center flex-shrink-0', isDarkMode ? 'ring-gray-700 bg-gray-700' : 'ring-indigo-50 bg-gray-50')}>
+                <img src={settings.logo_url} className="w-full h-full object-cover" alt="logo" />
+              </div>
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-indigo-600 flex items-center justify-center text-white text-2xl font-normal shadow-lg ring-4 ring-indigo-50 flex-shrink-0">
+                {settings.app_name?.[0]}
+              </div>
+            )}
+            <div>
+              <h1 className={cn('text-lg font-normal tracking-tighter mb-0.5', isDarkMode ? 'text-blue-400' : 'text-indigo-600')}>{settings.app_name}</h1>
+              <p className={cn('text-[9px] uppercase tracking-[0.2em] font-normal italic', isDarkMode ? 'text-gray-500' : 'text-gray-400')}>
+                {UI_TEXT.dashboardCommon.rolePrefix} {role === 'admin' ? UI_TEXT.roleLabel.admin : UI_TEXT.roleLabel.merchant}
+              </p>
             </div>
-          ) : (
-            <div className="w-20 h-20 rounded-full bg-indigo-600 flex items-center justify-center text-white text-2xl font-normal shadow-lg ring-4 ring-indigo-50 flex-shrink-0">
-              {settings.app_name?.[0]}
-            </div>
-          )}
-          <div>
-            <h1 className={cn("text-lg font-normal tracking-tighter mb-0.5", isDarkMode ? "text-blue-400" : "text-indigo-600")}>{settings.app_name}</h1>
-            <p className={cn("text-[9px] uppercase tracking-[0.2em] font-normal italic", isDarkMode ? "text-gray-500" : "text-gray-400")}>ظ„ظˆط­ط© {role === 'admin' ? 'ط§ظ„ط¥ط¯ط§ط±ط©' : 'ط§ظ„طھط§ط¬ط±'}</p>
           </div>
         </div>
-      </div>
-      
-      <nav className="flex-1 px-3 space-y-1 overflow-y-auto pb-20">
-        {navItems.map((item, index) => (
-          <Link
-            key={item.label}
-            to={item.path}
-            onClick={() => {
-              setDashboardQuery('');
-              setSidebarOpen(false);
-            }}
-            className={cn(
-              "flex items-center justify-between px-4 py-3 rounded-xl transition-colors group",
-              isNavItemActive(item.path)
-                ? (isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-indigo-50 text-indigo-600")
-                : (isDarkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-indigo-50 hover:text-indigo-600")
-            )}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              {item.icon && <item.icon size={20} className="group-hover:scale-110 transition-transform flex-shrink-0" />}
-              <span className="font-medium text-sm truncate">{item.label}</span>
-            </div>
-            {item.count !== undefined && item.count > 0 && (
-              <span className={cn("text-[10px] font-normal px-2 py-0.5 rounded-full ring-2 shadow-sm group-hover:transition-all flex-shrink-0", isDarkMode ? "bg-blue-900 text-blue-300 ring-gray-700 group-hover:bg-blue-600 group-hover:text-white" : "bg-indigo-100 text-indigo-600 ring-white group-hover:bg-indigo-600 group-hover:text-white")}>
-                {item.count}
-              </span>
-            )}
-          </Link>
-        ))}
-      </nav>
 
-      <div className={cn("p-3 border-t space-y-2 flex-shrink-0", isDarkMode ? "border-gray-700" : "border-black/5")}>
-        {role === 'merchant' && user?.store_slug && (
-          <Link 
-            to={`/store/${user.store_slug}`} 
-            target="_blank"
-            className={cn("w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all shadow-lg group text-sm font-normal", isDarkMode ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-900" : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100")}
-          >
-            <div className="flex items-center gap-3">
-              <ExternalLink size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform flex-shrink-0" />
-              <span className="truncate">ط¹ط±ط¶ ط§ظ„ظ…طھط¬ط±</span>
-            </div>
-          </Link>
-        )}
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto pb-20">
+          {navItems.map((item) => (
+            <Link
+              key={item.label}
+              to={item.path}
+              onClick={() => {
+                setDashboardQuery('');
+                setSidebarOpen(false);
+              }}
+              className={cn(
+                'flex items-center justify-between px-4 py-3 rounded-xl transition-colors group',
+                isNavItemActive(item.path)
+                  ? (isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-indigo-50 text-indigo-600')
+                  : (isDarkMode ? 'text-gray-300 hover:bg-gray-700 hover:text-blue-400' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-600')
+              )}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                {item.icon && <item.icon size={20} className="group-hover:scale-110 transition-transform flex-shrink-0" />}
+                <span className="font-medium text-sm truncate">{item.label}</span>
+              </div>
+              {item.count !== undefined && item.count > 0 && (
+                <span className={cn('text-[10px] font-normal px-2 py-0.5 rounded-full ring-2 shadow-sm group-hover:transition-all flex-shrink-0', isDarkMode ? 'bg-blue-900 text-blue-300 ring-gray-700 group-hover:bg-blue-600 group-hover:text-white' : 'bg-indigo-100 text-indigo-600 ring-white group-hover:bg-indigo-600 group-hover:text-white')}>
+                  {item.count}
+                </span>
+              )}
+            </Link>
+          ))}
+        </nav>
 
-        <button
-          onClick={handleLogout}
-          className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm", isDarkMode ? "text-red-400 hover:bg-red-900/30" : "text-red-600 hover:bg-red-50")}
-        >
-          <LogOut size={18} />
-          <span className="truncate">طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬</span>
-        </button>
+        <div className={cn('p-3 border-t space-y-2 flex-shrink-0', isDarkMode ? 'border-gray-700' : 'border-black/5')}>
+          {role === 'merchant' && user?.store_slug && (
+            <Link
+              to={'/store/' + user.store_slug}
+              target="_blank"
+              className={cn('w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all shadow-lg group text-sm font-normal', isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-900' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100')}
+            >
+              <div className="flex items-center gap-3">
+                <ExternalLink size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform flex-shrink-0" />
+                <span className="truncate">{UI_TEXT.dashboardCommon.viewStore}</span>
+              </div>
+            </Link>
+          )}
+
+          <button
+            onClick={handleLogout}
+            className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm', isDarkMode ? 'text-red-400 hover:bg-red-900/30' : 'text-red-600 hover:bg-red-50')}
+          >
+            <LogOut size={18} />
+            <span className="truncate">{UI_TEXT.dashboardCommon.logout}</span>
+          </button>
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 h-full overflow-hidden flex-col flex">
-        <header className={cn("px-8 py-6 border-b flex justify-between items-center flex-shrink-0", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5")}>
-          <h2 className={cn("text-3xl font-normal tracking-tight", isDarkMode ? "text-gray-100" : "text-gray-900")}>{title}</h2>
+        <header className={cn('px-8 py-6 border-b flex justify-between items-center flex-shrink-0', isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-black/5')}>
+          <h2 className={cn('text-3xl font-normal tracking-tight', isDarkMode ? 'text-gray-100' : 'text-gray-900')}>{title}</h2>
           <div className="flex gap-4 items-center">
-            {/* Theme Toggle Button */}
-            <button 
+            <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className={cn(
-                "p-2.5 rounded-lg border transition-all flex items-center justify-center",
-                isDarkMode 
-                  ? "bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800" 
-                  : "bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100"
+                'p-2.5 rounded-lg border transition-all flex items-center justify-center',
+                isDarkMode
+                  ? 'bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800'
+                  : 'bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100'
               )}
-              title={isDarkMode ? "ط§ظ„ظˆط¶ط¹ ط§ظ„ظپط§طھط­" : "ط§ظ„ظˆط¶ط¹ ط§ظ„ط¯ط§ظƒظ†"}
+              title={isDarkMode ? UI_TEXT.dashboardCommon.lightMode : UI_TEXT.dashboardCommon.darkMode}
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            
+
             <div className="relative hidden sm:block">
-              <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2", isDarkMode ? "text-gray-500" : "text-gray-400")} size={18} />
-              <input 
-                type="text" 
-                placeholder="ط¨ط­ط«..." 
+              <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2', isDarkMode ? 'text-gray-500' : 'text-gray-400')} size={18} />
+              <input
+                type="text"
+                placeholder={UI_TEXT.dashboardCommon.searchPlaceholder}
                 value={dashboardQuery}
                 onChange={(e) => setDashboardQuery(e.target.value)}
-                className={cn("pl-10 pr-4 py-2 border rounded-xl focus:outline-none focus:ring-2 w-64 transition-colors", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500" : "bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400")}
+                className={cn('pl-10 pr-4 py-2 border rounded-xl focus:outline-none focus:ring-2 w-64 transition-colors', isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500' : 'bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400')}
               />
             </div>
           </div>
         </header>
-        <div className={cn("flex-1 overflow-y-auto px-8 py-8", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
+        <div className={cn('flex-1 overflow-y-auto px-8 py-8', isDarkMode ? 'bg-gray-900' : 'bg-[#F5F5F5]')}>
           {children}
         </div>
       </main>
@@ -2660,150 +2651,144 @@ const LoginPage = () => {
   const { setUser } = useAuthStore();
   const { isDarkMode, setIsDarkMode } = useTheme();
   const navigate = useNavigate();
-  
+
   // Load ADMIN settings only (not merchant settings)
-  const [adminAppName, setAdminAppName] = useState('ظ…ظ†طµطھظٹ');
+  const [adminAppName, setAdminAppName] = useState('\u0645\u0646\u0635\u062a\u064a');
   const [adminLogoUrl, setAdminLogoUrl] = useState('');
-  
+
   useEffect(() => {
-    // Fetch admin settings specifically
     fetch('/api/settings?role=admin')
       .then(res => res.json())
       .then(data => {
         if (data && data.app_name) {
           setAdminAppName(data.app_name);
           setAdminLogoUrl(data.logo_url || '');
-          console.log("ًں“‹ Loaded ADMIN settings for login page:", data);
+          console.log('Loaded ADMIN settings for login page:', data);
         }
       })
-      .catch(err => console.error("Failed to load admin settings:", err));
+      .catch(err => console.error('Failed to load admin settings:', err));
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(''); // Clear error first
-    console.log('ًں”گ ظ…ط­ط§ظˆظ„ط© طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„:', { phone, password });
-    
+    setError('');
+
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, password }),
       });
-      
-      console.log('ًں“¥ ط§ظ„ط§ط³طھط¬ط§ط¨ط©:', res.status, res.ok);
-      
+
       if (res.ok) {
         const user = await res.json();
-        console.log('âœ… ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ…:', user);
         setUser(user);
-        console.log('ًں”„ طھظ… ط­ظپط¸ ط§ظ„ط¨ظٹط§ظ†ط§طھطŒ ط§ظ„ط¢ظ† ط§ظ„طھظˆط¬ظٹظ‡...');
+
         if (user.role === 'admin') {
-          console.log('ًںژ¯ طھظˆط¬ظٹظ‡ ط¥ظ„ظ‰ /admin');
           navigate('/admin');
-        }
-        else if (user.role === 'merchant') {
-          // Check store type for correct routing
+        } else if (user.role === 'merchant') {
           if (user.store_type === 'topup') {
             navigate('/topup-merchant');
           } else {
             navigate('/merchant');
           }
+        } else {
+          navigate('/');
         }
-        else navigate('/');
       } else {
-        console.log('â‌Œ ط®ط·ط£ ظ…ظ† ط§ظ„ظ€ API');
-        setError('ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ط£ظˆ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط؛ظٹط± طµط­ظٹط­ط©');
+        setError(UI_TEXT.loginPage.invalidCredentials);
       }
     } catch (err) {
-      console.error('â‌Œ ط®ط·ط£:', err);
-      setError('ط­ط¯ط« ط®ط·ط£ ظ…ط§');
+      console.error('Login error:', err);
+      setError(UI_TEXT.loginPage.genericError);
     }
   };
 
   return (
-    <div className={cn("min-h-screen flex flex-col", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
-      <div className={cn("border-b py-4 px-6", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5")}>
+    <div className={cn('min-h-screen flex flex-col', isDarkMode ? 'bg-gray-900' : 'bg-[#F5F5F5]')}>
+      <div className={cn('border-b py-4 px-6', isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-black/5')}>
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <Link to="/" className="text-indigo-600 font-normal text-sm hover:text-indigo-700 transition-colors">
-            ط§ظ„ط¹ظˆط¯ط© ظ„ظ„ظ…ظ†طµط©
+            {UI_TEXT.loginPage.backToPlatform}
           </Link>
-          <button 
+          <button
             onClick={() => setIsDarkMode(!isDarkMode)}
             className={cn(
-              "p-2.5 rounded-lg border transition-all flex items-center justify-center",
-              isDarkMode 
-                ? "bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800" 
-                : "bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100"
+              'p-2.5 rounded-lg border transition-all flex items-center justify-center',
+              isDarkMode
+                ? 'bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800'
+                : 'bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100'
             )}
-            title={isDarkMode ? "ط§ظ„ظˆط¶ط¹ ط§ظ„ظپط§طھط­" : "ط§ظ„ظˆط¶ط¹ ط§ظ„ط¯ط§ظƒظ†"}
+            title={isDarkMode ? UI_TEXT.loginPage.lightMode : UI_TEXT.loginPage.darkMode}
           >
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
         </div>
       </div>
       <div className="flex items-center justify-center flex-1 p-4 pb-28 md:pb-4">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md"
-      >
-        <Link to="/" className="inline-flex items-center gap-2 text-indigo-600 font-normal mb-6 hover:gap-3 transition-all">
-          <ChevronRight size={20} className="rotate-180" />
-          <span>ط§ظ„ط¹ظˆط¯ط© ظ„ظ„ظ…ظ†طµط© ط§ظ„ط¹ط§ظ…ط©</span>
-        </Link>
-        <Card className="p-8">
-          <div className="text-center mb-8">
-            {adminLogoUrl ? (
-              <div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-indigo-50 shadow-lg bg-gray-50 flex items-center justify-center mx-auto mb-4">
-                <img src={adminLogoUrl} className="w-full h-full object-cover" alt="admin-logo" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md"
+        >
+          <Link to="/" className="inline-flex items-center gap-2 text-indigo-600 font-normal mb-6 hover:gap-3 transition-all">
+            <ChevronRight size={20} className="rotate-180" />
+            <span>{UI_TEXT.loginPage.backToPublicPlatform}</span>
+          </Link>
+          <Card className="p-8">
+            <div className="text-center mb-8">
+              {adminLogoUrl ? (
+                <div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-indigo-50 shadow-lg bg-gray-50 flex items-center justify-center mx-auto mb-4">
+                  <img src={adminLogoUrl} className="w-full h-full object-cover" alt="admin-logo" />
+                </div>
+              ) : null}
+              <h1 className="text-4xl font-normal tracking-tighter text-indigo-600">{adminAppName}</h1>
+              <p className="text-gray-500 mt-2">{UI_TEXT.loginPage.welcomeBack}</p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className={cn('block text-sm font-normal mb-1', isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
+                  {UI_TEXT.loginPage.phoneLabel}
+                </label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className={cn('w-full px-4 py-3 rounded-xl border border-black/5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-normal', isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-gray-50 text-gray-900')}
+                  placeholder="077XXXXXXXX"
+                  required
+                />
               </div>
-            ) : null}
-            <h1 className="text-4xl font-normal tracking-tighter text-indigo-600">{adminAppName}</h1>
-            <p className="text-gray-500 mt-2">ط£ظ‡ظ„ط§ ط¨ط¹ظˆط¯طھظƒ ظ„ظ„ظ…ظ†طµط©</p>
-          </div>
+              <div>
+                <label className={cn('block text-sm font-normal mb-1', isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
+                  {UI_TEXT.loginPage.passwordLabel}
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={cn('w-full px-4 py-3 rounded-xl border border-black/5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20', isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-gray-50 text-gray-900')}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              {error && <p className={cn('text-sm font-medium', isDarkMode ? 'text-red-400' : 'text-red-500')}>{error}</p>}
+              <Button type="submit" className="w-full bg-indigo-600 text-white py-4 hover:bg-indigo-700 shadow-lg shadow-indigo-200">
+                {UI_TEXT.loginRequired.login}
+              </Button>
+            </form>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className={cn("block text-sm font-normal mb-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ</label>
-              <input 
-                type="text" 
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              className={cn("w-full px-4 py-3 rounded-xl border border-black/5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-normal", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 text-gray-900")}  
-                placeholder="077XXXXXXXX"
-                required
-              />
+            <div className="mt-6 space-y-3 text-center">
+              <Link to="/register-merchant" className="block text-sm font-normal text-indigo-600 hover:text-indigo-700">
+                {UI_TEXT.loginPage.openStorePrompt}
+              </Link>
+              <Link to="/" className={cn('block text-sm font-normal', isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700')}>
+                {UI_TEXT.loginPage.browseAsGuest}
+              </Link>
             </div>
-            <div>
-              <label className={cn("block text-sm font-normal mb-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</label>
-              <input 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              className={cn("w-full px-4 py-3 rounded-xl border border-black/5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 text-gray-900")}  
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
-                required
-              />
-            </div>
-            {error && <p className={cn("text-sm font-medium", isDarkMode ? "text-red-400" : "text-red-500")}>{error}</p>}
-            <Button type="submit" className="w-full bg-indigo-600 text-white py-4 hover:bg-indigo-700 shadow-lg shadow-indigo-200">
-              طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„
-            </Button>
-          </form>
-
-          <div className="mt-6 space-y-3 text-center">
-            <Link to="/register-merchant" className="block text-sm font-normal text-indigo-600 hover:text-indigo-700">
-              ظ‡ظ„ طھط±ظٹط¯ ظپطھط­ ظ…طھط¬ط±ظƒ ط§ظ„ط®ط§طµطں ط³ط¬ظ„ ظƒطھط§ط¬ط± ط§ظ„ط¢ظ†
-            </Link>
-            <Link to="/" className={cn("block text-sm font-normal", isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-500 hover:text-gray-700")}>
-              طھطµظپط­ ط§ظ„ظ…ظ†طµط© ظƒط²ط§ط¦ط±
-            </Link>
-          </div>
-
-
-        </Card>
-      </motion.div>
+          </Card>
+        </motion.div>
       </div>
       <MobileFooterNav />
     </div>
