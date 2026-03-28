@@ -21,7 +21,7 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
 }
 
-const DEPLOY_MARKER = 'cloud-only-marker-20260328-2236';
+const DEPLOY_MARKER = 'cloud-only-marker-20260328-2315';
 const databaseUrl = getRequiredDatabaseUrl();
 
 console.log('[DEPLOY]', DEPLOY_MARKER);
@@ -6614,9 +6614,43 @@ async function startServer() {
         
         const limit = req.query.limit ? parseInt(req.query.limit as string) : 500;
         const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+        const compact = req.query.compact === 'true';
         
         // No cache - always get fresh data
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        res.set('X-Deploy-Marker', DEPLOY_MARKER);
+
+        if (compact) {
+          const compactResult = await pool.query(
+                                                                                                `SELECT 
+              tp.id,
+              tp.store_id,
+              tp.company_id,
+              tp.amount,
+              tp.price,
+              tp.retail_price,
+              tp.wholesale_price,
+              tp.wholesale_price AS bulk_price,
+              tp.is_active,
+              tp.available_codes,
+              tc.name as company_name,
+              COUNT(tpi.id)::int AS images_count
+            FROM topup_products tp
+            LEFT JOIN topup_companies tc ON tp.company_id = tc.id
+            LEFT JOIN topup_product_images tpi ON tp.id = tpi.topup_product_id
+            WHERE tp.store_id = $1
+            GROUP BY tp.id, tp.store_id, tp.company_id, tp.amount, tp.price, tp.retail_price, tp.wholesale_price, tp.is_active, tp.available_codes, tc.id, tc.name
+            ORDER BY tp.id DESC
+            LIMIT $2 OFFSET $3`,
+            [storeId, limit, offset]
+          );
+
+          return res.json(compactResult.rows.map((row) => ({
+            ...row,
+            images: [],
+            gallery: [],
+          })));
+        }
         
         const result = await pool.query(
           `SELECT 
@@ -6655,26 +6689,24 @@ async function startServer() {
           [storeId, limit, offset]
         );
         
-        // Transform response: extract image URLs from gallery (topup_product_images table)
-        // NO LONGER merging storedUrls - only use gallery which is the single source of truth
-        const transformedRows = result.rows.map((row: any) => {
+        const transformedRows = result.rows.map((row) => {
           const gallery = Array.isArray(row.gallery)
             ? row.gallery
-                .map((img: any) => ({
+                .map((img) => ({
                   ...img,
                   url: buildTopupImageUrl(img.url, img.image_data, img.type)
                 }))
-                .filter((img: any) => img.url)
+                .filter((img) => img.url)
             : [];
 
-          const galleryUrls = gallery.map((img: any) => img.url);
+          const galleryUrls = gallery.map((img) => img.url);
 
           return { ...row, gallery, images: galleryUrls.length > 0 ? galleryUrls : [] };
         });
         
         res.json(transformedRows);
       } catch (error) {
-        res.status(500).json({ error: (error as any).message });
+        res.status(500).json({ error: error.message });
       }
     });
 
