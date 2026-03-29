@@ -121,7 +121,7 @@ const getSafeImageUrl = (url: string | null | undefined): string => {
   return normalizedUrl;
 };
 
-const FRONTEND_BUILD_ID = '20260328-2345';
+const FRONTEND_BUILD_ID = '20260329-2359';
 
 if (typeof window !== 'undefined') {
   (window as any).__APP_BUILD_ID__ = FRONTEND_BUILD_ID;
@@ -11848,7 +11848,7 @@ const MerchantTopupDashboard = () => {
                       ? currentSection === item.id ? "bg-purple-400/30 text-purple-200" : isDarkMode ? "bg-purple-900/40 text-purple-300" : "bg-purple-100 text-purple-800"
                       : currentSection === item.id ? "bg-white/20" : isDarkMode ? "bg-gray-700 text-indigo-400" : "bg-indigo-100 text-indigo-700"
                   )}>
-                    {item.badge === 0 && item.id === 'codes' ? '0ï¸ڈâƒ£' : item.badge}
+                    {item.badge === 0 && item.id === 'codes' ? '0' : item.badge}
                   </span>
                 )}
               </Link>
@@ -13303,31 +13303,48 @@ const MerchantTopupDashboard = () => {
                     </thead>
                     <tbody>
                       {customerTransactions.map((tx, idx) => {
-                        const isPayment = tx.is_payment === true;
-                        const debit = isPayment ? 0 : Math.abs(tx.amount || 0);
-                        const credit = isPayment ? Math.abs(tx.amount || 0) : 0;
-                        console.log(`📊 Statement Row ${idx}:`, { 
-                          description: tx.description, 
-                          description_bytes: Array.from(tx.description || '').map(c => c.charCodeAt(0)),
-                          type: tx.type, 
-                          is_payment: tx.is_payment, 
-                          debit, 
+                        const txType = tx.type || tx.transaction_type || 'unknown';
+                        let txDescription = sanitizeDisplayText(
+                          tx.description,
+                          sanitizeDisplayText(tx.notes, sanitizeDisplayText(tx.detail, `معاملة #${idx + 1}`))
+                        );
+
+                        if (txType === 'opening') {
+                          txDescription = sanitizeDisplayText(tx.description, 'ديون سابقة');
+                        } else if (txType === 'debit') {
+                          txDescription = 'خصم';
+                        } else if (txType === 'topup') {
+                          txDescription = sanitizeDisplayText(tx.description, 'بطاقة شحن');
+                        } else if (tx.is_payment === true || txType === 'payment' || txType === 'payment_received') {
+                          txDescription = '✓ دفعة';
+                        }
+
+                        const txAmount = Math.abs(Number(tx.amount || tx.value || 0));
+                        const isPayment = tx.is_payment === true || txType === 'payment' || txType === 'payment_received';
+                        const debit = isPayment ? 0 : txAmount;
+                        const credit = isPayment ? txAmount : 0;
+                        console.log(`📊 Statement Row ${idx}:`, {
+                          description: tx.description,
+                          displayDescription: txDescription,
+                          type: txType,
+                          is_payment: tx.is_payment,
+                          debit,
                           credit,
                           source: tx.source
                         });
                         return (
                           <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
                             <td className={cn("px-4 py-3 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
-                              {tx.created_at ? new Date(tx.created_at).toLocaleDateString('ar-IQ') : 'â€”'}
+                              {tx.created_at ? new Date(tx.created_at).toLocaleDateString('ar-IQ') : '-'}
                             </td>
                             <td className={cn("px-4 py-3 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
-                              {tx.description || 'معاملة'}
+                              {txDescription}
                             </td>
                             <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-red-400 border-gray-700" : "text-red-600 border-gray-200")}>
-                              {debit > 0 ? formatNumber(debit) : 'â€”'}
+                              {debit > 0 ? formatNumber(debit) : '-'}
                             </td>
                             <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-green-400 border-gray-700" : "text-green-600 border-gray-200")}>
-                              {credit > 0 ? formatNumber(credit) : 'â€”'}
+                              {credit > 0 ? formatNumber(credit) : '-'}
                             </td>
                             <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-blue-400 border-gray-700" : "text-blue-600 border-gray-200")}>
                               {(tx.balance || 0).toLocaleString('en-US')}
@@ -13516,7 +13533,7 @@ const MerchantTopupDashboard = () => {
                           ? currentSection === item.id ? "bg-purple-400/30 text-purple-200" : isDarkMode ? "bg-purple-900/40 text-purple-300" : "bg-purple-100 text-purple-800"
                           : currentSection === item.id ? "bg-white/20" : isDarkMode ? "bg-gray-700 text-indigo-400" : "bg-indigo-100 text-indigo-700"
                       )}>
-                        {item.badge === 0 && item.id === 'codes' ? '0ï¸ڈâƒ£' : item.badge}
+                        {item.badge === 0 && item.id === 'codes' ? '0' : item.badge}
                       </span>
                     )}
                   </button>
@@ -15427,16 +15444,16 @@ const TopupStorefront = () => {
                               return (
                                 <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-100")}>
                                   <td className={cn("px-3 py-2 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
-                                    {txDate ? new Date(txDate).toLocaleDateString('ar-IQ') : 'â€”'}
+                                    {txDate ? new Date(txDate).toLocaleDateString('ar-IQ') : '-'}
                                   </td>
                                   <td className={cn("px-3 py-2 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
                                     {txDescription}
                                   </td>
                                   <td className={cn("px-3 py-2 border text-center font-bold", debitAmount > 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"))}>
-                                    {debitAmount > 0 ? debitAmount.toLocaleString('en-US') : 'â€”'}
+                                    {debitAmount > 0 ? debitAmount.toLocaleString('en-US') : '-'}
                                   </td>
                                   <td className={cn("px-3 py-2 border text-center font-bold", creditAmount > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"))}>
-                                    {creditAmount > 0 ? creditAmount.toLocaleString('en-US') : 'â€”'}
+                                    {creditAmount > 0 ? creditAmount.toLocaleString('en-US') : '-'}
                                   </td>
                                   <td className={cn("px-3 py-2 border text-center font-bold", isDarkMode ? "text-blue-300" : "text-blue-700")}>
                                     {txBalance.toLocaleString('en-US')}
