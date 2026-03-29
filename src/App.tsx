@@ -121,7 +121,7 @@ const getSafeImageUrl = (url: string | null | undefined): string => {
   return normalizedUrl;
 };
 
-const FRONTEND_BUILD_ID = '20260329-2330';
+const FRONTEND_BUILD_ID = '20260328-2345';
 
 if (typeof window !== 'undefined') {
   (window as any).__APP_BUILD_ID__ = FRONTEND_BUILD_ID;
@@ -15161,8 +15161,8 @@ const TopupStorefront = () => {
                           currentDebt = Number(statementTransactions[0]?.balance || customer.current_debt || 0);
                         }
                         
-                        return formatCurrency(currentDebt);
-                      })()}</p>
+                        return Math.round(currentDebt).toLocaleString('en-US');
+                      })()} <span className="text-base sm:text-lg">ط·آ¯.ط·آ¹</span></p>
                     </div>
 
                     {/* Buttons */}
@@ -15282,13 +15282,14 @@ const TopupStorefront = () => {
                     <div className={cn("min-w-0 p-2 sm:p-3 rounded-lg border-2", isDarkMode ? "bg-blue-900/20 border-blue-600" : "bg-blue-50 border-blue-300")}>
                       <p className={cn("text-[10px] sm:text-[11px] font-normal mb-1", isDarkMode ? "text-blue-400" : "text-blue-600")}>ط­ط¯ ط§ظ„ط§ط¦طھظ…ط§ظ†</p>
                       <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-blue-300" : "text-blue-600")}>
-                        {formatCurrency(customer.credit_limit || 0)}
+                        {Math.round(Number(customer.credit_limit) || 0)?.toLocaleString('en-US')}
+                        <span className="block text-[0.9em]">ط·آ¯.ط·آ¹</span>
                       </p>
                     </div>
                     <div className={cn("p-3 rounded-lg border-2 hidden", isDarkMode ? "bg-purple-900/20 border-purple-600" : "bg-purple-50 border-purple-300")}>
                       <p className={cn("text-[11px] font-normal mb-1", isDarkMode ? "text-purple-400" : "text-purple-600")}>ط§ظ„ط±طµظٹط¯ ط§ظ„ط£ظˆظ„ظٹ</p>
                       <p className={cn("text-lg font-bold", isDarkMode ? "text-purple-300" : "text-purple-600")}>
-                        {formatCurrency(customer.starting_balance || 0)}
+                        {Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')} ط·آ¯.ط·آ¹
                       </p>
                     </div>
                     <div className={cn("min-w-0 p-2 sm:p-3 rounded-lg border-2", isDarkMode ? "bg-yellow-900/20 border-yellow-600" : "bg-yellow-50 border-yellow-300")}>
@@ -15298,10 +15299,12 @@ const TopupStorefront = () => {
                           // ط­ط³ط§ط¨ ط¢ط®ط± ط±طµظٹط¯ ظ…ظ† ط§ظ„ظ…ط¹ط§ظ…ظ„ط§طھ
                           if (statementTransactions && statementTransactions.length > 0) {
                             const lastTransaction = statementTransactions[0]; // ط§ظ„ط£ط­ط¯ط« ظپظٹ ط§ظ„ط£ط¹ظ„ظ‰
-                            return formatCurrency(lastTransaction.balance || 0);
+                            const finalDebt = Math.round(Number(lastTransaction.balance) || 0);
+                            return finalDebt.toLocaleString('en-US');
                           }
-                          return formatCurrency(customer.current_debt || 0);
+                          return Math.round(Number(customer.current_debt) || 0).toLocaleString('en-US');
                         })()}
+                        <span className="block text-[0.9em]">ط·آ¯.ط·آ¹</span>
                       </p>
                     </div>
                     <div className={cn("min-w-0 p-2 sm:p-3 rounded-lg border-2", (() => {
@@ -15326,8 +15329,9 @@ const TopupStorefront = () => {
                           const currentDebt = statementTransactions && statementTransactions.length > 0 
                             ? Number(statementTransactions[0]?.balance || 0)
                             : Number(customer.current_debt || 0);
-                          return formatCurrency(Math.max(0, Number(customer.credit_limit || 0) - currentDebt));
+                          return Math.round(Math.max(0, Number(customer.credit_limit || 0) - currentDebt)).toLocaleString('en-US');
                         })()}
+                        <span className="block text-[0.9em]">ط·آ¯.ط·آ¹</span>
                       </p>
                     </div>
                   </div>
