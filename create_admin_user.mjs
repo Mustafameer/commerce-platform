@@ -34,7 +34,7 @@ const pool = new Pool({
       console.log('');
       console.log('📋 تفاصيل الدخول:');
       console.log('═══════════════════════════════════════');
-      console.log(`� الهاتف: ${phone}`);
+      console.log(`📱 الهاتف: ${phone}`);
       console.log(`🔐 كلمة المرور: ${password}`);
       console.log(`📧 البريد الإلكتروني: ${email}`);
       console.log(`👤 الاسم: ${user.name}`);

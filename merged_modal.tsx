@@ -155,7 +155,7 @@
                           ) : (
                             payments.map((p) => (
                               <tr key={p.id} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200")}>
-                                <td className={cn("px-4 py-3", isDarkMode ? "text-white" : "text-gray-900")}>{Math.round(p.amount)?.toLocaleString()} د.ع</td>
+                                <td className={cn("px-4 py-3", isDarkMode ? "text-white" : "text-gray-900")}>{Math.round(p.amount)?.toLocaleString()} IQD</td>
                                 <td className={cn("px-4 py-3", isDarkMode ? "text-gray-300" : "text-gray-600")}>{p.payment_method || '—'}</td>
                                 <td className={cn("px-4 py-3 text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>{p.notes || '—'}</td>
                                 <td className={cn("px-4 py-3 text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>{new Date(p.created_at).toLocaleDateString('ar-IQ')}</td>

@@ -15,10 +15,19 @@ export async function initializeDatabase(connectionString: string) {
     connectionString: dbUrl,
     connectionTimeoutMillis: 10000,
     ssl: getDatabaseSslConfig(),
+    // Ensure UTF-8 encoding
+    application_name: 'commerce-platform-init-utf8',
+  });
+  
+  // Set UTF-8 client encoding on pool connection
+  client.on('connect', (conn) => {
+    conn.query('SET client_encoding = UTF8').catch(err => {
+      console.warn('[DB-INIT] Warning setting UTF-8:', err.message);
+    });
   });
 
   try {
-    console.log('[DB-INIT] Checking database...');
+    console.log('[DB-INIT] Checking database with UTF-8 encoding...');
     console.log('[DB-INIT] URL:', (dbUrl || '').substring(0, 50) + '...');
     
     // Check if stores table exists and has data
