@@ -1,6 +1,6 @@
 ﻿// @ts-nocheck
 import * as React from 'react';
-// 🖼️ Image Upload System v2.0 - Refresh Build
+// ًں–¼ï¸ڈ Image Upload System v2.0 - Refresh Build
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { 
@@ -98,7 +98,7 @@ const useTheme = () => {
 
 // --- Constants ---
 // Local SVG placeholder instead of external resources
-const PLACEHOLDER_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" font-size="14" fill="%239ca3af" text-anchor="middle" dominant-baseline="middle" font-family="system-ui"%3Eاضافة صورة%3C/text%3E%3Cpath d="M80 120 L100 100 L120 120" stroke="%239ca3af" stroke-width="2" fill="none"/%3E%3C/svg%3E';
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" font-size="14" fill="%239ca3af" text-anchor="middle" dominant-baseline="middle" font-family="system-ui"%3Eط§ط¶ط§ظپط© طµظˆط±ط©%3C/text%3E%3Cpath d="M80 120 L100 100 L120 120" stroke="%239ca3af" stroke-width="2" fill="none"/%3E%3C/svg%3E';
 
 const getSafeImageUrl = (url: string | null | undefined): string => {
   if (!url) return PLACEHOLDER_IMAGE;
@@ -129,19 +129,19 @@ if (typeof window !== 'undefined') {
 
 // --- API Configuration ---
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
-console.log(`🛠️ API_BASE_URL initialized: "${API_BASE_URL}" ${API_BASE_URL ? '✅' : '⚠️ EMPTY'}`);
-console.log(`🛠️ Environment: ${typeof window !== 'undefined' ? 'Browser' : 'Node'}`);
-console.log(`🛠️ Current URL: ${typeof window !== 'undefined' ? window.location.href : 'N/A'}`);
+console.log(`ًں› ï¸ڈ API_BASE_URL initialized: "${API_BASE_URL}" ${API_BASE_URL ? 'âœ…' : 'âڑ ï¸ڈ EMPTY'}`);
+console.log(`ًں› ï¸ڈ Environment: ${typeof window !== 'undefined' ? 'Browser' : 'Node'}`);
+console.log(`ًں› ï¸ڈ Current URL: ${typeof window !== 'undefined' ? window.location.href : 'N/A'}`);
 
 const apiCall = async (path: string, options?: RequestInit) => {
   const url = API_BASE_URL ? `${API_BASE_URL}${path}` : path;
-  console.log(`📡 API Call: ${url}`);
+  console.log(`ًں“، API Call: ${url}`);
   return fetch(url, options);
 };
 
 // Monkey-patch fetch to use API_BASE_URL for relative /api/* paths
 const originalFetch = window.fetch;
-console.log(`🔧 Original fetch function: ${originalFetch ? '✅' : '❌'}`);
+console.log(`ًں”§ Original fetch function: ${originalFetch ? 'âœ…' : 'â‌Œ'}`);
 
 (window as any).fetch = function(input: RequestInfo | URL, init?: RequestInit) {
   const url = typeof input === 'string' ? input : input.toString();
@@ -149,19 +149,19 @@ console.log(`🔧 Original fetch function: ${originalFetch ? '✅' : '❌'}`);
   const finalUrl = shouldRedirect ? `${API_BASE_URL}${url}` : url;
   
   if (shouldRedirect) {
-    console.log(`🔄 Redirecting fetch: ${url} → ${finalUrl}`);
+    console.log(`ًں”„ Redirecting fetch: ${url} â†’ ${finalUrl}`);
   } else if (url.startsWith('/api')) {
-    console.warn(`⚠️ NOT redirecting ${url} - API_BASE_URL is empty!`);
+    console.warn(`âڑ ï¸ڈ NOT redirecting ${url} - API_BASE_URL is empty!`);
   }
   
   return originalFetch.call(this, finalUrl, init);
 };
-console.log(`🔧 Fetch monkey-patch applied`);
+console.log(`ًں”§ Fetch monkey-patch applied`);
 
 const formatCurrency = (amount: number | string) => {
-  const val = typeof amount === 'string' ? parseFloat(amount) : amount;
-  const rounded = Math.floor(val);
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'IQD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(rounded);
+  const n = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(n)) return '0 IQD';
+  return Math.floor(n).toLocaleString('en-US') + ' IQD';
 };
 
 // Play sound when item is added to cart
@@ -193,6 +193,43 @@ const formatNumber = (num: number | string) => {
   const n = typeof num === 'string' ? parseFloat(num) : num;
   if (isNaN(n)) return '0';
   return Math.floor(n).toLocaleString('en-US');
+};
+
+const mojibakeTextPattern = /ط·|ط·|ط·|ط·|ط·|ط·|ط·|ط·|ط·|ط·ع¾|ط¸|ط¸ظ¹|ط¸ئ’|ط¸|ط¸|ط¸ظ¾|ط¸|ط¸|أ¢إ“|أ¢|أ¢ع‘|ع؛/;
+
+const mojibakeTextReplacements: Array<[string, string]> = [
+  ['ط·ط¸ظ¾ط·ط·', 'ط¯ظپط¹ط©'],
+  ['ط·ط·ط·ط·', 'ط´ط±ط§ط،'],
+  ['ط·ط¸ظ¹ط¸ط¸ ط·ط·ط·ط¸ط·', 'ط¯ظٹظˆظ† ط³ط§ط¨ظ‚ط©'],
+  ['ط·ط·ط¸', 'ط¹ط§ظ…'],
+  ['ط·.ط¨', 'IQD'],
+  ['ط·.ط·', 'IQD'],
+];
+
+const repairMojibakeText = (value: string): string => {
+  let repaired = value;
+
+  for (const [brokenText, fixedText] of mojibakeTextReplacements) {
+    repaired = repaired.replaceAll(brokenText, fixedText);
+  }
+
+  return repaired.trim();
+};
+
+const sanitizeDisplayText = (value: unknown, fallback = ''): string => {
+  if (typeof value !== 'string') return fallback;
+
+  const text = repairMojibakeText(value);
+  if (!text || text === 'undefined' || text === 'null') return fallback;
+
+  return mojibakeTextPattern.test(text) ? fallback : text;
+};
+
+const getSanitizedProductTitle = (product: any, fallback = 'ظ…ظ†طھط¬'): string => {
+  const productName = sanitizeDisplayText(product?.name, fallback);
+  const storeName = sanitizeDisplayText(product?.store_name, '');
+
+  return storeName ? `${storeName} - ${productName}` : productName;
 };
 
 // Format date as DD/MM/YYYY
@@ -401,27 +438,27 @@ const RegularProductModal = ({
             </div>
 
             <div className="space-y-4">
-              <h4 className={cn("text-xs font-normal uppercase tracking-widest border-b pb-2", isDarkMode ? "text-gray-500 border-gray-600" : "text-gray-400 border-black/5")}>وصف المنتج</h4>
+              <h4 className={cn("text-xs font-normal uppercase tracking-widest border-b pb-2", isDarkMode ? "text-gray-500 border-gray-600" : "text-gray-400 border-black/5")}>ظˆطµظپ ط§ظ„ظ…ظ†طھط¬</h4>
               <p className={cn('text-lg leading-relaxed font-medium', isDarkMode ? 'text-gray-300' : 'text-gray-600')}>{product.description}</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
               <div className={cn('p-4 rounded-xl border', isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200')}>
-                <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>المخزون المتاح</p>
+                <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>ط§ظ„ظ…ط®ط²ظˆظ† ط§ظ„ظ…طھط§ط­</p>
                 <p className={cn('font-bold text-2xl', product.stock === 0 ? 'text-red-600' : 'text-green-600')}>
-                  {product.stock === 0 ? 'غير متوفر' : `${product.stock} متاح`}
+                  {product.stock === 0 ? 'ط؛ظٹط± ظ…طھظˆظپط±' : `${product.stock} ظ…طھط§ط­`}
                 </p>
               </div>
               <div className={cn('p-4 rounded-xl border', isDarkMode ? 'bg-green-900/30 border-green-700' : 'bg-green-50 border-green-200')}>
-                <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-green-400' : 'text-green-600')}>الحالة</p>
-                <p className={cn('font-bold text-xl', isDarkMode ? 'text-green-300' : 'text-green-700')}>منتج أصلي ✓</p>
+                <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-green-400' : 'text-green-600')}>ط§ظ„ط­ط§ظ„ط©</p>
+                <p className={cn('font-bold text-xl', isDarkMode ? 'text-green-300' : 'text-green-700')}>ظ…ظ†طھط¬ ط£طµظ„ظٹ âœ“</p>
               </div>
             </div>
           </div>
 
           <div className="space-y-4 pt-6 border-t" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
             <div>
-              <label className={cn('block mb-2 text-xs font-normal uppercase', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>اختر الكمية</label>
+              <label className={cn('block mb-2 text-xs font-normal uppercase', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>ط§ط®طھط± ط§ظ„ظƒظ…ظٹط©</label>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setQuantities(prev => ({
@@ -457,7 +494,7 @@ const RegularProductModal = ({
 
             <div className="space-y-3">
               <div className={cn('p-4 rounded-lg border-2', isDarkMode ? 'bg-indigo-900/30 border-indigo-700' : 'bg-indigo-50 border-indigo-200')}>
-                <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>السعر النهائي</p>
+                <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>ط§ظ„ط³ط¹ط± ط§ظ„ظ†ظ‡ط§ط¦ظٹ</p>
                 <p className={cn('text-2xl sm:text-3xl font-bold', isDarkMode ? 'text-indigo-300' : 'text-indigo-900')}>
                   {formatCurrency(product.price * quantity)}
                 </p>
@@ -473,14 +510,14 @@ const RegularProductModal = ({
                 style={{ backgroundColor: product.stock === 0 ? '#999' : primaryColor }}
               >
                 <ShoppingCart size={20} />
-                إضافة للسلة ({quantity})
+                ط¥ط¶ط§ظپط© ظ„ظ„ط³ظ„ط© ({quantity})
               </button>
 
               <button
                 onClick={onClose}
                 className={cn('w-full py-3 rounded-xl font-normal text-base transition-all border-2', isDarkMode ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50')}
               >
-                إغلاق
+                ط¥ط؛ظ„ط§ظ‚
               </button>
             </div>
           </div>
@@ -547,22 +584,22 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
 
   const navItems = role === 'admin'
     ? [
-        { icon: LayoutDashboard, label: 'الرئيسية', path: '/admin' },
-        { icon: Users, label: 'المستخدمون', path: '/admin/users', count: counts?.users },
-        { icon: StoreIcon, label: 'المتاجر', path: '/admin/stores', count: counts?.stores },
-        { icon: CheckCircle, label: 'طلبات التفعيل', path: '/admin/approvals', count: counts?.approvals },
-        { icon: BarChart3, label: 'الإحصاءات', path: '/admin/stats' },
-        { icon: Settings, label: 'الإعدادات', path: '/admin/settings' },
+        { icon: LayoutDashboard, label: 'ط§ظ„ط±ط¦ظٹط³ظٹط©', path: '/admin' },
+        { icon: Users, label: 'ط§ظ„ظ…ط³طھط®ط¯ظ…ظˆظ†', path: '/admin/users', count: counts?.users },
+        { icon: StoreIcon, label: 'ط§ظ„ظ…طھط§ط¬ط±', path: '/admin/stores', count: counts?.stores },
+        { icon: CheckCircle, label: 'ط·ظ„ط¨ط§طھ ط§ظ„طھظپط¹ظٹظ„', path: '/admin/approvals', count: counts?.approvals },
+        { icon: BarChart3, label: 'ط§ظ„ط¥ط­طµط§ط،ط§طھ', path: '/admin/stats' },
+        { icon: Settings, label: 'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ', path: '/admin/settings' },
       ]
     : [
-        { icon: LayoutDashboard, label: 'الرئيسية', path: '/merchant' },
-        { icon: Package, label: 'المنتجات', path: '/merchant/products', count: counts?.products },
-        { icon: Layout, label: 'التصنيفات', path: '/merchant/categories', count: counts?.categories },
-        { icon: Zap, label: 'المزادات', path: '/merchant/auctions', count: counts?.auctions },
-        { icon: ShoppingCart, label: 'الطلبات', path: '/merchant/orders', count: counts?.orders },
-        { icon: Ticket, label: 'القسائم', path: '/merchant/coupons', count: counts?.coupons },
-        { icon: Users, label: 'العملاء', path: '/merchant/customers', count: counts?.customers },
-        { icon: Settings, label: 'الإعدادات', path: '/merchant/settings' },
+        { icon: LayoutDashboard, label: 'ط§ظ„ط±ط¦ظٹط³ظٹط©', path: '/merchant' },
+        { icon: Package, label: 'ط§ظ„ظ…ظ†طھط¬ط§طھ', path: '/merchant/products', count: counts?.products },
+        { icon: Layout, label: 'ط§ظ„طھطµظ†ظٹظپط§طھ', path: '/merchant/categories', count: counts?.categories },
+        { icon: Zap, label: 'ط§ظ„ظ…ط²ط§ط¯ط§طھ', path: '/merchant/auctions', count: counts?.auctions },
+        { icon: ShoppingCart, label: 'ط§ظ„ط·ظ„ط¨ط§طھ', path: '/merchant/orders', count: counts?.orders },
+        { icon: Ticket, label: 'ط§ظ„ظ‚ط³ط§ط¦ظ…', path: '/merchant/coupons', count: counts?.coupons },
+        { icon: Users, label: 'ط§ظ„ط¹ظ…ظ„ط§ط،', path: '/merchant/customers', count: counts?.customers },
+        { icon: Settings, label: 'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ', path: '/merchant/settings' },
       ];
 
   const isNavItemActive = (path: string) => {
@@ -584,7 +621,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className={cn('p-2 rounded-lg transition-colors flex-shrink-0', isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100')}
-              aria-label={'فتح القائمة'}
+              aria-label={'ظپطھط­ ط§ظ„ظ‚ط§ط¦ظ…ط©'}
             >
               {sidebarOpen ? <X size={22} className={isDarkMode ? 'text-gray-100' : 'text-gray-900'} /> : <Menu size={22} className={isDarkMode ? 'text-gray-100' : 'text-gray-900'} />}
             </button>
@@ -600,7 +637,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
                   ? 'bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800'
                   : 'bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100'
               )}
-              title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}
+              title={isDarkMode ? 'ط§ظ„ظˆط¶ط¹ ط§ظ„ظپط§طھط­' : 'ط§ظ„ظˆط¶ط¹ ط§ظ„ط¯ط§ظƒظ†'}
             >
               {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -609,7 +646,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
             <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2', isDarkMode ? 'text-gray-500' : 'text-gray-400')} size={16} />
             <input
               type="text"
-              placeholder={'بحث...'}
+              placeholder={'ط¨ط­ط«...'}
               value={dashboardQuery}
               onChange={(e) => setDashboardQuery(e.target.value)}
               className={cn('w-full pl-9 pr-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition-colors text-sm', isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500' : 'bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400')}
@@ -634,7 +671,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
               <div className="min-w-0">
                 <h3 className={cn('text-lg font-normal truncate', isDarkMode ? 'text-gray-100' : 'text-gray-900')}>{settings.app_name}</h3>
                 <p className={cn('text-xs', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>
-                  {'لوحة'} {role === 'admin' ? 'الإدارة' : 'التاجر'}
+                  {'ظ„ظˆط­ط©'} {role === 'admin' ? 'ط§ظ„ط¥ط¯ط§ط±ط©' : 'ط§ظ„طھط§ط¬ط±'}
                 </p>
               </div>
               {settings.logo_url ? (
@@ -685,7 +722,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
                 className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-normal', isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-indigo-600 text-white hover:bg-indigo-700')}
               >
                 <ExternalLink size={18} className="flex-shrink-0" />
-                <span className="truncate">{'عرض المتجر'}</span>
+                <span className="truncate">{'ط¹ط±ط¶ ط§ظ„ظ…طھط¬ط±'}</span>
               </Link>
             )}
             <button
@@ -693,7 +730,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
               className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm', isDarkMode ? 'text-red-400 hover:bg-red-900/30' : 'text-red-600 hover:bg-red-50')}
             >
               <LogOut size={18} />
-              <span className="truncate">{'تسجيل الخروج'}</span>
+              <span className="truncate">{'طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬'}</span>
             </button>
           </div>
         </div>
@@ -732,7 +769,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
             <div>
               <h1 className={cn('text-lg font-normal tracking-tighter mb-0.5', isDarkMode ? 'text-blue-400' : 'text-indigo-600')}>{settings.app_name}</h1>
               <p className={cn('text-[9px] uppercase tracking-[0.2em] font-normal italic', isDarkMode ? 'text-gray-500' : 'text-gray-400')}>
-                {'لوحة'} {role === 'admin' ? 'الإدارة' : 'التاجر'}
+                {'ظ„ظˆط­ط©'} {role === 'admin' ? 'ط§ظ„ط¥ط¯ط§ط±ط©' : 'ط§ظ„طھط§ط¬ط±'}
               </p>
             </div>
           </div>
@@ -776,7 +813,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
             >
               <div className="flex items-center gap-3">
                 <ExternalLink size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform flex-shrink-0" />
-                <span className="truncate">{'عرض المتجر'}</span>
+                <span className="truncate">{'ط¹ط±ط¶ ط§ظ„ظ…طھط¬ط±'}</span>
               </div>
             </Link>
           )}
@@ -786,7 +823,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
             className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm', isDarkMode ? 'text-red-400 hover:bg-red-900/30' : 'text-red-600 hover:bg-red-50')}
           >
             <LogOut size={18} />
-            <span className="truncate">{'تسجيل الخروج'}</span>
+            <span className="truncate">{'طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬'}</span>
           </button>
         </div>
       </aside>
@@ -803,7 +840,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
                   ? 'bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800'
                   : 'bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100'
               )}
-              title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}
+              title={isDarkMode ? 'ط§ظ„ظˆط¶ط¹ ط§ظ„ظپط§طھط­' : 'ط§ظ„ظˆط¶ط¹ ط§ظ„ط¯ط§ظƒظ†'}
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
@@ -812,7 +849,7 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
               <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2', isDarkMode ? 'text-gray-500' : 'text-gray-400')} size={18} />
               <input
                 type="text"
-                placeholder={'بحث...'}
+                placeholder={'ط¨ط­ط«...'}
                 value={dashboardQuery}
                 onChange={(e) => setDashboardQuery(e.target.value)}
                 className={cn('pl-10 pr-4 py-2 border rounded-xl focus:outline-none focus:ring-2 w-64 transition-colors', isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500' : 'bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400')}
@@ -858,14 +895,14 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
   const navigate = useNavigate();
   const isTopupProduct = (item: any) => item?.store_type === 'topup' || !!item?.retail_price || !!item?.wholesale_price || !!item?.topup_codes;
 
-  // حفظ واسترجاع الأكواد من localStorage
+  // ط­ظپط¸ ظˆط§ط³طھط±ط¬ط§ط¹ ط§ظ„ط£ظƒظˆط§ط¯ ظ…ظ† localStorage
   useEffect(() => {
     const savedOrderConfirmation = localStorage.getItem('orderConfirmation');
     if (savedOrderConfirmation) {
       try {
         const confirmation = JSON.parse(savedOrderConfirmation);
         setOrderConfirmation(confirmation);
-        console.log('📦 Loaded order confirmation from localStorage:', confirmation);
+        console.log('ًں“¦ Loaded order confirmation from localStorage:', confirmation);
       } catch (err) {
         console.error('Error loading order confirmation from localStorage:', err);
       }
@@ -874,13 +911,13 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 
   // Debug: Log cart items to console
   useEffect(() => {
-    console.log('🛒 Cart items:', items);
+    console.log('ًں›’ Cart items:', items);
     items.forEach(item => {
       console.log(`  - ID: ${item.id}, Name: ${item.name}, Price: ${item.price}, Qty: ${item.quantity}`);
     });
   }, [items]);
 
-  // تحميل بيانات المنتجات المفقودة من API
+  // طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظ†طھط¬ط§طھ ط§ظ„ظ…ظپظ‚ظˆط¯ط© ظ…ظ† API
   const [enrichedItems, setEnrichedItems] = useState<any[]>([]);
   useEffect(() => {
     const enrichItems = async () => {
@@ -920,7 +957,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
           productMap = new Map(regularProducts.map((p: any) => [p.id, p]));
         }
 
-        // إثراء بيانات السلة
+        // ط¥ط«ط±ط§ط، ط¨ظٹط§ظ†ط§طھ ط§ظ„ط³ظ„ط©
         const enriched = items
           .filter(cartItem => isTopupCart ? isTopupProduct(cartItem) : !isTopupProduct(cartItem))
           .map(cartItem => {
@@ -945,7 +982,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
         });
 
         setEnrichedItems(enriched);
-        console.log('✅ Enriched items:', enriched);
+        console.log('âœ… Enriched items:', enriched);
       } catch (err) {
         console.error('Error enriching items:', err);
         setEnrichedItems(items.filter(cartItem => isTopupCart ? isTopupProduct(cartItem) : !isTopupProduct(cartItem)));
@@ -955,54 +992,54 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
     enrichItems();
   }, [items, isTopupCart]);
 
-  // تحقق فوري من localStorage عند تحميل الصفحة
+  // طھط­ظ‚ظ‚ ظپظˆط±ظٹ ظ…ظ† localStorage ط¹ظ†ط¯ طھط­ظ…ظٹظ„ ط§ظ„طµظپط­ط©
   useEffect(() => {
     if (!isTopupCart) return;
 
-    console.log('🔍 Initial localStorage check in CartPage');
+    console.log('ًں”چ Initial localStorage check in CartPage');
     const topupData = localStorage.getItem('topupCustomer');
     if (topupData) {
       try {
         const data = JSON.parse(topupData);
-        console.log('✅ Initial load - Found topupCustomer:', data);
+        console.log('âœ… Initial load - Found topupCustomer:', data);
         setName(data.name || '');
         setPhone(data.phone || '');
       } catch (err) {
-        console.error('⚠️ Error in initial check:', err);
+        console.error('âڑ ï¸ڈ Error in initial check:', err);
       }
     }
   }, [isTopupCart]);
 
-  // مراقبة تغييرات topupCustomer في localStorage
+  // ظ…ط±ط§ظ‚ط¨ط© طھط؛ظٹظٹط±ط§طھ topupCustomer ظپظٹ localStorage
   useEffect(() => {
     if (!isTopupCart) return;
 
     const handleStorageChange = () => {
-      console.log('🔄 localStorage changed - reloading customer data');
-      // تحقق من topupCustomer أولاً (أولوية أعلى)
+      console.log('ًں”„ localStorage changed - reloading customer data');
+      // طھط­ظ‚ظ‚ ظ…ظ† topupCustomer ط£ظˆظ„ط§ظ‹ (ط£ظˆظ„ظˆظٹط© ط£ط¹ظ„ظ‰)
       const topupData = localStorage.getItem('topupCustomer');
       if (topupData) {
         try {
           const data = JSON.parse(topupData);
-          console.log('✅ Reloaded from topupCustomer (PRIORITY):', data);
+          console.log('âœ… Reloaded from topupCustomer (PRIORITY):', data);
           if (data.name) setName(data.name);
           if (data.phone) setPhone(data.phone);
           return;
         } catch (err) {
-          console.error('⚠️ Error parsing topupCustomer:', err);
+          console.error('âڑ ï¸ڈ Error parsing topupCustomer:', err);
         }
       }
       
-      // ط«ظ… ط¬ط±ط¨ customerData
+      // ط·آ«ط¸â€¦ ط·آ¬ط·آ±ط·آ¨ customerData
       const customerData = localStorage.getItem('customerData');
       if (customerData) {
         try {
           const data = JSON.parse(customerData);
-          console.log('✅ Reloaded from customerData:', data);
+          console.log('âœ… Reloaded from customerData:', data);
           if (data.name) setName(data.name);
           if (data.phone) setPhone(data.phone);
         } catch (err) {
-          console.error('⚠️ Error parsing customerData:', err);
+          console.error('âڑ ï¸ڈ Error parsing customerData:', err);
         }
       }
     };
@@ -1025,21 +1062,21 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
     };
   }, [isTopupCart]);
 
-  // ملء الاسم والهاتف تلقائياً من بيانات المستخدم المسجل الدخول أو البيانات المحفوظة
+  // ظ…ظ„ط، ط§ظ„ط§ط³ظ… ظˆط§ظ„ظ‡ط§طھظپ طھظ„ظ‚ط§ط¦ظٹط§ظ‹ ظ…ظ† ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ… ط§ظ„ظ…ط³ط¬ظ„ ط§ظ„ط¯ط®ظˆظ„ ط£ظˆ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط­ظپظˆط¸ط©
   useEffect(() => {
-    console.log('👤 Populating user data in CartPage');
+    console.log('ًں‘¤ Populating user data in CartPage');
     
     if (isTopupCart) {
       const topupData = localStorage.getItem('topupCustomer');
       if (topupData) {
         try {
           const data = JSON.parse(topupData);
-          console.log('✅ Loading from topupCustomer (PRIORITY):', data);
+          console.log('âœ… Loading from topupCustomer (PRIORITY):', data);
           if (data.name) setName(data.name);
           if (data.phone) setPhone(data.phone);
           return;
         } catch (err) {
-          console.error('⚠️ Error parsing topupCustomer:', err);
+          console.error('âڑ ï¸ڈ Error parsing topupCustomer:', err);
         }
       }
     }
@@ -1052,43 +1089,43 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
           const data = JSON.parse(customerData);
           if (data.name) setName(data.name);
           if (data.phone) setPhone(data.phone);
-          console.log('✅ Loaded from customerData:', data);
+          console.log('âœ… Loaded from customerData:', data);
           return;
         } catch (err) {
-          console.error('⚠️ Error parsing customerData:', err);
+          console.error('âڑ ï¸ڈ Error parsing customerData:', err);
         }
       }
       
       // For regular store: Leave phone empty (customer enters their own number)
       // Don't autofill from user.phone to avoid confusion with store owner phone
-      console.log('ℹ️ Regular store: Phone field left empty for customer to enter');
+      console.log('â„¹ï¸ڈ Regular store: Phone field left empty for customer to enter');
       return;
     }
     
-    // ثانياً: إذا لم يكن topupCustomer، جرب customerData
+    // ط«ط§ظ†ظٹط§ظ‹: ط¥ط°ط§ ظ„ظ… ظٹظƒظ† topupCustomerطŒ ط¬ط±ط¨ customerData
     const customerData = localStorage.getItem('customerData');
     if (customerData) {
       try {
         const data = JSON.parse(customerData);
         if (data.name) setName(data.name);
         if (data.phone) setPhone(data.phone);
-        console.log('✅ Loaded from customerData:', data);
+        console.log('âœ… Loaded from customerData:', data);
         return;
       } catch (err) {
-        console.error('⚠️ Error parsing customerData:', err);
+        console.error('âڑ ï¸ڈ Error parsing customerData:', err);
       }
     }
     
-    // ثالثاً: جرب الحصول على بيانات المستخدم المسجل الدخول فقط إذا لم يكن هناك topup data
+    // ط«ط§ظ„ط«ط§ظ‹: ط¬ط±ط¨ ط§ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ… ط§ظ„ظ…ط³ط¬ظ„ ط§ظ„ط¯ط®ظˆظ„ ظپظ‚ط· ط¥ط°ط§ ظ„ظ… ظٹظƒظ† ظ‡ظ†ط§ظƒ topup data
     if (user?.id && user?.name) {
       setName(user.name);
       if (user.phone) setPhone(user.phone);
-      console.log('✅ Loaded from logged-in user:', { name: user.name });
+      console.log('âœ… Loaded from logged-in user:', { name: user.name });
       return;
     }
     
-    // رابعاً: إذا لم يكن هناك user id، لا تفعل شيئاً
-    console.log('ℹ️ No user data available');
+    // ط±ط§ط¨ط¹ط§ظ‹: ط¥ط°ط§ ظ„ظ… ظٹظƒظ† ظ‡ظ†ط§ظƒ user idطŒ ظ„ط§ طھظپط¹ظ„ ط´ظٹط¦ط§ظ‹
+    console.log('â„¹ï¸ڈ No user data available');
   }, [isTopupCart, user?.id, user?.name, user?.phone]);
 
   const fetchCustomerByPhone = async (storeId: number | string, customerPhone: string) => {
@@ -1128,7 +1165,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
     }
   };
 
-  // التحقق من العميل في قاعدة البيانات عند تغيير رقم الهاتف
+  // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط¹ظ…ظٹظ„ ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط¹ظ†ط¯ طھط؛ظٹظٹط± ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ
   useEffect(() => {
     if (!phone || phone.length < 10) {
       setCustomerType(null);
@@ -1150,11 +1187,11 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
         if (!isMounted) return;
 
         if (data && data.id) {
-          // وجد العميل - استخدم بيانته
+          // ظˆط¬ط¯ ط§ظ„ط¹ظ…ظٹظ„ - ط§ط³طھط®ط¯ظ… ط¨ظٹط§ظ†طھظ‡
           if (data.name) setName(data.name);
           setCustomerType(data.customer_type);
         } else {
-          // لم يتم العثور على العميل - استخدم cash كافتراضي
+          // ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط§ظ„ط¹ظ…ظٹظ„ - ط§ط³طھط®ط¯ظ… cash ظƒط§ظپطھط±ط§ط¶ظٹ
           setCustomerType('cash');
         }
       } catch (err) {
@@ -1176,9 +1213,9 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
     };
   }, [phone, items.length]);
 
-  // دالة مساعدة لحساب السعر الصحيح بناءً على نوع العميل ونوع المنتج
+  // ط¯ط§ظ„ط© ظ…ط³ط§ط¹ط¯ط© ظ„ط­ط³ط§ط¨ ط§ظ„ط³ط¹ط± ط§ظ„طµط­ظٹط­ ط¨ظ†ط§ط،ظ‹ ط¹ظ„ظ‰ ظ†ظˆط¹ ط§ظ„ط¹ظ…ظٹظ„ ظˆظ†ظˆط¹ ط§ظ„ظ…ظ†طھط¬
   const getItemPrice = (item: any, pricingCustomerType: string | null | undefined) => {
-    // إذا كان المنتج topup (له retail_price أو wholesale_price)
+    // ط¥ط°ط§ ظƒط§ظ† ط§ظ„ظ…ظ†طھط¬ topup (ظ„ظ‡ retail_price ط£ظˆ wholesale_price)
     if (item.retail_price || item.wholesale_price) {
       if (pricingCustomerType === 'reseller') {
         return item.retail_price || item.wholesale_price || item.price || 0;
@@ -1187,7 +1224,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
       }
     }
     
-    // للمنتجات العادية
+    // ظ„ظ„ظ…ظ†طھط¬ط§طھ ط§ظ„ط¹ط§ط¯ظٹط©
     if (pricingCustomerType === 'reseller' && item.bulk_price) {
       return item.bulk_price;
     }
@@ -1214,7 +1251,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
     setCouponError('');
     try {
       if (!items[0]) {
-        setCouponError('لا توجد عناصر في السلة');
+        setCouponError('ظ„ط§ طھظˆط¬ط¯ ط¹ظ†ط§طµط± ظپظٹ ط§ظ„ط³ظ„ط©');
         return;
       }
       
@@ -1243,14 +1280,14 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
   };
 
   const handleCheckout = async () => {
-    // التحقق من جميع الحقول المطلوبة
+    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط©
     if (!phone.trim()) {
-      alert('❌ يرجى إدخال رقم الهاتف');
+      alert('â‌Œ ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ');
       return;
     }
 
     if (!isTopupCart && !address.trim()) {
-      alert('❌ يرجى إدخال عنوان التسليم');
+      alert('â‌Œ ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط¹ظ†ظˆط§ظ† ط§ظ„طھط³ظ„ظٹظ…');
       return;
     }
 
@@ -1260,7 +1297,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
       // Get the store ID from the first item
       const storeId = items[0]?.store_id;
       if (!storeId) {
-        alert('لا توجد منتجات في السلة');
+        alert('ظ„ط§ طھظˆط¬ط¯ ظ…ظ†طھط¬ط§طھ ظپظٹ ط§ظ„ط³ظ„ط©');
         setIsCheckingOut(false);
         return;
       }
@@ -1288,7 +1325,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 
       // Show verification modal with customer details
       setVerificationModal({
-        name: verifiedCustomer.name || phone.trim() || 'ط¹ظ…ظٹظ„',
+        name: verifiedCustomer.name || phone.trim() || 'ط·آ¹ط¸â€¦ط¸ظ¹ط¸â€‍',
         phone: phone.trim(),
         address: address.trim(),
         customer_type: verifiedCustomer.customer_type || customerType || 'cash',
@@ -1297,8 +1334,8 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 
       setIsCheckingOut(false);
     } catch (err) {
-      console.error('خطأ في التحقق من بيانات العميل:', err);
-      alert('حدث خطأ في التحقق من بيانات العميل');
+      console.error('ط®ط·ط£ ظپظٹ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظٹظ„:', err);
+      alert('ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظٹظ„');
       setIsCheckingOut(false);
     }
   };
@@ -1345,7 +1382,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             price: item.price,
             name: item.name,
             product_name: (item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name,
-            company_name: (item.store_name && item.store_name !== 'undefined') ? item.store_name : 'بدون شركة',
+            company_name: (item.store_name && item.store_name !== 'undefined') ? item.store_name : 'ط¨ط¯ظˆظ† ط´ط±ظƒط©',
             images: Array.isArray(item.images) ? item.images : [],
             gallery: Array.isArray(item.gallery) ? item.gallery : [],
             topup_codes: item.topup_codes
@@ -1419,9 +1456,9 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               })
             });
 
-            const data = await readJsonResponse(res, 'فشل إنشاء طلب الشحن');
+            const data = await readJsonResponse(res, 'ظپط´ظ„ ط¥ظ†ط´ط§ط، ط·ظ„ط¨ ط§ظ„ط´ط­ظ†');
             if (!res.ok) {
-              throw new Error(data.error || 'فشل إنشاء طلب الشحن');
+              throw new Error(data.error || 'ظپط´ظ„ ط¥ظ†ط´ط§ط، ط·ظ„ط¨ ط§ظ„ط´ط­ظ†');
             }
 
             // Get images directly from response or fetch if needed
@@ -1430,11 +1467,11 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             
             // Always fetch fresh images from order-images endpoint (images API has product info)
             try {
-              console.log('📦 Fetching fresh images from order-images endpoint...');
+              console.log('ًں“¦ Fetching fresh images from order-images endpoint...');
               const imagesRes = await fetch(`/api/topup/order-images/${data.order_id}`);
-              const imagesData = await readJsonResponse(imagesRes, 'فشل جلب صور طلب الشحن');
+              const imagesData = await readJsonResponse(imagesRes, 'ظپط´ظ„ ط¬ظ„ط¨ طµظˆط± ط·ظ„ط¨ ط§ظ„ط´ط­ظ†');
               
-              console.log('🖼️ Fetched images response:', {
+              console.log('ًں–¼ï¸ڈ Fetched images response:', {
                 orderId: data.order_id,
                 imagesCount: imagesData.images?.length || 0,
                 hasGrouped: !!imagesData.grouped_by_product
@@ -1443,17 +1480,17 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               // Use grouped images for this product
               if (imagesData.grouped_by_product && imagesData.grouped_by_product[item.product_id]) {
                 productImages = imagesData.grouped_by_product[item.product_id];
-                console.log(`  ✓ Found ${productImages.length} images for product ${item.product_id}`);
+                console.log(`  âœ“ Found ${productImages.length} images for product ${item.product_id}`);
               } else if (imagesData.images && Array.isArray(imagesData.images)) {
                 // Fallback: filter by product_id from flat list
                 productImages = imagesData.images.filter((img: any) => img.product_id === item.product_id);
-                console.log(`  ✓ Filtered to ${productImages.length} images for product ${item.product_id}`);
+                console.log(`  âœ“ Filtered to ${productImages.length} images for product ${item.product_id}`);
               }
             } catch (err) {
-              console.error('❌ Error fetching images from order-images:', err);
+              console.error('â‌Œ Error fetching images from order-images:', err);
               // Last resort fallback: use purchase response images
               if (itemImages.length > 0 && typeof itemImages[0] === 'string') {
-                console.log('  ⚠️ Using fallback images from purchase response');
+                console.log('  âڑ ï¸ڈ Using fallback images from purchase response');
                 productImages = itemImages.slice(0, item.quantity).map((url: string) => ({ image_url: url }));
               }
             }
@@ -1464,25 +1501,25 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                 .map((url: string) => ({ image_url: url, product_id: item.product_id }));
 
               if (fallbackItemImages.length > 0) {
-                console.log(`  ⚠️ Using fallback product images from cart item for product ${item.product_id}`);
+                console.log(`  âڑ ï¸ڈ Using fallback product images from cart item for product ${item.product_id}`);
                 productImages = fallbackItemImages;
               }
             }
 
-            console.log(`📱 Product ${item.product_id} images count: ${productImages.length}`);
+            console.log(`ًں“± Product ${item.product_id} images count: ${productImages.length}`);
             allCodes = [...allCodes, ...productImages];
             confirmationItems.push({
               ...item,
               product_name: (item.product_name && item.product_name !== 'undefined') 
                 ? item.product_name 
-                : (item.name || 'ظ…ظ†طھط¬'),
+                : (item.name || 'ط¸â€¦ط¸â€ ط·ع¾ط·آ¬'),
               company_name: (item.company_name && item.company_name !== 'undefined') 
                 ? item.company_name 
-                : 'غير محدد',
+                : 'ط؛ظٹط± ظ…ط­ط¯ط¯',
               product_images: productImages
             });
             
-            console.log('✅ Confirmation item created with', productImages.length, 'images');
+            console.log('âœ… Confirmation item created with', productImages.length, 'images');
           }
 
           // Create single confirmation with all items
@@ -1493,7 +1530,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             images: allCodes
           });
           
-          console.log('📦 Order confirmation created for store:', {
+          console.log('ًں“¦ Order confirmation created for store:', {
             itemsCount: storeItems.length,
             totalCodesCount: allCodes.length
           });
@@ -1518,9 +1555,9 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             body: JSON.stringify(orderPayload),
           });
 
-          const data = await readJsonResponse(res, 'فشل في إتمام الطلب');
+          const data = await readJsonResponse(res, 'ظپط´ظ„ ظپظٹ ط¥طھظ…ط§ظ… ط§ظ„ط·ظ„ط¨');
           if (!res.ok) {
-            throw new Error(data.error || 'فشل في إتمام الطلب');
+            throw new Error(data.error || 'ظپط´ظ„ ظپظٹ ط¥طھظ…ط§ظ… ط§ظ„ط·ظ„ط¨');
           }
         }
       }
@@ -1535,22 +1572,22 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
           totalAmount: subtotal - discount
         };
         setOrderConfirmation(confirmation);
-        // حفظ في localStorage حتى يتمكن العميل من الوصول للأكواد لاحقاً
+        // ط­ظپط¸ ظپظٹ localStorage ط­طھظ‰ ظٹطھظ…ظƒظ† ط§ظ„ط¹ظ…ظٹظ„ ظ…ظ† ط§ظ„ظˆطµظˆظ„ ظ„ظ„ط£ظƒظˆط§ط¯ ظ„ط§ط­ظ‚ط§ظ‹
         localStorage.setItem('orderConfirmation', JSON.stringify(confirmation));
-        console.log('💾 Saved order confirmation to localStorage');
+        console.log('ًں’¾ Saved order confirmation to localStorage');
       } else {
         clearCart();
-        alert(`تم تقديم الطلب بنجاح! تم إنشاء ${Object.keys(itemsByStore).length} طلب`);
+        alert(`طھظ… طھظ‚ط¯ظٹظ… ط§ظ„ط·ظ„ط¨ ط¨ظ†ط¬ط§ط­! طھظ… ط¥ظ†ط´ط§ط، ${Object.keys(itemsByStore).length} ط·ظ„ط¨`);
         navigate('/');
       }
     } catch (err: any) {
-      alert(`خطأ: ${err.message || 'فشل في إتمام الطلب'}`);
+      alert(`ط®ط·ط£: ${err.message || 'ظپط´ظ„ ظپظٹ ط¥طھظ…ط§ظ… ط§ظ„ط·ظ„ط¨'}`);
     } finally {
       setIsConfirmingOrder(false);
     }
   };
 
-  // عرض تأكيد الطلب مع الأكواد
+  // ط¹ط±ط¶ طھط£ظƒظٹط¯ ط§ظ„ط·ظ„ط¨ ظ…ط¹ ط§ظ„ط£ظƒظˆط§ط¯
   if (orderConfirmation) {
     return (
       <div className={cn("w-full min-h-screen p-4 sm:p-8", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900")} dir="rtl">
@@ -1559,8 +1596,8 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             <div className="inline-block p-4 rounded-full bg-green-100 mb-4">
               <CheckCircle size={48} className="text-green-600" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-normal mb-2">✅ تم تأكيد الطلب بنجاح!</h1>
-            <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>الإجمالي: {formatCurrency(orderConfirmation.totalAmount)}</p>
+            <h1 className="text-2xl sm:text-3xl font-normal mb-2">âœ… طھظ… طھط£ظƒظٹط¯ ط§ظ„ط·ظ„ط¨ ط¨ظ†ط¬ط§ط­!</h1>
+            <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ: {formatCurrency(orderConfirmation.totalAmount)}</p>
           </div>
 
           <div className="space-y-4 md:hidden">
@@ -1594,14 +1631,14 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                 } else if (item.name) {
                   displayName = item.name;
                 } else {
-                  displayName = 'منتج بدون اسم';
+                  displayName = 'ظ…ظ†طھط¬ ط¨ط¯ظˆظ† ط§ط³ظ…';
                 }
 
                 return (
                   <div key={`${idx}-${itemIdx}`} className={cn("rounded-2xl border p-4", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50")}>
                     <div className="mb-3">
                       <h3 className={cn("font-normal text-sm leading-6 break-words", isDarkMode ? "text-gray-100" : "text-gray-900")}>{displayName}</h3>
-                      <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>الكمية: {item.quantity || 0}</p>
+                      <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط§ظ„ظƒظ…ظٹط©: {item.quantity || 0}</p>
                     </div>
                     {availableCodes.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
@@ -1610,13 +1647,13 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                           const imageUrl = imageCandidates[0] || PLACEHOLDER_IMAGE;
                           return (
                             <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImage(imageUrl); setShowImageModal(true); }}>
-                              <img src={imageUrl} data-image-index="0" alt={`طµظˆط±ط© ${cIdx + 1}`} className="w-16 h-16 object-cover rounded-lg border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(event) => handleImageFallback(event, imageCandidates)} />
+                              <img src={imageUrl} data-image-index="0" alt={`ط·آµط¸ث†ط·آ±ط·آ© ${cIdx + 1}`} className="w-16 h-16 object-cover rounded-lg border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(event) => handleImageFallback(event, imageCandidates)} />
                             </div>
                           );
                         })}
                       </div>
                     ) : (
-                      <span className="text-gray-500 text-sm">لا توجد صور متاحة</span>
+                      <span className="text-gray-500 text-sm">ظ„ط§ طھظˆط¬ط¯ طµظˆط± ظ…طھط§ط­ط©</span>
                     )}
                   </div>
                 );
@@ -1624,14 +1661,14 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             )}
           </div>
 
-          {/* جدول المنتجات والأكواد */}
+          {/* ط¬ط¯ظˆظ„ ط§ظ„ظ…ظ†طھط¬ط§طھ ظˆط§ظ„ط£ظƒظˆط§ط¯ */}
           <div className={cn("hidden md:block rounded-lg border overflow-auto", isDarkMode ? "border-gray-700" : "border-gray-200")}>
             <table className="w-full">
               <thead>
                 <tr className={isDarkMode ? "bg-gray-800" : "bg-gray-100"}>
-                  <th className={cn("px-6 py-4 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>اسم المنتج</th>
-                  <th className={cn("px-6 py-4 text-center font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>الكمية</th>
-                  <th className={cn("px-6 py-4 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>الأكواد</th>
+                  <th className={cn("px-6 py-4 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ط³ظ… ط§ظ„ظ…ظ†طھط¬</th>
+                  <th className={cn("px-6 py-4 text-center font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ظ„ظƒظ…ظٹط©</th>
+                  <th className={cn("px-6 py-4 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ظ„ط£ظƒظˆط§ط¯</th>
                 </tr>
               </thead>
               <tbody>
@@ -1657,7 +1694,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                       availableCodes = codes.slice(0, displayQuantity);
                     }
                     
-                    // بناء اسم المنتج - تأكد من عدم معاملة undefined
+                    // ط¨ظ†ط§ط، ط§ط³ظ… ط§ظ„ظ…ظ†طھط¬ - طھط£ظƒط¯ ظ…ظ† ط¹ط¯ظ… ظ…ط¹ط§ظ…ظ„ط© undefined
                     let displayName = '';
                     if (item.product_name && item.product_name !== 'undefined') {
                       displayName = item.product_name;
@@ -1666,10 +1703,10 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                     } else if (item.name) {
                       displayName = item.name;
                     } else {
-                      displayName = 'منتج بدون اسم';
+                      displayName = 'ظ…ظ†طھط¬ ط¨ط¯ظˆظ† ط§ط³ظ…';
                     }
                     
-                    console.log('🔍 Rendering item:', {
+                    console.log('ًں”چ Rendering item:', {
                       product_name: item.product_name,
                       company_name: item.company_name,
                       name: item.name,
@@ -1694,13 +1731,13 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                                 const imageUrl = imageCandidates[0] || PLACEHOLDER_IMAGE;
                                 return (
                                   <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImage(imageUrl); setShowImageModal(true); }}>
-                                    <img src={imageUrl} data-image-index="0" alt={`طµظˆط±ط© ${cIdx + 1}`} className="w-12 h-12 object-cover rounded border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(event) => handleImageFallback(event, imageCandidates)} />
+                                    <img src={imageUrl} data-image-index="0" alt={`ط·آµط¸ث†ط·آ±ط·آ© ${cIdx + 1}`} className="w-12 h-12 object-cover rounded border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(event) => handleImageFallback(event, imageCandidates)} />
                                   </div>
                                 );
                               })}
                             </div>
                           ) : (
-                            <span className="text-gray-500 text-sm">لا توجد صور متاحة</span>
+                            <span className="text-gray-500 text-sm">ظ„ط§ طھظˆط¬ط¯ طµظˆط± ظ…طھط§ط­ط©</span>
                           )}
                         </td>
                       </tr>
@@ -1711,15 +1748,15 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             </table>
           </div>
 
-          {/* أزرار التحكم والعودة */}
+          {/* ط£ط²ط±ط§ط± ط§ظ„طھط­ظƒظ… ظˆط§ظ„ط¹ظˆط¯ط© */}
           <div className={cn("mt-8 flex flex-col sm:flex-row gap-4 justify-center")}>
             <button
               onClick={async () => {
-                // حفظ الصور في ملف ZIP
+                // ط­ظپط¸ ط§ظ„طµظˆط± ظپظٹ ظ…ظ„ظپ ZIP
                 try {
                   const zip = new JSZip();
                   
-                  // collection صور حسب المنتج
+                  // collection طµظˆط± ط­ط³ط¨ ط§ظ„ظ…ظ†طھط¬
                   let imageIndex = 0;
                   let hasImages = false;
                   
@@ -1730,11 +1767,11 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                       if (productImages.length > 0) {
                         hasImages = true;
                         
-                        // إنشاء فولدر للمنتج
-                        const productName = item.product_name || item.name || `ظ…ظ†طھط¬_${item.product_id}`;
+                        // ط¥ظ†ط´ط§ط، ظپظˆظ„ط¯ط± ظ„ظ„ظ…ظ†طھط¬
+                        const productName = item.product_name || item.name || `ط¸â€¦ط¸â€ ط·ع¾ط·آ¬_${item.product_id}`;
                         const productFolder = zip.folder(productName.replace(/[\/\\:*?"<>|]/g, '_'));
                         
-                        // إضافة الصور للفولدر
+                        // ط¥ط¶ط§ظپط© ط§ظ„طµظˆط± ظ„ظ„ظپظˆظ„ط¯ط±
                         for (let i = 0; i < productImages.length; i++) {
                           const imageUrl = productImages[i].image_url || productImages[i];
                           if (imageUrl) {
@@ -1742,14 +1779,14 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                               const response = await fetch(imageUrl, { mode: 'cors' });
                               const blob = await response.blob();
                               
-                              // الحصول على نوع الملف
+                              // ط§ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ظ†ظˆط¹ ط§ظ„ظ…ظ„ظپ
                               const contentType = blob.type;
                               const ext = contentType.split('/')[1]?.split(';')[0] || 'jpg';
                               
-                              productFolder?.file(`طµظˆط±ط©_${i + 1}.${ext}`, blob);
+                              productFolder?.file(`ط·آµط¸ث†ط·آ±ط·آ©_${i + 1}.${ext}`, blob);
                               imageIndex++;
                             } catch (err) {
-                              console.warn(`تحذير: لم يتم تحميل صورة من ${productName}`, err);
+                              console.warn(`طھط­ط°ظٹط±: ظ„ظ… ظٹطھظ… طھط­ظ…ظٹظ„ طµظˆط±ط© ظ…ظ† ${productName}`, err);
                             }
                           }
                         }
@@ -1758,31 +1795,31 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                   }
                   
                   if (!hasImages) {
-                    alert('❌ لا توجد صور للحفظ');
+                    alert('â‌Œ ظ„ط§ طھظˆط¬ط¯ طµظˆط± ظ„ظ„ط­ظپط¸');
                     return;
                   }
                   
-                  // إنشاء ملف ZIP وتحميله
+                  // ط¥ظ†ط´ط§ط، ظ…ظ„ظپ ZIP ظˆطھط­ظ…ظٹظ„ظ‡
                   const zipBlob = await zip.generateAsync({ type: 'blob' });
                   const zipUrl = URL.createObjectURL(zipBlob);
                   const link = document.createElement('a');
                   link.href = zipUrl;
-                  link.download = `صور_الطلب_${new Date().toISOString().slice(0, 10)}.zip`;
+                  link.download = `طµظˆط±_ط§ظ„ط·ظ„ط¨_${new Date().toISOString().slice(0, 10)}.zip`;
                   document.body.appendChild(link);
                   link.click();
                   document.body.removeChild(link);
                   URL.revokeObjectURL(zipUrl);
                   
-                  alert(`✅ تم حفظ ${imageIndex} صورة في ملف ZIP!`);
+                  alert(`âœ… طھظ… ط­ظپط¸ ${imageIndex} طµظˆط±ط© ظپظٹ ظ…ظ„ظپ ZIP!`);
                 } catch (err) {
-                  console.error('خطأ في حفظ الصور:', err);
-                  alert(`❌ خطأ: ${(err as any).message || 'فشل حفظ الصور'}`);
+                  console.error('ط®ط·ط£ ظپظٹ ط­ظپط¸ ط§ظ„طµظˆط±:', err);
+                  alert(`â‌Œ ط®ط·ط£: ${(err as any).message || 'ظپط´ظ„ ط­ظپط¸ ط§ظ„طµظˆط±'}`);
                 }
               }}
               className="px-8 py-3 rounded-lg text-white font-normal transition-all"
               style={{ backgroundColor: primaryColor }}
             >
-              💾 حفظ الصور في فولدر
+              ًں’¾ ط­ظپط¸ ط§ظ„طµظˆط± ظپظٹ ظپظˆظ„ط¯ط±
             </button>
 
             <button
@@ -1800,7 +1837,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               }}
               className={cn("px-8 py-3 rounded-lg font-normal transition-all", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-gray-100" : "bg-gray-300 hover:bg-gray-400 text-gray-900")}
             >
-              ← العودة {isTopupCart ? 'للمتجر' : 'للرئيسية'}
+              â†گ ط§ظ„ط¹ظˆط¯ط© {isTopupCart ? 'ظ„ظ„ظ…طھط¬ط±' : 'ظ„ظ„ط±ط¦ظٹط³ظٹط©'}
             </button>
           </div>
 
@@ -1812,9 +1849,9 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                   onClick={() => setShowImageModal(false)}
                   className="absolute -top-10 right-0 text-white text-2xl font-bold hover:text-gray-300"
                 >
-                  ✕
+                  âœ•
                 </button>
-                <img src={selectedImage} alt="صورة كاملة" className="w-full h-full object-contain rounded-lg" onError={(e: any) => e.target.style.display = 'none'} />
+                <img src={selectedImage} alt="طµظˆط±ط© ظƒط§ظ…ظ„ط©" className="w-full h-full object-contain rounded-lg" onError={(e: any) => e.target.style.display = 'none'} />
               </div>
             </div>
           )}
@@ -1828,14 +1865,14 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
       <div className="max-w-4xl mx-auto p-4 sm:p-8 text-center" dir="rtl">
         <div className={cn("p-12 rounded-2xl shadow-sm", isDarkMode ? "bg-gray-800" : "bg-white")}>
           <ShoppingCart size={64} className={cn("mx-auto mb-4", isDarkMode ? "text-gray-700" : "text-gray-300")} />
-          <h2 className={cn("text-2xl font-normal mb-2", isDarkMode ? "text-gray-200" : "text-gray-900")}>عربة التسوق فارغة</h2>
-          <p className={cn("mb-8", isDarkMode ? "text-gray-400" : "text-gray-500")}>لم تضف أي منتجات إلى سلتك بعد.</p>
+          <h2 className={cn("text-2xl font-normal mb-2", isDarkMode ? "text-gray-200" : "text-gray-900")}>ط¹ط±ط¨ط© ط§ظ„طھط³ظˆظ‚ ظپط§ط±ط؛ط©</h2>
+          <p className={cn("mb-8", isDarkMode ? "text-gray-400" : "text-gray-500")}>ظ„ظ… طھط¶ظپ ط£ظٹ ظ…ظ†طھط¬ط§طھ ط¥ظ„ظ‰ ط³ظ„طھظƒ ط¨ط¹ط¯.</p>
           <button 
             onClick={() => navigate(-1)}
             className="px-8 py-3 rounded-xl text-white font-normal transition-all"
             style={{ backgroundColor: primaryColor }}
           >
-            تصفح المنتجات
+            طھطµظپط­ ط§ظ„ظ…ظ†طھط¬ط§طھ
           </button>
         </div>
       </div>
@@ -1848,23 +1885,23 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
       <div className={cn("px-4 py-4 sm:px-8 sm:py-6 border-b", isDarkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200")}>
         <h1 className={cn("text-2xl sm:text-3xl font-normal flex items-center gap-3", isDarkMode ? "text-gray-100" : "text-gray-900")}>
           <ShoppingCart className="text-indigo-600" />
-          عربة التسوق
+          ط¹ط±ط¨ط© ط§ظ„طھط³ظˆظ‚
         </h1>
       </div>
 
       <div className="max-w-7xl mx-auto p-4 sm:p-8">
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
-          {/* جدول المنتجات */}
+          {/* ط¬ط¯ظˆظ„ ط§ظ„ظ…ظ†طھط¬ط§طھ */}
           <div className="xl:col-span-2">
             <div className={cn("hidden md:block overflow-x-auto rounded-lg border", isDarkMode ? "border-gray-700" : "border-gray-200")}>
               <table className="w-full">
                 <thead>
                   <tr className={isDarkMode ? "bg-gray-800" : "bg-gray-100"}>
-                    <th className={cn("px-6 py-4 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>اسم المنتج</th>
-                    <th className={cn("px-6 py-4 text-center font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ظ„ط¹ط¯ط¯</th>
-                    <th className={cn("px-6 py-4 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ظ„ط³ط¹ط±</th>
-                    <th className={cn("px-6 py-4 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>الإجمالي</th>
-                    <th className={cn("px-6 py-4 text-center font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>الإجراء</th>
+                    <th className={cn("px-6 py-4 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ط³ظ… ط§ظ„ظ…ظ†طھط¬</th>
+                    <th className={cn("px-6 py-4 text-center font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط·آ§ط¸â€‍ط·آ¹ط·آ¯ط·آ¯</th>
+                    <th className={cn("px-6 py-4 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط·آ§ط¸â€‍ط·آ³ط·آ¹ط·آ±</th>
+                    <th className={cn("px-6 py-4 text-right font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ</th>
+                    <th className={cn("px-6 py-4 text-center font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ظ„ط¥ط¬ط±ط§ط،</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1884,11 +1921,11 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                                 setShowImageModal(true);
                               }}
                               className={cn("h-14 w-14 overflow-hidden rounded-xl border flex-shrink-0", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50")}
-                              title="عرض الصورة"
+                              title="ط¹ط±ط¶ ط§ظ„طµظˆط±ط©"
                             >
                               <img
                                 src={itemImage}
-                                alt={item.name || 'صورة المنتج'}
+                                alt={item.name || 'طµظˆط±ط© ط§ظ„ظ…ظ†طھط¬'}
                                 className="h-full w-full object-cover"
                                 data-image-index="0"
                                 onError={(event) => handleImageFallback(event, imageCandidates)}
@@ -1896,7 +1933,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                             </button>
                           ) : null}
                           <div className="min-w-0">
-                            {(item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name || `[بدون اسم - رقم: ${item.id}]`}
+                            {(item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name || `[ط¨ط¯ظˆظ† ط§ط³ظ… - ط±ظ‚ظ…: ${item.id}]`}
                           </div>
                         </div>
                       </td>
@@ -1905,15 +1942,15 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                           <button
                             onClick={() => item.quantity > 1 && updateQuantity(item.id, item.quantity - 1)}
                             className={cn("px-2 py-1 rounded border transition-all", isDarkMode ? "border-gray-700 hover:bg-gray-700" : "border-gray-200 hover:bg-gray-100")}
-                            title="تقليل الكمية"
+                            title="طھظ‚ظ„ظٹظ„ ط§ظ„ظƒظ…ظٹط©"
                           >
-                            −
+                            âˆ’
                           </button>
                           <span className="w-8 text-center text-lg font-bold">{item.quantity}</span>
                           <button
                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
                             className={cn("px-2 py-1 rounded border transition-all", isDarkMode ? "border-gray-700 hover:bg-gray-700" : "border-gray-200 hover:bg-gray-100")}
-                            title="زيادة الكمية"
+                            title="ط²ظٹط§ط¯ط© ط§ظ„ظƒظ…ظٹط©"
                           >
                             +
                           </button>
@@ -1960,11 +1997,11 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                             setShowImageModal(true);
                           }}
                           className={cn("h-16 w-16 overflow-hidden rounded-2xl border flex-shrink-0", isDarkMode ? "border-gray-700 bg-gray-900" : "border-gray-200 bg-white")}
-                          title="عرض الصورة"
+                          title="ط¹ط±ط¶ ط§ظ„طµظˆط±ط©"
                         >
                           <img
                             src={itemImage}
-                            alt={item.name || 'صورة المنتج'}
+                            alt={item.name || 'طµظˆط±ط© ط§ظ„ظ…ظ†طھط¬'}
                             className="h-full w-full object-cover"
                             data-image-index="0"
                             onError={(event) => handleImageFallback(event, imageCandidates)}
@@ -1973,10 +2010,10 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                       ) : null}
                       <div className="min-w-0">
                         <h3 className={cn("font-normal text-sm leading-6 break-words", isDarkMode ? "text-gray-100" : "text-gray-900")}>
-                          {(item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name || `[بدون اسم - رقم: ${item.id}]`}
+                          {(item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name || `[ط¨ط¯ظˆظ† ط§ط³ظ… - ط±ظ‚ظ…: ${item.id}]`}
                         </h3>
                         <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                          سعر الوحدة: {formatCurrency(getItemPrice(item, customerType || user?.customer_type))}
+                          ط³ط¹ط± ط§ظ„ظˆط­ط¯ط©: {formatCurrency(getItemPrice(item, customerType || user?.customer_type))}
                         </p>
                       </div>
                     </div>
@@ -1993,15 +2030,15 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                       <button
                         onClick={() => item.quantity > 1 && updateQuantity(item.id, item.quantity - 1)}
                         className={cn("px-3 py-1.5 rounded-xl border transition-all", isDarkMode ? "border-gray-700 hover:bg-gray-700" : "border-gray-200 hover:bg-gray-100")}
-                        title="تقليل الكمية"
+                        title="طھظ‚ظ„ظٹظ„ ط§ظ„ظƒظ…ظٹط©"
                       >
-                        −
+                        âˆ’
                       </button>
                       <span className="min-w-8 text-center text-base font-bold">{item.quantity}</span>
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
                         className={cn("px-3 py-1.5 rounded-xl border transition-all", isDarkMode ? "border-gray-700 hover:bg-gray-700" : "border-gray-200 hover:bg-gray-100")}
-                        title="زيادة الكمية"
+                        title="ط²ظٹط§ط¯ط© ط§ظ„ظƒظ…ظٹط©"
                       >
                         +
                       </button>
@@ -2015,15 +2052,15 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             </div>
           </div>
 
-          {/* الملخص والأزرار */}
+          {/* ط§ظ„ظ…ظ„ط®طµ ظˆط§ظ„ط£ط²ط±ط§ط± */}
           <div className={cn("p-4 sm:p-6 rounded-lg border xl:sticky xl:top-8 h-fit", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200")}>
-            {/* قسيمة الخصم */}
+            {/* ظ‚ط³ظٹظ…ط© ط§ظ„ط®طµظ… */}
             <div className="mb-6 pb-6 border-b" style={{borderColor: isDarkMode ? '#374151' : '#e5e7eb'}}>
-              <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>قسيمة الخصم</label>
+              <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ظ‚ط³ظٹظ…ط© ط§ظ„ط®طµظ…</label>
               <div className="flex flex-col sm:flex-row gap-2 mb-2">
                 <input 
                   type="text"
-                  placeholder="أدخل الرمز"
+                  placeholder="ط£ط¯ط®ظ„ ط§ظ„ط±ظ…ط²"
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
                   className={cn("flex-1 px-3 py-2 border rounded text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
@@ -2033,94 +2070,94 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                   className="px-3 py-2 rounded text-white font-normal text-sm"
                   style={{ backgroundColor: primaryColor }}
                 >
-                  تطبيق
+                  طھط·ط¨ظٹظ‚
                 </button>
               </div>
               {couponError && <p className="text-red-500 text-xs">{couponError}</p>}
               {appliedCoupon && (
                 <div className="p-2 bg-green-500/10 rounded border border-green-500/30 text-xs text-green-600 mt-2">
-                  ✅ تطبيق: {appliedCoupon.code} ({appliedCoupon.discount_type === 'percentage' ? `${appliedCoupon.discount_value}%` : formatCurrency(appliedCoupon.discount_value)})
+                  âœ… طھط·ط¨ظٹظ‚: {appliedCoupon.code} ({appliedCoupon.discount_type === 'percentage' ? `${appliedCoupon.discount_value}%` : formatCurrency(appliedCoupon.discount_value)})
                 </div>
               )}
             </div>
 
-            {/* بيانات التسليم */}
+            {/* ط¨ظٹط§ظ†ط§طھ ط§ظ„طھط³ظ„ظٹظ… */}
             <div className="mb-6 pb-6 border-b" style={{borderColor: isDarkMode ? '#374151' : '#e5e7eb'}}>
               {isTopupCart && (
                 <>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ظ„ط§ط³ظ…</label>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط·آ§ط¸â€‍ط·آ§ط·آ³ط¸â€¦</label>
                   <input 
                     type="text"
                     value={name}
                     readOnly
-                    placeholder="اسم العميل المسجل"
+                    placeholder="ط§ط³ظ… ط§ظ„ط¹ظ…ظٹظ„ ط§ظ„ظ…ط³ط¬ظ„"
                     className={cn("w-full px-3 py-2 border rounded text-sm mb-3 cursor-not-allowed", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-300" : "bg-gray-100 border-gray-200 text-gray-700")}
                   />
                 </>
               )}
-              <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}> الهاتف</label>
+              <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}> ط§ظ„ظ‡ط§طھظپ</label>
               <input 
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="أدخل رقم الهاتف"
+                placeholder="ط£ط¯ط®ظ„ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ"
                 readOnly={isTopupCart}
                 className={cn("w-full px-3 py-2 border rounded text-sm mb-3", isTopupCart ? (isDarkMode ? "bg-gray-700 border-gray-600 text-gray-300 cursor-not-allowed" : "bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed") : (isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"))}
               />
               {isTopupCart && (
                 <p className={cn("text-xs mb-3", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                  تم تعبئة الاسم ورقم الهاتف من تسجيل دخول العميل في متجر الشحن.
+                  طھظ… طھط¹ط¨ط¦ط© ط§ظ„ط§ط³ظ… ظˆط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ظ…ظ† طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ط§ظ„ط¹ظ…ظٹظ„ ظپظٹ ظ…طھط¬ط± ط§ظ„ط´ط­ظ†.
                 </p>
               )}
               {!isTopupCart && (
                 <>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>📍 العنوان</label>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ًں“چ ط§ظ„ط¹ظ†ظˆط§ظ†</label>
                   <input 
                     type="text"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    placeholder="أدخل عنوان التسليم"
+                    placeholder="ط£ط¯ط®ظ„ ط¹ظ†ظˆط§ظ† ط§ظ„طھط³ظ„ظٹظ…"
                     className={cn("w-full px-3 py-2 border rounded text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
                   />
                 </>
               )}
               
-              {/* عرض نوع العميل والسعر المطبق */}
+              {/* ط¹ط±ط¶ ظ†ظˆط¹ ط§ظ„ط¹ظ…ظٹظ„ ظˆط§ظ„ط³ط¹ط± ط§ظ„ظ…ط·ط¨ظ‚ */}
               {phone && (
                 <div className={cn("mt-4 p-3 rounded text-sm", isDarkMode ? "bg-gray-700" : "bg-blue-50")}>
                   {isVerifyingCustomer ? (
-                    <p className="text-gray-500">🔍 جاري التحقق من بيانات العميل...</p>
+                    <p className="text-gray-500">ًں”چ ط¬ط§ط±ظٹ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظٹظ„...</p>
                   ) : customerType ? (
                     <p className={isDarkMode ? "text-blue-300" : "text-blue-700"}>
-                      {customerType === 'reseller' ? '🏪 عميل جملة (نقطة البيع)' : '👤 عميل نقدي (مفرد)'}
-                      {customerType === 'reseller' && ' - سيتم تطبيق أسعار الجملة'}
+                      {customerType === 'reseller' ? 'ًںڈھ ط¹ظ…ظٹظ„ ط¬ظ…ظ„ط© (ظ†ظ‚ط·ط© ط§ظ„ط¨ظٹط¹)' : 'ًں‘¤ ط¹ظ…ظٹظ„ ظ†ظ‚ط¯ظٹ (ظ…ظپط±ط¯)'}
+                      {customerType === 'reseller' && ' - ط³ظٹطھظ… طھط·ط¨ظٹظ‚ ط£ط³ط¹ط§ط± ط§ظ„ط¬ظ…ظ„ط©'}
                     </p>
                   ) : null}
                 </div>
               )}
             </div>
 
-            {/* الملخص */}
+            {/* ط§ظ„ظ…ظ„ط®طµ */}
             <div className="mb-6 pb-6 border-b" style={{borderColor: isDarkMode ? '#374151' : '#e5e7eb'}}>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>المجموع الفرعي</span>
+                  <span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>ط§ظ„ظ…ط¬ظ…ظˆط¹ ط§ظ„ظپط±ط¹ظٹ</span>
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
                 {appliedCoupon && (
                   <div className="flex justify-between text-green-600 font-normal">
-                    <span>ط§ظ„ط®طµظ…</span>
+                    <span>ط·آ§ط¸â€‍ط·آ®ط·آµط¸â€¦</span>
                     <span>-{formatCurrency(discount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-normal text-lg pt-2" style={{color: primaryColor}}>
-                  <span>الإجمالي</span>
+                  <span>ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ</span>
                   <span>{formatCurrency(subtotal - discount)}</span>
                 </div>
               </div>
             </div>
 
-            {/* الأزرار */}
+            {/* ط§ظ„ط£ط²ط±ط§ط± */}
             <div className="space-y-2">
               <button 
                 onClick={handleCheckout}
@@ -2128,13 +2165,13 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                 className="w-full py-3 rounded-lg text-white font-normal transition-all disabled:opacity-50"
                 style={{ backgroundColor: primaryColor }}
               >
-                {isCheckingOut ? '⏳ جاري...' : '✅ تأكيد الشراء'}
+                {isCheckingOut ? 'âڈ³ ط¬ط§ط±ظٹ...' : 'âœ… طھط£ظƒظٹط¯ ط§ظ„ط´ط±ط§ط،'}
               </button>
               <button 
                 onClick={() => navigate(-1)}
                 className={cn("w-full py-2 rounded-lg font-normal transition-colors", isDarkMode ? "text-gray-400 hover:text-gray-300 hover:bg-gray-700" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100")}
               >
-                ✕ إلغاء
+                âœ• ط¥ظ„ط؛ط§ط،
               </button>
             </div>
           </div>
@@ -2149,17 +2186,17 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <h2 className={cn("text-lg font-bold mb-1", isDarkMode ? "text-gray-100" : "text-gray-900")}>
-                      تعديل الكمية
+                      طھط¹ط¯ظٹظ„ ط§ظ„ظƒظ…ظٹط©
                     </h2>
                     <p className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                      {(selectedForQuantity.store_name && selectedForQuantity.store_name !== 'undefined') ? `${selectedForQuantity.store_name} - ${selectedForQuantity.name}` : selectedForQuantity.name || 'ظ…ظ†طھط¬'}
+                      {(selectedForQuantity.store_name && selectedForQuantity.store_name !== 'undefined') ? `${selectedForQuantity.store_name} - ${selectedForQuantity.name}` : selectedForQuantity.name || 'ط¸â€¦ط¸â€ ط·ع¾ط·آ¬'}
                     </p>
                   </div>
                   <button
                     onClick={() => setSelectedForQuantity(null)}
                     className={cn("text-xl font-bold transition-colors", isDarkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-400 hover:text-gray-600")}
                   >
-                    أ—
+                    ط£â€”
                   </button>
                 </div>
               </div>
@@ -2177,7 +2214,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 
                 {/* Price Display */}
                 <div className={cn("mb-6 p-4 rounded-lg text-center", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
-                  <p className={cn("text-xs mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>السعر للوحدة</p>
+                  <p className={cn("text-xs mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط§ظ„ط³ط¹ط± ظ„ظ„ظˆط­ط¯ط©</p>
                   <p className={cn("text-2xl font-bold", isDarkMode ? "text-blue-300" : "text-blue-600")}>
                     {formatCurrency(
                       (customerType === 'reseller' && selectedForQuantity.bulk_price)
@@ -2190,13 +2227,13 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                 {/* Quantity Controls */}
                 <div className="space-y-4">
                   <div className="text-center">
-                    <p className={cn("text-xs mb-3", isDarkMode ? "text-gray-400" : "text-gray-600")}>الكمية</p>
+                    <p className={cn("text-xs mb-3", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط§ظ„ظƒظ…ظٹط©</p>
                     <div className="flex items-center justify-center gap-6">
                       <button
                         onClick={() => setQuantityInput(Math.max(1, quantityInput - 1))}
                         className={cn("w-12 h-12 rounded-lg font-bold text-xl transition-all", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-gray-200" : "bg-gray-200 hover:bg-gray-300 text-gray-900")}
                       >
-                        −
+                        âˆ’
                       </button>
                       <input
                         type="number"
@@ -2216,7 +2253,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 
                   {/* Total */}
                   <div className={cn("p-4 rounded-lg text-center", isDarkMode ? "bg-green-900/30 border border-green-700" : "bg-green-50 border border-green-200")}>
-                    <p className={cn("text-xs mb-1", isDarkMode ? "text-green-400" : "text-green-600")}>الإجمالي</p>
+                    <p className={cn("text-xs mb-1", isDarkMode ? "text-green-400" : "text-green-600")}>ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ</p>
                     <p className={cn("text-2xl font-bold", isDarkMode ? "text-green-300" : "text-green-700")}>
                       {formatCurrency(
                         quantityInput * (
@@ -2240,13 +2277,13 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                   className="flex-1 py-2 rounded-lg text-white font-normal transition-all"
                   style={{ backgroundColor: primaryColor }}
                 >
-                  ✅ تطبيق
+                  âœ… طھط·ط¨ظٹظ‚
                 </button>
                 <button
                   onClick={() => setSelectedForQuantity(null)}
                   className={cn("flex-1 py-2 rounded-lg font-normal transition-colors", isDarkMode ? "bg-gray-600 text-gray-200 hover:bg-gray-500" : "bg-gray-200 text-gray-900 hover:bg-gray-300")}
                 >
-                  إلغاء
+                  ط¥ظ„ط؛ط§ط،
                 </button>
               </div>
             </div>
@@ -2260,10 +2297,10 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               {/* Header */}
               <div className={cn("p-6 border-b", isDarkMode ? "border-gray-700 bg-gray-700" : "border-gray-200 bg-blue-50")}>
                 <h2 className={cn("text-lg font-bold", isDarkMode ? "text-gray-100" : "text-gray-900")}>
-                  🔍 تأكيد بيانات العميل
+                  ًں”چ طھط£ظƒظٹط¯ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظٹظ„
                 </h2>
                 <p className={cn("text-sm mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                  يرجى تأكيد بيانات العميل قبل إتمام الطلب
+                  ظٹط±ط¬ظ‰ طھط£ظƒظٹط¯ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظٹظ„ ظ‚ط¨ظ„ ط¥طھظ…ط§ظ… ط§ظ„ط·ظ„ط¨
                 </p>
               </div>
 
@@ -2271,7 +2308,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               <div className="p-6 space-y-4">
                 {/* Address */}
                 <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                  <p className={cn("text-xs mb-2 font-medium", isDarkMode ? "text-gray-400" : "text-gray-600")}>📍 العنوان</p>
+                  <p className={cn("text-xs mb-2 font-medium", isDarkMode ? "text-gray-400" : "text-gray-600")}>ًں“چ ط§ظ„ط¹ظ†ظˆط§ظ†</p>
                   <p className={cn("text-lg font-bold", isDarkMode ? "text-gray-100" : "text-gray-900")}>
                     {verificationModal.address}
                   </p>
@@ -2279,7 +2316,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 
                 {/* Phone */}
                 <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                  <p className={cn("text-xs mb-2 font-medium", isDarkMode ? "text-gray-400" : "text-gray-600")}>📱 الهاتف</p>
+                  <p className={cn("text-xs mb-2 font-medium", isDarkMode ? "text-gray-400" : "text-gray-600")}>ًں“± ط§ظ„ظ‡ط§طھظپ</p>
                   <p className={cn("text-lg font-bold", isDarkMode ? "text-gray-100" : "text-gray-900")}>
                     {verificationModal.phone}
                   </p>
@@ -2288,17 +2325,17 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                 {/* Customer Type Badge */}
                 <div className={cn("p-4 rounded-lg", verificationModal.customer_type === 'reseller' ? (isDarkMode ? "bg-purple-900/30 border border-purple-700" : "bg-purple-50 border border-purple-200") : (isDarkMode ? "bg-green-900/30 border border-green-700" : "bg-green-50 border border-green-200"))}>
                   <p className={cn("text-xs font-medium", verificationModal.customer_type === 'reseller' ? (isDarkMode ? "text-purple-400" : "text-purple-600") : (isDarkMode ? "text-green-400" : "text-green-600"))}>
-                    نوع العميل
+                    ظ†ظˆط¹ ط§ظ„ط¹ظ…ظٹظ„
                   </p>
                   <p className={cn("text-lg font-bold mt-1", verificationModal.customer_type === 'reseller' ? (isDarkMode ? "text-purple-300" : "text-purple-700") : (isDarkMode ? "text-green-300" : "text-green-700"))}>
-                    {verificationModal.customer_type === 'reseller' ? '🏪 عميل جملة' : '👤 عميل نقدي'}
+                    {verificationModal.customer_type === 'reseller' ? 'ًںڈھ ط¹ظ…ظٹظ„ ط¬ظ…ظ„ط©' : 'ًں‘¤ ط¹ظ…ظٹظ„ ظ†ظ‚ط¯ظٹ'}
                   </p>
                 </div>
 
                 {/* Status */}
                 {verificationModal.isExisting && (
                   <div className={cn("p-3 rounded-lg text-sm", isDarkMode ? "bg-green-900/20 text-green-300" : "bg-green-100 text-green-700")}>
-                    ✅ تم العثور على بيانات العميل في قاعدة البيانات
+                    âœ… طھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظٹظ„ ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
                   </div>
                 )}
               </div>
@@ -2311,14 +2348,14 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                   className="flex-1 py-2 rounded-lg text-white font-normal transition-all disabled:opacity-50"
                   style={{ backgroundColor: primaryColor }}
                 >
-                  {isConfirmingOrder ? '⏳ جاري...' : '✅ تأكيد والدفع'}
+                  {isConfirmingOrder ? 'âڈ³ ط¬ط§ط±ظٹ...' : 'âœ… طھط£ظƒظٹط¯ ظˆط§ظ„ط¯ظپط¹'}
                 </button>
                 <button
                   onClick={() => setVerificationModal(null)}
                   disabled={isConfirmingOrder}
                   className={cn("flex-1 py-2 rounded-lg font-normal transition-colors disabled:opacity-50", isDarkMode ? "bg-gray-600 text-gray-200 hover:bg-gray-500" : "bg-gray-200 text-gray-900 hover:bg-gray-300")}
                 >
-                  إلغاء
+                  ط¥ظ„ط؛ط§ط،
                 </button>
               </div>
             </div>
@@ -2354,7 +2391,7 @@ const LoginRequiredModal = ({ isOpen, onClose, onLogin }: { isOpen: boolean; onC
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className={cn("text-lg font-semibold", isDarkMode ? "text-white" : "text-gray-900")}>
-            تسجيل الدخول مطلوب
+            طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ظ…ط·ظ„ظˆط¨
           </h3>
           <button
             onClick={onClose}
@@ -2368,7 +2405,7 @@ const LoginRequiredModal = ({ isOpen, onClose, onLogin }: { isOpen: boolean; onC
         </div>
         
         <p className={cn("mb-6 text-sm leading-relaxed", isDarkMode ? "text-gray-300" : "text-gray-600")}>
-          لغرض عرض الداشبورد يجب تسجيل الدخول، وبعد تسجيل الدخول يمكن للأيقونة عرض داشبورد المتجر المفتوح
+          ظ„ط؛ط±ط¶ ط¹ط±ط¶ ط§ظ„ط¯ط§ط´ط¨ظˆط±ط¯ ظٹط¬ط¨ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„طŒ ظˆط¨ط¹ط¯ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ظٹظ…ظƒظ† ظ„ظ„ط£ظٹظ‚ظˆظ†ط© ط¹ط±ط¶ ط¯ط§ط´ط¨ظˆط±ط¯ ط§ظ„ظ…طھط¬ط± ط§ظ„ظ…ظپطھظˆط­
         </p>
 
         <div className="flex gap-3">
@@ -2381,13 +2418,13 @@ const LoginRequiredModal = ({ isOpen, onClose, onLogin }: { isOpen: boolean; onC
                 : "bg-gray-100 hover:bg-gray-200 text-gray-900"
             )}
           >
-            إغلاق
+            ط¥ط؛ظ„ط§ظ‚
           </button>
           <button
             onClick={onLogin}
             className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors"
           >
-            تسجيل الدخول
+            طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„
           </button>
         </div>
       </div>
@@ -2400,13 +2437,13 @@ const DashboardMenuModal = ({ isOpen, onClose, onSelectSection }: { isOpen: bool
   const { isDarkMode } = useTheme();
   
   const dashboardSections = [
-    { icon: BarChart3, label: 'الإحصائيات', section: 'stats' },
-    { icon: Package, label: 'المنتجات', section: 'products' },
-    { icon: ShoppingCart, label: 'الطلبات', section: 'orders' },
-    { icon: Users, label: 'العملاء', section: 'customers' },
-    { icon: Ticket, label: 'الكوبونات', section: 'coupons' },
-    { icon: Gift, label: 'المزادات', section: 'auctions' },
-    { icon: Settings, label: 'الإعدادات', section: 'settings' },
+    { icon: BarChart3, label: 'ط§ظ„ط¥ط­طµط§ط¦ظٹط§طھ', section: 'stats' },
+    { icon: Package, label: 'ط§ظ„ظ…ظ†طھط¬ط§طھ', section: 'products' },
+    { icon: ShoppingCart, label: 'ط§ظ„ط·ظ„ط¨ط§طھ', section: 'orders' },
+    { icon: Users, label: 'ط§ظ„ط¹ظ…ظ„ط§ط،', section: 'customers' },
+    { icon: Ticket, label: 'ط§ظ„ظƒظˆط¨ظˆظ†ط§طھ', section: 'coupons' },
+    { icon: Gift, label: 'ط§ظ„ظ…ط²ط§ط¯ط§طھ', section: 'auctions' },
+    { icon: Settings, label: 'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ', section: 'settings' },
   ];
 
   if (!isOpen) return null;
@@ -2429,7 +2466,7 @@ const DashboardMenuModal = ({ isOpen, onClose, onSelectSection }: { isOpen: bool
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className={cn("text-lg font-semibold", isDarkMode ? "text-white" : "text-gray-900")}>
-            لوحة التحكم
+            ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ…
           </h3>
           <button
             onClick={onClose}
@@ -2477,8 +2514,8 @@ const MobileFooterNav = () => {
   const [showLoginMessage, setShowLoginMessage] = useState(false);
   
   const navItems = [
-    { icon: Home, label: 'الرئيسية', path: '/' },
-    { icon: StoreIcon, label: 'المتاجر', path: '/stores' },
+    { icon: Home, label: 'ط§ظ„ط±ط¦ظٹط³ظٹط©', path: '/' },
+    { icon: StoreIcon, label: 'ط§ظ„ظ…طھط§ط¬ط±', path: '/stores' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -2538,7 +2575,7 @@ const MobileFooterNav = () => {
             <div className="flex flex-col items-center gap-1">
               <LayoutDashboard size={18} className="flex-shrink-0" />
               <span className="text-[10px] leading-tight line-clamp-2">
-                {user ? 'داشبورد' : 'تسجيل'}
+                {user ? 'ط¯ط§ط´ط¨ظˆط±ط¯' : 'طھط³ط¬ظٹظ„'}
               </span>
             </div>
           </button>
@@ -2587,7 +2624,7 @@ const StorePageMobileFooter = ({ storeSlug, cartCount, isTopup = false }: { stor
         >
           <div className="flex flex-col items-center gap-1">
             <ArrowRight size={18} className="flex-shrink-0" />
-            <span className="text-[10px] leading-tight">ط¹ظˆط¯ط©</span>
+            <span className="text-[10px] leading-tight">ط·آ¹ط¸ث†ط·آ¯ط·آ©</span>
           </div>
         </button>
 
@@ -2601,7 +2638,7 @@ const StorePageMobileFooter = ({ storeSlug, cartCount, isTopup = false }: { stor
         >
           <div className="flex flex-col items-center gap-1">
             <Home size={18} className="flex-shrink-0" />
-            <span className="text-[10px] leading-tight">الرئيسية</span>
+            <span className="text-[10px] leading-tight">ط§ظ„ط±ط¦ظٹط³ظٹط©</span>
           </div>
         </button>
 
@@ -2622,7 +2659,7 @@ const StorePageMobileFooter = ({ storeSlug, cartCount, isTopup = false }: { stor
                 </span>
               )}
             </div>
-            <span className="text-[10px] leading-tight">ط§ظ„ط³ظ„ط©</span>
+            <span className="text-[10px] leading-tight">ط·آ§ط¸â€‍ط·آ³ط¸â€‍ط·آ©</span>
           </div>
         </button>
 
@@ -2636,7 +2673,7 @@ const StorePageMobileFooter = ({ storeSlug, cartCount, isTopup = false }: { stor
         >
           <div className="flex flex-col items-center gap-1">
             <StoreIcon size={18} className="flex-shrink-0" />
-            <span className="text-[10px] leading-tight">متاجر</span>
+            <span className="text-[10px] leading-tight">ظ…طھط§ط¬ط±</span>
           </div>
         </button>
       </div>
@@ -2696,11 +2733,11 @@ const LoginPage = () => {
           navigate('/');
         }
       } else {
-        setError('رقم الهاتف أو كلمة المرور غير صحيحة');
+        setError('ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ط£ظˆ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط؛ظٹط± طµط­ظٹط­ط©');
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('حدث خطأ ما');
+      setError('ط­ط¯ط« ط®ط·ط£ ظ…ط§');
     }
   };
 
@@ -2709,7 +2746,7 @@ const LoginPage = () => {
       <div className={cn('border-b py-4 px-6', isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-black/5')}>
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <Link to="/" className="text-indigo-600 font-normal text-sm hover:text-indigo-700 transition-colors">
-            {'العودة للمنصة'}
+            {'ط§ظ„ط¹ظˆط¯ط© ظ„ظ„ظ…ظ†طµط©'}
           </Link>
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
@@ -2719,7 +2756,7 @@ const LoginPage = () => {
                 ? 'bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800'
                 : 'bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100'
             )}
-            title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}
+            title={isDarkMode ? 'ط§ظ„ظˆط¶ط¹ ط§ظ„ظپط§طھط­' : 'ط§ظ„ظˆط¶ط¹ ط§ظ„ط¯ط§ظƒظ†'}
           >
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
@@ -2733,7 +2770,7 @@ const LoginPage = () => {
         >
           <Link to="/" className="inline-flex items-center gap-2 text-indigo-600 font-normal mb-6 hover:gap-3 transition-all">
             <ChevronRight size={20} className="rotate-180" />
-            <span>{'العودة للمنصة العامة'}</span>
+            <span>{'ط§ظ„ط¹ظˆط¯ط© ظ„ظ„ظ…ظ†طµط© ط§ظ„ط¹ط§ظ…ط©'}</span>
           </Link>
           <Card className="p-8">
             <div className="text-center mb-8">
@@ -2743,13 +2780,13 @@ const LoginPage = () => {
                 </div>
               ) : null}
               <h1 className="text-4xl font-normal tracking-tighter text-indigo-600">{adminAppName}</h1>
-              <p className="text-gray-500 mt-2">{'أهلا بعودتك إلى المنصة'}</p>
+              <p className="text-gray-500 mt-2">{'ط£ظ‡ظ„ط§ ط¨ط¹ظˆط¯طھظƒ ط¥ظ„ظ‰ ط§ظ„ظ…ظ†طµط©'}</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className={cn('block text-sm font-normal mb-1', isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-                  {'رقم الهاتف'}
+                  {'ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ'}
                 </label>
                 <input
                   type="text"
@@ -2762,29 +2799,29 @@ const LoginPage = () => {
               </div>
               <div>
                 <label className={cn('block text-sm font-normal mb-1', isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-                  {'كلمة المرور'}
+                  {'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±'}
                 </label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className={cn('w-full px-4 py-3 rounded-xl border border-black/5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20', isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-gray-50 text-gray-900')}
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   required
                 />
               </div>
               {error && <p className={cn('text-sm font-medium', isDarkMode ? 'text-red-400' : 'text-red-500')}>{error}</p>}
               <Button type="submit" className="w-full bg-indigo-600 text-white py-4 hover:bg-indigo-700 shadow-lg shadow-indigo-200">
-                {'تسجيل الدخول'}
+                {'طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„'}
               </Button>
             </form>
 
             <div className="mt-6 space-y-3 text-center">
               <Link to="/register-merchant" className="block text-sm font-normal text-indigo-600 hover:text-indigo-700">
-                {'هل تريد فتح متجرك الخاص سجل كتاجر الآن'}
+                {'ظ‡ظ„ طھط±ظٹط¯ ظپطھط­ ظ…طھط¬ط±ظƒ ط§ظ„ط®ط§طµ ط³ط¬ظ„ ظƒطھط§ط¬ط± ط§ظ„ط¢ظ†'}
               </Link>
               <Link to="/" className={cn('block text-sm font-normal', isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700')}>
-                {'تصفح المنصة كزائر'}
+                {'طھطµظپط­ ط§ظ„ظ…ظ†طµط© ظƒط²ط§ط¦ط±'}
               </Link>
             </div>
           </Card>
@@ -2808,7 +2845,7 @@ const RegisterMerchantPage = () => {
     password: '',
     phone: '',
     storeName: '',
-    category: 'ط¹ط§ظ…',
+    category: 'ط·آ¹ط·آ§ط¸â€¦',
     storeType: 'regular'
   });
   const [submitted, setSubmitted] = useState(false);
@@ -2845,10 +2882,10 @@ const RegisterMerchantPage = () => {
         setSubmitted(true);
       } else {
         const data = await res.json();
-        setError(data.error || 'فشل تسجيل الطلب');
+        setError(data.error || 'ظپط´ظ„ طھط³ط¬ظٹظ„ ط§ظ„ط·ظ„ط¨');
       }
     } catch (err) {
-      setError('حدث خطأ في الاتصال بالخادم');
+      setError('ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط®ط§ط¯ظ…');
     } finally {
       setLoading(false);
     }
@@ -2866,10 +2903,10 @@ const RegisterMerchantPage = () => {
           <Card className={cn("p-10", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
             <div className="text-center mb-12">
               <h1 className={cn("text-3xl font-normal mb-4 tracking-tighter", isDarkMode ? "text-gray-100" : "text-gray-900")}>
-                اختر نوع متجرك
+                ط§ط®طھط± ظ†ظˆط¹ ظ…طھط¬ط±ظƒ
               </h1>
               <p className={cn("text-lg font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                ما نوع المنتجات التي تريد بيعها؟
+                ظ…ط§ ظ†ظˆط¹ ط§ظ„ظ…ظ†طھط¬ط§طھ ط§ظ„طھظٹ طھط±ظٹط¯ ط¨ظٹط¹ظ‡ط§طں
               </p>
             </div>
 
@@ -2889,13 +2926,13 @@ const RegisterMerchantPage = () => {
                   <StoreIcon size={32} />
                 </div>
                 <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? "text-blue-300" : "text-blue-700")}>
-                  متجر عادي
+                  ظ…طھط¬ط± ط¹ط§ط¯ظٹ
                 </h3>
                 <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                  أزياء، إلكترونيات، منزليات، أو أي منتجات أخرى
+                  ط£ط²ظٹط§ط،طŒ ط¥ظ„ظƒطھط±ظˆظ†ظٹط§طھطŒ ظ…ظ†ط²ظ„ظٹط§طھطŒ ط£ظˆ ط£ظٹ ظ…ظ†طھط¬ط§طھ ط£ط®ط±ظ‰
                 </p>
                 <div className={cn("mt-4 pt-4 border-t text-xs font-normal", isDarkMode ? "border-blue-700 text-blue-400" : "border-blue-200 text-blue-600")}>
-                  ← اضغط للمتابعة
+                  â†گ ط§ط¶ط؛ط· ظ„ظ„ظ…طھط§ط¨ط¹ط©
                 </div>
               </motion.button>
 
@@ -2914,19 +2951,19 @@ const RegisterMerchantPage = () => {
                   <CreditCard size={32} />
                 </div>
                 <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? "text-green-300" : "text-green-700")}>
-                  متجر بطاقات شحن
+                  ظ…طھط¬ط± ط¨ط·ط§ظ‚ط§طھ ط´ط­ظ†
                 </h3>
                 <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                  بطاقات شحن تعبئة الرصيد (Zain, Asiacell, Korek...)
+                  ط¨ط·ط§ظ‚ط§طھ ط´ط­ظ† طھط¹ط¨ط¦ط© ط§ظ„ط±طµظٹط¯ (Zain, Asiacell, Korek...)
                 </p>
                 <div className={cn("mt-4 pt-4 border-t text-xs font-normal", isDarkMode ? "border-green-700 text-green-400" : "border-green-200 text-green-600")}>
-                  ← اضغط للمتابعة
+                  â†گ ط§ط¶ط؛ط· ظ„ظ„ظ…طھط§ط¨ط¹ط©
                 </div>
               </motion.button>
             </div>
 
             <p className={cn("mt-8 text-center text-xs font-normal", isDarkMode ? "text-gray-500" : "text-gray-400")}>
-              يمكنك تغيير نوع المتجر لاحقاً من إعدادات حسابك
+              ظٹظ…ظƒظ†ظƒ طھط؛ظٹظٹط± ظ†ظˆط¹ ط§ظ„ظ…طھط¬ط± ظ„ط§ط­ظ‚ط§ظ‹ ظ…ظ† ط¥ط¹ط¯ط§ط¯ط§طھ ط­ط³ط§ط¨ظƒ
             </p>
           </Card>
         </motion.div>
@@ -2942,9 +2979,9 @@ const RegisterMerchantPage = () => {
             <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle size={40} />
             </div>
-            <h1 className={cn("text-2xl font-normal mb-4", isDarkMode ? "text-gray-100" : "text-gray-900")}>تم استلام طلبك بنجاح!</h1>
+            <h1 className={cn("text-2xl font-normal mb-4", isDarkMode ? "text-gray-100" : "text-gray-900")}>طھظ… ط§ط³طھظ„ط§ظ… ط·ظ„ط¨ظƒ ط¨ظ†ط¬ط§ط­!</h1>
             <p className={cn("mb-8 font-medium", isDarkMode ? "text-gray-300" : "text-gray-600")}>
-              شكرًا لاهتمامك بالانضمام إلى {appName}. طلبك الآن قيد المراجعة من قبل الإدارة، وسنقوم بالتواصل معك عبر تليجرام فور تفعيل المتجر.
+              ط´ظƒط±ظ‹ط§ ظ„ط§ظ‡طھظ…ط§ظ…ظƒ ط¨ط§ظ„ط§ظ†ط¶ظ…ط§ظ… ط¥ظ„ظ‰ {appName}. ط·ظ„ط¨ظƒ ط§ظ„ط¢ظ† ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط© ظ…ظ† ظ‚ط¨ظ„ ط§ظ„ط¥ط¯ط§ط±ط©طŒ ظˆط³ظ†ظ‚ظˆظ… ط¨ط§ظ„طھظˆط§طµظ„ ظ…ط¹ظƒ ط¹ط¨ط± طھظ„ظٹط¬ط±ط§ظ… ظپظˆط± طھظپط¹ظٹظ„ ط§ظ„ظ…طھط¬ط±.
             </p>
             <Button 
               onClick={() => {
@@ -2953,7 +2990,7 @@ const RegisterMerchantPage = () => {
               }} 
               className="w-full bg-indigo-600 text-white py-4 font-normal rounded-xl"
             >
-              العودة لتسجيل الدخول
+              ط§ظ„ط¹ظˆط¯ط© ظ„طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„
             </Button>
           </Card>
         </motion.div>
@@ -2967,40 +3004,40 @@ const RegisterMerchantPage = () => {
         <Card className="p-8 md:p-10">
           <div className="text-center mb-10">
             <div className="inline-block px-4 py-2 rounded-full bg-indigo-100 text-indigo-600 text-xs font-normal mb-3">
-              {storeType === 'topup' ? '💳 متجر بطاقات شحن' : '🛍️ متجر عادي'}
+              {storeType === 'topup' ? 'ًں’³ ظ…طھط¬ط± ط¨ط·ط§ظ‚ط§طھ ط´ط­ظ†' : 'ًں›چï¸ڈ ظ…طھط¬ط± ط¹ط§ط¯ظٹ'}
             </div>
-            <h1 className="text-3xl font-normal text-indigo-600 tracking-tighter mb-2">انضم كتاجر</h1>
-            <p className="text-gray-500 font-medium">ابدأ رحلتك التجارية معنا اليوم</p>
+            <h1 className="text-3xl font-normal text-indigo-600 tracking-tighter mb-2">ط§ظ†ط¶ظ… ظƒطھط§ط¬ط±</h1>
+            <p className="text-gray-500 font-medium">ط§ط¨ط¯ط£ ط±ط­ظ„طھظƒ ط§ظ„طھط¬ط§ط±ظٹط© ظ…ط¹ظ†ط§ ط§ظ„ظٹظˆظ…</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>الاسم الكامل</label>
+                <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ظ„ط§ط³ظ… ط§ظ„ظƒط§ظ…ظ„</label>
                 <input 
                   type="text" 
                   required
                   className={cn("w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500/20 outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5 text-gray-900")}
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
-                  placeholder="محمد علي"
+                  placeholder="ظ…ط­ظ…ط¯ ط¹ظ„ظٹ"
                 />
               </div>
               <div>
-                <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>اسم المتجر</label>
+                <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ط³ظ… ط§ظ„ظ…طھط¬ط±</label>
                 <input 
                   type="text" 
                   required
                   className={cn("w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500/20 outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5 text-gray-900")}
                   value={formData.storeName}
                   onChange={e => setFormData({...formData, storeName: e.target.value})}
-                  placeholder={storeType === 'topup' ? 'متجر بطاقاتي' : 'متجر الأناقة'}
+                  placeholder={storeType === 'topup' ? 'ظ…طھط¬ط± ط¨ط·ط§ظ‚ط§طھظٹ' : 'ظ…طھط¬ط± ط§ظ„ط£ظ†ط§ظ‚ط©'}
                 />
               </div>
             </div>
 
             <div>
-              <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>رقم الهاتف</label>
+              <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ</label>
               <input 
                 type="tel" 
                 required
@@ -3013,40 +3050,40 @@ const RegisterMerchantPage = () => {
             </div>
 
             <div>
-              <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>البريد الإلكتروني <span className={cn("text-xs font-normal", isDarkMode ? "text-gray-500" : "text-gray-400")}>(اختياري)</span></label>
+              <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ <span className={cn("text-xs font-normal", isDarkMode ? "text-gray-500" : "text-gray-400")}>(ط§ط®طھظٹط§ط±ظٹ)</span></label>
               <input 
                 type="email"
                 className={cn("w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500/20 outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5 text-gray-900")}
                 value={formData.email}
                 onChange={e => setFormData({...formData, email: e.target.value})}
-                placeholder="example@email.com (اختياري)"
+                placeholder="example@email.com (ط§ط®طھظٹط§ط±ظٹ)"
               />
             </div>
 
             <div>
-              <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>كلمة المرور</label>
+              <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</label>
               <input 
                 type="password" 
                 required
                 className={cn("w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500/20 outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5 text-gray-900")}
                 value={formData.password}
                 onChange={e => setFormData({...formData, password: e.target.value})}
-                placeholder="••••••••"
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
               />
             </div>
 
             {storeType === 'regular' && (
               <div>
-                <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>تصنيف المتجر</label>
+                <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>طھطµظ†ظٹظپ ط§ظ„ظ…طھط¬ط±</label>
                 <select 
                   className={cn("w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500/20 outline-none appearance-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5 text-gray-900")}
                   value={formData.category}
                   onChange={e => setFormData({...formData, category: e.target.value})}
                 >
-                  <option value="عام">عام</option>
-                  <option value="أزياء">أزياء</option>
-                  <option value="إلكترونيات">إلكترونيات</option>
-                  <option value="المنزل">المنزل</option>
+                  <option value="ط¹ط§ظ…">ط¹ط§ظ…</option>
+                  <option value="ط£ط²ظٹط§ط،">ط£ط²ظٹط§ط،</option>
+                  <option value="ط¥ظ„ظƒطھط±ظˆظ†ظٹط§طھ">ط¥ظ„ظƒطھط±ظˆظ†ظٹط§طھ</option>
+                  <option value="ط§ظ„ظ…ظ†ط²ظ„">ط§ظ„ظ…ظ†ط²ظ„</option>
                 </select>
               </div>
             )}
@@ -3058,7 +3095,7 @@ const RegisterMerchantPage = () => {
               disabled={loading}
               className="w-full bg-indigo-600 text-white py-4 text-lg font-normal shadow-xl shadow-indigo-100 mt-4 disabled:opacity-50 rounded-xl"
             >
-              {loading ? 'جاري إرسال الطلب...' : 'إرسال طلب الانضمام'}
+              {loading ? 'ط¬ط§ط±ظٹ ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨...' : 'ط¥ط±ط³ط§ظ„ ط·ظ„ط¨ ط§ظ„ط§ظ†ط¶ظ…ط§ظ…'}
             </Button>
 
             <button
@@ -3069,12 +3106,12 @@ const RegisterMerchantPage = () => {
               }}
               className="w-full text-sm font-normal text-gray-400 hover:text-indigo-600 transition-colors py-2"
             >
-              ← تغيير نوع المتجر
+              â†گ طھط؛ظٹظٹط± ظ†ظˆط¹ ط§ظ„ظ…طھط¬ط±
             </button>
 
             <div className="text-center mt-6">
               <Link to="/login" className="text-sm font-normal text-gray-400 hover:text-indigo-600">
-                لديك حساب بالفعل؟ سجل دخولك
+                ظ„ط¯ظٹظƒ ط­ط³ط§ط¨ ط¨ط§ظ„ظپط¹ظ„طں ط³ط¬ظ„ ط¯ط®ظˆظ„ظƒ
               </Link>
             </div>
           </form>
@@ -3179,7 +3216,7 @@ const AdminDashboard = () => {
         .then(res => res.json())
         .then(data => {
           if (data && typeof data === 'object' && !data.error && data.app_name) {
-            console.log("📋 Loaded settings:", data);
+            console.log("ًں“‹ Loaded settings:", data);
             const commValue = parseFloat(data.admin_commission_percentage);
             setAdminConfig({
               app_name: data.app_name || appName || '',
@@ -3196,7 +3233,7 @@ const AdminDashboard = () => {
 
   // Load initial data on component mount
   useEffect(() => {
-    console.log('🚀 AdminDashboard mounted - loading initial data');
+    console.log('ًںڑ€ AdminDashboard mounted - loading initial data');
     const loadInitialData = async () => {
       try {
         const storesRes = await fetch('/api/admin/stores').then(res => {
@@ -3206,7 +3243,7 @@ const AdminDashboard = () => {
           console.error('Fetch error:', err);
           return [];
         });
-        console.log('✅ Initial stores response:', storesRes);
+        console.log('âœ… Initial stores response:', storesRes);
         console.log('   Type:', typeof storesRes);
         console.log('   Is Array:', Array.isArray(storesRes));
         console.log('   Length:', storesRes?.length || 0);
@@ -3239,7 +3276,7 @@ const AdminDashboard = () => {
           fetch('/api/admin/admin-users').then(res => res.json()).catch(() => [])
         ]);
         
-        console.log('🔄 تحديث البيانات - Stores data received:', storesRes?.length || 0, 'store(s)');
+        console.log('ًں”„ طھط­ط¯ظٹط« ط§ظ„ط¨ظٹط§ظ†ط§طھ - Stores data received:', storesRes?.length || 0, 'store(s)');
         
         // Check if today is the 27th of the month
         const today = new Date();
@@ -3255,7 +3292,7 @@ const AdminDashboard = () => {
         }
         
         const finalStores = Array.isArray(storesRes) ? storesRes : [];
-        console.log('✅ Setting stores to:', finalStores.length, 'stores');
+        console.log('âœ… Setting stores to:', finalStores.length, 'stores');
         setStores(finalStores);
         setStats(statsRes && typeof statsRes === 'object' && !statsRes.error ? statsRes : { totalStores: 0, totalUsers: 0, totalCustomers: 0, totalRevenue: 0, totalOrders: 0, adminCommissionPercentage: 0, adminCommission: 0, merchantRevenue: 0 });
         setUsers(Array.isArray(usersRes) ? usersRes : []);
@@ -3270,7 +3307,7 @@ const AdminDashboard = () => {
     };
     
     // Load data whenever section changes or component mounts
-    console.log('📍 AdminDashboard effect triggered - section:', section, 'effectiveSection:', effectiveSection);
+    console.log('ًں“چ AdminDashboard effect triggered - section:', section, 'effectiveSection:', effectiveSection);
     loadData();
   }, [section]);
 
@@ -3341,7 +3378,7 @@ const AdminDashboard = () => {
   // Toggle subscription paid status
   const toggleSubscriptionStatus = async (storeId: number, currentStatus: boolean) => {
     try {
-      console.log(`🔄 Toggling subscription: storeId=${storeId}, currentStatus=${currentStatus}`);
+      console.log(`ًں”„ Toggling subscription: storeId=${storeId}, currentStatus=${currentStatus}`);
       const response = await fetch(`/api/admin/stores/${storeId}/toggle-subscription-paid`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -3349,7 +3386,7 @@ const AdminDashboard = () => {
       });
       
       const data = await response.json();
-      console.log(`📊 Response:`, data, `Status: ${response.status}`);
+      console.log(`ًں“ٹ Response:`, data, `Status: ${response.status}`);
       
       if (response.ok) {
         // Update local state
@@ -3359,15 +3396,15 @@ const AdminDashboard = () => {
             : order
         );
         setAdminOrders(updatedOrders);
-        alert('تم تحديث حالة الاشتراك بنجاح');
+        alert('طھظ… طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„ط§ط´طھط±ط§ظƒ ط¨ظ†ط¬ط§ط­');
       } else {
-        const errorMsg = data.error || 'فشل تحديث حالة الاشتراك';
+        const errorMsg = data.error || 'ظپط´ظ„ طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„ط§ط´طھط±ط§ظƒ';
         alert(errorMsg);
         console.error('Error response:', data);
       }
     } catch (error) {
       console.error('Error toggling subscription:', error);
-      alert('حدث خطأ في الاتصال: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
+      alert('ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: ' + (error instanceof Error ? error.message : 'ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ'));
     }
   };
 
@@ -3377,7 +3414,7 @@ const AdminDashboard = () => {
     if (!approveDialog.store) return;
     
     if (!approveDialog.customPhone) {
-      alert("يرجى إدخال معرّف تليجرام أو رقم الهاتف أولاً");
+      alert("ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ظ…ط¹ط±ظ‘ظپ طھظ„ظٹط¬ط±ط§ظ… ط£ظˆ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ط£ظˆظ„ط§ظ‹");
       return;
     }
 
@@ -3391,7 +3428,7 @@ const AdminDashboard = () => {
       const data = await res.json();
       
       if (res.ok) {
-        console.log('✅ Store approved successfully:', approveDialog.store.store_name);
+        console.log('âœ… Store approved successfully:', approveDialog.store.store_name);
         
         // Refresh all lists
         await Promise.all([
@@ -3404,20 +3441,20 @@ const AdminDashboard = () => {
         setApproveDialog({ store: null, customPhone: '' });
         
         // Show success alert
-        alert("تم تحديث حالة المتجر وتفعيله بنجاح! انتقل إلى قائمة المتاجر لرؤيته");
+        alert("طھظ… طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„ظ…طھط¬ط± ظˆطھظپط¹ظٹظ„ظ‡ ط¨ظ†ط¬ط§ط­! ط§ظ†طھظ‚ظ„ ط¥ظ„ظ‰ ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…طھط§ط¬ط± ظ„ط±ط¤ظٹطھظ‡");
         
         // Navigate to stores section after a short delay to ensure data is refreshed
         setTimeout(() => {
           navigate('/admin/stores');
         }, 500);
       } else {
-        const errorMsg = data.error || "خطأ غير معروف عند تفعيل المتجر";
-        alert("فشل في تفعيل المتجر: " + errorMsg);
+        const errorMsg = data.error || "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ ط¹ظ†ط¯ طھظپط¹ظٹظ„ ط§ظ„ظ…طھط¬ط±";
+        alert("ظپط´ظ„ ظپظٹ طھظپط¹ظٹظ„ ط§ظ„ظ…طھط¬ط±: " + errorMsg);
         console.error('Approval error details:', data);
       }
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "خطأ غير معروف";
-      alert("خطأ في الاتصال: " + errorMsg);
+      const errorMsg = error instanceof Error ? error.message : "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ";
+      alert("ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: " + errorMsg);
       console.error('Connection error during approval:', error);
     }
   };
@@ -3435,13 +3472,13 @@ const AdminDashboard = () => {
           fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Stats refresh error:', err))
         ]);
         
-        alert("تم رفض طلب المتجر بنجاح");
+        alert("طھظ… ط±ظپط¶ ط·ظ„ط¨ ط§ظ„ظ…طھط¬ط± ط¨ظ†ط¬ط§ط­");
       } else {
-        alert("فشل رفض المتجر: " + (data.error || "خطأ غير معروف"));
+        alert("ظپط´ظ„ ط±ظپط¶ ط§ظ„ظ…طھط¬ط±: " + (data.error || "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ"));
         console.error('Reject error:', data);
       }
     } catch (error) {
-      alert("خطأ في الاتصال: " + (error instanceof Error ? error.message : "خطأ غير معروف"));
+      alert("ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: " + (error instanceof Error ? error.message : "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ"));
       console.error('Connection error:', error);
     }
   };
@@ -3452,15 +3489,15 @@ const AdminDashboard = () => {
       const data = await res.json();
       
       if (res.ok) {
-        alert("تم إيقاف المتجر بنجاح");
+        alert("طھظ… ط¥ظٹظ‚ط§ظپ ط§ظ„ظ…طھط¬ط± ط¨ظ†ط¬ط§ط­");
         fetch('/api/admin/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
         fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Stats refresh error:', err));
       } else {
-        alert("فشل إيقاف المتجر: " + (data.error || "خطأ غير معروف"));
+        alert("ظپط´ظ„ ط¥ظٹظ‚ط§ظپ ط§ظ„ظ…طھط¬ط±: " + (data.error || "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ"));
         console.error('Suspend error:', data);
       }
     } catch (error) {
-      alert("خطأ في الاتصال: " + (error instanceof Error ? error.message : "خطأ غير معروف"));
+      alert("ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: " + (error instanceof Error ? error.message : "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ"));
       console.error('Connection error:', error);
     }
   };
@@ -3471,49 +3508,49 @@ const AdminDashboard = () => {
       const data = await res.json();
       
       if (res.ok) {
-        const action = data.is_active ? 'تفعيل' : 'إيقاف';
-        alert(`تم ${action} المتجر بنجاح`);
+        const action = data.is_active ? 'طھظپط¹ظٹظ„' : 'ط¥ظٹظ‚ط§ظپ';
+        alert(`طھظ… ${action} ط§ظ„ظ…طھط¬ط± ط¨ظ†ط¬ط§ط­`);
         fetch('/api/admin/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
         fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Stats refresh error:', err));
       } else {
-        alert("فشل تغيير حالة المتجر: " + (data.error || "خطأ غير معروف"));
+        alert("ظپط´ظ„ طھط؛ظٹظٹط± ط­ط§ظ„ط© ط§ظ„ظ…طھط¬ط±: " + (data.error || "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ"));
         console.error('Toggle error:', data);
       }
     } catch (error) {
-      alert("خطأ في الاتصال: " + (error instanceof Error ? error.message : "خطأ غير معروف"));
+      alert("ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: " + (error instanceof Error ? error.message : "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ"));
       console.error('Connection error:', error);
     }
   };
 
   const handleDeleteStore = async (id: number) => {
-    if (!confirm("هل أنت متأكد من حذف هذا المتجر نهائياً؟")) return;
+    if (!confirm("ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط­ط°ظپ ظ‡ط°ط§ ط§ظ„ظ…طھط¬ط± ظ†ظ‡ط§ط¦ظٹط§ظ‹طں")) return;
     
     try {
       const res = await fetch(`/api/admin/delete-store/${id}`, { method: 'DELETE' });
       const data = await res.json();
       
       if (res.ok) {
-        alert("تم حذف المتجر بنجاح");
+        alert("طھظ… ط­ط°ظپ ط§ظ„ظ…طھط¬ط± ط¨ظ†ط¬ط§ط­");
         fetch('/api/admin/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
         fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Stats refresh error:', err));
       } else {
-        alert("فشل حذف المتجر: " + (data.error || "خطأ غير معروف"));
+        alert("ظپط´ظ„ ط­ط°ظپ ط§ظ„ظ…طھط¬ط±: " + (data.error || "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ"));
         console.error('Delete error:', data);
       }
     } catch (error) {
-      alert("خطأ في الاتصال: " + (error instanceof Error ? error.message : "خطأ غير معروف"));
+      alert("ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: " + (error instanceof Error ? error.message : "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ"));
       console.error('Connection error:', error);
     }
   };
 
   const handleEditStore = async (store: Store & { store_name?: string; owner_name?: string; percentage_enabled?: boolean }) => {
-    const newName = prompt("تعديل اسم المتجر:", store.store_name || (store as any).name);
+    const newName = prompt("طھط¹ط¯ظٹظ„ ط§ط³ظ… ط§ظ„ظ…طھط¬ط±:", store.store_name || (store as any).name);
     if (!newName) return;
-    const newOwner = prompt("تعديل اسم المالك:", store.owner_name || "غير معروف");
+    const newOwner = prompt("طھط¹ط¯ظٹظ„ ط§ط³ظ… ط§ظ„ظ…ط§ظ„ظƒ:", store.owner_name || "ط؛ظٹط± ظ…ط¹ط±ظˆظپ");
     if (!newOwner) return;
     
     const percentageEnabledStr = prompt(
-      "هل يخضع المتجر للنسبة المئوية؟ (اكتب 'yes' أو 'no'):",
+      "ظ‡ظ„ ظٹط®ط¶ط¹ ط§ظ„ظ…طھط¬ط± ظ„ظ„ظ†ط³ط¨ط© ط§ظ„ظ…ط¦ظˆظٹط©طں (ط§ظƒطھط¨ 'yes' ط£ظˆ 'no'):",
       (store as any).percentage_enabled !== false ? 'yes' : 'no'
     );
     const percentageEnabled = percentageEnabledStr?.toLowerCase() !== 'no';
@@ -3532,25 +3569,25 @@ const AdminDashboard = () => {
       const data = await res.json();
       
       if (res.ok) {
-        alert("تم تحديث بيانات المتجر بنجاح");
+        alert("طھظ… طھط­ط¯ظٹط« ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…طھط¬ط± ط¨ظ†ط¬ط§ط­");
         fetch('/api/admin/stores').then(res => res.json()).then(setStores).catch(err => console.error('Refresh error:', err));
         fetch('/api/admin/stats').then(res => res.json()).then(setStats).catch(err => console.error('Stats refresh error:', err));
       } else {
-        alert("فشل التحديث: " + (data.error || "خطأ غير معروف"));
+        alert("ظپط´ظ„ ط§ظ„طھط­ط¯ظٹط«: " + (data.error || "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ"));
         console.error('Update error:', data);
       }
     } catch (error) {
-      alert("خطأ في الاتصال: " + (error instanceof Error ? error.message : "خطأ غير معروف"));
+      alert("ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: " + (error instanceof Error ? error.message : "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ"));
       console.error('Connection error:', error);
     }
   };
 
   const handleAddStore = async () => {
-    const name = prompt("أدخل اسم المتجر الجديد:");
+    const name = prompt("ط£ط¯ط®ظ„ ط§ط³ظ… ط§ظ„ظ…طھط¬ط± ط§ظ„ط¬ط¯ظٹط¯:");
     if (!name) return;
-    const owner = prompt("اسم صاحب المتجر:");
+    const owner = prompt("ط§ط³ظ… طµط§ط­ط¨ ط§ظ„ظ…طھط¬ط±:");
     if (!owner) return;
-    const phone = prompt("رقم هاتف صاحب المتجر:");
+    const phone = prompt("ط±ظ‚ظ… ظ‡ط§طھظپ طµط§ط­ط¨ ط§ظ„ظ…طھط¬ط±:");
     if (!phone) return;
     
     const res = await fetch('/api/stores', {
@@ -3565,21 +3602,21 @@ const AdminDashboard = () => {
 
     const data = await res.json();
     if (res.ok) {
-      alert("تم إضافة المتجر بنجاح");
+      alert("طھظ… ط¥ط¶ط§ظپط© ط§ظ„ظ…طھط¬ط± ط¨ظ†ط¬ط§ط­");
       fetch('/api/admin/stores').then(res => res.json()).then(setStores);
       fetch('/api/admin/stats').then(res => res.json()).then(setStats);
     } else {
-      alert("خطأ: " + (data.error || "فشل إضافة المتجر"));
+      alert("ط®ط·ط£: " + (data.error || "ظپط´ظ„ ط¥ط¶ط§ظپط© ط§ظ„ظ…طھط¬ط±"));
       console.error("Store creation error:", data);
     }
   };
 
   const handleAddUser = async () => {
-    const name = prompt("اسم المستخدم:");
+    const name = prompt("ط§ط³ظ… ط§ظ„ظ…ط³طھط®ط¯ظ…:");
     if (!name) return;
-    const phone = prompt("رقم الهاتف:");
+    const phone = prompt("ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ:");
     if (!phone) return;
-    const role = prompt("ط§ظ„ط¯ظˆط± (admin, merchant, customer):", "customer");
+    const role = prompt("ط·آ§ط¸â€‍ط·آ¯ط¸ث†ط·آ± (admin, merchant, customer):", "customer");
     
     const res = await fetch('/api/admin/add-user', {
       method: 'POST',
@@ -3594,11 +3631,11 @@ const AdminDashboard = () => {
   };
 
   const handleEditUser = async (userToEdit: User) => {
-    const newName = prompt("تعديل الاسم:", userToEdit.name);
+    const newName = prompt("طھط¹ط¯ظٹظ„ ط§ظ„ط§ط³ظ…:", userToEdit.name);
     if (!newName) return;
-    const newPhone = prompt("تعديل رقم الهاتف:", userToEdit.phone || '');
+    const newPhone = prompt("طھط¹ط¯ظٹظ„ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ:", userToEdit.phone || '');
     if (!newPhone) return;
-    const newRole = prompt("تعديل الدور (admin, merchant, customer):", userToEdit.role);
+    const newRole = prompt("طھط¹ط¯ظٹظ„ ط§ظ„ط¯ظˆط± (admin, merchant, customer):", userToEdit.role);
     
     try {
       const res = await fetch(`/api/admin/update-user/${userToEdit.id}`, {
@@ -3608,33 +3645,33 @@ const AdminDashboard = () => {
       });
 
       if (res.ok) {
-        alert("تم التحديث بنجاح");
+        alert("طھظ… ط§ظ„طھط­ط¯ظٹط« ط¨ظ†ط¬ط§ط­");
         fetch('/api/admin/users').then(res => res.json()).then(setUsers);
       } else {
         const data = await res.json();
-        alert(data.error || "فشل التحديث");
+        alert(data.error || "ظپط´ظ„ ط§ظ„طھط­ط¯ظٹط«");
       }
     } catch (e) {
-      alert("خطأ في الاتصال بالسيرفر");
+      alert("ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط³ظٹط±ظپط±");
     }
   };
 
   const handleDeleteUser = async (id: string | number) => {
-    if (!confirm("هل أنت متأكد من حذف هذا المستخدم؟ سيتم حذف جميع متاجره أيضاً.")) return;
+    if (!confirm("ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط­ط°ظپ ظ‡ط°ط§ ط§ظ„ظ…ط³طھط®ط¯ظ…طں ط³ظٹطھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ظ…طھط§ط¬ط±ظ‡ ط£ظٹط¶ط§ظ‹.")) return;
     const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
     if (res.ok) {
       fetch('/api/admin/users').then(res => res.json()).then(setUsers);
       fetch('/api/admin/stats').then(res => res.json()).then(setStats);
-      alert("تم حذف المستخدم ومتاجره بنجاح");
+      alert("طھظ… ط­ط°ظپ ط§ظ„ظ…ط³طھط®ط¯ظ… ظˆظ…طھط§ط¬ط±ظ‡ ط¨ظ†ط¬ط§ط­");
     } else {
       const data = await res.json();
-      alert("خطأ: " + (data.error || "فشل حذف المستخدم"));
+      alert("ط®ط·ط£: " + (data.error || "ظپط´ظ„ ط­ط°ظپ ط§ظ„ظ…ط³طھط®ط¯ظ…"));
     }
   };
 
   if (loading) {
     return (
-      <DashboardLayout title="جاري التحميل..." role="admin">
+      <DashboardLayout title="ط¬ط§ط±ظٹ ط§ظ„طھط­ظ…ظٹظ„..." role="admin">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
         </div>
@@ -3657,11 +3694,11 @@ const AdminDashboard = () => {
     return (
       <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-8">
         {[
-          { label: 'إجمالي المبيعات', value: formatCurrency(safeStats.totalRevenue), icon: CreditCard, color: 'bg-indigo-600', textColor: 'text-indigo-600' },
-          { label: 'عمولة الآدمن', value: formatCurrency(safeStats.adminCommission), icon: TrendingUp, color: 'bg-emerald-600', textColor: 'text-emerald-600', subtext: `${safeStats.adminCommissionPercentage}%` },
-          { label: 'إجمالي العملاء', value: safeStats.totalCustomers, icon: Users, color: 'bg-purple-600', textColor: 'text-purple-600' },
-          { label: 'إجمالي الطلبات', value: safeStats.totalOrders, icon: ShoppingCart, color: 'bg-amber-600', textColor: 'text-amber-600' },
-          { label: 'عدد المتاجر', value: safeStats.totalStores, icon: StoreIcon, color: 'bg-blue-600', textColor: 'text-blue-600' },
+          { label: 'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¨ظٹط¹ط§طھ', value: formatCurrency(safeStats.totalRevenue), icon: CreditCard, color: 'bg-indigo-600', textColor: 'text-indigo-600' },
+          { label: 'ط¹ظ…ظˆظ„ط© ط§ظ„ط¢ط¯ظ…ظ†', value: formatCurrency(safeStats.adminCommission), icon: TrendingUp, color: 'bg-emerald-600', textColor: 'text-emerald-600', subtext: `${safeStats.adminCommissionPercentage}%` },
+          { label: 'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¹ظ…ظ„ط§ط،', value: safeStats.totalCustomers, icon: Users, color: 'bg-purple-600', textColor: 'text-purple-600' },
+          { label: 'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط·ظ„ط¨ط§طھ', value: safeStats.totalOrders, icon: ShoppingCart, color: 'bg-amber-600', textColor: 'text-amber-600' },
+          { label: 'ط¹ط¯ط¯ ط§ظ„ظ…طھط§ط¬ط±', value: safeStats.totalStores, icon: StoreIcon, color: 'bg-blue-600', textColor: 'text-blue-600' },
         ].map((stat) => (
           <Card key={stat.label} className={cn("p-6 flex flex-col items-start gap-3", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5")}> 
             <div className={cn("p-3 rounded-xl text-white shadow-lg", stat.color)}>
@@ -3689,24 +3726,24 @@ const AdminDashboard = () => {
     return (
       <Card className={cn(isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5")}> 
         <div className={cn("p-6 border-b border-black/5 flex justify-between items-center", isDarkMode ? "bg-gray-900" : "bg-white")}> 
-        <h3 className={cn("font-normal text-xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>إدارة المتاجر الحديثة</h3>
+        <h3 className={cn("font-normal text-xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>ط¥ط¯ط§ط±ط© ط§ظ„ظ…طھط§ط¬ط± ط§ظ„ط­ط¯ظٹط«ط©</h3>
           <Button 
             onClick={handleAddStore}
             className="bg-indigo-600 text-white text-sm font-normal px-6 py-2 rounded-xl hidden"
           >
-            إضافة متجر
+            ط¥ط¶ط§ظپط© ظ…طھط¬ط±
           </Button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-right">
             <thead className={cn("text-xs uppercase tracking-widest font-normal", isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-50/50 text-gray-400")}>
               <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50/50")}> 
-                <th className="px-6 py-5">اسم المتجر</th>
-                <th className="px-6 py-5">المالك</th>
-                <th className="px-6 py-5">الحالة</th>
-                <th className="px-6 py-5">النسبة %</th>
-                <th className="px-6 py-5">الرابط</th>
-                <th className="px-6 py-5">الإجراءات</th>
+                <th className="px-6 py-5">ط§ط³ظ… ط§ظ„ظ…طھط¬ط±</th>
+                <th className="px-6 py-5">ط§ظ„ظ…ط§ظ„ظƒ</th>
+                <th className="px-6 py-5">ط§ظ„ط­ط§ظ„ط©</th>
+                <th className="px-6 py-5">ط§ظ„ظ†ط³ط¨ط© %</th>
+                <th className="px-6 py-5">ط§ظ„ط±ط§ط¨ط·</th>
+                <th className="px-6 py-5">ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/5"> 
@@ -3716,7 +3753,7 @@ const AdminDashboard = () => {
                   "transition-all group"
                 )}> 
                   <td className={cn("px-6 py-4 font-normal group-hover:text-indigo-600", isDarkMode ? "text-gray-100" : "text-gray-900")}>{(store as any).store_name || store.name}</td>
-                  <td className={cn("px-6 py-4 font-medium", isDarkMode ? "text-gray-400" : "text-gray-600")}>{store.owner_name || 'غير معروف'}</td>
+                  <td className={cn("px-6 py-4 font-medium", isDarkMode ? "text-gray-400" : "text-gray-600")}>{store.owner_name || 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ'}</td>
                   <td className="px-6 py-4">
                     <span className={cn(
                       "px-3 py-1 text-[10px] font-normal uppercase rounded-full tracking-wider",
@@ -3724,8 +3761,8 @@ const AdminDashboard = () => {
                       store.status === 'rejected' ? "bg-red-100 text-red-700" :
                       "bg-emerald-100 text-emerald-700"
                     )}>
-                      {isStorePending(store) ? 'بانتظار الموافقة' : 
-                       store.status === 'rejected' ? 'مرفوض' : 'نشط'}
+                      {isStorePending(store) ? 'ط¨ط§ظ†طھط¸ط§ط± ط§ظ„ظ…ظˆط§ظپظ‚ط©' : 
+                       store.status === 'rejected' ? 'ظ…ط±ظپظˆط¶' : 'ظ†ط´ط·'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -3733,7 +3770,7 @@ const AdminDashboard = () => {
                       "px-3 py-1 text-[10px] font-normal uppercase rounded-full tracking-wider",
                       (store as any).percentage_enabled !== false ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"
                     )}>
-                      {(store as any).percentage_enabled !== false ? '✓ مفعل' : '✗ معطل'}
+                      {(store as any).percentage_enabled !== false ? 'âœ“ ظ…ظپط¹ظ„' : 'âœ— ظ…ط¹ط·ظ„'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -3753,10 +3790,10 @@ const AdminDashboard = () => {
                         <button 
                           onClick={() => handleSuspend(store.id)}
                           className="flex items-center gap-1 text-amber-600 hover:text-amber-700 font-normal text-xs bg-amber-50 px-3 py-1 rounded-lg transition-colors"
-                          title="تحويل إلى معلق"
+                          title="طھط­ظˆظٹظ„ ط¥ظ„ظ‰ ظ…ط¹ظ„ظ‚"
                         >
                           <Pause size={14} />
-                          تعليق
+                          طھط¹ظ„ظٹظ‚
                         </button>
                       )}
                       {isStorePending(store) && (
@@ -3765,7 +3802,7 @@ const AdminDashboard = () => {
                           className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-normal text-xs bg-emerald-50 px-3 py-1 rounded-lg transition-colors"
                         >
                           <CheckCircle size={14} />
-                          تفعيل
+                          طھظپط¹ظٹظ„
                         </button>
                       )}
                       <button 
@@ -3776,21 +3813,21 @@ const AdminDashboard = () => {
                             ? "text-green-400 hover:text-green-600 hover:bg-green-50" 
                             : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
                         )}
-                        title={store.is_active ? "إيقاف المتجر" : "تفعيل المتجر"}
+                        title={store.is_active ? "ط¥ظٹظ‚ط§ظپ ط§ظ„ظ…طھط¬ط±" : "طھظپط¹ظٹظ„ ط§ظ„ظ…طھط¬ط±"}
                       >
                         {store.is_active ? <Power size={16} /> : <PowerOff size={16} />}
                       </button>
                       <button 
                         onClick={() => handleEditStore(store)}
                         className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                        title="تعديل المتجر"
+                        title="طھط¹ط¯ظٹظ„ ط§ظ„ظ…طھط¬ط±"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button 
                         onClick={() => handleDeleteStore(store.id)}
                         className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                        title="حذف المتجر"
+                        title="ط­ط°ظپ ط§ظ„ظ…طھط¬ط±"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -3801,7 +3838,7 @@ const AdminDashboard = () => {
               {displayedStores.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-normal">
-                    {dashboardQuery ? 'لا توجد نتائج تطابق بحثك.' : 'لا توجد متاجر مسجلة حالياً'}
+                    {dashboardQuery ? 'ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ طھط·ط§ط¨ظ‚ ط¨ط­ط«ظƒ.' : 'ظ„ط§ طھظˆط¬ط¯ ظ…طھط§ط¬ط± ظ…ط³ط¬ظ„ط© ط­ط§ظ„ظٹط§ظ‹'}
                   </td>
                 </tr>
               )}
@@ -3826,14 +3863,14 @@ const AdminDashboard = () => {
         <Card>
           <div className="p-6 border-b border-black/5">
             <div className="flex justify-between items-center mb-6">
-              <h3 className={cn("font-normal text-xl", isDarkMode ? "text-white" : "text-white")}>تقرير الأداء العام - الطلبات</h3>
-              <span className="text-sm font-normal text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">{filteredOrders.length} ط·ظ„ط¨</span>
+              <h3 className={cn("font-normal text-xl", isDarkMode ? "text-white" : "text-white")}>طھظ‚ط±ظٹط± ط§ظ„ط£ط¯ط§ط، ط§ظ„ط¹ط§ظ… - ط§ظ„ط·ظ„ط¨ط§طھ</h3>
+              <span className="text-sm font-normal text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">{filteredOrders.length} ط·آ·ط¸â€‍ط·آ¨</span>
             </div>
             
             {/* Filters */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className={cn("text-sm font-normal mb-2 block", isDarkMode ? "text-gray-200" : "text-gray-700")}>من التاريخ</label>
+                <label className={cn("text-sm font-normal mb-2 block", isDarkMode ? "text-gray-200" : "text-gray-700")}>ظ…ظ† ط§ظ„طھط§ط±ظٹط®</label>
                 <input
                   type="date"
                   value={dateFromFilter}
@@ -3842,7 +3879,7 @@ const AdminDashboard = () => {
                 />
               </div>
               <div>
-                <label className={cn("text-sm font-normal mb-2 block", isDarkMode ? "text-gray-200" : "text-gray-700")}>إلى التاريخ</label>
+                <label className={cn("text-sm font-normal mb-2 block", isDarkMode ? "text-gray-200" : "text-gray-700")}>ط¥ظ„ظ‰ ط§ظ„طھط§ط±ظٹط®</label>
                 <input
                   type="date"
                   value={dateToFilter}
@@ -3851,15 +3888,15 @@ const AdminDashboard = () => {
                 />
               </div>
               <div>
-                <label className={cn("text-sm font-normal mb-2 block", isDarkMode ? "text-gray-200" : "text-gray-700")}>حالة الاشتراك</label>
+                <label className={cn("text-sm font-normal mb-2 block", isDarkMode ? "text-gray-200" : "text-gray-700")}>ط­ط§ظ„ط© ط§ظ„ط§ط´طھط±ط§ظƒ</label>
                 <select
                   value={subscriptionFilter}
                   onChange={(e) => setSubscriptionFilter(e.target.value)}
                   className={cn("w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "border-gray-300 bg-white text-gray-900")}
                 >
-                  <option value="all">ط§ظ„ظƒظ„</option>
-                  <option value="paid">مدفوع</option>
-                  <option value="unpaid">لم يتم الدفع</option>
+                  <option value="all">ط·آ§ط¸â€‍ط¸ئ’ط¸â€‍</option>
+                  <option value="paid">ظ…ط¯ظپظˆط¹</option>
+                  <option value="unpaid">ظ„ظ… ظٹطھظ… ط§ظ„ط¯ظپط¹</option>
                 </select>
               </div>
             </div>
@@ -3868,20 +3905,20 @@ const AdminDashboard = () => {
             <table className="w-full text-base">
               <thead>
                 <tr className={cn("border-b border-black/5", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                  <th className={cn("px-6 py-4 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>رقم الطلب</th>
-                  <th className={cn("px-6 py-4 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>صاحب المتجر</th>
-                  <th className={cn("px-6 py-4 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>المبلغ</th>
-                  <th className={cn("px-6 py-4 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>مبلغ العمولة</th>
-                  <th className={cn("px-6 py-4 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>حالة الاشتراك</th>
-                  <th className={cn("px-6 py-4 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>الحالة</th>
-                  <th className={cn("px-6 py-4 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>التاريخ</th>
+                  <th className={cn("px-6 py-4 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>ط±ظ‚ظ… ط§ظ„ط·ظ„ط¨</th>
+                  <th className={cn("px-6 py-4 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>طµط§ط­ط¨ ط§ظ„ظ…طھط¬ط±</th>
+                  <th className={cn("px-6 py-4 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>ط§ظ„ظ…ط¨ظ„ط؛</th>
+                  <th className={cn("px-6 py-4 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>ظ…ط¨ظ„ط؛ ط§ظ„ط¹ظ…ظˆظ„ط©</th>
+                  <th className={cn("px-6 py-4 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>ط­ط§ظ„ط© ط§ظ„ط§ط´طھط±ط§ظƒ</th>
+                  <th className={cn("px-6 py-4 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>ط§ظ„ط­ط§ظ„ط©</th>
+                  <th className={cn("px-6 py-4 text-right font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>ط§ظ„طھط§ط±ظٹط®</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredOrders.map((order: any) => (
                   <tr key={order.id} className={cn("border-b border-black/5 transition-colors", isDarkMode ? "hover:bg-gray-700/50" : "hover:bg-indigo-50/50")}>
                     <td className={cn("px-6 py-4 font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>#{order.id}</td>
-                    <td className={cn("px-6 py-4 font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>{order.owner_name || 'غير معروف'}</td>
+                    <td className={cn("px-6 py-4 font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>{order.owner_name || 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ'}</td>
                     <td className={cn("px-6 py-4 font-normal", isDarkMode ? "text-cyan-400" : "text-indigo-600")}>{formatCurrency(order.total_amount || 0)}</td>
                     <td className={cn("px-6 py-4 font-normal", isDarkMode ? "text-emerald-400" : "text-green-600")}>{formatCurrency(order.commission_amount || 0)}</td>
                     <td className="px-6 py-4">
@@ -3890,9 +3927,9 @@ const AdminDashboard = () => {
                         className={`px-3 py-1 rounded-full text-xs font-normal cursor-pointer transition-all hover:opacity-80 ${
                           order.subscription_paid ? (isDarkMode ? 'bg-emerald-900 text-emerald-300 hover:bg-red-900 hover:text-red-300' : 'bg-green-100 text-green-800 hover:bg-red-100 hover:text-red-800') : (isDarkMode ? 'bg-red-900 text-red-300 hover:bg-emerald-900 hover:text-emerald-300' : 'bg-red-100 text-red-800 hover:bg-green-100 hover:text-green-800')
                         }`}
-                        title="اضغط لتبديل الحالة"
+                        title="ط§ط¶ط؛ط· ظ„طھط¨ط¯ظٹظ„ ط§ظ„ط­ط§ظ„ط©"
                       >
-                        {order.subscription_paid ? '✓ مدفوع' : '✕ لم يتم الدفع'}
+                        {order.subscription_paid ? 'âœ“ ظ…ط¯ظپظˆط¹' : 'âœ• ظ„ظ… ظٹطھظ… ط§ظ„ط¯ظپط¹'}
                       </button>
                     </td>
                     <td className="px-6 py-4">
@@ -3902,9 +3939,9 @@ const AdminDashboard = () => {
                         order.status === 'cancelled' ? (isDarkMode ? 'bg-red-900 text-red-300' : 'bg-red-100 text-red-800') :
                         (isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-800')
                       }`}>
-                        {order.status === 'completed' ? '✓ مكتمل' :
-                         order.status === 'pending' ? '⏳ قيد الانتظار' :
-                         order.status === 'cancelled' ? '✕ ملغى' :
+                        {order.status === 'completed' ? 'âœ“ ظ…ظƒطھظ…ظ„' :
+                         order.status === 'pending' ? 'âڈ³ ظ‚ظٹط¯ ط§ظ„ط§ظ†طھط¸ط§ط±' :
+                         order.status === 'cancelled' ? 'âœ• ظ…ظ„ط؛ظ‰' :
                          order.status}
                       </span>
                     </td>
@@ -3915,7 +3952,7 @@ const AdminDashboard = () => {
             </table>
             {filteredOrders.length === 0 && (
               <div className="text-center py-12">
-                <p className={cn("font-medium", isDarkMode ? "text-gray-400" : "text-gray-500")}>لا توجد طلبات تطابق المعايير المختارة</p>
+                <p className={cn("font-medium", isDarkMode ? "text-gray-400" : "text-gray-500")}>ظ„ط§ طھظˆط¬ط¯ ط·ظ„ط¨ط§طھ طھط·ط§ط¨ظ‚ ط§ظ„ظ…ط¹ط§ظٹظٹط± ط§ظ„ظ…ط®طھط§ط±ط©</p>
               </div>
             )}
           </div>
@@ -3925,8 +3962,8 @@ const AdminDashboard = () => {
           <div className="flex justify-center mb-6">
             <BarChart3 size={64} className="text-gray-200" />
           </div>
-          <h3 className="text-2xl font-normal text-gray-900 mb-2">لا توجد طلبات حتى الآن</h3>
-          <p className="text-gray-500 font-medium">سيتم عرض تقرير الأداء هنا عند وجود طلبات</p>
+          <h3 className="text-2xl font-normal text-gray-900 mb-2">ظ„ط§ طھظˆط¬ط¯ ط·ظ„ط¨ط§طھ ط­طھظ‰ ط§ظ„ط¢ظ†</h3>
+          <p className="text-gray-500 font-medium">ط³ظٹطھظ… ط¹ط±ط¶ طھظ‚ط±ظٹط± ط§ظ„ط£ط¯ط§ط، ظ‡ظ†ط§ ط¹ظ†ط¯ ظˆط¬ظˆط¯ ط·ظ„ط¨ط§طھ</p>
         </Card>
       )}
     </div>
@@ -3934,7 +3971,7 @@ const AdminDashboard = () => {
 
   const handleSaveAdminSettings = async () => {
     if (!adminConfig.app_name) {
-      alert("❌ يرجى إدخال اسم التطبيق");
+      alert("â‌Œ ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط§ط³ظ… ط§ظ„طھط·ط¨ظٹظ‚");
       return;
     }
     
@@ -3942,9 +3979,9 @@ const AdminDashboard = () => {
       const commissionValue = adminConfig.admin_commission_percentage;
       const finalCommission = isNaN(commissionValue) ? 0 : Math.max(0, Math.min(100, commissionValue));
       
-      console.log("📤 Saving ADMIN settings ONLY (independent from merchant settings):", {
+      console.log("ًں“¤ Saving ADMIN settings ONLY (independent from merchant settings):", {
         app_name: adminConfig.app_name,
-        logo_url: adminConfig.logo_url ? "✓ Logo present" : "✗ No logo",
+        logo_url: adminConfig.logo_url ? "âœ“ Logo present" : "âœ— No logo",
         admin_commission_percentage: finalCommission
       });
       
@@ -3959,23 +3996,23 @@ const AdminDashboard = () => {
         })
       });
       
-      console.log("📥 Response status:", res.status, res.statusText);
+      console.log("ًں“¥ Response status:", res.status, res.statusText);
       
       // Parse response ONCE and store it
       let responseData;
       try {
         responseData = await res.json();
-        console.log("✅ Response data:", responseData);
+        console.log("âœ… Response data:", responseData);
       } catch (parseError) {
-        console.error("❌ Could not parse response:", parseError);
+        console.error("â‌Œ Could not parse response:", parseError);
         throw new Error("Invalid response format from server");
       }
       
       // Now check if HTTP was not OK
       if (!res.ok) {
         let errorMessage = responseData.error || responseData.message || `HTTP ${res.status}: ${res.statusText}`;
-        console.error("❌ Server error:", responseData);
-        alert("❌ فشل حفظ الإعدادات: " + errorMessage);
+        console.error("â‌Œ Server error:", responseData);
+        alert("â‌Œ ظپط´ظ„ ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ: " + errorMessage);
         return;
       }
       
@@ -4000,21 +4037,21 @@ const AdminDashboard = () => {
         primary_color: '#4F46E5'
       });
       
-      console.log("✅ Admin settings saved successfully");
-      alert("✅ تم حفظ إعدادات الآدمن بنجاح");
+      console.log("âœ… Admin settings saved successfully");
+      alert("âœ… طھظ… ط­ظپط¸ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط¢ط¯ظ…ظ† ط¨ظ†ط¬ط§ط­");
       
       // Refresh page to ensure all data is updated
       setTimeout(() => window.location.reload(), 500);
       return; // Ensure no code runs after reload
     } catch (error) {
-      console.error("❌ Network/Parse Error:", error);
+      console.error("â‌Œ Network/Parse Error:", error);
       console.error("Full error object:", error);
       console.error("Error type:", error instanceof Error ? error.constructor.name : typeof error);
       
-      const errorMsg = error instanceof Error ? error.message : "حدث خطأ غير متوقع";
+      const errorMsg = error instanceof Error ? error.message : "ط­ط¯ط« ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹";
       console.error("Final error message:", errorMsg);
       
-      alert("❌ خطأ في حفظ الإعدادات: " + errorMsg);
+      alert("â‌Œ ط®ط·ط£ ظپظٹ ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ: " + errorMsg);
     }
   };
 
@@ -4033,32 +4070,32 @@ const AdminDashboard = () => {
     return (
     <Card className={cn("max-w-md border-none shadow-xl rounded-2xl overflow-hidden", isDarkMode ? "bg-gray-800" : "bg-white")}>
       <div className={cn("p-6 border-b border-black/5 flex items-center justify-between", isDarkMode ? "bg-gray-900" : "bg-white")}>
-        <h3 className={cn("font-normal text-xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>إعدادات المنصة</h3>
+        <h3 className={cn("font-normal text-xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…ظ†طµط©</h3>
         <button
           onClick={() => navigate('/admin')}
           className={cn("p-2 rounded-lg transition-colors", isDarkMode ? "hover:bg-gray-700 text-gray-400 hover:text-gray-200" : "hover:bg-gray-100 text-gray-500 hover:text-gray-700")}
-          title="إغلاق"
+          title="ط¥ط؛ظ„ط§ظ‚"
         >
           <X size={20} />
         </button>
       </div>
       <div className="p-6 space-y-5">
         
-        {/* اسم المنصة */}
+        {/* ط§ط³ظ… ط§ظ„ظ…ظ†طµط© */}
         <div>
-          <label className="text-sm font-normal text-gray-700 block mb-2">اسم المنصة</label>
+          <label className="text-sm font-normal text-gray-700 block mb-2">ط§ط³ظ… ط§ظ„ظ…ظ†طµط©</label>
           <input 
             type="text" 
             value={adminConfig.app_name} 
             onChange={(e) => setAdminConfig({ ...adminConfig, app_name: e.target.value })}
-            placeholder="أدخل اسم المنصة"
+            placeholder="ط£ط¯ط®ظ„ ط§ط³ظ… ط§ظ„ظ…ظ†طµط©"
             className={cn("w-full px-4 py-2 border rounded-lg font-normal text-sm outline-none focus:ring-2 transition-all", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-indigo-500" : "bg-gray-50 border-gray-300 text-gray-900 focus:ring-indigo-400")}
           />
         </div>
         
-        {/* شعار المنصة */}
+        {/* ط´ط¹ط§ط± ط§ظ„ظ…ظ†طµط© */}
         <div>
-          <label className="text-sm font-normal text-gray-700 block mb-2">شعار المنصة</label>
+          <label className="text-sm font-normal text-gray-700 block mb-2">ط´ط¹ط§ط± ط§ظ„ظ…ظ†طµط©</label>
           <button
             type="button"
             onClick={() => adminLogoUploadRef.current?.click()}
@@ -4069,7 +4106,7 @@ const AdminDashboard = () => {
             ) : (
               <div className="text-center">
                 <Upload size={24} className={isDarkMode ? "text-gray-400 mx-auto" : "text-gray-500 mx-auto"} />
-                <p className={cn("text-xs font-normal mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>اضغط لاختيار صورة</p>
+                <p className={cn("text-xs font-normal mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط§ط¶ط؛ط· ظ„ط§ط®طھظٹط§ط± طµظˆط±ط©</p>
               </div>
             )}
           </button>
@@ -4082,9 +4119,9 @@ const AdminDashboard = () => {
           />
         </div>
         
-        {/* النسبة المئوية */}
+        {/* ط§ظ„ظ†ط³ط¨ط© ط§ظ„ظ…ط¦ظˆظٹط© */}
         <div>
-          <label className="text-sm font-normal text-gray-700 block mb-2">نسبة عمولة الآدمن (%)</label>
+          <label className="text-sm font-normal text-gray-700 block mb-2">ظ†ط³ط¨ط© ط¹ظ…ظˆظ„ط© ط§ظ„ط¢ط¯ظ…ظ† (%)</label>
           <div className="flex items-center gap-2">
             <input 
               type="number" 
@@ -4096,34 +4133,34 @@ const AdminDashboard = () => {
                 const val = parseFloat(e.target.value);
                 setAdminConfig({ ...adminConfig, admin_commission_percentage: isNaN(val) ? 0 : val });
               }}
-              placeholder="أدخل النسبة"
+              placeholder="ط£ط¯ط®ظ„ ط§ظ„ظ†ط³ط¨ط©"
               className={cn("w-full px-4 py-2 border rounded-lg font-normal text-sm outline-none focus:ring-2 transition-all", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-indigo-500" : "bg-gray-50 border-gray-300 text-gray-900 focus:ring-indigo-400")}
             />
             <span className={cn("text-lg font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>%</span>
           </div>
           <p className="text-xs text-gray-500 mt-2 font-medium">
-            هذه النسبة ستُطبق على مبيعات المتاجر التي تخضع للنسبة المئوية فقط.
+            ظ‡ط°ظ‡ ط§ظ„ظ†ط³ط¨ط© ط³طھظڈط·ط¨ظ‚ ط¹ظ„ظ‰ ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظ…طھط§ط¬ط± ط§ظ„طھظٹ طھط®ط¶ط¹ ظ„ظ„ظ†ط³ط¨ط© ط§ظ„ظ…ط¦ظˆظٹط© ظپظ‚ط·.
           </p>
         </div>
         
-        {/* زر الحفظ */}
+        {/* ط²ط± ط§ظ„ط­ظپط¸ */}
         <button 
           onClick={handleSaveAdminSettings} 
           className="w-full py-3 rounded-lg text-white font-normal text-base shadow-lg hover:shadow-xl transition-all active:scale-95 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800"
         >
-          💾 حفظ الإعدادات
+          ًں’¾ ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ
         </button>
 
-        {/* زر مسح جميع البيانات */}
+        {/* ط²ط± ظ…ط³ط­ ط¬ظ…ظٹط¹ ط§ظ„ط¨ظٹط§ظ†ط§طھ */}
         <button 
           onClick={() => {
-            if (window.confirm('⚠️ هل أنت متأكد من رغبتك في مسح جميع البيانات من قاعدة البيانات؟\nهذا الإجراء لا يمكن التراجع عنه!')) {
+            if (window.confirm('âڑ ï¸ڈ ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط±ط؛ط¨طھظƒ ظپظٹ ظ…ط³ط­ ط¬ظ…ظٹط¹ ط§ظ„ط¨ظٹط§ظ†ط§طھ ظ…ظ† ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھطں\nظ‡ط°ط§ ط§ظ„ط¥ط¬ط±ط§ط، ظ„ط§ ظٹظ…ظƒظ† ط§ظ„طھط±ط§ط¬ط¹ ط¹ظ†ظ‡!')) {
               clearAllData();
             }
           }}
           className="w-full py-3 rounded-lg text-white font-normal text-base shadow-lg hover:shadow-xl transition-all active:scale-95 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800"
         >
-          🗑️ مسح جميع البيانات
+          ًں—‘ï¸ڈ ظ…ط³ط­ ط¬ظ…ظٹط¹ ط§ظ„ط¨ظٹط§ظ†ط§طھ
         </button>
       </div>
     </Card>
@@ -4150,12 +4187,12 @@ const AdminDashboard = () => {
           setAdminUsers(adminUsers.map(u => 
             u.id === userId ? { ...u, can_access_admin: !currentAccess } : u
           ));
-          alert(`تم ${!currentAccess ? 'إعطاء' : 'سحب'} الصلاحية بنجاح`);
+          alert(`طھظ… ${!currentAccess ? 'ط¥ط¹ط·ط§ط،' : 'ط³ط­ط¨'} ط§ظ„طµظ„ط§ط­ظٹط© ط¨ظ†ط¬ط§ط­`);
         } else {
-          alert('حدث خطأ في تحديث الصلاحية');
+          alert('ط­ط¯ط« ط®ط·ط£ ظپظٹ طھط­ط¯ظٹط« ط§ظ„طµظ„ط§ط­ظٹط©');
         }
       } catch (error) {
-        alert('خطأ في الاتصال');
+        alert('ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„');
         console.error(error);
       }
     };
@@ -4163,33 +4200,33 @@ const AdminDashboard = () => {
     return (
       <Card className={cn(isDarkMode ? "bg-gray-800" : "bg-white")}>
         <div className={cn("p-6 border-b border-black/5 flex justify-between items-center", isDarkMode ? "bg-gray-900" : "bg-white")}>
-          <h3 className={cn("font-normal text-xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>إدارة صلاحيات الآدمن</h3>
+          <h3 className={cn("font-normal text-xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>ط¥ط¯ط§ط±ط© طµظ„ط§ط­ظٹط§طھ ط§ظ„ط¢ط¯ظ…ظ†</h3>
           <div className={cn("px-4 py-1.5 rounded-full text-xs font-normal", isDarkMode ? "bg-purple-900/30 text-purple-300" : "bg-purple-50 text-purple-700")}>
-            {filteredAdminUsers.length} مستخدم
+            {filteredAdminUsers.length} ظ…ط³طھط®ط¯ظ…
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-right">
             <thead className={cn("text-xs font-normal uppercase tracking-widest", isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-50/50 text-gray-400")}>
               <tr>
-                <th className="px-6 py-5">ط§ظ„ط§ط³ظ…</th>
-                <th className="px-6 py-5">رقم الهاتف</th>
-                <th className="px-6 py-5">ط§ظ„ط¯ظˆط±</th>
-                <th className="px-6 py-5">الصلاحية</th>
-                <th className="px-6 py-5 w-32 text-left">الإجراءات</th>
+                <th className="px-6 py-5">ط·آ§ط¸â€‍ط·آ§ط·آ³ط¸â€¦</th>
+                <th className="px-6 py-5">ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ</th>
+                <th className="px-6 py-5">ط·آ§ط¸â€‍ط·آ¯ط¸ث†ط·آ±</th>
+                <th className="px-6 py-5">ط§ظ„طµظ„ط§ط­ظٹط©</th>
+                <th className="px-6 py-5 w-32 text-left">ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ</th>
               </tr>
             </thead>
             <tbody className={cn("divide-y divide-black/5", isDarkMode ? "divide-gray-700" : "divide-black/5")}>
               {filteredAdminUsers.map((u) => (
                 <tr key={u.id} className={cn("transition-colors", isDarkMode ? "hover:bg-gray-700" : "hover:bg-indigo-50/30")}>
                   <td className={cn("px-6 py-4 font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{u.name}</td>
-                  <td className={cn("px-6 py-4 font-medium", isDarkMode ? "text-gray-300" : "text-gray-500")}>{u.phone || 'بدون رقم'}</td>
+                  <td className={cn("px-6 py-4 font-medium", isDarkMode ? "text-gray-300" : "text-gray-500")}>{u.phone || 'ط¨ط¯ظˆظ† ط±ظ‚ظ…'}</td>
                   <td className="px-6 py-4">
                     <span className={cn(
                       "px-3 py-1 text-[10px] font-normal uppercase rounded-full tracking-wider",
                       u.role === 'admin' ? "bg-purple-100 text-purple-700" : "bg-indigo-100 text-indigo-700"
                     )}>
-                      {u.role === 'admin' ? 'مدير النظام' : 'تاجر'}
+                      {u.role === 'admin' ? 'ظ…ط¯ظٹط± ط§ظ„ظ†ط¸ط§ظ…' : 'طھط§ط¬ط±'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -4197,7 +4234,7 @@ const AdminDashboard = () => {
                       "px-3 py-1 text-[10px] font-normal uppercase rounded-full tracking-wider",
                       u.can_access_admin ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
                     )}>
-                      {u.can_access_admin ? '✓ فعال' : '✗ معطل'}
+                      {u.can_access_admin ? 'âœ“ ظپط¹ط§ظ„' : 'âœ— ظ…ط¹ط·ظ„'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -4212,11 +4249,11 @@ const AdminDashboard = () => {
                               : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
                           )}
                         >
-                          {u.can_access_admin ? 'سحب الصلاحية' : 'إعطاء صلاحية'}
+                          {u.can_access_admin ? 'ط³ط­ط¨ ط§ظ„طµظ„ط§ط­ظٹط©' : 'ط¥ط¹ط·ط§ط، طµظ„ط§ط­ظٹط©'}
                         </button>
                       )}
                       {u.role === 'admin' && (
-                        <span className="text-xs text-gray-400 font-normal">مدير النظام الأساسي</span>
+                        <span className="text-xs text-gray-400 font-normal">ظ…ط¯ظٹط± ط§ظ„ظ†ط¸ط§ظ… ط§ظ„ط£ط³ط§ط³ظٹ</span>
                       )}
                     </div>
                   </td>
@@ -4225,7 +4262,7 @@ const AdminDashboard = () => {
               {filteredAdminUsers.length === 0 && (
                 <tr>
                   <td colSpan={5} className={cn("px-6 py-12 text-center font-normal", isDarkMode ? "text-gray-400" : "text-gray-400")}>
-                    {dashboardQuery ? 'لا توجد نتائج تطابق بحثك.' : 'لا يوجد مستخدمون بصلاحيات إدارة'}
+                    {dashboardQuery ? 'ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ طھط·ط§ط¨ظ‚ ط¨ط­ط«ظƒ.' : 'ظ„ط§ ظٹظˆط¬ط¯ ظ…ط³طھط®ط¯ظ…ظˆظ† ط¨طµظ„ط§ط­ظٹط§طھ ط¥ط¯ط§ط±ط©'}
                   </td>
                 </tr>
               )}
@@ -4241,13 +4278,13 @@ const AdminDashboard = () => {
     return (
       <Card className={cn(isDarkMode ? "bg-gray-800" : "bg-white")}>
         <div className={cn("p-6 border-b border-black/5", isDarkMode ? "bg-gray-900" : "bg-white")}>
-          <h3 className={cn("font-normal text-xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>طلبات انضمام المتاجر</h3>
+          <h3 className={cn("font-normal text-xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>ط·ظ„ط¨ط§طھ ط§ظ†ط¶ظ…ط§ظ… ط§ظ„ظ…طھط§ط¬ط±</h3>
         </div>
         <div className={cn("divide-y", isDarkMode ? "divide-gray-700" : "divide-black/5")}>
           {filteredPendingStores.length === 0 ? (
             <div className="p-16 text-center text-gray-400">
               <StoreIcon size={48} className="mx-auto mb-4 opacity-20" />
-              <p className="font-normal">{dashboardQuery ? 'لا توجد نتائج تطابق بحثك.' : 'لا توجد طلبات معلقة حالياً'}</p>
+              <p className="font-normal">{dashboardQuery ? 'ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ طھط·ط§ط¨ظ‚ ط¨ط­ط«ظƒ.' : 'ظ„ط§ طھظˆط¬ط¯ ط·ظ„ط¨ط§طھ ظ…ط¹ظ„ظ‚ط© ط­ط§ظ„ظٹط§ظ‹'}</p>
             </div>
           ) : (
             filteredPendingStores.map(store => (
@@ -4259,11 +4296,11 @@ const AdminDashboard = () => {
                   <div>
                     <p className={cn("font-normal text-lg", isDarkMode ? "text-gray-100" : "text-gray-900")}>{(store as any).store_name || store.name}</p>
                     <div className={cn("flex gap-3 text-sm font-medium", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                      <span>المالك: {store.owner_name}</span>
+                      <span>ط§ظ„ظ…ط§ظ„ظƒ: {store.owner_name}</span>
                       <span className={cn(isDarkMode ? "text-gray-600" : "text-gray-300")}>|</span>
-                      <span>الهاتف: {store.owner_phone}</span>
+                      <span>ط§ظ„ظ‡ط§طھظپ: {store.owner_phone}</span>
                       <span className={cn(isDarkMode ? "text-gray-600" : "text-gray-300")}>|</span>
-                      <span>المعرف: @{store.slug}</span>
+                      <span>ط§ظ„ظ…ط¹ط±ظپ: @{store.slug}</span>
                     </div>
                   </div>
                 </div>
@@ -4272,13 +4309,13 @@ const AdminDashboard = () => {
                     onClick={() => handleApprove(store)}
                     className="bg-indigo-600 text-white px-6 py-2.5 font-normal hover:shadow-lg hover:shadow-indigo-200 transition-all"
                   >
-                    موافقة
+                    ظ…ظˆط§ظپظ‚ط©
                   </Button>
                   <Button 
                     onClick={() => handleReject(store.id)}
                     className="bg-white border-2 border-red-50 text-red-600 px-6 py-2.5 font-normal hover:bg-red-50 transition-all"
                   >
-                    رفض التاجر
+                    ط±ظپط¶ ط§ظ„طھط§ط¬ط±
                   </Button>
                 </div>
               </div>
@@ -4300,27 +4337,27 @@ const AdminDashboard = () => {
     
     const store = approveDialog.store;
     const storeName = store.store_name || store.name;
-    const ownerName = store.owner_name || 'صاحب المتجر';
+    const ownerName = store.owner_name || 'طµط§ط­ط¨ ط§ظ„ظ…طھط¬ط±';
     const storeLink = `${window.location.origin}/store/${store.slug || store.id}`;
 
     const messagePreview = `
-  *تهانينا! تم تفعيل متجرك بنجاح*
+  *طھظ‡ط§ظ†ظٹظ†ط§! طھظ… طھظپط¹ظٹظ„ ظ…طھط¬ط±ظƒ ط¨ظ†ط¬ط§ط­*
 
-  مرحباً *${ownerName}*,
+  ظ…ط±ط­ط¨ط§ظ‹ *${ownerName}*,
 
-  يسعدنا إعلامكم بأنه تمت الموافقة على تفعيل متجركم:
+  ظٹط³ط¹ط¯ظ†ط§ ط¥ط¹ظ„ط§ظ…ظƒظ… ط¨ط£ظ†ظ‡ طھظ…طھ ط§ظ„ظ…ظˆط§ظپظ‚ط© ط¹ظ„ظ‰ طھظپط¹ظٹظ„ ظ…طھط¬ط±ظƒظ…:
   *${storeName}*
 
-  *رابط الشراء والمعاينة (للعملاء):*
+  *ط±ط§ط¨ط· ط§ظ„ط´ط±ط§ط، ظˆط§ظ„ظ…ط¹ط§ظٹظ†ط© (ظ„ظ„ط¹ظ…ظ„ط§ط،):*
   ${storeLink}
 
-  *رابط لوحة تحكم المتجر (للتاجر):*
+  *ط±ط§ط¨ط· ظ„ظˆط­ط© طھط­ظƒظ… ط§ظ„ظ…طھط¬ط± (ظ„ظ„طھط§ط¬ط±):*
   ${window.location.origin}/login
 
-  يمكنكم الآن إدارة المنتجات واستقبال الطلبات فوراً.
+  ظٹظ…ظƒظ†ظƒظ… ط§ظ„ط¢ظ† ط¥ط¯ط§ط±ط© ط§ظ„ظ…ظ†طھط¬ط§طھ ظˆط§ط³طھظ‚ط¨ط§ظ„ ط§ظ„ط·ظ„ط¨ط§طھ ظپظˆط±ط§ظ‹.
 
   ==================
-  *إدارة المنصة*
+  *ط¥ط¯ط§ط±ط© ط§ظ„ظ…ظ†طµط©*
     `.trim();
 
     return (
@@ -4331,13 +4368,13 @@ const AdminDashboard = () => {
           className={cn("rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl", isDarkMode ? "bg-gray-800" : "bg-white")}
         >
           <div className="bg-indigo-600 p-6 text-white text-center">
-            <h3 className="text-xl font-normal">تفعيل المتجر وإرسال رسالة</h3>
-            <p className="opacity-80 text-sm">سيتم إرسال الرابط والمعلومات للتاجر</p>
+            <h3 className="text-xl font-normal">طھظپط¹ظٹظ„ ط§ظ„ظ…طھط¬ط± ظˆط¥ط±ط³ط§ظ„ ط±ط³ط§ظ„ط©</h3>
+            <p className="opacity-80 text-sm">ط³ظٹطھظ… ط¥ط±ط³ط§ظ„ ط§ظ„ط±ط§ط¨ط· ظˆط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ ظ„ظ„طھط§ط¬ط±</p>
           </div>
           
           <div className="p-6">
             <div className="mb-6">
-              <label className={cn("block text-xs font-normal uppercase mb-2", isDarkMode ? "text-gray-400" : "text-gray-400")}>{`معرّف تليجرام (المستقبِل)`}</label>
+              <label className={cn("block text-xs font-normal uppercase mb-2", isDarkMode ? "text-gray-400" : "text-gray-400")}>{`ظ…ط¹ط±ظ‘ظپ طھظ„ظٹط¬ط±ط§ظ… (ط§ظ„ظ…ط³طھظ‚ط¨ظگظ„)`}</label>
               <input 
                 type="text" 
                 value={approveDialog.customPhone}
@@ -4346,7 +4383,7 @@ const AdminDashboard = () => {
                 className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all font-normal", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-gray-100 text-gray-900")}
               />
               {!store.owner_phone && (
-                <p className="mt-2 text-xs text-amber-600 font-normal">تنبيه: المتجر مسجل بدون رقم هاتف، يرجى كتابته هنا.</p>
+                <p className="mt-2 text-xs text-amber-600 font-normal">طھظ†ط¨ظٹظ‡: ط§ظ„ظ…طھط¬ط± ظ…ط³ط¬ظ„ ط¨ط¯ظˆظ† ط±ظ‚ظ… ظ‡ط§طھظپطŒ ظٹط±ط¬ظ‰ ظƒطھط§ط¨طھظ‡ ظ‡ظ†ط§.</p>
               )}
             </div>
 
@@ -4363,13 +4400,13 @@ const AdminDashboard = () => {
                 onClick={() => setApproveDialog({ store: null, customPhone: '' })}
                 className={cn("flex-1 py-3 font-normal rounded-xl", isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-500")}
               >
-                إلغاء
+                ط¥ظ„ط؛ط§ط،
               </Button>
               <Button 
                 onClick={confirmApproval}
                 className="flex-[2] bg-indigo-600 text-white py-3 px-8 font-normal rounded-xl"
               >
-                تحديث الحالة وتفعيل
+                طھط­ط¯ظٹط« ط§ظ„ط­ط§ظ„ط© ظˆطھظپط¹ظٹظ„
               </Button>
             </div>
             
@@ -4391,9 +4428,9 @@ const AdminDashboard = () => {
               className="w-full bg-emerald-500 text-white py-4 font-normal rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-100"
             >
               <Send size={20} />
-              <span>إرسال الرسالة عبر واتساب يدوياً</span>
+              <span>ط¥ط±ط³ط§ظ„ ط§ظ„ط±ط³ط§ظ„ط© ط¹ط¨ط± ظˆط§طھط³ط§ط¨ ظٹط¯ظˆظٹط§ظ‹</span>
             </Button>
-            <p className="text-[10px] text-center text-gray-400 font-medium">خطوة يدوية: اضغط تفعيل أولاً ثم إرسال لضمان تحديث حالة المتجر</p>
+            <p className="text-[10px] text-center text-gray-400 font-medium">ط®ط·ظˆط© ظٹط¯ظˆظٹط©: ط§ط¶ط؛ط· طھظپط¹ظٹظ„ ط£ظˆظ„ط§ظ‹ ط«ظ… ط¥ط±ط³ط§ظ„ ظ„ط¶ظ…ط§ظ† طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„ظ…طھط¬ط±</p>
           </div>
         </motion.div>
       </div>
@@ -4402,11 +4439,11 @@ const AdminDashboard = () => {
   return (
     <DashboardLayout 
       title={
-        section === 'users' ? "المستخدمون" : 
-        section === 'approvals' ? "طلبات الانضمام" : 
-        section === 'stores' ? "المتاجر" : 
-        section === 'stats' ? "الإحصائيات" : 
-        "نظرة عامة"
+        section === 'users' ? "ط§ظ„ظ…ط³طھط®ط¯ظ…ظˆظ†" : 
+        section === 'approvals' ? "ط·ظ„ط¨ط§طھ ط§ظ„ط§ظ†ط¶ظ…ط§ظ…" : 
+        section === 'stores' ? "ط§ظ„ظ…طھط§ط¬ط±" : 
+        section === 'stats' ? "ط§ظ„ط¥ط­طµط§ط¦ظٹط§طھ" : 
+        "ظ†ط¸ط±ط© ط¹ط§ظ…ط©"
       } 
       role="admin"
       counts={sidebarCounts}
@@ -4447,7 +4484,7 @@ const MerchantDashboard = () => {
   const { section } = useParams();
   const navigate = useNavigate();
   
-  console.log('🔧 MerchantDashboard - section:', section, 'orders length:', orders.length);
+  console.log('ًں”§ MerchantDashboard - section:', section, 'orders length:', orders.length);
   const logoUploadRef = useRef<HTMLInputElement>(null);
 
   const filteredProducts = Array.isArray(products) ? products.filter(p => 
@@ -4672,7 +4709,7 @@ const MerchantDashboard = () => {
 
   useEffect(() => {
     if (user?.store_id) {
-      console.log('📥 MerchantDashboard - Fetching data for store:', user.store_id, 'Type:', user?.store_type, '❗ Type check:', user?.store_type === 'topup' ? 'TOPUP' : 'REGULAR');
+      console.log('ًں“¥ MerchantDashboard - Fetching data for store:', user.store_id, 'Type:', user?.store_type, 'â‌— Type check:', user?.store_type === 'topup' ? 'TOPUP' : 'REGULAR');
       
       // Fetch all data in parallel for faster loading
       const ordersEndpoint = user?.store_type === 'topup'
@@ -4688,15 +4725,15 @@ const MerchantDashboard = () => {
         fetch(`/api/merchant/stats?storeId=${user.store_id}`).then(r => r.json()).catch(() => ({})),
         fetch(`/api/auctions/active?includeSold=true`).then(r => r.json()).catch(() => [])
       ]).then(([products, categories, orders, customers, coupons, stats, auctions]) => {
-        console.log('✅ Data fetched:', { products: products?.length, categories: categories?.length });
-        console.log('📦 RAW PRODUCTS FROM API:', {
+        console.log('âœ… Data fetched:', { products: products?.length, categories: categories?.length });
+        console.log('ًں“¦ RAW PRODUCTS FROM API:', {
           count: Array.isArray(products) ? products.length : 'NOT_ARRAY',
           products: Array.isArray(products) ? products.map((p: any) => ({ id: p.id, name: p.name, category_name: p.category_name })) : products
         });
         setProducts(Array.isArray(products) ? products : []);
         
         const validCategories = Array.isArray(categories) ? categories.filter(c => c && c.name) : [];
-        console.log('✅ Valid categories:', validCategories);
+        console.log('âœ… Valid categories:', validCategories);
         setCategories(validCategories);
         
         setOrders(Array.isArray(orders) ? orders : []);
@@ -4732,7 +4769,7 @@ const MerchantDashboard = () => {
         fetch(`/api/merchant/stats?storeId=${user.store_id}`).then(r => r.json()).catch(() => ({})),
         fetch('/api/auctions/active?includeSold=true').then(r => r.json()).catch(() => [])
       ]).then(([products, orders, stats, auctions]) => {
-        console.log('🔄 AUTO-REFRESH products from API:', {
+        console.log('ًں”„ AUTO-REFRESH products from API:', {
           count: Array.isArray(products) ? products.length : 'NOT_ARRAY',
           products: Array.isArray(products) ? products.map((p: any) => ({ id: p.id, name: p.name })) : products
         });
@@ -4763,7 +4800,7 @@ const MerchantDashboard = () => {
               logo_url: data.logo_url || '',
               primary_color: data.primary_color || '#4F46E5'
             });
-            console.log('📋 Loaded merchant settings:', { app_name: data.app_name, logo_url: data.logo_url ? '✓' : '✗', primary_color: data.primary_color });
+            console.log('ًں“‹ Loaded merchant settings:', { app_name: data.app_name, logo_url: data.logo_url ? 'âœ“' : 'âœ—', primary_color: data.primary_color });
           }
         })
         .catch((err) => {
@@ -4774,18 +4811,18 @@ const MerchantDashboard = () => {
 
   const handleSaveMerchantSettings = async () => {
     if (!user?.store_id) {
-      alert("خطأ: لم يتم العثور على معرّف المتجر");
+      alert("ط®ط·ط£: ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ…ط¹ط±ظ‘ظپ ط§ظ„ظ…طھط¬ط±");
       return;
     }
     
     // Validate that at least app_name is not empty
     if (!merchantConfig.app_name || merchantConfig.app_name.trim() === '') {
-      alert("❌ خطأ: يجب إدخال اسم المتجر");
+      alert("â‌Œ ط®ط·ط£: ظٹط¬ط¨ ط¥ط¯ط®ط§ظ„ ط§ط³ظ… ط§ظ„ظ…طھط¬ط±");
       return;
     }
     
     try {
-      console.log("📤 Saving MERCHANT settings:", {
+      console.log("ًں“¤ Saving MERCHANT settings:", {
         store_id: user.store_id,
         app_name: merchantConfig.app_name,
         app_name_trimmed: merchantConfig.app_name.trim(),
@@ -4804,25 +4841,25 @@ const MerchantDashboard = () => {
         })
       });
       
-      console.log("📬 POST /api/settings response status:", res.status);
+      console.log("ًں“¬ POST /api/settings response status:", res.status);
       
       const data = await res.json();
-      console.log("📬 POST /api/settings full response:", JSON.stringify(data, null, 2));
-      console.log("📬 Response success field type:", typeof data.success, "value:", data.success);
-      console.log("📬 data.success === true:", data.success === true);
-      console.log("📬 Boolean check - !!data.success:", !!data.success);
+      console.log("ًں“¬ POST /api/settings full response:", JSON.stringify(data, null, 2));
+      console.log("ًں“¬ Response success field type:", typeof data.success, "value:", data.success);
+      console.log("ًں“¬ data.success === true:", data.success === true);
+      console.log("ًں“¬ Boolean check - !!data.success:", !!data.success);
       
       if (!res.ok) {
-        let errorMsg = data.error || data.message || "فشل الحفظ";
-        console.error('❌ HTTP Error:', res.status, errorMsg);
-        alert("❌ خطأ في الاتصال بقاعدة البيانات: " + errorMsg);
+        let errorMsg = data.error || data.message || "ظپط´ظ„ ط§ظ„ط­ظپط¸";
+        console.error('â‌Œ HTTP Error:', res.status, errorMsg);
+        alert("â‌Œ ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ: " + errorMsg);
         return;
       }
       
       // Explicitly check if success is true (strict equality)
       if (data.success === true) {
         // Success case
-        console.log('✅ Merchant settings saved successfully, navigating...');
+        console.log('âœ… Merchant settings saved successfully, navigating...');
         
         // Update ONLY local merchant config state
         setMerchantConfig(prev => ({
@@ -4832,26 +4869,26 @@ const MerchantDashboard = () => {
           primary_color: merchantConfig.primary_color
         }));
         
-        alert('✅ تم حفظ إعدادات المتجر بنجاح');
+        alert('âœ… طھظ… ط­ظپط¸ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…طھط¬ط± ط¨ظ†ط¬ط§ط­');
         
         // Refresh page to ensure all data is updated
         setTimeout(() => window.location.reload(), 500);
         return; // Ensure no code runs after reload
       } else {
         // Failure case even though HTTP 200
-        let errorMsg = data.error || data.message || "البيانات لم تُحفظ";
-        console.error('❌ Server returned success:', data.success, 'Type:', typeof data.success, 'Full response:', data);
-        alert("❌ خطأ: " + errorMsg);
+        let errorMsg = data.error || data.message || "ط§ظ„ط¨ظٹط§ظ†ط§طھ ظ„ظ… طھظڈط­ظپط¸";
+        console.error('â‌Œ Server returned success:', data.success, 'Type:', typeof data.success, 'Full response:', data);
+        alert("â‌Œ ط®ط·ط£: " + errorMsg);
       }
     } catch (error) {
-      console.error("❌ Network/Parse Error:", error);
+      console.error("â‌Œ Network/Parse Error:", error);
       console.error("Full error object:", error);
       console.error("Error type:", error instanceof Error ? error.constructor.name : typeof error);
       
-      const errorMessage = error instanceof Error ? error.message : "خطأ غير معروف";
+      const errorMessage = error instanceof Error ? error.message : "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ";
       console.error("Final error message:", errorMessage);
       
-      alert("❌ خطأ في حفظ الإعدادات: " + errorMessage);
+      alert("â‌Œ ط®ط·ط£ ظپظٹ ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ: " + errorMessage);
     }
   };
 
@@ -4883,11 +4920,11 @@ const MerchantDashboard = () => {
       if (res.ok) {
         setSalesData(data);
       } else {
-        setSalesReportError(data.error || 'تعذر تحميل تقرير المبيعات');
+        setSalesReportError(data.error || 'طھط¹ط°ط± طھط­ظ…ظٹظ„ طھظ‚ط±ظٹط± ط§ظ„ظ…ط¨ظٹط¹ط§طھ');
       }
     } catch (error) {
       console.error("Failed to fetch sales data:", error);
-      setSalesReportError('تعذر تحميل تقرير المبيعات');
+      setSalesReportError('طھط¹ط°ط± طھط­ظ…ظٹظ„ طھظ‚ط±ظٹط± ط§ظ„ظ…ط¨ظٹط¹ط§طھ');
     } finally {
       setIsLoadingSalesData(false);
     }
@@ -4912,10 +4949,10 @@ const MerchantDashboard = () => {
 
   const handleCreateProduct = () => {
     if (!user?.store_id) {
-      alert("عذراً، لم يتم العثور على معرّف المتجر!");
+      alert("ط¹ط°ط±ط§ظ‹طŒ ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ…ط¹ط±ظ‘ظپ ط§ظ„ظ…طھط¬ط±!");
       return;
     }
-    console.log('🎯 handleCreateProduct triggered');
+    console.log('ًںژ¯ handleCreateProduct triggered');
     setProductForm({
       name: '',
       description: '',
@@ -4934,9 +4971,9 @@ const MerchantDashboard = () => {
       is_auction: false
     });
     setIsEditingProduct(null);
-    console.log('🎯 About to setShowProductModal(true)');
+    console.log('ًںژ¯ About to setShowProductModal(true)');
     setShowProductModal(true);
-    console.log('🎯 setShowProductModal called');
+    console.log('ًںژ¯ setShowProductModal called');
   };
 
   const handleEditProduct = async (p: any) => {
@@ -4977,23 +5014,23 @@ const MerchantDashboard = () => {
         is_auction: false
       };
       
-      console.log('✅ Base form data initialized');
+      console.log('âœ… Base form data initialized');
       
       // Check if product is auction
       const isAuction = p.is_auction === true || p.is_auction === 'true' || p.is_auction === 1;
-      console.log('🔍 Product is_auction raw:', p.is_auction, '| Determined as:', isAuction);
+      console.log('ًں”چ Product is_auction raw:', p.is_auction, '| Determined as:', isAuction);
       
       formData.is_auction = isAuction;
       
       // If auction product, read auction data directly from product columns (NEW: No API call needed!)
       if (isAuction && p.id) {
-        // ✅ SIMPLE: Data now comes as strings from API (converted by TO_CHAR in SQL)
+        // âœ… SIMPLE: Data now comes as strings from API (converted by TO_CHAR in SQL)
         let parsedDate = String(p.auction_date || '').trim();
         let parsedStartTime = String(p.auction_start_time || '').trim();
         let parsedEndTime = String(p.auction_end_time || '').trim();
         let parsedPrice = String(p.auction_price || '').trim();
         
-        console.log('✨ Auction data from API (already formatted as strings):');
+        console.log('âœ¨ Auction data from API (already formatted as strings):');
         console.log('   - auction_date:', parsedDate, '(type:', typeof parsedDate + ')');
         console.log('   - auction_start_time:', parsedStartTime);
         console.log('   - auction_end_time:', parsedEndTime);
@@ -5005,16 +5042,16 @@ const MerchantDashboard = () => {
         formData.auction_end_time = parsedEndTime;
         formData.auction_price = parsedPrice;
         
-        console.log('🔍 FORM DATA AFTER LOAD:');
+        console.log('ًں”چ FORM DATA AFTER LOAD:');
         console.log('   auction_date:', formData.auction_date);
         console.log('   auction_start_time:', formData.auction_start_time);
         console.log('   auction_end_time:', formData.auction_end_time);
         console.log('   auction_price:', formData.auction_price);
       } else {
-        console.log('ℹ️ Not an auction product');
+        console.log('â„¹ï¸ڈ Not an auction product');
       }
       
-      console.log('🔹 FINAL formData:', formData);
+      console.log('ًں”¹ FINAL formData:', formData);
       
       // Set all state at once
       setProductForm(formData);
@@ -5023,16 +5060,16 @@ const MerchantDashboard = () => {
       setIsEditingProduct(p.id);
       setShowProductModal(true);
       
-      console.log('✅✅✅ Modal opened with data!');
+      console.log('âœ…âœ…âœ… Modal opened with data!');
       
     } catch (err: any) {
-      console.error('💥 ERROR:', err.message, err);
-      alert('❌ خطأ: ' + (err?.message || 'فشل تحميل بيانات المنتج'));
+      console.error('ًں’¥ ERROR:', err.message, err);
+      alert('â‌Œ ط®ط·ط£: ' + (err?.message || 'ظپط´ظ„ طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظ†طھط¬'));
     }
   };
 
   const handleDeleteProduct = async (id: number) => {
-    if (!confirm("هل أنت متأكد من حذف هذا المنتج؟")) return;
+    if (!confirm("ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط­ط°ظپ ظ‡ط°ط§ ط§ظ„ظ…ظ†طھط¬طں")) return;
     const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
     if (res.ok) {
       setProducts(products.filter(p => p.id !== id));
@@ -5057,18 +5094,18 @@ const MerchantDashboard = () => {
   };
 
   const saveProduct = async () => {
-    console.log('🚀 SAVE PRODUCT CLICKED');
+    console.log('ًںڑ€ SAVE PRODUCT CLICKED');
     console.log('productForm:', JSON.stringify(productForm, null, 2));
     const isTopupStore = user?.store_type === 'topup';
     
     // Check if it's auction
-    console.log('✅ is_auction:', productForm.is_auction);
-    console.log('✅ auction_date:', productForm.auction_date);
-    console.log('✅ auction_start_time:', productForm.auction_start_time);
-    console.log('✅ auction_end_time:', productForm.auction_end_time);
-    console.log('✅ auction_price:', productForm.auction_price);
+    console.log('âœ… is_auction:', productForm.is_auction);
+    console.log('âœ… auction_date:', productForm.auction_date);
+    console.log('âœ… auction_start_time:', productForm.auction_start_time);
+    console.log('âœ… auction_end_time:', productForm.auction_end_time);
+    console.log('âœ… auction_price:', productForm.auction_price);
     
-    console.log('🚀 SAVE PRODUCT - productForm:', {
+    console.log('ًںڑ€ SAVE PRODUCT - productForm:', {
       name: productForm.name,
       is_auction: productForm.is_auction,
       auction_date: productForm.auction_date,
@@ -5080,26 +5117,26 @@ const MerchantDashboard = () => {
     
     // Validate required fields
     if (!productForm.name?.trim()) {
-      alert("❌ يرجى إدخال اسم المنتج");
+      alert("â‌Œ ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط§ط³ظ… ط§ظ„ظ…ظ†طھط¬");
       return;
     }
 
     if (!productForm.price) {
-      alert("❌ يرجى إدخال سعر المنتج");
+      alert("â‌Œ ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط³ط¹ط± ط§ظ„ظ…ظ†طھط¬");
       return;
     }
 
     if (!productForm.stock) {
-      alert("❌ يرجى إدخال الكمية المتاحة");
+      alert("â‌Œ ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط§ظ„ظƒظ…ظٹط© ط§ظ„ظ…طھط§ط­ط©");
       return;
     }
     
     if (!productForm.image_url && !isEditingProduct) {
-      alert("❌ يرجى اختيار صورة للمنتج");
+      alert("â‌Œ ظٹط±ط¬ظ‰ ط§ط®طھظٹط§ط± طµظˆط±ط© ظ„ظ„ظ…ظ†طھط¬");
       return;
     }
 
-    // ✅ Initialize body and URL
+    // âœ… Initialize body and URL
     const body: any = {
       store_id: user.store_id,
       category_id: productForm.category_id ? parseInt(productForm.category_id) : null
@@ -5111,11 +5148,11 @@ const MerchantDashboard = () => {
     if (isTopupStore) {
       // For topup store: send company_id, amount, and prices
       if (!productForm.company_id) {
-        alert('❌ يرجى اختيار الشركة');
+        alert('â‌Œ ظٹط±ط¬ظ‰ ط§ط®طھظٹط§ط± ط§ظ„ط´ط±ظƒط©');
         return;
       }
       if (!productForm.amount) {
-        alert('❌ يرجى إدخال المبلغ');
+        alert('â‌Œ ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط§ظ„ظ…ط¨ظ„ط؛');
         return;
       }
       
@@ -5143,7 +5180,7 @@ const MerchantDashboard = () => {
       body.image_url = productForm.image_url;
       body.gallery = productForm.gallery;
       
-      // ✅ ALWAYS include is_auction flag and auction data (even if false)
+      // âœ… ALWAYS include is_auction flag and auction data (even if false)
       body.is_auction = productForm.is_auction === true;
       body.auction_date = auctionDateValue;
       body.auction_start_time = auctionStartValue;
@@ -5152,21 +5189,21 @@ const MerchantDashboard = () => {
       
       // Add auction flag and data if applicable
       if (productForm.is_auction === true) {
-        // ✅ CRITICAL VALIDATION: Ensure all auction fields are provided
+        // âœ… CRITICAL VALIDATION: Ensure all auction fields are provided
         // Check without trim() because date/time inputs return clean values
         if (!auctionDateValue || !auctionStartValue || !auctionEndValue || !auctionPriceValue) {
           const missingFields = [];
-          if (!auctionDateValue) missingFields.push('التاريخ');
-          if (!auctionStartValue) missingFields.push('وقت البداية');
-          if (!auctionEndValue) missingFields.push('وقت النهاية');
-          if (!auctionPriceValue) missingFields.push('السعر الأساسي');
+          if (!auctionDateValue) missingFields.push('ط§ظ„طھط§ط±ظٹط®');
+          if (!auctionStartValue) missingFields.push('ظˆظ‚طھ ط§ظ„ط¨ط¯ط§ظٹط©');
+          if (!auctionEndValue) missingFields.push('ظˆظ‚طھ ط§ظ„ظ†ظ‡ط§ظٹط©');
+          if (!auctionPriceValue) missingFields.push('ط§ظ„ط³ط¹ط± ط§ظ„ط£ط³ط§ط³ظٹ');
           
-          console.warn('❌ VALIDATION FAILED - Missing fields:', missingFields);
-          alert(`❌ يرجى ملء جميع حقول المزاد:\n${missingFields.join('\n')}`);
+          console.warn('â‌Œ VALIDATION FAILED - Missing fields:', missingFields);
+          alert(`â‌Œ ظٹط±ط¬ظ‰ ظ…ظ„ط، ط¬ظ…ظٹط¹ ط­ظ‚ظˆظ„ ط§ظ„ظ…ط²ط§ط¯:\n${missingFields.join('\n')}`);
           return;
         }
         
-        console.log('✅ AUCTION FIELDS VALIDATED AND WILL BE SENT:');
+        console.log('âœ… AUCTION FIELDS VALIDATED AND WILL BE SENT:');
         console.log('   is_auction:', body.is_auction);
         console.log('   auction_date:', body.auction_date);
         console.log('   auction_start_time:', body.auction_start_time);
@@ -5175,7 +5212,7 @@ const MerchantDashboard = () => {
       }
     }
     
-    console.log('📝 FULL BODY BEING SENT:', { 
+    console.log('ًں“‌ FULL BODY BEING SENT:', { 
       store_id: body.store_id,
       name: body.name,
       price: body.price,
@@ -5190,9 +5227,9 @@ const MerchantDashboard = () => {
       body_keys: Object.keys(body)
     });
     
-    console.log('📤 SENDING FETCH REQUEST TO:', url);
-    console.log('📤 METHOD:', method);
-    console.log('📤 FULL BODY JSON:', JSON.stringify(body, null, 2));
+    console.log('ًں“¤ SENDING FETCH REQUEST TO:', url);
+    console.log('ًں“¤ METHOD:', method);
+    console.log('ًں“¤ FULL BODY JSON:', JSON.stringify(body, null, 2));
     
     try {
       const res = await fetch(url, {
@@ -5202,24 +5239,24 @@ const MerchantDashboard = () => {
       });
       
       // Log response status
-      console.log(`📡 API Response Status: ${res.status} ${res.statusText}`);
+      console.log(`ًں“، API Response Status: ${res.status} ${res.statusText}`);
       
       if (res.ok) {
         const responseData = await res.json();
         const savedProduct = responseData?.product || responseData;
         const savedProductId = savedProduct?.id;
-        console.log('✅ PRODUCT SAVED:', { id: savedProductId, name: savedProduct?.name || productForm.name });
+        console.log('âœ… PRODUCT SAVED:', { id: savedProductId, name: savedProduct?.name || productForm.name });
         
-        // ✅ Reload products from API to ensure data is synced
+        // âœ… Reload products from API to ensure data is synced
         try {
           const productsRes = await fetch(`/api/products?storeId=${user.store_id}`);
           if (productsRes.ok) {
             const productsData = await productsRes.json();
             setProducts(Array.isArray(productsData) ? productsData : []);
-            console.log('✅ Products reloaded from API after save');
+            console.log('âœ… Products reloaded from API after save');
           }
         } catch (e) {
-          console.error('⚠️ Error reloading products:', e);
+          console.error('âڑ ï¸ڈ Error reloading products:', e);
         }
         
         // Save topup codes if provided (only for topup stores)
@@ -5244,18 +5281,18 @@ const MerchantDashboard = () => {
             });
             
             if (codesRes.ok) {
-              setTopupCodesMessage({ type: 'success', text: `✅ تم حفظ ${codes.length} كود بنجاح` });
-              console.log(`✅ تم حفظ ${codes.length} أكواد بنجاح`);
+              setTopupCodesMessage({ type: 'success', text: `âœ… طھظ… ط­ظپط¸ ${codes.length} ظƒظˆط¯ ط¨ظ†ط¬ط§ط­` });
+              console.log(`âœ… طھظ… ط­ظپط¸ ${codes.length} ط£ظƒظˆط§ط¯ ط¨ظ†ط¬ط§ط­`);
               // Clear notification after 3 seconds
               setTimeout(() => setTopupCodesMessage(null), 3000);
             } else {
-              setTopupCodesMessage({ type: 'error', text: 'فشل حفظ الأكواد' });
+              setTopupCodesMessage({ type: 'error', text: 'ظپط´ظ„ ط­ظپط¸ ط§ظ„ط£ظƒظˆط§ط¯' });
               setTimeout(() => setTopupCodesMessage(null), 3000);
             }
           }
         }
         
-        // 🔴 DEBUG: Log conditions BEFORE auction check
+        // ًں”´ DEBUG: Log conditions BEFORE auction check
         const debugCondition = {
           isTopupStore,
           productFormIsAuction: productForm.is_auction,
@@ -5265,26 +5302,26 @@ const MerchantDashboard = () => {
           hasSavedProductId: !!savedProductId,
           finalCondition: !isTopupStore && productForm.is_auction && savedProductId
         };
-        console.log('🔴 SAVE CONDITIONS:', debugCondition);
-        console.log('🔴 AFTER PRODUCT SAVED - AUCTION DATA:', {
+        console.log('ًں”´ SAVE CONDITIONS:', debugCondition);
+        console.log('ًں”´ AFTER PRODUCT SAVED - AUCTION DATA:', {
           is_auction: productForm.is_auction,
           auction_was_created_at_backend: true,
           product_saved: productForm.name
         });
         
-        // ✅ Reload auctions after product save (product creation already handled auction creation)
+        // âœ… Reload auctions after product save (product creation already handled auction creation)
         if (productForm.is_auction) {
           try {
             const merchantAuctions = await fetchMerchantAuctions(user?.store_id);
-            console.log('✅ Auctions reloaded:', merchantAuctions.length);
+            console.log('âœ… Auctions reloaded:', merchantAuctions.length);
           } catch (e) {
-            console.error('⚠️ Error reloading auctions:', e);
+            console.error('âڑ ï¸ڈ Error reloading auctions:', e);
           }
         } else {
           try {
             await fetchMerchantAuctions(user?.store_id);
           } catch (e) {
-            console.error('⚠️ Error syncing auctions after save:', e);
+            console.error('âڑ ï¸ڈ Error syncing auctions after save:', e);
           }
         }
         
@@ -5314,35 +5351,35 @@ const MerchantDashboard = () => {
         const updated = await fetch(`/api/products?storeId=${user.store_id}`).then(r => r.json());
         setProducts(Array.isArray(updated) ? updated : []);
         
-        // ✨ Trigger refresh for CustomerStorefront to see new products
+        // âœ¨ Trigger refresh for CustomerStorefront to see new products
         const { triggerProductsRefresh } = useRefreshStore.getState();
         triggerProductsRefresh();
-        console.log('✅ Products refresh triggered for CustomerStorefront');
+        console.log('âœ… Products refresh triggered for CustomerStorefront');
         
         // Show success message
-        alert(isEditingProduct ? '✅ تم التعديل بنجاح' : '✅ تمت الإضافة بنجاح');
+        alert(isEditingProduct ? 'âœ… طھظ… ط§ظ„طھط¹ط¯ظٹظ„ ط¨ظ†ط¬ط§ط­' : 'âœ… طھظ…طھ ط§ظ„ط¥ط¶ط§ظپط© ط¨ظ†ط¬ط§ط­');
       } else {
-        console.error('❌ SAVE FAILED - Response status:', res.status);
+        console.error('â‌Œ SAVE FAILED - Response status:', res.status);
         const errText = await res.text();
-        let errMsg = "فشل الحفظ";
+        let errMsg = "ظپط´ظ„ ط§ظ„ط­ظپط¸";
         try {
           const errObj = JSON.parse(errText);
           errMsg = errObj.error || errMsg;
         } catch (e) {
           errMsg = errText || errMsg;
         }
-        console.error('❌ Error details:', errMsg);
-        alert("❌ خطأ من السيرفر: " + errMsg);
+        console.error('â‌Œ Error details:', errMsg);
+        alert("â‌Œ ط®ط·ط£ ظ…ظ† ط§ظ„ط³ظٹط±ظپط±: " + errMsg);
       }
     } catch (err) {
-      console.error('❌ EXCEPTION CAUGHT:', err);
-      alert("❌ حدث خطأ أثناء الاتصال بالسيرفر. تأكد أن حجم الصورة ليس كبيراً جداً.");
+      console.error('â‌Œ EXCEPTION CAUGHT:', err);
+      alert("â‌Œ ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط³ظٹط±ظپط±. طھط£ظƒط¯ ط£ظ† ط­ط¬ظ… ط§ظ„طµظˆط±ط© ظ„ظٹط³ ظƒط¨ظٹط±ط§ظ‹ ط¬ط¯ط§ظ‹.");
     }
   };
 
   const handleAddCategory = () => {
     if (!user?.store_id) {
-      alert("عذراً، لم يتم العثور على معرّف المتجر الخاص بك.");
+      alert("ط¹ط°ط±ط§ظ‹طŒ ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ…ط¹ط±ظ‘ظپ ط§ظ„ظ…طھط¬ط± ط§ظ„ط®ط§طµ ط¨ظƒ.");
       return;
     }
     setCategoryForm({ name: '', image_url: '' });
@@ -5357,7 +5394,7 @@ const MerchantDashboard = () => {
   };
 
   const handleDeleteCategory = async (id: number) => {
-    if (!confirm("هل أنت متأكد؟ سيتم حذف هذا القسم.")) return;
+    if (!confirm("ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯طں ط³ظٹطھظ… ط­ط°ظپ ظ‡ط°ط§ ط§ظ„ظ‚ط³ظ….")) return;
     try {
       const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -5389,29 +5426,29 @@ const MerchantDashboard = () => {
         setCategories(validCategories);
       } else {
         const errText = await res.text();
-        let errMsg = "فشل الحفظ";
+        let errMsg = "ظپط´ظ„ ط§ظ„ط­ظپط¸";
         try {
           const errObj = JSON.parse(errText);
           errMsg = errObj.error || errMsg;
         } catch (e) {
           errMsg = errText || errMsg;
         }
-        alert("خطأ من السيرفر: " + errMsg);
+        alert("ط®ط·ط£ ظ…ظ† ط§ظ„ط³ظٹط±ظپط±: " + errMsg);
       }
     } catch (err) {
       console.error(err);
-      alert("حدث خطأ أثناء الاتصال بالسيرفر. تأكد من ثبات الاتصال وحجم الملف.");
+      alert("ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط³ظٹط±ظپط±. طھط£ظƒط¯ ظ…ظ† ط«ط¨ط§طھ ط§ظ„ط§طھطµط§ظ„ ظˆط­ط¬ظ… ط§ظ„ظ…ظ„ظپ.");
     }
   };
 
   // Fetch customers from new API
   useEffect(() => {
     if (user?.store_id && section === 'customers') {
-      console.log("🔄 Fetching customers for store:", user.store_id);
+      console.log("ًں”„ Fetching customers for store:", user.store_id);
       fetch(`/api/merchant/customers?storeId=${user.store_id}`)
         .then(res => res.json())
         .then(data => {
-          console.log("✅ Customers loaded:", data);
+          console.log("âœ… Customers loaded:", data);
           setCustomers(Array.isArray(data) ? data : []);
         })
         .catch(err => {
@@ -5424,12 +5461,12 @@ const MerchantDashboard = () => {
   // Handle Create Customer
   const handleCreateCustomer = async () => {
     if (!user?.store_id) {
-      alert("خطأ: لم يتم العثور على معرّف المتجر");
+      alert("ط®ط·ط£: ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ…ط¹ط±ظ‘ظپ ط§ظ„ظ…طھط¬ط±");
       return;
     }
 
     if (!customerForm.name.trim() || !customerForm.phone.trim()) {
-      alert("⚠️ يرجى إدخال الاسم ورقم الهاتف");
+      alert("âڑ ï¸ڈ ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط§ظ„ط§ط³ظ… ظˆط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ");
       return;
     }
 
@@ -5450,7 +5487,7 @@ const MerchantDashboard = () => {
       });
 
       if (res.ok) {
-        alert("✅ تمت إضافة العميل بنجاح");
+        alert("âœ… طھظ…طھ ط¥ط¶ط§ظپط© ط§ظ„ط¹ظ…ظٹظ„ ط¨ظ†ط¬ط§ط­");
         setShowCustomerModal(false);
         setCustomerForm({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
         
@@ -5459,23 +5496,23 @@ const MerchantDashboard = () => {
         setCustomers(Array.isArray(updated) ? updated : []);
       } else {
         const error = await res.json();
-        alert("❌ خطأ: " + (error.error || "فشل إضافة العميل"));
+        alert("â‌Œ ط®ط·ط£: " + (error.error || "ظپط´ظ„ ط¥ط¶ط§ظپط© ط§ظ„ط¹ظ…ظٹظ„"));
       }
     } catch (err) {
       console.error(err);
-      alert("حدث خطأ في الاتصال بالسيرفر");
+      alert("ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط³ظٹط±ظپط±");
     }
   };
 
   // Handle Edit Customer
   const handleEditCustomer = async () => {
     if (!user?.store_id || !isEditingCustomer) {
-      alert("خطأ: معلومات ناقصة");
+      alert("ط®ط·ط£: ظ…ط¹ظ„ظˆظ…ط§طھ ظ†ط§ظ‚طµط©");
       return;
     }
 
     if (!customerForm.name.trim() || !customerForm.phone.trim()) {
-      alert("⚠️ يرجى إدخال الاسم ورقم الهاتف");
+      alert("âڑ ï¸ڈ ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط§ظ„ط§ط³ظ… ظˆط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ");
       return;
     }
 
@@ -5495,7 +5532,7 @@ const MerchantDashboard = () => {
       });
 
       if (res.ok) {
-        alert("✅ تم تحديث بيانات العميل بنجاح");
+        alert("âœ… طھظ… طھط­ط¯ظٹط« ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظٹظ„ ط¨ظ†ط¬ط§ط­");
         setShowCustomerModal(false);
         setIsEditingCustomer(null);
         setCustomerForm({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
@@ -5505,25 +5542,25 @@ const MerchantDashboard = () => {
         setCustomers(Array.isArray(updated) ? updated : []);
       } else {
         const error = await res.json();
-        alert("❌ خطأ: " + (error.error || "فشل التحديث"));
+        alert("â‌Œ ط®ط·ط£: " + (error.error || "ظپط´ظ„ ط§ظ„طھط­ط¯ظٹط«"));
       }
     } catch (err) {
       console.error(err);
-      alert("حدث خطأ في الاتصال بالسيرفر");
+      alert("ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط³ظٹط±ظپط±");
     }
   };
 
   // Handle Delete Customer
   const handleDeleteCustomer = async (customerId: number) => {
     if (user?.store_type !== 'topup') {
-      alert("هذه الشاشة تعرض بيانات مشتقة من الطلبات، لذلك لا يتوفر حذف عميل منها.");
+      alert("ظ‡ط°ظ‡ ط§ظ„ط´ط§ط´ط© طھط¹ط±ط¶ ط¨ظٹط§ظ†ط§طھ ظ…ط´طھظ‚ط© ظ…ظ† ط§ظ„ط·ظ„ط¨ط§طھطŒ ظ„ط°ظ„ظƒ ظ„ط§ ظٹطھظˆظپط± ط­ط°ظپ ط¹ظ…ظٹظ„ ظ…ظ†ظ‡ط§.");
       return;
     }
 
-    if (!confirm("⚠️ هل أنت متأكد من حذف هذا العميل؟")) return;
+    if (!confirm("âڑ ï¸ڈ ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط­ط°ظپ ظ‡ط°ط§ ط§ظ„ط¹ظ…ظٹظ„طں")) return;
 
     try {
-      console.log(`🗑️ Attempting to delete customer: ${customerId}`);
+      console.log(`ًں—‘ï¸ڈ Attempting to delete customer: ${customerId}`);
       
       // For topup stores, use the dedicated endpoint
       const endpoint = user?.store_type === 'topup'
@@ -5533,16 +5570,16 @@ const MerchantDashboard = () => {
       const res = await fetch(endpoint, { method: 'DELETE' });
 
       if (res.ok) {
-        alert('✅ تم حذف العميل بنجاح');
+        alert('âœ… طھظ… ط­ط°ظپ ط§ظ„ط¹ظ…ظٹظ„ ط¨ظ†ط¬ط§ط­');
         const updated = await fetch(`/api/merchant/customers?storeId=${user.store_id}`).then(r => r.json());
         setCustomers(Array.isArray(updated) ? updated : []);
       } else {
         const error = await res.json();
-        alert('❌ خطأ: ' + (error.error || 'فشل حذف العميل'));
+        alert('â‌Œ ط®ط·ط£: ' + (error.error || 'ظپط´ظ„ ط­ط°ظپ ط§ظ„ط¹ظ…ظٹظ„'));
       }
     } catch (err) {
       console.error(err);
-      alert('حدث خطأ في الاتصال بالسيرفر');
+      alert('ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط³ظٹط±ظپط±');
     }
   };
 
@@ -5558,8 +5595,8 @@ const MerchantDashboard = () => {
         >
           <div className={cn("p-8 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50/50 border-black/5")}>
             <div>
-              <h3 className={cn("text-2xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{isEditingProduct ? 'تعديل المنتج' : 'إضافة منتج جديد'}</h3>
-              <p className={cn("text-sm font-medium mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>{isTopupStore ? 'منتج شحن' : 'منتج عادي'}</p>
+              <h3 className={cn("text-2xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{isEditingProduct ? 'طھط¹ط¯ظٹظ„ ط§ظ„ظ…ظ†طھط¬' : 'ط¥ط¶ط§ظپط© ظ…ظ†طھط¬ ط¬ط¯ظٹط¯'}</h3>
+              <p className={cn("text-sm font-medium mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>{isTopupStore ? 'ظ…ظ†طھط¬ ط´ط­ظ†' : 'ظ…ظ†طھط¬ ط¹ط§ط¯ظٹ'}</p>
             </div>
             <button onClick={closeProductModal} className={cn("p-2 rounded-full transition-colors", isDarkMode ? "hover:bg-gray-600 text-gray-400" : "hover:bg-black/5 text-gray-400")}>
               <X size={24} />
@@ -5570,17 +5607,17 @@ const MerchantDashboard = () => {
             {/* Name & Category in one row */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>اسم المنتج *</label>
+                <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ط³ظ… ط§ظ„ظ…ظ†طھط¬ *</label>
                 <input 
                   type="text" 
                   value={productForm.name}
                   onChange={(e) => updateProductForm({ name: e.target.value })}
-                  placeholder="مثال: شحن موبايل"
+                  placeholder="ظ…ط«ط§ظ„: ط´ط­ظ† ظ…ظˆط¨ط§ظٹظ„"
                   className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
                 />
               </div>
               <div className="space-y-2">
-                <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ظ„ظ‚ط³ظ… *</label>
+                <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط·آ§ط¸â€‍ط¸â€ڑط·آ³ط¸â€¦ *</label>
                 <select 
                   value={productForm.category_id}
                   onChange={(e) => updateProductForm({ category_id: e.target.value })}
@@ -5594,11 +5631,11 @@ const MerchantDashboard = () => {
             </div>
 
             <div className="space-y-2">
-              <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>وصف المنتج</label>
+              <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>ظˆطµظپ ط§ظ„ظ…ظ†طھط¬</label>
               <textarea
                 value={productForm.description || ''}
                 onChange={(e) => updateProductForm({ description: e.target.value })}
-                placeholder="أضف وصفاً مختصراً للمنتج يظهر للزبائن"
+                placeholder="ط£ط¶ظپ ظˆطµظپط§ظ‹ ظ…ط®طھطµط±ط§ظ‹ ظ„ظ„ظ…ظ†طھط¬ ظٹط¸ظ‡ط± ظ„ظ„ط²ط¨ط§ط¦ظ†"
                 rows={3}
                 className={cn("w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-normal outline-none resize-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 border-black/5 placeholder-gray-400")}
               />
@@ -5608,7 +5645,7 @@ const MerchantDashboard = () => {
             {isTopupStore ? (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>الكمية المتاحة *</label>
+                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ظ„ظƒظ…ظٹط© ط§ظ„ظ…طھط§ط­ط© *</label>
                   <input 
                     type="number" 
                     value={productForm.stock}
@@ -5619,7 +5656,7 @@ const MerchantDashboard = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>سعر البيع *</label>
+                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط³ط¹ط± ط§ظ„ط¨ظٹط¹ *</label>
                   <input 
                     type="number" 
                     value={productForm.retail_price}
@@ -5633,7 +5670,7 @@ const MerchantDashboard = () => {
             ) : (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>الكمية المتاحة *</label>
+                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ظ„ظƒظ…ظٹط© ط§ظ„ظ…طھط§ط­ط© *</label>
                   <input 
                     type="number" 
                     value={productForm.stock}
@@ -5644,7 +5681,7 @@ const MerchantDashboard = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ظ„ط³ط¹ط± *</label>
+                  <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط·آ§ط¸â€‍ط·آ³ط·آ¹ط·آ± *</label>
                   <input 
                     type="number" 
                     value={productForm.price}
@@ -5664,7 +5701,7 @@ const MerchantDashboard = () => {
                   />
                   {productForm.is_auction && (
                     <p className={cn("text-xs mt-2", isDarkMode ? "text-amber-300" : "text-amber-700")}>
-                      يتم التحكم بهذا الحقل تلقائياً من خلال "السعر الأساسي" للمزاد.
+                      ظٹطھظ… ط§ظ„طھط­ظƒظ… ط¨ظ‡ط°ط§ ط§ظ„ط­ظ‚ظ„ طھظ„ظ‚ط§ط¦ظٹط§ظ‹ ظ…ظ† ط®ظ„ط§ظ„ "ط§ظ„ط³ط¹ط± ط§ظ„ط£ط³ط§ط³ظٹ" ظ„ظ„ظ…ط²ط§ط¯.
                     </p>
                   )}
                 </div>
@@ -5674,7 +5711,7 @@ const MerchantDashboard = () => {
             {/* Additional prices for topup */}
             {isTopupStore && (
               <div className="space-y-2">
-                <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>سعر الجملة (اختياري)</label>
+                <label className={cn("text-sm font-normal block", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط³ط¹ط± ط§ظ„ط¬ظ…ظ„ط© (ط§ط®طھظٹط§ط±ظٹ)</label>
                 <input 
                   type="number" 
                   value={productForm.wholesale_price}
@@ -5689,11 +5726,11 @@ const MerchantDashboard = () => {
             {/* Image Upload - for regular stores only */}
             {!isTopupStore && (
               <div className="space-y-4">
-                <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`صور المنتج (يمكن اختيار عدة صور)`}</label>
+                <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`طµظˆط± ط§ظ„ظ…ظ†طھط¬ (ظٹظ…ظƒظ† ط§ط®طھظٹط§ط± ط¹ط¯ط© طµظˆط±)`}</label>
                 <div className="flex flex-col gap-4">
                   {/* Main Image Upload */}
                   <div>
-                    <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>الصورة الرئيسية:</p>
+                    <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط§ظ„طµظˆط±ط© ط§ظ„ط±ط¦ظٹط³ظٹط©:</p>
                     <label className="cursor-pointer group relative">
                       <div className={cn("w-full h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all overflow-hidden", isDarkMode ? "border-gray-600 bg-gray-700 group-hover:bg-gray-600 group-hover:border-gray-500" : "border-indigo-100 bg-gray-50 group-hover:bg-indigo-50/50 group-hover:border-indigo-300")}>
                         {productForm.image_url ? (
@@ -5706,7 +5743,7 @@ const MerchantDashboard = () => {
                         ) : (
                           <>
                             <Plus size={24} className="text-indigo-500 mb-1" />
-                            <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-400")}>اختر الصورة الرئيسية</p>
+                            <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-400")}>ط§ط®طھط± ط§ظ„طµظˆط±ط© ط§ظ„ط±ط¦ظٹط³ظٹط©</p>
                           </>
                         )}
                       </div>
@@ -5728,7 +5765,7 @@ const MerchantDashboard = () => {
                       type="text" 
                       value={productForm.image_url.startsWith('data:') ? '' : productForm.image_url}
                       onChange={(e) => updateProductForm({ image_url: e.target.value })}
-                      placeholder="أو ضع رابطاً مباشراً..."
+                      placeholder="ط£ظˆ ط¶ط¹ ط±ط§ط¨ط·ط§ظ‹ ظ…ط¨ط§ط´ط±ط§ظ‹..."
                       className={cn("w-full px-5 py-3 border rounded-xl font-normal outline-none text-xs mt-2", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 border-black/5 placeholder-gray-400")}
                     />
                   </div>
@@ -5736,13 +5773,13 @@ const MerchantDashboard = () => {
                   {/* Gallery Images */}
                   <div>
                     <div className="flex justify-between items-center mb-2">
-                      <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>صور إضافية:</p>
-                      <span className={cn("text-[10px] font-normal px-2 py-1 rounded", isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600")}>{(productForm.gallery || []).length} طµظˆط±</span>
+                      <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>طµظˆط± ط¥ط¶ط§ظپظٹط©:</p>
+                      <span className={cn("text-[10px] font-normal px-2 py-1 rounded", isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600")}>{(productForm.gallery || []).length} ط·آµط¸ث†ط·آ±</span>
                     </div>
                     <label className="cursor-pointer group relative">
                       <div className={cn("w-full h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all", isDarkMode ? "border-gray-600 bg-gray-700 group-hover:bg-gray-600 group-hover:border-gray-500" : "border-blue-100 bg-blue-50/30 group-hover:bg-blue-50 group-hover:border-blue-300")}>
                         <Plus size={24} className={isDarkMode ? "text-gray-400 mb-1" : "text-blue-400 mb-1"} />
-                        <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-blue-600")}>أضف صور إضافية (اختياري)</p>
+                        <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-blue-600")}>ط£ط¶ظپ طµظˆط± ط¥ط¶ط§ظپظٹط© (ط§ط®طھظٹط§ط±ظٹ)</p>
                       </div>
                       <input 
                         type="file" 
@@ -5768,7 +5805,7 @@ const MerchantDashboard = () => {
                   {/* Gallery Preview */}
                   {(productForm.gallery || []).length > 0 && (
                     <div className="space-y-2">
-                      <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>معاينة الصور الإضافية:</p>
+                      <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>ظ…ط¹ط§ظٹظ†ط© ط§ظ„طµظˆط± ط§ظ„ط¥ط¶ط§ظپظٹط©:</p>
                       <div className="grid grid-cols-3 gap-2">
                         {(productForm.gallery || []).map((img, idx) => (
                           <div key={idx} className="relative group">
@@ -5816,81 +5853,81 @@ const MerchantDashboard = () => {
                     }}
                     className="w-4 h-4"
                   />
-                  هذا منتج مزاد
+                  ظ‡ط°ط§ ظ…ظ†طھط¬ ظ…ط²ط§ط¯
                 </label>
                 {productForm.is_auction && (
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className={cn("text-xs font-normal block mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>📅 تاريخ المزاد</label>
+                        <label className={cn("text-xs font-normal block mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>ًں“… طھط§ط±ظٹط® ط§ظ„ظ…ط²ط§ط¯</label>
                         <input 
                           type="date" 
                           name="auction_date"
                           value={productForm.auction_date || ''}
                           onChange={(e) => {
-                            console.log('📅 Date changed to:', e.target.value);
+                            console.log('ًں“… Date changed to:', e.target.value);
                             updateProductForm({ auction_date: e.target.value });
                           }}
                           onFocus={() => {
-                            console.log('📅 DATE FIELD FOCUSED - Current value:', productForm.auction_date, 'Type:', typeof productForm.auction_date);
+                            console.log('ًں“… DATE FIELD FOCUSED - Current value:', productForm.auction_date, 'Type:', typeof productForm.auction_date);
                           }}
                           placeholder="yyyy-mm-dd"
                           required
                           className={cn("w-full px-3 py-2 border rounded-lg text-xs font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-white border-black/10")}
                         />
-                        {productForm.auction_date && <p className="text-xs text-blue-500 mt-1">✓ محفوظ: {productForm.auction_date}</p>}
+                        {productForm.auction_date && <p className="text-xs text-blue-500 mt-1">âœ“ ظ…ط­ظپظˆط¸: {productForm.auction_date}</p>}
                       </div>
                       <div>
-                        <label className={cn("text-xs font-normal block mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>💰 السعر الأساسي</label>
+                        <label className={cn("text-xs font-normal block mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>ًں’° ط§ظ„ط³ط¹ط± ط§ظ„ط£ط³ط§ط³ظٹ</label>
                         <input 
                           type="number" 
                           name="auction_price"
                           value={productForm.auction_price || ''}
                           onChange={(e) => {
-                            console.log('💰 Price changed to:', e.target.value);
+                            console.log('ًں’° Price changed to:', e.target.value);
                             syncAuctionPriceFields(e.target.value);
                           }}
-                          placeholder="السعر الأساسي"
+                          placeholder="ط§ظ„ط³ط¹ط± ط§ظ„ط£ط³ط§ط³ظٹ"
                           min="0"
                           required
                           className={cn("w-full px-3 py-2 border rounded-lg text-xs font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-white border-black/10")}
                         />
-                        {productForm.auction_price && <p className="text-xs text-blue-500 mt-1">✓ {productForm.auction_price}</p>}
+                        {productForm.auction_price && <p className="text-xs text-blue-500 mt-1">âœ“ {productForm.auction_price}</p>}
                       </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className={cn("text-xs font-normal block mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>⏱️ وقت البداية</label>
+                        <label className={cn("text-xs font-normal block mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>âڈ±ï¸ڈ ظˆظ‚طھ ط§ظ„ط¨ط¯ط§ظٹط©</label>
                         <input 
                           type="time" 
                           name="auction_start_time"
                           value={productForm.auction_start_time || ''}
                           onChange={(e) => {
-                            console.log('⏱️ Start time changed to:', e.target.value);
+                            console.log('âڈ±ï¸ڈ Start time changed to:', e.target.value);
                             updateProductForm({ auction_start_time: e.target.value });
                           }}
                           placeholder="09:00"
                           required
                           className={cn("w-full px-3 py-2 border rounded-lg text-xs font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-white border-black/10")}
                         />
-                        {productForm.auction_start_time && <p className="text-xs text-blue-500 mt-1">✓ {productForm.auction_start_time}</p>}
+                        {productForm.auction_start_time && <p className="text-xs text-blue-500 mt-1">âœ“ {productForm.auction_start_time}</p>}
                       </div>
                       <div>
-                        <label className={cn("text-xs font-normal block mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>⏲️ وقت النهاية</label>
+                        <label className={cn("text-xs font-normal block mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>âڈ²ï¸ڈ ظˆظ‚طھ ط§ظ„ظ†ظ‡ط§ظٹط©</label>
                         <input 
                           type="time" 
                           name="auction_end_time"
                           value={productForm.auction_end_time || ''}
                           onChange={(e) => {
-                            console.log('⏲️ End time changed to:', e.target.value);
+                            console.log('âڈ²ï¸ڈ End time changed to:', e.target.value);
                             updateProductForm({ auction_end_time: e.target.value });
                           }}
                           placeholder="18:00"
                           required
                           className={cn("w-full px-3 py-2 border rounded-lg text-xs font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-white border-black/10")}
                         />
-                        {productForm.auction_end_time && <p className="text-xs text-blue-500 mt-1">✓ {productForm.auction_end_time}</p>}
+                        {productForm.auction_end_time && <p className="text-xs text-blue-500 mt-1">âœ“ {productForm.auction_end_time}</p>}
                       </div>
                     </div>
                   </div>
@@ -5904,13 +5941,13 @@ const MerchantDashboard = () => {
               onClick={saveProduct}
               className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl shadow-xl shadow-indigo-200 text-lg font-normal transition-all hover:scale-[1.02] active:scale-95 font-sans"
             >
-              {isEditingProduct ? 'تحديث' : 'إضافة'} المنتج
+              {isEditingProduct ? 'طھط­ط¯ظٹط«' : 'ط¥ط¶ط§ظپط©'} ط§ظ„ظ…ظ†طھط¬
             </Button>
             <Button 
               onClick={closeProductModal}
               className={cn("px-8 border-2 font-normal rounded-2xl transition-all font-sans", isDarkMode ? "bg-gray-600 border-gray-500 text-gray-100 hover:bg-gray-500" : "bg-white border-black/5 text-gray-600 hover:bg-gray-100/50")}
             >
-              إلغاء
+              ط¥ظ„ط؛ط§ط،
             </Button>
           </div>
         </motion.div>
@@ -5929,8 +5966,8 @@ const MerchantDashboard = () => {
         >
           <div className={cn("p-8 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50/50 border-black/5")}>
             <div>
-              <h3 className={cn("text-2xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{isEditingCategory ? 'تعديل القسم' : 'إضافة قسم جديد'}</h3>
-              <p className={cn("text-sm font-medium mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>الأقسام تساعد في تنظيم متجرك للعملاء</p>
+              <h3 className={cn("text-2xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{isEditingCategory ? 'طھط¹ط¯ظٹظ„ ط§ظ„ظ‚ط³ظ…' : 'ط¥ط¶ط§ظپط© ظ‚ط³ظ… ط¬ط¯ظٹط¯'}</h3>
+              <p className={cn("text-sm font-medium mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط§ظ„ط£ظ‚ط³ط§ظ… طھط³ط§ط¹ط¯ ظپظٹ طھظ†ط¸ظٹظ… ظ…طھط¬ط±ظƒ ظ„ظ„ط¹ظ…ظ„ط§ط،</p>
             </div>
             <button onClick={() => setShowCategoryModal(false)} className={cn("p-2 rounded-full transition-colors", isDarkMode ? "hover:bg-gray-600 text-gray-400" : "hover:bg-black/5 text-gray-400")}>
               <X size={24} />
@@ -5938,17 +5975,17 @@ const MerchantDashboard = () => {
           </div>
           <div className="p-8 space-y-6">
             <div className="space-y-2">
-              <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`اسم القسم`}</label>
+              <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`ط§ط³ظ… ط§ظ„ظ‚ط³ظ…`}</label>
               <input 
                 type="text" 
                 value={categoryForm.name}
                 onChange={(e) => setCategoryForm({...categoryForm, name: e.target.value})}
-                placeholder="مثال: ملابس صيفية، إلكترونيات"
+                placeholder="ظ…ط«ط§ظ„: ظ…ظ„ط§ط¨ط³ طµظٹظپظٹط©طŒ ط¥ظ„ظƒطھط±ظˆظ†ظٹط§طھ"
                 className={cn("w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-normal outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 border-black/5 placeholder-gray-700")}
               />
             </div>
             <div className="space-y-4">
-              <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`صورة القسم (اختياري)`}</label>
+              <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`طµظˆط±ط© ط§ظ„ظ‚ط³ظ… (ط§ط®طھظٹط§ط±ظٹ)`}</label>
               <div className="flex flex-col gap-4">
                 <label className="cursor-pointer group relative">
                   <div className={cn("w-full h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-all overflow-hidden", isDarkMode ? "border-gray-600 bg-gray-700 group-hover:bg-gray-600 group-hover:border-gray-500" : "border-indigo-100 bg-gray-50 group-hover:bg-indigo-50/50 group-hover:border-indigo-300")}>
@@ -5962,7 +5999,7 @@ const MerchantDashboard = () => {
                     ) : (
                       <>
                         <Plus size={24} className="text-indigo-500 mb-1" />
-                        <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-400")}>اختر صورة للقسم</p>
+                        <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-400")}>ط§ط®طھط± طµظˆط±ط© ظ„ظ„ظ‚ط³ظ…</p>
                       </>
                     )}
                   </div>
@@ -5984,7 +6021,7 @@ const MerchantDashboard = () => {
                   type="text" 
                   value={categoryForm.image_url.startsWith('data:') ? '' : categoryForm.image_url}
                   onChange={(e) => setCategoryForm({...categoryForm, image_url: e.target.value})}
-                  placeholder="أو ضع رابطاً مباشراً..."
+                  placeholder="ط£ظˆ ط¶ط¹ ط±ط§ط¨ط·ط§ظ‹ ظ…ط¨ط§ط´ط±ط§ظ‹..."
                   className={cn("w-full px-5 py-3 border rounded-xl font-normal outline-none text-xs", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500" : "bg-gray-50 border-black/5 placeholder-gray-400")}
                 />
               </div>
@@ -5995,13 +6032,13 @@ const MerchantDashboard = () => {
               onClick={saveCategory}
               className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl shadow-xl shadow-indigo-200 text-lg font-normal transition-all hover:scale-[1.02] active:scale-95 font-sans"
             >
-              {isEditingCategory ? 'تعديل' : 'إضافة القسم'}
+              {isEditingCategory ? 'طھط¹ط¯ظٹظ„' : 'ط¥ط¶ط§ظپط© ط§ظ„ظ‚ط³ظ…'}
             </Button>
             <Button 
               onClick={() => setShowCategoryModal(false)}
               className={cn("px-8 border-2 font-normal rounded-2xl transition-all font-sans", isDarkMode ? "bg-gray-600 border-gray-500 text-gray-100 hover:bg-gray-500" : "bg-white border-black/5 text-gray-600 hover:bg-gray-100/50")}
             >
-              إلغاء
+              ط¥ظ„ط؛ط§ط،
             </Button>
           </div>
         </motion.div>
@@ -6010,7 +6047,7 @@ const MerchantDashboard = () => {
   };
 
   const renderCustomers = () => {
-    console.log('🏪 renderCustomers() called', {
+    console.log('ًںڈھ renderCustomers() called', {
       selectedCustomerForPayments: selectedCustomerForPayments?.name || null,
       selectedCustomerStatement: selectedCustomerStatement?.name || null,
       customersCount: customers.length
@@ -6041,15 +6078,15 @@ const MerchantDashboard = () => {
             <Users size={20} />
           </div>
           <div>
-            <h2 className={cn("text-xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-800")}>إدارة العملاء</h2>
+            <h2 className={cn("text-xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-800")}>ط¥ط¯ط§ط±ط© ط§ظ„ط¹ظ…ظ„ط§ط،</h2>
             <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-              {isTopupStore ? 'عملاء مدخلة يدويا' : 'من الطلبات (تلقائي)'}
+              {isTopupStore ? 'عملاء يدويون' : 'من الطلبات (تلقائي)'}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className={cn("px-4 py-1.5 rounded-full text-xs font-normal", isDarkMode ? "bg-indigo-900/30 text-indigo-300" : "bg-indigo-50 text-indigo-700")}>
-            {customers.length} ط¹ظ…ظٹظ„
+            {customers.length} ط·آ¹ط¸â€¦ط¸ظ¹ط¸â€‍
           </div>
           {isTopupStore && (
             <Button 
@@ -6060,7 +6097,7 @@ const MerchantDashboard = () => {
               }}
               className={cn("px-4 py-2 rounded-xl text-sm font-normal transition-all shadow-sm", isDarkMode ? "bg-green-700 hover:bg-green-600 text-white" : "bg-green-600 hover:bg-green-700 text-white")}
             >
-              ➕ عميل جديد
+              â‍• ط¹ظ…ظٹظ„ ط¬ط¯ظٹط¯
             </Button>
           )}
         </div>
@@ -6071,19 +6108,19 @@ const MerchantDashboard = () => {
             <tr className={cn(isDarkMode ? "bg-gray-800" : "bg-white")}> 
               {isTopupStore ? (
                 <>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>ط§ظ„ط§ط³ظ…</th>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الهاتف</th>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>ديون سابقة</th>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الحد الائتماني</th>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الديون الحالية</th>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>الإجراءات</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>ط·آ§ط¸â€‍ط·آ§ط·آ³ط¸â€¦</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>ط§ظ„ظ‡ط§طھظپ</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>ط¯ظٹظˆظ† ط³ط§ط¨ظ‚ط©</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>ط§ظ„ط­ط¯ ط§ظ„ط§ط¦طھظ…ط§ظ†ظٹ</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط­ط§ظ„ظٹط©</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ</th>
                 </>
               ) : (
                 <>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-400" : "text-gray-400")}>رقم الهاتف</th>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-400" : "text-gray-400")}>العنوان</th>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>إجمالي الطلبات</th>
-                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>إجمالي مبلغ الطلبات</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-400" : "text-gray-400")}>ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-400" : "text-gray-400")}>ط§ظ„ط¹ظ†ظˆط§ظ†</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط·ظ„ط¨ط§طھ</th>
+                  <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>ط¥ط¬ظ…ط§ظ„ظٹ ظ…ط¨ظ„ط؛ ط§ظ„ط·ظ„ط¨ط§طھ</th>
                 </>
               )}
             </tr>
@@ -6092,7 +6129,7 @@ const MerchantDashboard = () => {
             {customers.length === 0 ? (
               <tr>
                 <td colSpan={isTopupStore ? 6 : 4} className="px-6 py-12 text-center">
-                  <div className="text-gray-400 text-sm font-normal">{isTopupStore ? 'لا توجد عملاء بعد. أضف عميلاً جديداً' : 'لا توجد طلبات عملاء لعرضها بعد'}</div>
+                  <div className="text-gray-400 text-sm font-normal">{isTopupStore ? 'ظ„ط§ طھظˆط¬ط¯ ط¹ظ…ظ„ط§ط، ط¨ط¹ط¯. ط£ط¶ظپ ط¹ظ…ظٹظ„ط§ظ‹ ط¬ط¯ظٹط¯ط§ظ‹' : 'ظ„ط§ طھظˆط¬ط¯ ط·ظ„ط¨ط§طھ ط¹ظ…ظ„ط§ط، ظ„ط¹ط±ط¶ظ‡ط§ ط¨ط¹ط¯'}</div>
                 </td>
               </tr>
             ) : customers.map((cust) => {
@@ -6131,7 +6168,7 @@ const MerchantDashboard = () => {
                             // Load transactions when opening statement modal
                             setTimeout(() => handleLoadStatement(customerWithId.customer_id), 100);
                           }}
-                          title="كشف الحساب"
+                          title="ظƒط´ظپ ط§ظ„ط­ط³ط§ط¨"
                           className={cn("p-2.5 rounded-lg transition-all shadow-sm hover:scale-110", isDarkMode ? "bg-green-900/30 text-green-400 hover:bg-green-600 hover:text-white" : "bg-green-50 text-green-600 hover:bg-green-600 hover:text-white")}
                         >
                           <FileText size={14} />
@@ -6150,14 +6187,14 @@ const MerchantDashboard = () => {
                             });
                             setShowCustomerModal(true);
                           }}
-                          title="تعديل"
+                          title="طھط¹ط¯ظٹظ„"
                           className={cn("p-2.5 rounded-lg transition-all shadow-sm hover:scale-110", isDarkMode ? "bg-amber-900/30 text-amber-400 hover:bg-amber-600 hover:text-white" : "bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white")}
                         >
                           <Edit size={14} />
                         </button>
                         <button 
                           onClick={() => handleDeleteCustomer(cust.id)}
-                          title="ط­ط°ظپ"
+                          title="ط·آ­ط·آ°ط¸ظ¾"
                           className={cn("p-2.5 rounded-lg transition-all shadow-sm hover:scale-110", isDarkMode ? "bg-red-900/30 text-red-400 hover:bg-red-600 hover:text-white" : "bg-red-50 text-red-600 hover:bg-red-600 hover:text-white")}
                         >
                           <Trash2 size={14} />
@@ -6203,7 +6240,7 @@ const MerchantDashboard = () => {
           <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-100">
             <Ticket size={20} />
           </div>
-          <h2 className={cn("text-xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-800")}>قسائم الخصم</h2>
+          <h2 className={cn("text-xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-800")}>ظ‚ط³ط§ط¦ظ… ط§ظ„ط®طµظ…</h2>
         </div>
         <Button 
           onClick={() => {
@@ -6219,7 +6256,7 @@ const MerchantDashboard = () => {
           }}
           className={cn("bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg py-3 px-6 rounded-2xl text-sm font-normal flex items-center gap-2 transform transition-all hover:scale-105", isMobile && "py-2 px-4 text-xs")}
         >
-          <Plus size={isMobile ? 16 : 20} /> {!isMobile && "إنشاء قسيمة جديدة"}
+          <Plus size={isMobile ? 16 : 20} /> {!isMobile && "ط¥ظ†ط´ط§ط، ظ‚ط³ظٹظ…ط© ط¬ط¯ظٹط¯ط©"}
         </Button>
       </div>
 
@@ -6229,12 +6266,12 @@ const MerchantDashboard = () => {
           <table className="w-full text-right border-collapse">
             <thead>
               <tr className={cn(isDarkMode ? "bg-gray-800" : "bg-gray-50/30")}>
-                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط§ظ„ط±ظ…ط²</th>
-                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>نوع الخصم</th>
-                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط§ظ„ط®طµظ…</th>
-                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>الاستخدام</th>
-                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>تنتهي في</th>
-                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>الإجراءات</th>
+                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط·آ§ط¸â€‍ط·آ±ط¸â€¦ط·آ²</th>
+                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>ظ†ظˆط¹ ط§ظ„ط®طµظ…</th>
+                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط·آ§ط¸â€‍ط·آ®ط·آµط¸â€¦</th>
+                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط§ظ„ط§ط³طھط®ط¯ط§ظ…</th>
+                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>طھظ†طھظ‡ظٹ ظپظٹ</th>
+                <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ</th>
               </tr>
             </thead>
             <tbody className={cn("divide-y", isDarkMode ? "divide-gray-700" : "divide-gray-50")}>
@@ -6253,7 +6290,7 @@ const MerchantDashboard = () => {
                        "px-3 py-1 rounded-full text-[10px] font-normal uppercase tracking-tighter",
                        coupon.discount_type === 'percentage' ? (isDarkMode ? "bg-amber-900 text-amber-300 border border-amber-700" : "bg-amber-100 text-amber-700 border border-amber-200") : (isDarkMode ? "bg-emerald-900 text-emerald-300 border border-emerald-700" : "bg-emerald-100 text-emerald-700 border border-emerald-200")
                      )}>
-                       {coupon.discount_type === 'percentage' ? 'نسبة مئوية %' : 'خصم ثابت'}
+                       {coupon.discount_type === 'percentage' ? 'ظ†ط³ط¨ط© ظ…ط¦ظˆظٹط© %' : 'ط®طµظ… ط«ط§ط¨طھ'}
                      </span>
                   </td>
                   <td className={cn("px-6 py-4 text-center font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>
@@ -6273,12 +6310,12 @@ const MerchantDashboard = () => {
                      )}
                   </td>
                   <td className={cn("px-6 py-4 text-center text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                    {coupon.valid_until ? new Date(coupon.valid_until).toLocaleDateString('ar-EG') : 'بدون تاريخ'}
+                    {coupon.valid_until ? new Date(coupon.valid_until).toLocaleDateString('ar-EG') : 'ط¨ط¯ظˆظ† طھط§ط±ظٹط®'}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <button 
                       onClick={async () => {
-                         if (confirm("هل أنت متأكد من حذف هذه القسيمة؟")) {
+                         if (confirm("ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„ظ‚ط³ظٹظ…ط©طں")) {
                            const res = await fetch(`/api/coupons/${coupon.id}`, { method: 'DELETE' });
                            if (res.ok) setCoupons(coupons.filter(c => c.id !== coupon.id));
                          }
@@ -6294,8 +6331,8 @@ const MerchantDashboard = () => {
                 <tr>
                   <td colSpan={6} className={cn("p-20 text-center", isDarkMode ? "text-gray-400" : "text-gray-400")}>
                     <Ticket size={48} className="mx-auto mb-4 opacity-10" />
-                    <p className="font-normal">لا توجد قسائم خصم حالياً</p>
-                    <p className="text-xs font-normal mt-1">ابدأ بإنشاء أول رمز ترويجي لمضاعفة مبيعاتك!</p>
+                    <p className="font-normal">ظ„ط§ طھظˆط¬ط¯ ظ‚ط³ط§ط¦ظ… ط®طµظ… ط­ط§ظ„ظٹط§ظ‹</p>
+                    <p className="text-xs font-normal mt-1">ط§ط¨ط¯ط£ ط¨ط¥ظ†ط´ط§ط، ط£ظˆظ„ ط±ظ…ط² طھط±ظˆظٹط¬ظٹ ظ„ظ…ط¶ط§ط¹ظپط© ظ…ط¨ظٹط¹ط§طھظƒ!</p>
                   </td>
                 </tr>
               )}
@@ -6310,7 +6347,7 @@ const MerchantDashboard = () => {
           {filteredCoupons.length === 0 ? (
             <div className={cn("p-12 text-center rounded-2xl", isDarkMode ? "bg-gray-700/50" : "bg-gray-50")}>
               <Ticket size={40} className="mx-auto mb-3 opacity-20" />
-              <p className={cn("font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-600")}>لا توجد قسائم</p>
+              <p className={cn("font-normal text-sm", isDarkMode ? "text-gray-300" : "text-gray-600")}>ظ„ط§ طھظˆط¬ط¯ ظ‚ط³ط§ط¦ظ…</p>
             </div>
           ) : (
             filteredCoupons.map((coupon) => (
@@ -6331,7 +6368,7 @@ const MerchantDashboard = () => {
                   </div>
                   <button
                     onClick={async () => {
-                      if (confirm("حذف؟")) {
+                      if (confirm("ط­ط°ظپطں")) {
                         const res = await fetch(`/api/coupons/${coupon.id}`, { method: 'DELETE' });
                         if (res.ok) setCoupons(coupons.filter(c => c.id !== coupon.id));
                       }
@@ -6346,7 +6383,7 @@ const MerchantDashboard = () => {
                 <div className="space-y-2 text-sm">
                   {/* Discount Type & Value */}
                   <div className="flex items-center justify-between">
-                    <span className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>نوع الخصم</span>
+                    <span className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>ظ†ظˆط¹ ط§ظ„ط®طµظ…</span>
                     <span className={cn(
                       "px-2 py-1 rounded-lg text-[10px] font-normal",
                       coupon.discount_type === 'percentage' ? (isDarkMode ? "bg-amber-900/40 text-amber-300" : "bg-amber-100 text-amber-700") : (isDarkMode ? "bg-emerald-900/40 text-emerald-300" : "bg-emerald-100 text-emerald-700")
@@ -6359,7 +6396,7 @@ const MerchantDashboard = () => {
                   {coupon.usage_limit && (
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <span className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>الاستخدام</span>
+                        <span className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط§ظ„ط§ط³طھط®ط¯ط§ظ…</span>
                         <span className={cn("text-xs font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>{coupon.usage_count} / {coupon.usage_limit}</span>
                       </div>
                       <div className={cn("w-full h-1.5 rounded-full overflow-hidden", isDarkMode ? "bg-gray-600" : "bg-gray-200")}>
@@ -6373,9 +6410,9 @@ const MerchantDashboard = () => {
 
                   {/* Expiry Date */}
                   <div className="flex items-center justify-between">
-                    <span className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>تنتهي في</span>
+                    <span className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>طھظ†طھظ‡ظٹ ظپظٹ</span>
                     <span className={cn("text-xs font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                      {coupon.valid_until ? new Date(coupon.valid_until).toLocaleDateString('ar-EG') : 'بدون تاريخ'}
+                      {coupon.valid_until ? new Date(coupon.valid_until).toLocaleDateString('ar-EG') : 'ط¨ط¯ظˆظ† طھط§ط±ظٹط®'}
                     </span>
                   </div>
                 </div>
@@ -6391,7 +6428,7 @@ const MerchantDashboard = () => {
   const saveCoupon = async () => {
     if (!user?.store_id) return;
     if (!couponForm.code || !couponForm.discount_value) {
-      alert("يرجى ملء كافة الحقول الأساسية");
+      alert("ظٹط±ط¬ظ‰ ظ…ظ„ط، ظƒط§ظپط© ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ط£ط³ط§ط³ظٹط©");
       return;
     }
 
@@ -6422,13 +6459,13 @@ const MerchantDashboard = () => {
           expiry_date: '',
           usage_limit: ''
         });
-        alert("✓ تم إنشاء القسيمة بنجاح!");
+        alert("âœ“ طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظ‚ط³ظٹظ…ط© ط¨ظ†ط¬ط§ط­!");
       } else {
         const err = await res.json();
-        alert(err.error || "فشل إنشاء القسيمة");
+        alert(err.error || "ظپط´ظ„ ط¥ظ†ط´ط§ط، ط§ظ„ظ‚ط³ظٹظ…ط©");
       }
     } catch (error: any) {
-      alert("ط®ط·ط£: " + error.message);
+      alert("ط·آ®ط·آ·ط·آ£: " + error.message);
     }
   };
 
@@ -6443,8 +6480,8 @@ const MerchantDashboard = () => {
         >
           <div className={cn("p-8 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50/50 border-black/5")}>
             <div>
-              <h3 className={cn("text-2xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>إنشاء قسيمة جديدة</h3>
-              <p className={cn("text-sm font-medium mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>الخصومات تجذب العملاء وتزيد من مبيعاتك</p>
+              <h3 className={cn("text-2xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>ط¥ظ†ط´ط§ط، ظ‚ط³ظٹظ…ط© ط¬ط¯ظٹط¯ط©</h3>
+              <p className={cn("text-sm font-medium mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط§ظ„ط®طµظˆظ…ط§طھ طھط¬ط°ط¨ ط§ظ„ط¹ظ…ظ„ط§ط، ظˆطھط²ظٹط¯ ظ…ظ† ظ…ط¨ظٹط¹ط§طھظƒ</p>
             </div>
             <button onClick={() => setShowCouponModal(false)} className={cn("p-2 rounded-full transition-colors", isDarkMode ? "hover:bg-gray-600 text-gray-400 hover:text-gray-300" : "hover:bg-black/5 text-gray-400")}>
               <X size={24} />
@@ -6453,30 +6490,30 @@ const MerchantDashboard = () => {
 
           <div className="p-8 space-y-6">
             <div className="space-y-2">
-              <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`رمز الخصم (Code)`}</label>
+              <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`ط±ظ…ط² ط§ظ„ط®طµظ… (Code)`}</label>
               <input 
                 type="text" 
                 value={couponForm.code}
                 onChange={(e) => setCouponForm({...couponForm, code: e.target.value.toUpperCase()})}
-                placeholder="ظ…ط«ظ„ط§ظ‹: SAVE20, RAMADAN"
+                placeholder="ط¸â€¦ط·آ«ط¸â€‍ط·آ§ط¸â€¹: SAVE20, RAMADAN"
                 className={cn("w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-normal text-lg outline-none uppercase", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                <div className="space-y-2">
-                  <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`نوع الخصم`}</label>
+                  <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`ظ†ظˆط¹ ط§ظ„ط®طµظ…`}</label>
                   <select 
                     value={couponForm.discount_type}
                     onChange={(e) => setCouponForm({...couponForm, discount_type: e.target.value})}
                     className={cn("w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-normal outline-none appearance-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
                   >
-                    <option value="percentage">نسبة مئوية %</option>
-                    <option value="fixed">مبلغ ثابت (IQD)</option>
+                    <option value="percentage">ظ†ط³ط¨ط© ظ…ط¦ظˆظٹط© %</option>
+                    <option value="fixed">ظ…ط¨ظ„ط؛ ط«ط§ط¨طھ (IQD)</option>
                   </select>
                </div>
                <div className="space-y-2">
-                  <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`قيمة الخصم`}</label>
+                  <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`ظ‚ظٹظ…ط© ط§ظ„ط®طµظ…`}</label>
                   <input 
                     type="number" 
                     value={Math.floor(parseFloat(String(couponForm.discount_value) || '0'))}
@@ -6489,7 +6526,7 @@ const MerchantDashboard = () => {
 
             <div className="grid grid-cols-2 gap-4">
                <div className="space-y-2">
-                  <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`الحد الأدنى للطلب`}</label>
+                  <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`ط§ظ„ط­ط¯ ط§ظ„ط£ط¯ظ†ظ‰ ظ„ظ„ط·ظ„ط¨`}</label>
                   <input 
                     type="number" 
                     value={Math.floor(parseFloat(String(couponForm.min_order_value) || '0'))}
@@ -6499,7 +6536,7 @@ const MerchantDashboard = () => {
                   />
                </div>
                <div className="space-y-2">
-                  <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`تاريخ الانتهاء`}</label>
+                  <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`طھط§ط±ظٹط® ط§ظ„ط§ظ†طھظ‡ط§ط،`}</label>
                   <div className="relative">
                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input 
@@ -6513,12 +6550,12 @@ const MerchantDashboard = () => {
             </div>
 
             <div className="space-y-2">
-               <label className="text-sm font-normal text-gray-700 block mr-1">حد الاستخدام (اختياري)</label>
+               <label className="text-sm font-normal text-gray-700 block mr-1">ط­ط¯ ط§ظ„ط§ط³طھط®ط¯ط§ظ… (ط§ط®طھظٹط§ط±ظٹ)</label>
                <input 
                 type="number" 
                 value={couponForm.usage_limit}
                 onChange={(e) => setCouponForm({...couponForm, usage_limit: e.target.value})}
-                placeholder="مثلاً: 100 مرة"
+                placeholder="ظ…ط«ظ„ط§ظ‹: 100 ظ…ط±ط©"
                 className="w-full px-5 py-4 bg-gray-50 border border-black/5 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-normal outline-none"
               />
             </div>
@@ -6529,7 +6566,7 @@ const MerchantDashboard = () => {
               onClick={saveCoupon}
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl shadow-xl shadow-indigo-200 text-lg font-normal transition-all hover:scale-[1.02] active:scale-95"
             >
-              تفعيل القسيمة الآن
+              طھظپط¹ظٹظ„ ط§ظ„ظ‚ط³ظٹظ…ط© ط§ظ„ط¢ظ†
             </Button>
           </div>
         </motion.div>
@@ -6538,8 +6575,8 @@ const MerchantDashboard = () => {
   };
 
   const renderProducts = () => {
-    console.log('✅✅ renderProducts EXECUTING NOW - Button should be visible on screen!');
-    console.log('✅✅ handleCreateProduct function exists?', typeof handleCreateProduct === 'function');
+    console.log('âœ…âœ… renderProducts EXECUTING NOW - Button should be visible on screen!');
+    console.log('âœ…âœ… handleCreateProduct function exists?', typeof handleCreateProduct === 'function');
     
     if (!categories) console.warn('WARNING: categories is', categories);
     console.log('renderProducts CALLED!!!');
@@ -6551,13 +6588,13 @@ const MerchantDashboard = () => {
     });
     
     // Group filtered products by category
-    console.log('🔍 RENDER PRODUCTS DEBUG:', {
+    console.log('ًں”چ RENDER PRODUCTS DEBUG:', {
       filteredProductsLength: filteredProducts.length,
       filteredProducts: filteredProducts.map(p => ({ id: p.id, name: p.name, category_name: p.category_name, price: p.price }))
     });
     
     const productsByCategory = filteredProducts.reduce((acc, product) => {
-      const category = product.category_name || 'بدون قسم';
+      const category = product.category_name || 'ط¨ط¯ظˆظ† ظ‚ط³ظ…';
       if (!acc[category]) {
         acc[category] = [];
       }
@@ -6566,7 +6603,7 @@ const MerchantDashboard = () => {
     }, {} as Record<string, typeof filteredProducts>);
 
     const categoryNames = Object.keys(productsByCategory).sort();
-    console.log('📂 PRODUCTS BY CATEGORY:', {
+    console.log('ًں“‚ PRODUCTS BY CATEGORY:', {
       categoryCount: categoryNames.length,
       categories: categoryNames.map(cat => ({ name: cat, count: productsByCategory[cat].length }))
     });
@@ -6575,17 +6612,17 @@ const MerchantDashboard = () => {
     <Card className={cn("rounded-[2.5rem] border-none shadow-xl overflow-hidden", isDarkMode ? "bg-gray-800" : "bg-white")}>
       <div className={cn("p-8 border-b border-black/5 flex justify-between items-center", isDarkMode ? "bg-gray-900" : "bg-gray-50/50")}>
         <div>
-          <h3 className={cn("font-normal text-2xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>إدارة المنتجات</h3>
-          <p className={cn("font-medium text-sm mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>أضف، عدل أو احذف المنتجات من متجرك</p>
+          <h3 className={cn("font-normal text-2xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>ط¥ط¯ط§ط±ط© ط§ظ„ظ…ظ†طھط¬ط§طھ</h3>
+          <p className={cn("font-medium text-sm mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط£ط¶ظپطŒ ط¹ط¯ظ„ ط£ظˆ ط§ط­ط°ظپ ط§ظ„ظ…ظ†طھط¬ط§طھ ظ…ظ† ظ…طھط¬ط±ظƒ</p>
         </div>
         <button 
           type="button"
           onClick={(e) => {
-            console.log('🎯 BUTTON CLICKED - Event:', e);
-            console.log('🎯 Target:', e.target);
-            console.log('🎯 showProductModal before:', showProductModal);
+            console.log('ًںژ¯ BUTTON CLICKED - Event:', e);
+            console.log('ًںژ¯ Target:', e.target);
+            console.log('ًںژ¯ showProductModal before:', showProductModal);
             setShowProductModal(true);
-            console.log('🎯 showProductModal after setState call');
+            console.log('ًںژ¯ showProductModal after setState call');
           }}
           style={{ 
             zIndex: 50, 
@@ -6603,7 +6640,7 @@ const MerchantDashboard = () => {
             gap: '8px',
           }}
         >
-          <Plus size={20} /> إضافة منتج جديد
+          <Plus size={20} /> ط¥ط¶ط§ظپط© ظ…ظ†طھط¬ ط¬ط¯ظٹط¯
         </button>
       </div>
       <div className={cn("p-8", isDarkMode ? "bg-gray-800" : "bg-white")}>
@@ -6613,7 +6650,7 @@ const MerchantDashboard = () => {
             <Search className={cn("absolute left-4 top-1/2 -translate-y-1/2", isDarkMode ? "text-gray-500" : "text-gray-400")} size={18} />
             <input 
               type="text" 
-              placeholder="ابحث عن المنتجات..." 
+              placeholder="ط§ط¨ط­ط« ط¹ظ† ط§ظ„ظ…ظ†طھط¬ط§طھ..." 
               value={dashboardQuery}
               onChange={(e) => setDashboardQuery(e.target.value)}
               className={cn("w-full pl-12 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-colors font-normal", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-indigo-500/30 placeholder-gray-500" : "bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400")}
@@ -6624,7 +6661,7 @@ const MerchantDashboard = () => {
               onClick={() => setDashboardQuery('')}
               className={cn("px-4 py-3 rounded-xl transition-colors font-normal flex items-center gap-2", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-gray-300" : "bg-gray-100 hover:bg-gray-200 text-gray-600")}
             >
-              <X size={18} /> ظ…ط³ط­
+              <X size={18} /> ط¸â€¦ط·آ³ط·آ­
             </button>
           )}
         </div>
@@ -6632,8 +6669,8 @@ const MerchantDashboard = () => {
         {filteredProducts.length === 0 ? (
           <div className={cn("p-20 text-center", isDarkMode ? "text-gray-500" : "text-gray-400")}>
             <Package size={64} className="mx-auto mb-4 opacity-10" />
-            <p className="font-normal text-lg">{dashboardQuery ? 'لا توجد نتائج تطابق بحثك.' : 'لا توجد منتجات حالياً.'}</p>
-            {!dashboardQuery && <p className="text-sm">ابدأ بإضافة منتجك الأول الآن!</p>}
+            <p className="font-normal text-lg">{dashboardQuery ? 'ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ طھط·ط§ط¨ظ‚ ط¨ط­ط«ظƒ.' : 'ظ„ط§ طھظˆط¬ط¯ ظ…ظ†طھط¬ط§طھ ط­ط§ظ„ظٹط§ظ‹.'}</p>
+            {!dashboardQuery && <p className="text-sm">ط§ط¨ط¯ط£ ط¨ط¥ط¶ط§ظپط© ظ…ظ†طھط¬ظƒ ط§ظ„ط£ظˆظ„ ط§ظ„ط¢ظ†!</p>}
           </div>
         ) : (
           <div className="space-y-12">
@@ -6643,7 +6680,7 @@ const MerchantDashboard = () => {
                 <div className="mb-6 pb-4 border-b border-black/5">
                   <h4 className={cn("font-normal text-2xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>{category}</h4>
                   <p className={cn("text-sm font-medium mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                    {productsByCategory[category].length} ظ…ظ†طھط¬
+                    {productsByCategory[category].length} ط¸â€¦ط¸â€ ط·ع¾ط·آ¬
                   </p>
                 </div>
 
@@ -6665,13 +6702,13 @@ const MerchantDashboard = () => {
                             />
                           ) : (
                             <div className="flex items-center justify-center text-5xl font-bold">
-                              💳
+                              ًں’³
                             </div>
                           )}
                           
                           {p.stock <= 2 && (
                             <span className="absolute top-2 right-2 bg-red-500 text-white text-[8px] font-normal px-2 py-0.5 rounded-full shadow-lg">
-                              منخفض
+                              ظ…ظ†ط®ظپط¶
                             </span>
                           )}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -6679,21 +6716,21 @@ const MerchantDashboard = () => {
 
                         {/* Edit & Delete Buttons - Overlay */}
                         <div className="absolute top-2 left-2 flex gap-1 z-50 opacity-10 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-200">
-                          {console.log('🟢 RENDERING EDIT BUTTON for product:', p.id, p.name)}
+                          {console.log('ًںں¢ RENDERING EDIT BUTTON for product:', p.id, p.name)}
                           <button 
                             onClick={() => {
-                              console.log('🔴 EDIT BUTTON CLICKED');
+                              console.log('ًں”´ EDIT BUTTON CLICKED');
                               handleEditProduct(p);
                             }}
                             className={cn("p-2 rounded-lg shadow-lg transition-all cursor-pointer", isDarkMode ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-blue-500 hover:bg-blue-600 text-white")}
-                            title="تعديل المنتج"
+                            title="طھط¹ط¯ظٹظ„ ط§ظ„ظ…ظ†طھط¬"
                           >
                             <Edit2 size={16} />
                           </button>
                           <button 
                             onClick={() => handleDeleteProduct(p.id)}
                             className={cn("p-2 rounded-lg shadow-lg transition-all cursor-pointer", isDarkMode ? "bg-red-600 hover:bg-red-700 text-white" : "bg-red-500 hover:bg-red-600 text-white")}
-                            title="حذف المنتج"
+                            title="ط­ط°ظپ ط§ظ„ظ…ظ†طھط¬"
                           >
                             <Trash2 size={16} />
                           </button>
@@ -6702,26 +6739,26 @@ const MerchantDashboard = () => {
                         <div className="p-3 flex-1 flex flex-col justify-between">
                           <div>
                             <h4 className={cn("font-normal text-sm line-clamp-1 mb-1", isDarkMode ? "text-gray-100" : "text-gray-900")}>{p.name}</h4>
-                            <p className={cn("text-[11px] line-clamp-1 font-medium", isDarkMode ? "text-gray-400" : "text-gray-600")}>{p.description || 'لا يوجد وصف'}</p>
+                            <p className={cn("text-[11px] line-clamp-1 font-medium", isDarkMode ? "text-gray-400" : "text-gray-600")}>{p.description || 'ظ„ط§ ظٹظˆط¬ط¯ ظˆطµظپ'}</p>
                           </div>
                           <div className="space-y-1.5 pt-2 border-t border-black/5">
                             <div className="flex justify-between items-center gap-1">
                               <div className="flex flex-col">
-                                <span className={cn("text-[10px] font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>المخزون</span>
+                                <span className={cn("text-[10px] font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط§ظ„ظ…ط®ط²ظˆظ†</span>
                                 <span className={cn("font-normal text-sm", p.stock === 0 ? "text-red-500" : p.stock <= 2 ? "text-amber-600" : "text-green-600")}>
                                   {p.stock}
                                 </span>
                               </div>
                               <div className="flex flex-col text-right">
-                                <span className={cn("text-[10px] font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط§ظ„ط³ط¹ط±</span>
+                                <span className={cn("text-[10px] font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط·آ§ط¸â€‍ط·آ³ط·آ¹ط·آ±</span>
                                 <span className={cn("font-normal text-sm", isDarkMode ? "text-gray-200" : "text-gray-900")}>{formatCurrency(p.price)}</span>
                               </div>
                             </div>
                             {/* Show images count for topup products */}
                             {p.images && Array.isArray(p.images) && p.images.filter((img: any) => img && String(img).length > 0).length > 0 && (
                               <div className="flex items-center justify-center gap-1 mt-1.5 pt-1.5 border-t border-black/5">
-                                <span className={cn("text-sm font-normal", isDarkMode ? "text-blue-400" : "text-blue-600")}>📷</span>
-                                <span className={cn("font-normal text-[11px]", isDarkMode ? "text-blue-300" : "text-blue-700")}>{p.images.filter((img: any) => img && String(img).length > 0).length} طµظˆط±</span>
+                                <span className={cn("text-sm font-normal", isDarkMode ? "text-blue-400" : "text-blue-600")}>ًں“·</span>
+                                <span className={cn("font-normal text-[11px]", isDarkMode ? "text-blue-300" : "text-blue-700")}>{p.images.filter((img: any) => img && String(img).length > 0).length} ط·آµط¸ث†ط·آ±</span>
                               </div>
                             )}
                           </div>
@@ -6747,10 +6784,10 @@ const MerchantDashboard = () => {
         {/* Main Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           {[
-            { label: 'إجمالي المبيعات', value: formatCurrency(merchantStats.totalRevenue), icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50', clickable: true },
-            { label: isRegularStore ? 'بانتظار التجهيز' : 'الطلبات المكتملة', value: isRegularStore ? workflowStats.pending : merchantStats.orderStats.completed, icon: ShoppingCart, color: isRegularStore ? 'text-amber-600' : 'text-emerald-600', bg: isRegularStore ? 'bg-amber-50' : 'bg-emerald-50', clickable: false },
-            { label: 'المنتجات النشطة', value: products.length, icon: Package, color: 'text-indigo-600', bg: 'bg-indigo-50', clickable: false },
-            { label: 'إجمالي العملاء', value: customers.length, icon: Users, color: 'text-orange-600', bg: 'bg-orange-50', clickable: false },
+            { label: 'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¨ظٹط¹ط§طھ', value: formatCurrency(merchantStats.totalRevenue), icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50', clickable: true },
+            { label: isRegularStore ? 'ط¨ط§ظ†طھط¸ط§ط± ط§ظ„طھط¬ظ‡ظٹط²' : 'ط§ظ„ط·ظ„ط¨ط§طھ ط§ظ„ظ…ظƒطھظ…ظ„ط©', value: isRegularStore ? workflowStats.pending : merchantStats.orderStats.completed, icon: ShoppingCart, color: isRegularStore ? 'text-amber-600' : 'text-emerald-600', bg: isRegularStore ? 'bg-amber-50' : 'bg-emerald-50', clickable: false },
+            { label: 'ط§ظ„ظ…ظ†طھط¬ط§طھ ط§ظ„ظ†ط´ط·ط©', value: products.length, icon: Package, color: 'text-indigo-600', bg: 'bg-indigo-50', clickable: false },
+            { label: 'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¹ظ…ظ„ط§ط،', value: customers.length, icon: Users, color: 'text-orange-600', bg: 'bg-orange-50', clickable: false },
           ].map((stat) => (
             <button
               key={stat.label}
@@ -6768,7 +6805,7 @@ const MerchantDashboard = () => {
               <p className={cn("text-3xl font-normal mt-2", isDarkMode ? "text-gray-100" : "text-gray-900")}>{stat.value}</p>
               {stat.clickable && (
                 <p className="text-[10px] text-blue-600 font-normal mt-2 flex items-center gap-1">
-                  اضغط للمزيد <ExternalLink size={12} />
+                  ط§ط¶ط؛ط· ظ„ظ„ظ…ط²ظٹط¯ <ExternalLink size={12} />
                 </p>
               )}
             </button>
@@ -6781,13 +6818,13 @@ const MerchantDashboard = () => {
             <div className={cn("p-6 border-b", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
               <h3 className={cn("font-normal text-lg flex items-center gap-2", isDarkMode ? "text-gray-200" : "text-gray-800")}>
                 <PieChart size={20} className="text-indigo-500" />
-                {isRegularStore ? 'حالة التجهيز' : 'حالة الطلبات'}
+                {isRegularStore ? 'ط­ط§ظ„ط© ط§ظ„طھط¬ظ‡ظٹط²' : 'ط­ط§ظ„ط© ط§ظ„ط·ظ„ط¨ط§طھ'}
               </h3>
             </div>
             <div className="p-6 space-y-6">
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-normal text-amber-600">بانتظار التجهيز</span>
+                  <span className="text-sm font-normal text-amber-600">ط¨ط§ظ†طھط¸ط§ط± ط§ظ„طھط¬ظ‡ظٹط²</span>
                   <span className={cn("text-lg font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{workflowStats.pending}</span>
                 </div>
                 <div className={cn("w-full h-2 rounded-full overflow-hidden", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
@@ -6800,7 +6837,7 @@ const MerchantDashboard = () => {
 
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-normal text-emerald-600">مكتملة</span>
+                  <span className="text-sm font-normal text-emerald-600">ظ…ظƒطھظ…ظ„ط©</span>
                   <span className={cn("text-lg font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{workflowStats.completed}</span>
                 </div>
                 <div className={cn("w-full h-2 rounded-full overflow-hidden", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
@@ -6812,7 +6849,7 @@ const MerchantDashboard = () => {
               </div>
               
               <div className={cn("mt-6 pt-6 border-t text-center", isDarkMode ? "border-gray-600" : "border-black/5")}>
-                 <p className={cn("text-[10px] font-normal uppercase", isDarkMode ? "text-gray-500" : "text-gray-400")}>إجمالي</p>
+                 <p className={cn("text-[10px] font-normal uppercase", isDarkMode ? "text-gray-500" : "text-gray-400")}>ط¥ط¬ظ…ط§ظ„ظٹ</p>
                  <p className={cn("text-2xl font-normal mt-1", isDarkMode ? "text-gray-300" : "text-gray-900")}>{workflowStats.total}</p>
               </div>
             </div>
@@ -6823,13 +6860,13 @@ const MerchantDashboard = () => {
             <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
               <h3 className={cn("font-normal text-lg flex items-center gap-2", isDarkMode ? "text-gray-200" : "text-gray-800")}>
                 <TrendingUp size={20} className="text-indigo-500" />
-                أكثر المنتجات مبيعاً
+                ط£ظƒط«ط± ط§ظ„ظ…ظ†طھط¬ط§طھ ظ…ط¨ظٹط¹ط§ظ‹
               </h3>
             </div>
             <div className={cn("divide-y max-h-96 overflow-y-auto", isDarkMode ? "divide-gray-700" : "divide-black/5")}>
               {merchantStats.topProducts.length === 0 ? (
                 <div className={cn("p-12 text-center font-normal", isDarkMode ? "text-gray-500" : "text-gray-400")}>
-                  لا توجد بيانات مبيعات كافية
+                  ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ…ط¨ظٹط¹ط§طھ ظƒط§ظپظٹط©
                 </div>
               ) : (
                 merchantStats.topProducts.slice(0, 5).map((p: any, i: number) => (
@@ -6837,7 +6874,7 @@ const MerchantDashboard = () => {
                     <div className="flex items-center justify-between w-full gap-4">
                       <div className="flex-1">
                         <p className={cn("font-normal text-sm", isDarkMode ? "text-gray-200" : "text-gray-900")}>{p.name}</p>
-                        <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>المبيعات: {p.sales_count}</p>
+                        <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط§ظ„ظ…ط¨ظٹط¹ط§طھ: {p.sales_count}</p>
                       </div>
                       <div className="text-right">
                         <p className={cn("font-normal text-lg", isDarkMode ? "text-gray-300" : "text-gray-900")}>{formatCurrency(p.revenue)}</p>
@@ -6855,14 +6892,14 @@ const MerchantDashboard = () => {
           <div className={cn("p-6 border-b", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
             <h3 className={cn("font-normal text-lg flex items-center gap-2", isDarkMode ? "text-gray-200" : "text-gray-800")}>
               <ShoppingCart size={20} className="text-indigo-500" />
-              آخر الطلبات
+              ط¢ط®ط± ط§ظ„ط·ظ„ط¨ط§طھ
             </h3>
           </div>
           <div className={cn("divide-y", isDarkMode ? "divide-gray-700" : "divide-black/5")}>
             {orders.length === 0 ? (
               <div className={cn("p-12 text-center", isDarkMode ? "text-gray-500" : "text-gray-400")}>
                 <ShoppingCart size={40} className="mx-auto mb-3 opacity-20" />
-                <p className="font-normal">لا توجد طلبات حالياً</p>
+                <p className="font-normal">ظ„ط§ طھظˆط¬ط¯ ط·ظ„ط¨ط§طھ ط­ط§ظ„ظٹط§ظ‹</p>
               </div>
             ) : (
               orders.slice(0, 5).map((order) => (
@@ -6872,7 +6909,7 @@ const MerchantDashboard = () => {
                       <ShoppingCart size={20} />
                     </div>
                     <div>
-                      <p className={cn("font-normal text-sm", isDarkMode ? "text-gray-200" : "text-gray-900")}>ط·ظ„ط¨ #{order.id}</p>
+                      <p className={cn("font-normal text-sm", isDarkMode ? "text-gray-200" : "text-gray-900")}>ط·آ·ط¸â€‍ط·آ¨ #{order.id}</p>
                       <p className={cn("text-[10px]", isDarkMode ? "text-gray-500" : "text-gray-400")}>{new Date(order.created_at).toLocaleDateString('en-US')}</p>
                     </div>
                   </div>
@@ -6882,7 +6919,7 @@ const MerchantDashboard = () => {
                       order.status === 'pending' ? "bg-amber-100 text-amber-700" : 
                       "bg-emerald-100 text-emerald-700"
                     )}>
-                      {order.status === 'pending' ? (isRegularStore ? 'غير مشحون' : 'بانتظار') : (isRegularStore ? 'تم الشحن' : 'مكتمل')}
+                      {order.status === 'pending' ? (isRegularStore ? 'ط؛ظٹط± ظ…ط´ط­ظˆظ†' : 'ط¨ط§ظ†طھط¸ط§ط±') : (isRegularStore ? 'طھظ… ط§ظ„ط´ط­ظ†' : 'ظ…ظƒطھظ…ظ„')}
                     </span>
                     <p className={cn("font-normal text-sm min-w-[80px] text-left", isDarkMode ? "text-gray-300" : "text-gray-900")}>{formatCurrency(order.total_amount || order.total)}</p>
                   </div>
@@ -6903,7 +6940,7 @@ const MerchantDashboard = () => {
       averageOrder: merchantStats.orderStats.total > 0 ? merchantStats.totalRevenue / merchantStats.orderStats.total : 0,
       saleType: salesTypeFilter
     };
-    const countLabel = reportSummary.saleType === 'auction' ? 'عدد المزادات' : reportSummary.saleType === 'order' ? 'عدد الطلبات' : 'عدد العمليات';
+    const countLabel = reportSummary.saleType === 'auction' ? 'ط¹ط¯ط¯ ط§ظ„ظ…ط²ط§ط¯ط§طھ' : reportSummary.saleType === 'order' ? 'ط¹ط¯ط¯ ط§ظ„ط·ظ„ط¨ط§طھ' : 'ط¹ط¯ط¯ ط§ظ„ط¹ظ…ظ„ظٹط§طھ';
 
     return (
     <AnimatePresence>
@@ -6927,9 +6964,9 @@ const MerchantDashboard = () => {
               <div>
                 <h2 className="text-xl md:text-2xl font-normal flex items-center gap-2 text-white">
                   <CreditCard size={28} className="text-blue-400" />
-                  تقرير المبيعات
+                  طھظ‚ط±ظٹط± ط§ظ„ظ…ط¨ظٹط¹ط§طھ
                 </h2>
-                <p className="text-sm mt-1 text-slate-300">عرض تفصيلي للمبيعات خلال فترات مختلفة</p>
+                <p className="text-sm mt-1 text-slate-300">ط¹ط±ط¶ طھظپطµظٹظ„ظٹ ظ„ظ„ظ…ط¨ظٹط¹ط§طھ ط®ظ„ط§ظ„ ظپطھط±ط§طھ ظ…ط®طھظ„ظپط©</p>
               </div>
               <button 
                 onClick={() => setShowSalesModal(false)}
@@ -6945,7 +6982,7 @@ const MerchantDashboard = () => {
                 <div className="rounded-2xl border border-slate-700 bg-slate-800/90 p-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 items-stretch">
                     <div className="rounded-2xl border border-slate-700 bg-slate-900/70 p-4 min-h-[118px] flex flex-col justify-between">
-                      <p className="text-sm font-normal mb-3 text-white">فترة العرض</p>
+                      <p className="text-sm font-normal mb-3 text-white">ظپطھط±ط© ط§ظ„ط¹ط±ط¶</p>
                       <div className="grid grid-cols-3 gap-2">
                         {(['daily', 'weekly', 'monthly'] as const).map((period) => (
                           <button
@@ -6958,16 +6995,16 @@ const MerchantDashboard = () => {
                                 : "bg-slate-800 text-white hover:bg-slate-700"
                             )}
                           >
-                            {period === 'daily' ? 'يومي' : period === 'weekly' ? 'أسبوعي' : 'شهري'}
+                            {period === 'daily' ? 'ظٹظˆظ…ظٹ' : period === 'weekly' ? 'ط£ط³ط¨ظˆط¹ظٹ' : 'ط´ظ‡ط±ظٹ'}
                           </button>
                         ))}
                       </div>
                     </div>
 
                     {[
-                      { label: 'إجمالي المبيعات', value: formatCurrency(reportSummary.totalRevenue || 0), color: 'from-blue-500/25 to-blue-700/10' },
+                      { label: 'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¨ظٹط¹ط§طھ', value: formatCurrency(reportSummary.totalRevenue || 0), color: 'from-blue-500/25 to-blue-700/10' },
                       { label: countLabel, value: reportSummary.totalOrders || 0, color: 'from-emerald-500/25 to-emerald-700/10' },
-                      { label: 'متوسط الطلب', value: formatCurrency(reportSummary.averageOrder || 0), color: 'from-indigo-500/25 to-indigo-700/10' },
+                      { label: 'ظ…طھظˆط³ط· ط§ظ„ط·ظ„ط¨', value: formatCurrency(reportSummary.averageOrder || 0), color: 'from-indigo-500/25 to-indigo-700/10' },
                     ].map((stat) => (
                       <div key={stat.label} className={cn("p-4 rounded-2xl border border-slate-700 bg-gradient-to-br min-h-[118px] flex flex-col justify-center", stat.color)}>
                         <p className="text-[11px] font-normal text-slate-200 mb-2">{stat.label}</p>
@@ -6982,7 +7019,7 @@ const MerchantDashboard = () => {
                   <div className="rounded-2xl border border-slate-700 bg-slate-800/90 p-4 space-y-4 h-full">
                     <div className="grid grid-cols-1 gap-3">
                       <div>
-                        <label className="block text-sm font-normal mb-2 text-white">ظ…ظ†</label>
+                        <label className="block text-sm font-normal mb-2 text-white">ط¸â€¦ط¸â€ </label>
                         <input
                           type="date"
                           value={salesDateFrom}
@@ -6992,7 +7029,7 @@ const MerchantDashboard = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-normal mb-2 text-white">ط¥ظ„ظ‰</label>
+                        <label className="block text-sm font-normal mb-2 text-white">ط·آ¥ط¸â€‍ط¸â€°</label>
                         <input
                           type="date"
                           value={salesDateTo}
@@ -7012,29 +7049,29 @@ const MerchantDashboard = () => {
                               : "bg-blue-600 text-white hover:bg-blue-700"
                           )}
                         >
-                          تطبيق الفلتر
+                          طھط·ط¨ظٹظ‚ ط§ظ„ظپظ„طھط±
                         </button>
                         <button
                           onClick={handleResetSalesFilters}
                           disabled={isLoadingSalesData}
                           className="px-5 py-2.5 rounded-xl font-normal text-sm transition-all border border-slate-600 text-white hover:bg-slate-700"
                         >
-                          مسح التاريخ
+                          ظ…ط³ط­ ط§ظ„طھط§ط±ظٹط®
                         </button>
                       </div>
                     </div>
 
                     {!!salesDateFrom && !!salesDateTo && salesDateFrom > salesDateTo && (
-                      <p className="text-sm text-red-400">تاريخ البداية يجب أن يكون قبل أو يساوي تاريخ النهاية.</p>
+                      <p className="text-sm text-red-400">طھط§ط±ظٹط® ط§ظ„ط¨ط¯ط§ظٹط© ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ظ‚ط¨ظ„ ط£ظˆ ظٹط³ط§ظˆظٹ طھط§ط±ظٹط® ط§ظ„ظ†ظ‡ط§ظٹط©.</p>
                     )}
 
                     <div>
-                      <p className="text-sm font-normal mb-2 text-white">نوع المبيع</p>
+                      <p className="text-sm font-normal mb-2 text-white">ظ†ظˆط¹ ط§ظ„ظ…ط¨ظٹط¹</p>
                       <div className="grid grid-cols-3 gap-2">
                         {([
-                          { value: 'all', label: 'ط§ظ„ظƒظ„' },
-                          { value: 'order', label: 'الطلبات' },
-                          { value: 'auction', label: 'المزادات' }
+                          { value: 'all', label: 'ط·آ§ط¸â€‍ط¸ئ’ط¸â€‍' },
+                          { value: 'order', label: 'ط§ظ„ط·ظ„ط¨ط§طھ' },
+                          { value: 'auction', label: 'ط§ظ„ظ…ط²ط§ط¯ط§طھ' }
                         ] as const).map((option) => (
                           <button
                             key={option.value}
@@ -7055,12 +7092,12 @@ const MerchantDashboard = () => {
                 </div>
 
                 <div className="rounded-2xl p-5 border border-slate-700 bg-slate-800/90 h-full flex flex-col">
-                  <h3 className="font-normal text-lg mb-4 text-white">بيانات المبيعات</h3>
+                  <h3 className="font-normal text-lg mb-4 text-white">ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط¨ظٹط¹ط§طھ</h3>
                   <div className="space-y-3">
                     {isLoadingSalesData ? (
                       <div className="text-center py-12 text-slate-300">
                         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                        <p className="font-normal">جاري تحميل بيانات المبيعات...</p>
+                        <p className="font-normal">ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط¨ظٹط¹ط§طھ...</p>
                       </div>
                     ) : salesReportError ? (
                       <div className="text-center py-12 text-red-400">
@@ -7069,7 +7106,7 @@ const MerchantDashboard = () => {
                     ) : currentSalesItems.length === 0 ? (
                       <div className="text-center py-12 text-slate-300">
                         <CreditCard size={40} className="mx-auto mb-3 opacity-20" />
-                        <p className="font-normal">لا توجد بيانات مبيعات لهذه الفترة</p>
+                        <p className="font-normal">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ…ط¨ظٹط¹ط§طھ ظ„ظ‡ط°ظ‡ ط§ظ„ظپطھط±ط©</p>
                       </div>
                     ) : (
                       currentSalesItems.map((item: any, idx: number) => {
@@ -7090,7 +7127,7 @@ const MerchantDashboard = () => {
                               ></motion.div>
                             </div>
                             <div className="flex justify-between text-[10px] text-slate-300 font-normal">
-                              <span>{item.order_count} عملية</span>
+                              <span>{item.order_count} ط¹ظ…ظ„ظٹط©</span>
                               <span>{(percentage).toFixed(1)}%</span>
                             </div>
                           </div>
@@ -7114,21 +7151,21 @@ const MerchantDashboard = () => {
     <Card className={cn("w-full border-none shadow-xl rounded-[2rem] overflow-hidden", isDarkMode ? "bg-gray-800" : "bg-white")}>
       <div className={cn("p-8 border-b border-black/5 flex justify-between items-center", isDarkMode ? "bg-gray-900" : "bg-white")}>
         <div>
-          <h3 className={cn("font-normal text-2xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>أقسام المنتجات</h3>
-          <p className={cn("text-sm font-medium", isDarkMode ? "text-gray-300" : "text-gray-500")}>نظم منتجاتك في مجموعات ليسهل تصفحها</p>
+          <h3 className={cn("font-normal text-2xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>ط£ظ‚ط³ط§ظ… ط§ظ„ظ…ظ†طھط¬ط§طھ</h3>
+          <p className={cn("text-sm font-medium", isDarkMode ? "text-gray-300" : "text-gray-500")}>ظ†ط¸ظ… ظ…ظ†طھط¬ط§طھظƒ ظپظٹ ظ…ط¬ظ…ظˆط¹ط§طھ ظ„ظٹط³ظ‡ظ„ طھطµظپط­ظ‡ط§</p>
         </div>
         <Button 
           onClick={handleAddCategory}
           className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg py-4 px-6 rounded-2xl text-sm font-normal flex items-center gap-2"
         >
-          <Plus size={18} /> إضافة قسم
+          <Plus size={18} /> ط¥ط¶ط§ظپط© ظ‚ط³ظ…
         </Button>
       </div>
       <div className="divide-y divide-black/5">
         {filteredCategories.length === 0 ? (
           <div className={cn("p-16 text-center italic", isDarkMode ? "text-gray-300" : "text-gray-400")}>
             <Layout size={40} className="mx-auto mb-4 opacity-20" />
-            {dashboardQuery ? 'لا توجد نتائج تطابق بحثك.' : 'لا توجد أقسام حالياً.'}
+            {dashboardQuery ? 'ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ طھط·ط§ط¨ظ‚ ط¨ط­ط«ظƒ.' : 'ظ„ط§ طھظˆط¬ط¯ ط£ظ‚ط³ط§ظ… ط­ط§ظ„ظٹط§ظ‹.'}
           </div>
         ) : (
           filteredCategories.map((cat) => (
@@ -7143,7 +7180,7 @@ const MerchantDashboard = () => {
                 </div>
                 <div>
                   <p className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>{cat.name}</p>
-                  <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>عدد المنتجات: {products.filter(p => (p as any).category_id === cat.id).length}</p>
+                  <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط¹ط¯ط¯ ط§ظ„ظ…ظ†طھط¬ط§طھ: {products.filter(p => (p as any).category_id === cat.id).length}</p>
                 </div>
               </div>
               <div className="flex gap-1">
@@ -7181,7 +7218,7 @@ const MerchantDashboard = () => {
             >
               <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-900 border-gray-700" : "bg-gray-50 border-black/5")}>
                 <h3 className={cn("text-lg font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>
-                  حفظ مبيعة المزاد
+                  ط­ظپط¸ ظ…ط¨ظٹط¹ط© ط§ظ„ظ…ط²ط§ط¯
                 </h3>
                 <button 
                   onClick={() => {
@@ -7197,7 +7234,7 @@ const MerchantDashboard = () => {
               <div className={cn("p-6 space-y-4", isDarkMode ? "bg-gray-800" : "bg-white")}>
                 <div>
                   <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                    المنتج:
+                    ط§ظ„ظ…ظ†طھط¬:
                   </p>
                   <p className={cn("text-base font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>
                     {selectedAuctionForSave.product_name}
@@ -7205,7 +7242,7 @@ const MerchantDashboard = () => {
                 </div>
                 <div>
                   <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                    السعر النهائي (من أعلى عطاء):
+                    ط§ظ„ط³ط¹ط± ط§ظ„ظ†ظ‡ط§ط¦ظٹ (ظ…ظ† ط£ط¹ظ„ظ‰ ط¹ط·ط§ط،):
                   </p>
                   <p className={cn("text-lg font-bold text-emerald-600", isDarkMode ? "text-emerald-400" : "")}>
                     {formatCurrency(finalSalePrice ? parseFloat(finalSalePrice) : 0)}
@@ -7213,9 +7250,9 @@ const MerchantDashboard = () => {
                 </div>
                 {(selectedAuctionForSave as any)?.selectedBidder && (
                   <div className={cn("rounded-xl p-4 border", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-black/5")}>
-                    <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>المشتري المختار:</p>
+                    <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط§ظ„ظ…ط´طھط±ظٹ ط§ظ„ظ…ط®طھط§ط±:</p>
                     <p className={cn("text-base font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>
-                      {(selectedAuctionForSave as any).selectedBidder.customer_name || 'غير معروف'}
+                      {(selectedAuctionForSave as any).selectedBidder.customer_name || 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ'}
                     </p>
                     <p className={cn("text-sm mt-1", isDarkMode ? "text-indigo-300" : "text-indigo-600")}>
                       {(selectedAuctionForSave as any).selectedBidder.customer_phone || '-'}
@@ -7238,9 +7275,9 @@ const MerchantDashboard = () => {
                         });
                         const data = await res.json();
                         if (!res.ok) {
-                          alert(data.error || 'خطأ في حفظ المبيعة');
+                          alert(data.error || 'ط®ط·ط£ ظپظٹ ط­ظپط¸ ط§ظ„ظ…ط¨ظٹط¹ط©');
                         } else {
-                          alert('تم حفظ المبيعة بنجاح!');
+                          alert('طھظ… ط­ظپط¸ ط§ظ„ظ…ط¨ظٹط¹ط© ط¨ظ†ط¬ط§ط­!');
                           setShowAuctionSaveModal(false);
                           setSelectedAuctionForSave(null);
                           setFinalSalePrice('');
@@ -7248,12 +7285,12 @@ const MerchantDashboard = () => {
                         }
                       } catch (err) {
                         console.error('Error finalizing auction:', err);
-                        alert('خطأ في حفظ المبيعة');
+                        alert('ط®ط·ط£ ظپظٹ ط­ظپط¸ ط§ظ„ظ…ط¨ظٹط¹ط©');
                       }
                     }}
                     className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg font-normal text-sm hover:bg-emerald-700 transition-colors"
                   >
-                    ✓ تأكيد البيع
+                    âœ“ طھط£ظƒظٹط¯ ط§ظ„ط¨ظٹط¹
                   </button>
                   <button
                     onClick={() => {
@@ -7262,7 +7299,7 @@ const MerchantDashboard = () => {
                     className={cn("w-full px-4 py-2 rounded-lg font-normal text-sm transition-colors inline-flex items-center justify-center gap-2", isDarkMode ? "bg-indigo-900/30 text-indigo-300 hover:bg-indigo-900/50" : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100")}
                   >
                     <ChevronRight size={16} className="rotate-180" />
-                    ط±ط¬ظˆط¹
+                    ط·آ±ط·آ¬ط¸ث†ط·آ¹
                   </button>
                   <button
                     onClick={() => {
@@ -7272,7 +7309,7 @@ const MerchantDashboard = () => {
                     }}
                     className={cn("w-full px-4 py-2 rounded-lg font-normal text-sm transition-colors", isDarkMode ? "bg-gray-700 text-gray-100 hover:bg-gray-600" : "bg-gray-100 text-gray-700 hover:bg-gray-200")}
                   >
-                    إلغاء
+                    ط¥ظ„ط؛ط§ط،
                   </button>
                 </div>
               </div>
@@ -7291,10 +7328,10 @@ const MerchantDashboard = () => {
               <div className={cn("p-8 border-b flex justify-between items-center", isDarkMode ? "bg-gray-900 border-gray-700" : "bg-gray-50/50 border-black/5")}>
                 <div>
                   <h3 className={cn("text-2xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>
-                    المشاركون في: {selectedAuctionForBidders.product_name}
+                    ط§ظ„ظ…ط´ط§ط±ظƒظˆظ† ظپظٹ: {selectedAuctionForBidders.product_name}
                   </h3>
                   <p className={cn("text-sm font-medium mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                    جميع العطاءات المقدمة مع معلومات المشاركين
+                    ط¬ظ…ظٹط¹ ط§ظ„ط¹ط·ط§ط،ط§طھ ط§ظ„ظ…ظ‚ط¯ظ…ط© ظ…ط¹ ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ظ…ط´ط§ط±ظƒظٹظ†
                   </p>
                 </div>
                 <button 
@@ -7312,18 +7349,18 @@ const MerchantDashboard = () => {
                 {bidders.length === 0 ? (
                   <div className={cn("p-20 text-center", isDarkMode ? "text-gray-500" : "text-gray-400")}>
                     <Users size={48} className="mx-auto mb-4 opacity-10" />
-                    <p className="font-normal text-lg">لا توجد عطاءات حالياً</p>
+                    <p className="font-normal text-lg">ظ„ط§ طھظˆط¬ط¯ ط¹ط·ط§ط،ط§طھ ط­ط§ظ„ظٹط§ظ‹</p>
                   </div>
                 ) : (
                   <table className="w-full text-right border-collapse">
                     <thead>
                       <tr className={cn(isDarkMode ? "bg-gray-700/50" : "bg-gray-50/50")}>
-                        <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-300" : "text-gray-400")}>المركز</th>
-                        <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-300" : "text-gray-400")}>اسم المشارك</th>
-                        <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-300" : "text-gray-400")}>رقم الهاتف</th>
-                        <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>قيمة العطاء</th>
-                        <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>الوقت</th>
-                        <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>الإجراء</th>
+                        <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط§ظ„ظ…ط±ظƒط²</th>
+                        <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط§ط³ظ… ط§ظ„ظ…ط´ط§ط±ظƒ</th>
+                        <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ</th>
+                        <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>ظ‚ظٹظ…ط© ط§ظ„ط¹ط·ط§ط،</th>
+                        <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط§ظ„ظˆظ‚طھ</th>
+                        <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط§ظ„ط¥ط¬ط±ط§ط،</th>
                       </tr>
                     </thead>
                     <tbody className={cn("divide-y", isDarkMode ? "divide-gray-700" : "divide-gray-50")}>
@@ -7340,11 +7377,11 @@ const MerchantDashboard = () => {
                           </td>
                           <td className="px-6 py-4">
                             <p className={cn("font-normal", isDarkMode ? "text-gray-200" : "text-gray-900")}>
-                              {bidder.customer_name || 'غير معروف'}
+                              {bidder.customer_name || 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ'}
                             </p>
                             {bidder.is_confirmed_sale && (
                               <p className={cn("text-xs mt-1 font-normal", isDarkMode ? "text-emerald-400" : "text-emerald-600")}>
-                                المشتري المؤكد حالياً
+                                ط§ظ„ظ…ط´طھط±ظٹ ط§ظ„ظ…ط¤ظƒط¯ ط­ط§ظ„ظٹط§ظ‹
                               </p>
                             )}
                           </td>
@@ -7366,7 +7403,7 @@ const MerchantDashboard = () => {
                             {bidder.is_confirmed_sale ? (
                               <button
                                 onClick={async () => {
-                                  if (!confirm('هل تريد حذف المشتري المؤكد وإلغاء هذه المبيعة؟')) return;
+                                  if (!confirm('ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ط§ظ„ظ…ط´طھط±ظٹ ط§ظ„ظ…ط¤ظƒط¯ ظˆط¥ظ„ط؛ط§ط، ظ‡ط°ظ‡ ط§ظ„ظ…ط¨ظٹط¹ط©طں')) return;
 
                                   try {
                                     const res = await fetch(`/api/auctions/${selectedAuctionForBidders.id}/finalize`, {
@@ -7375,21 +7412,21 @@ const MerchantDashboard = () => {
                                     });
                                     const data = await res.json();
                                     if (!res.ok) {
-                                      alert(data.error || 'فشل حذف المشتري المؤكد');
+                                      alert(data.error || 'ظپط´ظ„ ط­ط°ظپ ط§ظ„ظ…ط´طھط±ظٹ ط§ظ„ظ…ط¤ظƒط¯');
                                       return;
                                     }
 
-                                    alert('تم حذف المشتري المؤكد وتحديث إجمالي المبيعات');
+                                    alert('طھظ… ط­ط°ظپ ط§ظ„ظ…ط´طھط±ظٹ ط§ظ„ظ…ط¤ظƒط¯ ظˆطھط­ط¯ظٹط« ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¨ظٹط¹ط§طھ');
                                     await refreshMerchantAuctionState(selectedAuctionForBidders.id);
                                   } catch (err) {
                                     console.error('Failed to remove confirmed auction sale:', err);
-                                    alert('فشل حذف المشتري المؤكد');
+                                    alert('ظپط´ظ„ ط­ط°ظپ ط§ظ„ظ…ط´طھط±ظٹ ط§ظ„ظ…ط¤ظƒط¯');
                                   }
                                 }}
                                 className={cn("px-3 py-2 rounded-lg font-normal text-xs transition-all inline-flex items-center gap-1", isDarkMode ? "bg-red-900/30 text-red-400 hover:bg-red-900/50" : "bg-red-50 text-red-600 hover:bg-red-100")}
-                                title="حذف المشتري المؤكد"
+                                title="ط­ط°ظپ ط§ظ„ظ…ط´طھط±ظٹ ط§ظ„ظ…ط¤ظƒط¯"
                               >
-                                <Trash2 size={15} /> حذف المشتري
+                                <Trash2 size={15} /> ط­ط°ظپ ط§ظ„ظ…ط´طھط±ظٹ
                               </button>
                             ) : (
                               <button
@@ -7402,9 +7439,9 @@ const MerchantDashboard = () => {
                                   setShowAuctionSaveModal(true);
                                 }}
                                 className={cn("px-3 py-2 rounded-lg font-normal text-xs transition-all inline-flex items-center gap-1", isDarkMode ? "bg-green-900/30 text-green-400 hover:bg-green-900/50" : "bg-green-50 text-green-600 hover:bg-green-100")}
-                                title="تأكيد البيع لهذا المشارك"
+                                title="طھط£ظƒظٹط¯ ط§ظ„ط¨ظٹط¹ ظ„ظ‡ط°ط§ ط§ظ„ظ…ط´ط§ط±ظƒ"
                               >
-                                <CheckCircle size={15} /> تأكيد البيع
+                                <CheckCircle size={15} /> طھط£ظƒظٹط¯ ط§ظ„ط¨ظٹط¹
                               </button>
                             )}
                           </td>
@@ -7425,27 +7462,27 @@ const MerchantDashboard = () => {
               <div className="w-10 h-10 rounded-2xl bg-amber-600 flex items-center justify-center text-white shadow-lg shadow-amber-100">
                 <Zap size={20} />
               </div>
-              <h2 className={cn("text-xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-800")}>المزادات النشطة</h2>
+              <h2 className={cn("text-xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-800")}>ط§ظ„ظ…ط²ط§ط¯ط§طھ ط§ظ„ظ†ط´ط·ط©</h2>
             </div>
           </div>
 
           {auctions.length === 0 ? (
             <div className={cn("p-20 text-center", isDarkMode ? "bg-gray-800 text-gray-500" : "bg-white text-gray-400")}>
               <Zap size={48} className="mx-auto mb-4 opacity-10" />
-              <p className="font-normal text-lg">لا توجد مزادات نشطة حالياً</p>
-              <p className="text-sm font-normal mt-1">ابدأ بإنشاء مزاد جديد لمنتجاتك!</p>
+              <p className="font-normal text-lg">ظ„ط§ طھظˆط¬ط¯ ظ…ط²ط§ط¯ط§طھ ظ†ط´ط·ط© ط­ط§ظ„ظٹط§ظ‹</p>
+              <p className="text-sm font-normal mt-1">ط§ط¨ط¯ط£ ط¨ط¥ظ†ط´ط§ط، ظ…ط²ط§ط¯ ط¬ط¯ظٹط¯ ظ„ظ…ظ†طھط¬ط§طھظƒ!</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-right border-collapse">
                 <thead>
                   <tr className={cn(isDarkMode ? "bg-gray-800" : "bg-gray-50/30")}>
-                    <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-300" : "text-gray-400")}>المنتج</th>
-                    <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>السعر الابتدائي</th>
-                    <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>أعلى عطاء</th>
-                    <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>عدد المشاركين</th>
-                    <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>حالة المزاد</th>
-                    <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>الإجراءات</th>
+                    <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط§ظ„ظ…ظ†طھط¬</th>
+                    <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط§ظ„ط³ط¹ط± ط§ظ„ط§ط¨طھط¯ط§ط¦ظٹ</th>
+                    <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط£ط¹ظ„ظ‰ ط¹ط·ط§ط،</th>
+                    <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط¹ط¯ط¯ ط§ظ„ظ…ط´ط§ط±ظƒظٹظ†</th>
+                    <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط­ط§ظ„ط© ط§ظ„ظ…ط²ط§ط¯</th>
+                    <th className={cn("px-6 py-4 text-xs font-normal uppercase tracking-wider text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ</th>
                   </tr>
                 </thead>
                 <tbody className={cn("divide-y", isDarkMode ? "divide-gray-700" : "divide-gray-50")}>
@@ -7483,7 +7520,7 @@ const MerchantDashboard = () => {
                           auction.status === 'pending' ? (isDarkMode ? "bg-blue-900/30 text-blue-400" : "bg-blue-100 text-blue-700") :
                           (isDarkMode ? "bg-gray-700/30 text-gray-400" : "bg-gray-100 text-gray-600")
                         )}>
-                          {auction.status === 'sold' ? 'تم البيع' : auction.status === 'active' ? 'نشط' : auction.status === 'pending' ? 'قريباً' : 'منتهي'}
+                          {auction.status === 'sold' ? 'طھظ… ط§ظ„ط¨ظٹط¹' : auction.status === 'active' ? 'ظ†ط´ط·' : auction.status === 'pending' ? 'ظ‚ط±ظٹط¨ط§ظ‹' : 'ظ…ظ†طھظ‡ظٹ'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center space-x-2 flex justify-center items-center">
@@ -7499,14 +7536,14 @@ const MerchantDashboard = () => {
                           }}
                           className={cn("px-4 py-2 rounded-lg font-normal text-xs transition-all", isDarkMode ? "bg-indigo-900/30 text-indigo-400 hover:bg-indigo-900/50" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100")}
                         >
-                          عرض المشاركين ({auction.total_bids || 0})
+                          ط¹ط±ط¶ ط§ظ„ظ…ط´ط§ط±ظƒظٹظ† ({auction.total_bids || 0})
                         </button>
                         <button
                           onClick={async () => {
                             const isCompleted = auction.status === 'completed';
                             const message = isCompleted 
-                              ? 'هل أنت متأكد من حذف هذا المزاد المكتمل؟' 
-                              : 'هل أنت متأكد من حذف هذا المزاد؟';
+                              ? 'ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط­ط°ظپ ظ‡ط°ط§ ط§ظ„ظ…ط²ط§ط¯ ط§ظ„ظ…ظƒطھظ…ظ„طں' 
+                              : 'ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط­ط°ظپ ظ‡ط°ط§ ط§ظ„ظ…ط²ط§ط¯طں';
                             
                             if (confirm(message)) {
                               try {
@@ -7516,22 +7553,22 @@ const MerchantDashboard = () => {
                                 });
                                 const data = await res.json();
                                 if (!res.ok) {
-                                  alert(data.error || 'خطأ في حذف المزاد');
+                                  alert(data.error || 'ط®ط·ط£ ظپظٹ ط­ط°ظپ ط§ظ„ظ…ط²ط§ط¯');
                                 } else {
-                                  alert('تم حذف المزاد بنجاح');
+                                  alert('طھظ… ط­ط°ظپ ط§ظ„ظ…ط²ط§ط¯ ط¨ظ†ط¬ط§ط­');
                                   // Refresh auctions
                                   await fetchMerchantAuctions(user?.store_id);
                                 }
                               } catch (err) {
                                 console.error('Failed to delete auction:', err);
-                                alert('خطأ في حذف المزاد');
+                                alert('ط®ط·ط£ ظپظٹ ط­ط°ظپ ط§ظ„ظ…ط²ط§ط¯');
                               }
                             }
                           }}
                           className={cn("px-3 py-2 rounded-lg font-normal text-xs transition-all flex items-center gap-1", isDarkMode ? "bg-red-900/30 text-red-400 hover:bg-red-900/50" : "bg-red-50 text-red-600 hover:bg-red-100")}
-                          title="حذف المزاد"
+                          title="ط­ط°ظپ ط§ظ„ظ…ط²ط§ط¯"
                         >
-                          <Trash2 size={16} /> ط­ط°ظپ
+                          <Trash2 size={16} /> ط·آ­ط·آ°ط¸ظ¾
                         </button>
                       </td>
                     </tr>
@@ -7549,32 +7586,32 @@ const MerchantDashboard = () => {
     return (
     <Card className={cn("max-w-md border-none shadow-xl rounded-2xl overflow-hidden", isDarkMode ? "bg-gray-800" : "bg-white")}>
       <div className={cn("p-6 border-b border-black/5 flex items-center justify-between", isDarkMode ? "bg-gray-900" : "bg-white")}>
-        <h3 className={cn("font-normal text-xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>إعدادات المتجر</h3>
+        <h3 className={cn("font-normal text-xl", isDarkMode ? "text-gray-100" : "text-gray-900")}>ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…طھط¬ط±</h3>
         <button
           onClick={() => navigate('/merchant')}
           className={cn("p-2 rounded-lg transition-colors", isDarkMode ? "hover:bg-gray-700 text-gray-400 hover:text-gray-200" : "hover:bg-gray-100 text-gray-500 hover:text-gray-700")}
-          title="إغلاق"
+          title="ط¥ط؛ظ„ط§ظ‚"
         >
           <X size={20} />
         </button>
       </div>
       <div className="p-6 space-y-5">
         
-        {/* اسم المتجر */}
+        {/* ط§ط³ظ… ط§ظ„ظ…طھط¬ط± */}
         <div>
-          <label className="text-sm font-normal text-gray-700 block mb-2">اسم المتجر</label>
+          <label className="text-sm font-normal text-gray-700 block mb-2">ط§ط³ظ… ط§ظ„ظ…طھط¬ط±</label>
           <input 
             type="text" 
             value={merchantConfig.app_name} 
             onChange={(e) => setMerchantConfig({ ...merchantConfig, app_name: e.target.value })}
-            placeholder="أدخل اسم المتجر"
+            placeholder="ط£ط¯ط®ظ„ ط§ط³ظ… ط§ظ„ظ…طھط¬ط±"
             className={cn("w-full px-4 py-2 border rounded-lg font-normal text-sm outline-none focus:ring-2 transition-all", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-indigo-500" : "bg-gray-50 border-gray-300 text-gray-900 focus:ring-indigo-400")}
           />
         </div>
         
-        {/* شعار المتجر */}
+        {/* ط´ط¹ط§ط± ط§ظ„ظ…طھط¬ط± */}
         <div>
-          <label className="text-sm font-normal text-gray-700 block mb-2">شعار المتجر</label>
+          <label className="text-sm font-normal text-gray-700 block mb-2">ط´ط¹ط§ط± ط§ظ„ظ…طھط¬ط±</label>
           <button
             type="button"
             onClick={() => logoUploadRef.current?.click()}
@@ -7585,7 +7622,7 @@ const MerchantDashboard = () => {
             ) : (
               <div className="text-center">
                 <Upload size={24} className={isDarkMode ? "text-gray-400 mx-auto" : "text-gray-500 mx-auto"} />
-                <p className={cn("text-xs font-normal mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>اضغط لاختيار صورة</p>
+                <p className={cn("text-xs font-normal mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط§ط¶ط؛ط· ظ„ط§ط®طھظٹط§ط± طµظˆط±ط©</p>
               </div>
             )}
           </button>
@@ -7599,12 +7636,12 @@ const MerchantDashboard = () => {
         </div>
         
         
-        {/* زر الحفظ */}
+        {/* ط²ط± ط§ظ„ط­ظپط¸ */}
         <button 
           onClick={handleSaveMerchantSettings} 
           className="w-full py-3 rounded-lg text-white font-normal text-base shadow-lg hover:shadow-xl transition-all active:scale-95 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800"
         >
-          💾 حفظ الإعدادات
+          ًں’¾ ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ
         </button>
       </div>
     </Card>
@@ -7627,24 +7664,24 @@ const MerchantDashboard = () => {
         setMerchantStats(statsData);
       }
     };
-    console.log('🔍 renderOrders - Orders:', orders);
-    console.log('🔍 renderOrders - Filtered Orders:', filteredOrders);
-    console.log('🔍 renderOrders - Dashboard Query:', dashboardQuery);
-    console.log('🔍 renderOrders - User Store Type:', user?.store_type);
-    console.log('🔍 renderOrders - Total Orders:', orders.length, 'Filtered:', filteredOrders.length);
+    console.log('ًں”چ renderOrders - Orders:', orders);
+    console.log('ًں”چ renderOrders - Filtered Orders:', filteredOrders);
+    console.log('ًں”چ renderOrders - Dashboard Query:', dashboardQuery);
+    console.log('ًں”چ renderOrders - User Store Type:', user?.store_type);
+    console.log('ًں”چ renderOrders - Total Orders:', orders.length, 'Filtered:', filteredOrders.length);
     return (
     <Card className={cn("w-full border-none shadow-xl rounded-[2rem] overflow-hidden", isDarkMode ? "bg-gray-800" : "bg-white")}>
       <div className={cn("p-8 border-b border-black/5", isDarkMode ? "bg-gray-900" : "bg-white")}>
-        <h3 className={cn("font-normal text-4xl", isDarkMode ? "text-white" : "text-gray-900")}>طلبات العملاء</h3>
-        <p className={cn("text-base font-medium mt-2", isDarkMode ? "text-gray-300" : "text-gray-500")}>إدارة جميع الطلبات الواردة لمتجرك</p>
-        {orders.length > 0 && <p className="text-xs text-gray-400 mt-2">📊 إجمالي الطلبات المحملة: {orders.length}</p>}
-        {isRegularStore && <p className="text-sm text-amber-500 mt-2">طلبات غير مشحونة: {unshippedOrdersCount}</p>}
+        <h3 className={cn("font-normal text-4xl", isDarkMode ? "text-white" : "text-gray-900")}>ط·ظ„ط¨ط§طھ ط§ظ„ط¹ظ…ظ„ط§ط،</h3>
+        <p className={cn("text-base font-medium mt-2", isDarkMode ? "text-gray-300" : "text-gray-500")}>ط¥ط¯ط§ط±ط© ط¬ظ…ظٹط¹ ط§ظ„ط·ظ„ط¨ط§طھ ط§ظ„ظˆط§ط±ط¯ط© ظ„ظ…طھط¬ط±ظƒ</p>
+        {orders.length > 0 && <p className="text-xs text-gray-400 mt-2">ًں“ٹ ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط·ظ„ط¨ط§طھ ط§ظ„ظ…ط­ظ…ظ„ط©: {orders.length}</p>}
+        {isRegularStore && <p className="text-sm text-amber-500 mt-2">ط·ظ„ط¨ط§طھ ط؛ظٹط± ظ…ط´ط­ظˆظ†ط©: {unshippedOrdersCount}</p>}
       </div>
       <div className="divide-y divide-black/5">
         {filteredOrders.length === 0 ? (
           <div className={cn("p-16 text-center", isDarkMode ? "text-gray-300" : "text-gray-400")}>
             <ShoppingCart size={48} className="mx-auto mb-4 opacity-20" />
-            <p className={cn("font-normal text-lg", isDarkMode ? "text-gray-300" : "text-gray-600")}>{dashboardQuery ? 'لا توجد نتائج تطابق بحثك.' : 'لا توجد طلبات واردة حالياً'}</p>
+            <p className={cn("font-normal text-lg", isDarkMode ? "text-gray-300" : "text-gray-600")}>{dashboardQuery ? 'ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ طھط·ط§ط¨ظ‚ ط¨ط­ط«ظƒ.' : 'ظ„ط§ طھظˆط¬ط¯ ط·ظ„ط¨ط§طھ ظˆط§ط±ط¯ط© ط­ط§ظ„ظٹط§ظ‹'}</p>
           </div>
         ) : (
           filteredOrders.map((order) => (
@@ -7668,15 +7705,15 @@ const MerchantDashboard = () => {
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <p className={cn("font-normal text-2xl", isDarkMode ? "text-white" : "text-gray-900")}>ط·ظ„ط¨ #{order.id}</p>
+                      <p className={cn("font-normal text-2xl", isDarkMode ? "text-white" : "text-gray-900")}>ط·آ·ط¸â€‍ط·آ¨ #{order.id}</p>
                       <span className={cn(
                         "px-2 py-0.5 text-[9px] font-normal uppercase rounded-full tracking-wider shadow-sm",
                         order.status === 'pending' ? "bg-amber-100 text-amber-700" : 
                         order.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
                         "bg-gray-100 text-gray-600"
                       )}>
-                        {order.status === 'pending' ? (isRegularStore ? 'لم يتم الشحن بعد' : 'بانتظار التجهيز') : 
-                         order.status === 'completed' ? (isRegularStore ? 'تم الشحن' : 'تم التجهيز') : 'ملغي'}
+                        {order.status === 'pending' ? (isRegularStore ? 'ظ„ظ… ظٹطھظ… ط§ظ„ط´ط­ظ† ط¨ط¹ط¯' : 'ط¨ط§ظ†طھط¸ط§ط± ط§ظ„طھط¬ظ‡ظٹط²') : 
+                         order.status === 'completed' ? (isRegularStore ? 'طھظ… ط§ظ„ط´ط­ظ†' : 'طھظ… ط§ظ„طھط¬ظ‡ظٹط²') : 'ظ…ظ„ط؛ظٹ'}
                       </span>
                     </div>
                     <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-500")}>
@@ -7687,7 +7724,7 @@ const MerchantDashboard = () => {
                 <div className="flex items-center gap-4">
                   <div className="text-left min-w-[100px]">
                     <p className={cn("text-xl font-normal", isDarkMode ? "text-white" : "text-gray-900")}>{formatCurrency(order.total_amount || order.total)}</p>
-                    <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-400")}>إجمالي المبلغ</p>
+                    <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-400")}>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¨ظ„ط؛</p>
                   </div>
                   <div className={cn("transition-transform duration-300", isDarkMode ? "text-gray-400" : "text-gray-300", expandedOrder === order.id ? "rotate-180" : "")}>
                     <ChevronDown size={20} />
@@ -7710,7 +7747,7 @@ const MerchantDashboard = () => {
                             <img src={getSafeImageUrl(item.image_url)} className="w-10 h-10 rounded-lg object-cover bg-white shadow-sm ring-1 ring-black/5" />
                             <div>
                                <p className={cn("font-normal text-base", isDarkMode ? "text-white" : "text-gray-800")}>{item.product_name}</p>
-                               <span className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-400")}>{item.quantity} أ— {formatCurrency(item.price)}</span>
+                               <span className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-400")}>{item.quantity} ط£â€” {formatCurrency(item.price)}</span>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -7728,11 +7765,11 @@ const MerchantDashboard = () => {
                                       });
                                       if (res.ok) {
                                         await refreshOrdersAndStats();
-                                        alert(isRegularStore ? 'تم شحن الطلب وتأكيد البيع بنجاح!' : 'تم تجهيز الطلب بنجاح!');
+                                        alert(isRegularStore ? 'طھظ… ط´ط­ظ† ط§ظ„ط·ظ„ط¨ ظˆطھط£ظƒظٹط¯ ط§ظ„ط¨ظٹط¹ ط¨ظ†ط¬ط§ط­!' : 'طھظ… طھط¬ظ‡ظٹط² ط§ظ„ط·ظ„ط¨ ط¨ظ†ط¬ط§ط­!');
                                       }
                                     }}
                                     className="w-9 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-100 transition-all active:scale-95"
-                                    title={isRegularStore ? 'تأكيد الشحن والبيع' : 'تأكيد التجهيز'}
+                                    title={isRegularStore ? 'طھط£ظƒظٹط¯ ط§ظ„ط´ط­ظ† ظˆط§ظ„ط¨ظٹط¹' : 'طھط£ظƒظٹط¯ ط§ظ„طھط¬ظ‡ظٹط²'}
                                   >
                                     <CheckCircle size={16} />
                                   </button>
@@ -7748,19 +7785,19 @@ const MerchantDashboard = () => {
                                         html: invoiceHtml
                                       });
                                     } catch (err) {
-                                      console.error('خطأ في تحميل الفاتورة:', err);
-                                      alert('حدث خطأ في تحميل الفاتورة. يرجى المحاولة لاحقاً.');
+                                      console.error('ط®ط·ط£ ظپظٹ طھط­ظ…ظٹظ„ ط§ظ„ظپط§طھظˆط±ط©:', err);
+                                      alert('ط­ط¯ط« ط®ط·ط£ ظپظٹ طھط­ظ…ظٹظ„ ط§ظ„ظپط§طھظˆط±ط©. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ„ط§ط­ظ‚ط§ظ‹.');
                                     }
                                   }}
                                   className={cn("w-9 h-9 rounded-xl border flex items-center justify-center transition-all", isDarkMode ? "bg-gray-700 border-gray-600 hover:bg-gray-600 text-white" : "bg-white border-black/5 hover:bg-gray-100 text-gray-600")}
-                                  title="تحميل الفاتورة"
+                                  title="طھط­ظ…ظٹظ„ ط§ظ„ظپط§طھظˆط±ط©"
                                 >
                                   <FileText size={16} />
                                 </button>
                                 <button
                                   onClick={async (e) => {
                                     e.stopPropagation();
-                                    if (confirm('هل أنت متأكد من حذف هذا الطلب؟ سيتم تحديث المخزون وإجمالي المبيعات بعد الحذف.')) {
+                                    if (confirm('ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط­ط°ظپ ظ‡ط°ط§ ط§ظ„ط·ظ„ط¨طں ط³ظٹطھظ… طھط­ط¯ظٹط« ط§ظ„ظ…ط®ط²ظˆظ† ظˆط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¨ظٹط¹ط§طھ ط¨ط¹ط¯ ط§ظ„ط­ط°ظپ.')) {
                                       const res = await fetch(`/api/orders/${order.id}`, {
                                         method: 'DELETE',
                                         headers: { 'Content-Type': 'application/json' }
@@ -7768,15 +7805,15 @@ const MerchantDashboard = () => {
                                       if (res.ok) {
                                         await refreshOrdersAndStats();
                                         setExpandedOrder(null);
-                                        alert('تم حذف الطلب بنجاح!');
+                                        alert('طھظ… ط­ط°ظپ ط§ظ„ط·ظ„ط¨ ط¨ظ†ط¬ط§ط­!');
                                       } else {
                                         const data = await res.json().catch(() => ({}));
-                                        alert(data.error || 'فشل حذف الطلب');
+                                        alert(data.error || 'ظپط´ظ„ ط­ط°ظپ ط§ظ„ط·ظ„ط¨');
                                       }
                                     }
                                   }}
                                   className="w-9 h-9 rounded-xl bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 flex items-center justify-center transition-all"
-                                  title="حذف الطلب"
+                                  title="ط­ط°ظپ ط§ظ„ط·ظ„ط¨"
                                 >
                                   <Trash2 size={16} />
                                 </button>
@@ -7800,20 +7837,20 @@ const MerchantDashboard = () => {
   return (
     <DashboardLayout 
       title={
-        section === 'settings' ? "إعدادات المتجر" : 
-        section === 'products' ? "المنتجات" : 
-        section === 'categories' ? "أقسام المتجر" :
-        section === 'auctions' ? "المزادات" :
-        section === 'orders' ? "الطلبات" : 
-        section === 'customers' ? "العملاء" :
-        section === 'coupons' ? "قسائم الخصم" :
-        "لوحة التحكم"
+        section === 'settings' ? "ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…طھط¬ط±" : 
+        section === 'products' ? "ط§ظ„ظ…ظ†طھط¬ط§طھ" : 
+        section === 'categories' ? "ط£ظ‚ط³ط§ظ… ط§ظ„ظ…طھط¬ط±" :
+        section === 'auctions' ? "ط§ظ„ظ…ط²ط§ط¯ط§طھ" :
+        section === 'orders' ? "ط§ظ„ط·ظ„ط¨ط§طھ" : 
+        section === 'customers' ? "ط§ظ„ط¹ظ…ظ„ط§ط،" :
+        section === 'coupons' ? "ظ‚ط³ط§ط¦ظ… ط§ظ„ط®طµظ…" :
+        "ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ…"
       } 
       role="merchant"
       counts={sidebarCounts}
     >
       <div dir="rtl" className="font-sans">
-        {console.log('🎯 Rendering - section:', section, 'Conditions:', { isSettings: section === 'settings', isCategories: section === 'categories', isOrders: section === 'orders', isProducts: section === 'products', isCustomers: section === 'customers', isCoupons: section === 'coupons', isAuctions: section === 'auctions' })}
+        {console.log('ًںژ¯ Rendering - section:', section, 'Conditions:', { isSettings: section === 'settings', isCategories: section === 'categories', isOrders: section === 'orders', isProducts: section === 'products', isCustomers: section === 'customers', isCoupons: section === 'coupons', isAuctions: section === 'auctions' })}
         {section === 'settings' ? renderSettings() : 
          section === 'categories' ? renderCategories() :
          section === 'auctions' ? renderAuctions() :
@@ -7839,7 +7876,7 @@ const MerchantDashboard = () => {
               {/* Header */}
               <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50/50 border-black/5")}>
                 <div>
-                  <h3 className={cn("text-2xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>كشف الحساب</h3>
+                  <h3 className={cn("text-2xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>ظƒط´ظپ ط§ظ„ط­ط³ط§ط¨</h3>
                   <p className={cn("text-sm font-medium mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>
                     {selectedCustomerStatement.name} - {selectedCustomerStatement.phone}
                   </p>
@@ -7855,24 +7892,24 @@ const MerchantDashboard = () => {
               {/* Customer Credit Info */}
               <div className={cn("p-4 sm:p-6 grid grid-cols-3 gap-2 sm:gap-4 border-b", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
                 <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-blue-900/30" : "bg-blue-50")}>
-                  <p className={cn("text-[10px] sm:text-xs font-normal mb-1", isDarkMode ? "text-blue-300" : "text-blue-600")}>حد الائتمان</p>
+                  <p className={cn("text-[10px] sm:text-xs font-normal mb-1", isDarkMode ? "text-blue-300" : "text-blue-600")}>ط­ط¯ ط§ظ„ط§ط¦طھظ…ط§ظ†</p>
                   <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-blue-400" : "text-blue-700")}>
                     {Math.round(Number(selectedCustomerStatement.credit_limit) || 0).toLocaleString('en-US')}
-                    <span className="block text-[0.9em]">ط¯.ط¹</span>
+                    <span className="block text-[0.9em]">ط·آ¯.ط·آ¹</span>
                   </p>
                 </div>
                 <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-red-900/30" : "bg-red-50")}>
-                  <p className={cn("text-[10px] sm:text-xs font-normal mb-1", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
+                  <p className={cn("text-[10px] sm:text-xs font-normal mb-1", isDarkMode ? "text-red-300" : "text-red-600")}>ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط­ط§ظ„ظٹط©</p>
                   <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-red-400" : "text-red-700")}>
                     {Math.round(Number(selectedCustomerStatement.current_debt) || 0).toLocaleString('en-US')}
-                    <span className="block text-[0.9em]">ط¯.ط¹</span>
+                    <span className="block text-[0.9em]">ط·آ¯.ط·آ¹</span>
                   </p>
                 </div>
                 <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-green-900/30" : "bg-green-50")}>
-                  <p className={cn("text-[10px] sm:text-xs font-normal mb-1", isDarkMode ? "text-green-300" : "text-green-600")}>الرصيد المتاح</p>
+                  <p className={cn("text-[10px] sm:text-xs font-normal mb-1", isDarkMode ? "text-green-300" : "text-green-600")}>ط§ظ„ط±طµظٹط¯ ط§ظ„ظ…طھط§ط­</p>
                   <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-green-400" : "text-green-700")}>
                     {Math.round((Number(selectedCustomerStatement.credit_limit) || 0) - (Number(selectedCustomerStatement.current_debt) || 0)).toLocaleString('en-US')}
-                    <span className="block text-[0.9em]">ط¯.ط¹</span>
+                    <span className="block text-[0.9em]">ط·آ¯.ط·آ¹</span>
                   </p>
                 </div>
               </div>
@@ -7882,35 +7919,35 @@ const MerchantDashboard = () => {
                 {isLoadingCustomerTransactions ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: `${primaryColor}` }}></div>
-                    <span className={cn("ml-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>جاري تحميل المعاملات...</span>
+                    <span className={cn("ml-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ظ…ط¹ط§ظ…ظ„ط§طھ...</span>
                   </div>
                 ) : (
                   <div className="max-h-[18rem] overflow-auto">
                     <table className="w-full text-right text-xs md:text-sm border-collapse">
                       <thead>
                         <tr className={cn("border-b sticky top-0 z-10", isDarkMode ? "border-gray-600 bg-gray-700" : "border-gray-200 bg-gray-50")}>
-                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
-                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
-                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>ظ…ط¯ظٹظ† (Debit)</th>
-                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>ط¯ط§ط¦ظ† (Credit)</th>
-                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الديون الجالية</th>
-                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>إجراءات</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>ط§ظ„طھط§ط±ظٹط®</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>ط§ظ„ط¨ظٹط§ظ†</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>ط¸â€¦ط·آ¯ط¸ظ¹ط¸â€  (Debit)</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>ط·آ¯ط·آ§ط·آ¦ط¸â€  (Credit)</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط¬ط§ظ„ظٹط©</th>
+                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط¥ط¬ط±ط§ط،ط§طھ</th>
                         </tr>
                       </thead>
                       <tbody className={cn(isDarkMode ? "divide-gray-700" : "divide-gray-100")}>
                         {customerTransactions.map((transaction: any, idx: number) => {
                           // Format transaction type display
-                          let displayType = 'معاملة';
+                          let displayType = 'ظ…ط¹ط§ظ…ظ„ط©';
                           if (transaction.type === 'opening') {
-                            displayType = transaction.description || 'ديون سابقة';
+                            displayType = sanitizeDisplayText(transaction.description, 'ط¯ظٹظˆظ† ط³ط§ط¨ظ‚ط©');
                           } else if (transaction.is_payment) {
-                            displayType = '✓ دفعة';
+                            displayType = 'âœ“ ط¯ظپط¹ط©';
                           } else if (transaction.type === 'debit') {
-                            displayType = 'ط®طµظ…';
+                            displayType = 'ط·آ®ط·آµط¸â€¦';
                           } else if (transaction.type === 'topup') {
-                            displayType = transaction.description || 'بطاقة شحن';
+                            displayType = sanitizeDisplayText(transaction.description, 'ط¨ط·ط§ظ‚ط© ط´ط­ظ†');
                           } else {
-                            displayType = transaction.description || transaction.type || 'معاملة';
+                            displayType = sanitizeDisplayText(transaction.description, sanitizeDisplayText(transaction.type, 'ظ…ط¹ط§ظ…ظ„ط©'));
                           }
                           
                           // Ensure balance is a number
@@ -7926,7 +7963,7 @@ const MerchantDashboard = () => {
                           
                           // Debug topup transactions
                           if (transaction.type === 'topup') {
-                            console.log(`📊 [MerchantDashboard Compact] Topup TX #${idx}:`, {
+                            console.log(`ًں“ٹ [MerchantDashboard Compact] Topup TX #${idx}:`, {
                               type: transaction.type,
                               amount: transaction.amount,
                               amountValue: amountValue,
@@ -7942,7 +7979,7 @@ const MerchantDashboard = () => {
                           
                           // Debug detailed output
                           if (transaction.type === 'topup') {
-                            console.log(`🔍 [TX ${idx}] CALCULATING AMOUNTS:`, {
+                            console.log(`ًں”چ [TX ${idx}] CALCULATING AMOUNTS:`, {
                               type: transaction.type,
                               rawAmount: transaction.amount,
                               amountValue: amountValue,
@@ -7960,7 +7997,7 @@ const MerchantDashboard = () => {
                             // Topup orders should ALWAYS display their amount as debit
                             debitAmount = Math.abs(amountValue);
                             creditAmount = 0;
-                            console.log(`🔥 [TOPUP FIX] TX #${idx}: amount=${amountValue} → debitAmount=${debitAmount}`);
+                            console.log(`ًں”¥ [TOPUP FIX] TX #${idx}: amount=${amountValue} â†’ debitAmount=${debitAmount}`);
                           } else if (isDebit && amountValue !== 0) {
                             debitAmount = Math.abs(amountValue);
                             creditAmount = 0;
@@ -7970,7 +8007,7 @@ const MerchantDashboard = () => {
                           }
                           
                           if (transaction.type === 'topup') {
-                            console.log(`✅ [TX ${idx}] FINAL RESULT:`, {
+                            console.log(`âœ… [TX ${idx}] FINAL RESULT:`, {
                               type: transaction.type,
                               rawAmount: transaction.amount,
                               debitAmount: debitAmount,
@@ -7992,12 +8029,12 @@ const MerchantDashboard = () => {
                             <td className={cn("px-2 md:px-4 py-2 md:py-3 font-bold text-center whitespace-nowrap border", 
                               debitAmount > 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"), isDarkMode ? "border-gray-700" : "border-gray-200"
                             )}>
-                              {debitAmount > 0 ? formatCurrency(debitAmount) : '—'}
+                              {debitAmount > 0 ? formatCurrency(debitAmount) : 'â€”'}
                             </td>
                             <td className={cn("px-2 md:px-4 py-2 md:py-3 font-bold text-center whitespace-nowrap border", 
                               creditAmount > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"), isDarkMode ? "border-gray-700" : "border-gray-200"
                             )}>
-                              {creditAmount > 0 ? formatCurrency(creditAmount) : '—'}
+                              {creditAmount > 0 ? formatCurrency(creditAmount) : 'â€”'}
                             </td>
                             <td className={cn("px-2 md:px-4 py-2 md:py-3 font-bold text-center whitespace-nowrap border", 
                               balanceValue && balanceValue > 0 ? (isDarkMode ? "text-blue-400" : "text-blue-600") : (isDarkMode ? "text-gray-400" : "text-gray-600"), isDarkMode ? "border-gray-700" : "border-gray-200"
@@ -8011,12 +8048,12 @@ const MerchantDashboard = () => {
                                   <button
                                     onClick={async () => {
                                       try {
-                                        const newAmountStr = prompt(`أدخل المبلغ الجديد (المبلغ الحالي: ${transaction.amount}):`);
+                                        const newAmountStr = prompt(`ط£ط¯ط®ظ„ ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ط¬ط¯ظٹط¯ (ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ط­ط§ظ„ظٹ: ${transaction.amount}):`);
                                         if (!newAmountStr) return;
                                         
                                         const newAmount = parseFloat(newAmountStr);
                                         if (isNaN(newAmount) || newAmount <= 0) {
-                                          alert('❌ الرجاء إدخال مبلغ صحيح');
+                                          alert('â‌Œ ط§ظ„ط±ط¬ط§ط، ط¥ط¯ط®ط§ظ„ ظ…ط¨ظ„ط؛ طµط­ظٹط­');
                                           return;
                                         }
                                         
@@ -8029,7 +8066,7 @@ const MerchantDashboard = () => {
                                         });
                                         
                                         if (res.ok) {
-                                          alert('✓ تم التحديث بنجاح');
+                                          alert('âœ“ طھظ… ط§ظ„طھط­ط¯ظٹط« ط¨ظ†ط¬ط§ط­');
                                           setTimeout(async () => {
                                             setIsLoadingCustomerTransactions(true);
                                             const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
@@ -8042,27 +8079,27 @@ const MerchantDashboard = () => {
                                           }, 300);
                                         } else {
                                           const error = await res.json();
-                                          alert(`❌ ${error.error}`);
+                                          alert(`â‌Œ ${error.error}`);
                                         }
                                       } catch (error) {
                                         console.error('Edit error:', error);
-                                        alert('❌ حدث خطأ');
+                                        alert('â‌Œ ط­ط¯ط« ط®ط·ط£');
                                       }
                                     }}
-                                    title="تعديل"
+                                    title="طھط¹ط¯ظٹظ„"
                                     className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-amber-900/30 text-amber-400" : "hover:bg-amber-50 text-amber-600")}
                                   >
                                     <Edit2 size={14} />
                                   </button>
                                   <button
                                     onClick={async () => {
-                                      if (!confirm('هل تريد حذف هذه المعاملة؟')) return;
+                                      if (!confirm('ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„ظ…ط¹ط§ظ…ظ„ط©طں')) return;
                                       try {
                                         console.log('Deleting transaction:', { id: transaction.id, type: transaction.type });
                                         let res = await fetch(`/api/topup/payment/${transaction.id}`, { method: 'DELETE' });
                                         
                                         if (res.ok) {
-                                          alert('✓ تم الحذف بنجاح');
+                                          alert('âœ“ طھظ… ط§ظ„ط­ط°ظپ ط¨ظ†ط¬ط§ط­');
                                           setTimeout(async () => {
                                             setIsLoadingCustomerTransactions(true);
                                             const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
@@ -8074,14 +8111,14 @@ const MerchantDashboard = () => {
                                             setIsLoadingCustomerTransactions(false);
                                           }, 300);
                                         } else {
-                                          alert('فشل الحذف');
+                                          alert('ظپط´ظ„ ط§ظ„ط­ط°ظپ');
                                         }
                                       } catch (error) {
                                         console.error('Delete error:', error);
-                                        alert('❌ حدث خطأ');
+                                        alert('â‌Œ ط­ط¯ط« ط®ط·ط£');
                                       }
                                     }}
-                                    title="ط­ط°ظپ"
+                                    title="ط·آ­ط·آ°ط¸ظ¾"
                                     className={cn("p-1.5 rounded-lg transition-all hover:scale-110", isDarkMode ? "hover:bg-red-900/30 text-red-400" : "hover:bg-red-50 text-red-600")}
                                   >
                                     <Trash2 size={14} />
@@ -8106,18 +8143,18 @@ const MerchantDashboard = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     className={cn("rounded-2xl w-full max-w-sm shadow-2xl p-6 border", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-white/20")}
                   >
-                    <h3 className={cn("text-xl font-normal mb-4", isDarkMode ? "text-gray-100" : "text-gray-900")}>تعديل المعاملة</h3>
+                    <h3 className={cn("text-xl font-normal mb-4", isDarkMode ? "text-gray-100" : "text-gray-900")}>طھط¹ط¯ظٹظ„ ط§ظ„ظ…ط¹ط§ظ…ظ„ط©</h3>
                     
                     <div className="space-y-4">
                       <div className="relative">
-                        <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>المبلغ</label>
+                        <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ظ„ظ…ط¨ظ„ط؛</label>
                         <input
                           type="number"
                           value={editingTransactionAmount}
                           onChange={(e) => setEditingTransactionAmount(e.target.value)}
                           className={cn("w-full px-4 py-3 border rounded-lg focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-normal outline-none pl-12", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5")}
                         />
-                        <span className={cn("absolute left-3 bottom-3 font-normal text-sm", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط¯.ط£</span>
+                        <span className={cn("absolute left-3 bottom-3 font-normal text-sm", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط·آ¯.ط·آ£</span>
                       </div>
 
                       <div className="flex gap-3 mt-6">
@@ -8125,7 +8162,7 @@ const MerchantDashboard = () => {
                           onClick={handleSaveEditTransaction}
                           className="flex-1 px-4 py-2 rounded-lg font-normal text-white bg-indigo-600 hover:bg-indigo-700 transition-all"
                         >
-                          حفظ التعديل
+                          ط­ظپط¸ ط§ظ„طھط¹ط¯ظٹظ„
                         </button>
                         <button
                           onClick={() => {
@@ -8134,7 +8171,7 @@ const MerchantDashboard = () => {
                           }}
                           className={cn("flex-1 px-4 py-2 rounded-lg font-normal transition-all border", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600" : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200")}
                         >
-                          إلغاء
+                          ط¥ظ„ط؛ط§ط،
                         </button>
                       </div>
                     </div>
@@ -8145,7 +8182,7 @@ const MerchantDashboard = () => {
               {/* Payment Input Section */}
               <div className={cn("p-4 md:p-6 border-t", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
                 <h4 className={cn("font-normal text-sm mb-4", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                  💳 تسجيل دفعة يدوية من التاجر
+                  ًں’³ طھط³ط¬ظٹظ„ ط¯ظپط¹ط© ظٹط¯ظˆظٹط© ظ…ظ† ط§ظ„طھط§ط¬ط±
                 </h4>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="flex-1 relative">
@@ -8153,10 +8190,10 @@ const MerchantDashboard = () => {
                       type="number"
                       value={merchantPaymentAmount}
                       onChange={(e) => setMerchantPaymentAmount(e.target.value)}
-                      placeholder="أدخل مبلغ الدفعة"
+                      placeholder="ط£ط¯ط®ظ„ ظ…ط¨ظ„ط؛ ط§ظ„ط¯ظپط¹ط©"
                       className={cn("w-full px-4 py-3 border rounded-lg focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-normal outline-none pl-12", isDarkMode ? "bg-gray-600 border-gray-500 text-gray-100 placeholder-gray-400" : "bg-white border-black/5 placeholder-gray-400")}
                     />
-                    <span className={cn("absolute left-3 top-1/2 -translate-y-1/2 font-normal text-sm", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط¯.ط£</span>
+                    <span className={cn("absolute left-3 top-1/2 -translate-y-1/2 font-normal text-sm", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط·آ¯.ط·آ£</span>
                   </div>
                   <button
                     onClick={handleAddMerchantPayment}
@@ -8167,12 +8204,12 @@ const MerchantDashboard = () => {
                     {isProcessingMerchantPayment ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        ط¬ط§ط±ظٹ...
+                        ط·آ¬ط·آ§ط·آ±ط¸ظ¹...
                       </>
                     ) : (
                       <>
                         <Plus size={18} />
-                        إضافة الدفعة
+                        ط¥ط¶ط§ظپط© ط§ظ„ط¯ظپط¹ط©
                       </>
                     )}
                   </button>
@@ -8185,7 +8222,7 @@ const MerchantDashboard = () => {
                   onClick={() => setShowCustomerStatement(false)}
                   className={cn("px-6 py-2 rounded-lg font-normal transition-all", isDarkMode ? "bg-gray-600 hover:bg-gray-500 text-gray-100" : "bg-gray-200 hover:bg-gray-300 text-gray-700")}
                 >
-                  إغلاق
+                  ط¥ط؛ظ„ط§ظ‚
                 </button>
               </div>
             </motion.div>
@@ -8201,7 +8238,7 @@ const MerchantDashboard = () => {
               className={cn("rounded-2xl w-full max-w-4xl shadow-2xl max-h-[90vh] overflow-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
             >
               <div className={cn("p-6 border-b sticky top-0 flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
-                <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>الفاتورة #{invoiceModal.id}</h3>
+                <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ظپط§طھظˆط±ط© #{invoiceModal.id}</h3>
                 <div className="flex gap-2">
                   <button 
                     onClick={() => {
@@ -8214,7 +8251,7 @@ const MerchantDashboard = () => {
                     }}
                     className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-normal text-sm hover:bg-indigo-700 transition-all"
                   >
-                    🖨️ طباعة
+                    ًں–¨ï¸ڈ ط·ط¨ط§ط¹ط©
                   </button>
                   <button 
                     onClick={() => setInvoiceModal(null)}
@@ -8245,7 +8282,7 @@ const CustomerStorefront = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [mainImage, setMainImage] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('ط§ظ„ظƒظ„');
+  const [selectedCategory, setSelectedCategory] = useState<string>('ط·آ§ط¸â€‍ط¸ئ’ط¸â€‍');
   const [showNewOnly, setShowNewOnly] = useState(false);
   const [storeName, setStoreName] = useState('');
   const [quantities, setQuantities] = useState<Record<number, number>>({});
@@ -8271,7 +8308,7 @@ const CustomerStorefront = () => {
   const { productsRefreshTime } = useRefreshStore();
 
   // Get unique categories from products
-  const availableCategories = ['ط§ظ„ظƒظ„', ...Array.from(new Set(products.map((p: any) => (p as any).category_name).filter(Boolean)))];
+  const availableCategories = ['ط·آ§ط¸â€‍ط¸ئ’ط¸â€‍', ...Array.from(new Set(products.map((p: any) => (p as any).category_name).filter(Boolean)))];
 
   const filteredProducts = products.filter((p: any) => {
     const isAuctionProduct = p.is_auction === true || p.is_auction === 'true' || p.is_auction === 1;
@@ -8280,13 +8317,13 @@ const CustomerStorefront = () => {
     // Remove search filter requirement for initial display
     const matchesSearch = !searchQuery || (p.name && p.name.toLowerCase().includes(searchQuery.toLowerCase())) || 
       (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesCategory = selectedCategory === 'ط§ظ„ظƒظ„' || (p.category_name === selectedCategory);
+    const matchesCategory = selectedCategory === 'ط·آ§ط¸â€‍ط¸ئ’ط¸â€‍' || (p.category_name === selectedCategory);
     const matchesNew = !showNewOnly || (p.created_at && new Date(p.created_at) > new Date(Date.now() - 7*24*60*60*1000));
     return matchesSearch && matchesCategory && matchesNew;
   });
 
-  console.log('📊 AFTER FILTER - Filtered products count:', filteredProducts.length);
-  console.log('🔍 FILTERED PRODUCTS DEBUG:', filteredProducts.slice(0, 5).map(p => ({
+  console.log('ًں“ٹ AFTER FILTER - Filtered products count:', filteredProducts.length);
+  console.log('ًں”چ FILTERED PRODUCTS DEBUG:', filteredProducts.slice(0, 5).map(p => ({
     id: p.id,
     name: p.name,
     image_url: p.image_url,
@@ -8306,7 +8343,7 @@ const CustomerStorefront = () => {
         if (data && !data.error && data.app_name) {
           setDisplayAppName(data.app_name);
           setDisplayLogoUrl(data.logo_url || '');
-          console.log("📋 Loaded ADMIN settings for main page display");
+          console.log("ًں“‹ Loaded ADMIN settings for main page display");
         }
       })
       .catch(() => {});
@@ -8317,7 +8354,7 @@ const CustomerStorefront = () => {
 
     const loadStoreAndProducts = async () => {
       try {
-        console.log('🔄 Loading store and products for slug:', storeId);
+        console.log('ًں”„ Loading store and products for slug:', storeId);
         const storeRes = await fetch(`/api/stores/slug/${storeId}`).then(r => r.json());
         
         if (storeRes && storeRes.error) {
@@ -8326,18 +8363,18 @@ const CustomerStorefront = () => {
           return;
         }
         
-        console.log('✅ Store loaded:', { id: storeRes.id, name: storeRes.store_name, type: storeRes.store_type });
+        console.log('âœ… Store loaded:', { id: storeRes.id, name: storeRes.store_name, type: storeRes.store_type });
 
         if (storeRes.slug && storeRes.slug !== storeId) {
           const nextPath = storeRes.store_type === 'topup' ? `/topup/${storeRes.slug}` : `/store/${storeRes.slug}`;
-          console.log(`🔄 Redirecting customer to canonical store URL: ${nextPath}`);
+          console.log(`ًں”„ Redirecting customer to canonical store URL: ${nextPath}`);
           navigate(nextPath, { replace: true });
           return;
         }
         
         // If this is a regular (non-topup) store, clear topup customer data
         if (storeRes.store_type !== 'topup') {
-          console.log('🧹 Clearing topupCustomer as entering regular store');
+          console.log('ًں§¹ Clearing topupCustomer as entering regular store');
           localStorage.removeItem('topupCustomer');
         }
         
@@ -8357,7 +8394,7 @@ const CustomerStorefront = () => {
         } else {
           // Regular store: Use /api/products endpoint
           const productsData = await fetch(`/api/products?storeId=${actualStoreId}`).then(r => r.json());
-          console.log('📦 API RESPONSE (raw):', { count: Array.isArray(productsData) ? productsData.length : 0, data: productsData });
+          console.log('ًں“¦ API RESPONSE (raw):', { count: Array.isArray(productsData) ? productsData.length : 0, data: productsData });
           // Ensure regular products have store_type
           productsRes = Array.isArray(productsData) ? productsData.map((p: any) => {
             const mapped = {
@@ -8365,7 +8402,7 @@ const CustomerStorefront = () => {
               store_type: 'regular',
               image_url: p.image_url || ''
             };
-            console.log('🔄 MAPPED Product:', { 
+            console.log('ًں”„ MAPPED Product:', { 
               id: mapped.id, 
               name: mapped.name, 
               image_url: mapped.image_url,
@@ -8374,7 +8411,7 @@ const CustomerStorefront = () => {
             });
             return mapped;
           }) : [];
-          console.log('✅ Final productsRes ready:', { count: productsRes.length, samples: productsRes.slice(0, 3) });
+          console.log('âœ… Final productsRes ready:', { count: productsRes.length, samples: productsRes.slice(0, 3) });
         }
 
         if (storeRes && !storeRes.error) {
@@ -8384,16 +8421,16 @@ const CustomerStorefront = () => {
           const isTopup = storeRes.store_type === 'topup';
           setStoreType(isTopup ? 'topup' : 'regular');
           
-          // اذا كان المتجر topup، اعد التوجيه إلى TopupStorefront
+          // ط§ط°ط§ ظƒط§ظ† ط§ظ„ظ…طھط¬ط± topupطŒ ط§ط¹ط¯ ط§ظ„طھظˆط¬ظٹظ‡ ط¥ظ„ظ‰ TopupStorefront
           if (isTopup) {
-            console.log('🔄 Store is topup, redirecting to /topup/:slug');
+            console.log('ًں”„ Store is topup, redirecting to /topup/:slug');
             navigate(`/topup/${storeRes.slug || slug}`, { replace: true });
             return;
           }
         }
 
         const rows = Array.isArray(productsRes) ? productsRes : [];
-        console.log('✅ Products loaded:', { count: rows.length, samples: rows.slice(0, 2).map(p => ({ id: p.id, name: p.name, image_url: p.image_url })) });
+        console.log('âœ… Products loaded:', { count: rows.length, samples: rows.slice(0, 2).map(p => ({ id: p.id, name: p.name, image_url: p.image_url })) });
         setProducts(rows);
         
         // Reset selectedProduct when products are loaded to avoid stale state
@@ -8407,7 +8444,7 @@ const CustomerStorefront = () => {
     loadStoreAndProducts();
   }, [storeId, productsRefreshTime]);
 
-  // التحقق من أن العميل مسجل في متجر الشحن
+  // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط£ظ† ط§ظ„ط¹ظ…ظٹظ„ ظ…ط³ط¬ظ„ ظپظٹ ظ…طھط¬ط± ط§ظ„ط´ط­ظ†
   useEffect(() => {
     if (!storeId) return;
     
@@ -8415,40 +8452,40 @@ const CustomerStorefront = () => {
     setVerificationError('');
     setIsCustomerVerified(false);
 
-    // إذا لم نحمل نوع المتجر بعد، لا نتحقق
+    // ط¥ط°ط§ ظ„ظ… ظ†ط­ظ…ظ„ ظ†ظˆط¹ ط§ظ„ظ…طھط¬ط± ط¨ط¹ط¯طŒ ظ„ط§ ظ†طھط­ظ‚ظ‚
     if (!storeType) {
       setVerificationLoading(true);
       return;
     }
 
-    // إذا كان متجراً عادياً، لا نحتاج للتحقق
+    // ط¥ط°ط§ ظƒط§ظ† ظ…طھط¬ط±ط§ظ‹ ط¹ط§ط¯ظٹط§ظ‹طŒ ظ„ط§ ظ†ط­طھط§ط¬ ظ„ظ„طھط­ظ‚ظ‚
     if (storeType === 'regular') {
       setIsCustomerVerified(true);
       setVerificationLoading(false);
       return;
     }
 
-    // متجر شحن - يجب التحقق من تسجيل العميل
+    // ظ…طھط¬ط± ط´ط­ظ† - ظٹط¬ط¨ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† طھط³ط¬ظٹظ„ ط§ظ„ط¹ظ…ظٹظ„
     if (storeType === 'topup') {
       if (!user) {
-        setVerificationError('يجب تسجيل الدخول لعرض متجر الشحن');
+        setVerificationError('ظٹط¬ط¨ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ظ„ط¹ط±ط¶ ظ…طھط¬ط± ط§ظ„ط´ط­ظ†');
         setVerificationLoading(false);
         return;
       }
 
-      // التحقق من أن المستخدم مسجل كعميل في المتجر
+      // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط£ظ† ط§ظ„ظ…ط³طھط®ط¯ظ… ظ…ط³ط¬ظ„ ظƒط¹ظ…ظٹظ„ ظپظٹ ط§ظ„ظ…طھط¬ط±
       fetch(`/api/customers?storeId=${storeId}&customerId=${user.id}`)
         .then(res => res.json())
         .then(data => {
           if (data && data.id) {
-            console.log('✅ Customer verified from API:', {
+            console.log('âœ… Customer verified from API:', {
               id: data.id,
               name: data.name,
               phone: data.phone,
               customer_type: data.customer_type
             });
             
-            // حفظ بيانات العميل في state
+            // ط­ظپط¸ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظٹظ„ ظپظٹ state
             setCustomer({
               customer_id: data.id,
               name: data.name,
@@ -8462,12 +8499,12 @@ const CustomerStorefront = () => {
             setVerificationError('');
           } else {
             setIsCustomerVerified(false);
-            setVerificationError('أنت غير مسجل كعميل في هذا المتجر. يرجى التواصل مع مدير المتجر.');
+            setVerificationError('ط£ظ†طھ ط؛ظٹط± ظ…ط³ط¬ظ„ ظƒط¹ظ…ظٹظ„ ظپظٹ ظ‡ط°ط§ ط§ظ„ظ…طھط¬ط±. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ظ…ط¯ظٹط± ط§ظ„ظ…طھط¬ط±.');
           }
         })
         .catch(err => {
-          console.error('خطأ في التحقق من العميل:', err);
-          setVerificationError('حدث خطأ في التحقق. يرجى المحاولة لاحقاً.');
+          console.error('ط®ط·ط£ ظپظٹ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط¹ظ…ظٹظ„:', err);
+          setVerificationError('ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„طھط­ظ‚ظ‚. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ„ط§ط­ظ‚ط§ظ‹.');
         })
         .finally(() => setVerificationLoading(false));
     }
@@ -8483,11 +8520,11 @@ const CustomerStorefront = () => {
         fetch(`/api/auctions/${(selectedProduct as any).auction_id}`)
           .then(res => res.json())
           .then(data => {
-            console.log('✅ Auction data loaded:', data);
+            console.log('âœ… Auction data loaded:', data);
             setAuctionData(data.auction);
           })
           .catch(err => {
-            console.error('❌ Error loading auction:', err);
+            console.error('â‌Œ Error loading auction:', err);
             setAuctionData(null);
           })
           .finally(() => setAuctionLoading(false));
@@ -8500,7 +8537,7 @@ const CustomerStorefront = () => {
   }, [selectedProduct]);
 
   const handleAddToCart = (product: Product) => {
-    console.log('🛒 Adding to cart:', { id: product.id, name: product.name, store_name: (product as any).store_name });
+    console.log('ًں›’ Adding to cart:', { id: product.id, name: product.name, store_name: (product as any).store_name });
     const qty = quantities[product.id] || 1;
     addItem(product);
     // Update quantity to match the selected amount
@@ -8514,14 +8551,14 @@ const CustomerStorefront = () => {
 
   // Group products by category
   const productsByCategory = filteredProducts.reduce((acc: Record<string, Product[]>, product: Product) => {
-    const category = (product as any).category_name || 'منتجات أخرى';
+    const category = (product as any).category_name || 'ظ…ظ†طھط¬ط§طھ ط£ط®ط±ظ‰';
     if (!acc[category]) acc[category] = [];
     acc[category].push(product);
-    console.log('➕ Adding to category:', { category, product_id: product.id, image_url: product.image_url });
+    console.log('â‍• Adding to category:', { category, product_id: product.id, image_url: product.image_url });
     return acc;
   }, {});
 
-  console.log('🗂️ PRODUCTS BY CATEGORY FINAL:', Object.keys(productsByCategory).map(cat => ({
+  console.log('ًں—‚ï¸ڈ PRODUCTS BY CATEGORY FINAL:', Object.keys(productsByCategory).map(cat => ({
     category: cat,
     count: productsByCategory[cat].length,
     samples: productsByCategory[cat].slice(0, 2).map(p => ({ id: p.id, name: p.name, image_url: p.image_url }))
@@ -8552,7 +8589,7 @@ const CustomerStorefront = () => {
 
             <div className="p-4 sm:p-8 flex flex-col overflow-y-auto flex-1">
               <div className="mb-6">
-                <span className={cn("px-4 py-1.5 rounded-xl text-[10px] font-normal uppercase tracking-widest border inline-block", isDarkMode ? "bg-indigo-900/30 text-indigo-400 border-indigo-700" : "bg-indigo-50 text-indigo-600 border-indigo-100")}>💳 بطاقة شحن</span>
+                <span className={cn("px-4 py-1.5 rounded-xl text-[10px] font-normal uppercase tracking-widest border inline-block", isDarkMode ? "bg-indigo-900/30 text-indigo-400 border-indigo-700" : "bg-indigo-50 text-indigo-600 border-indigo-100")}>ًں’³ ط¨ط·ط§ظ‚ط© ط´ط­ظ†</span>
                 <h2 className={cn("text-2xl sm:text-4xl font-bold mt-4", isDarkMode ? "text-gray-100" : "text-gray-900")}>{selectedProduct.name}</h2>
                 <p className={cn("text-sm sm:text-lg mt-2", isDarkMode ? "text-gray-300" : "text-gray-600")}>{selectedProduct.description}</p>
               </div>
@@ -8563,16 +8600,16 @@ const CustomerStorefront = () => {
                   <div className={cn("p-6 rounded-2xl mb-6 border-2", isDarkMode ? "bg-blue-900/30 border-blue-700" : "bg-blue-50 border-blue-200")}>
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className={cn("text-sm font-normal block mb-2", isDarkMode ? "text-blue-400" : "text-blue-600")}>عدد صور البطاقات المتاحة</span>
+                        <span className={cn("text-sm font-normal block mb-2", isDarkMode ? "text-blue-400" : "text-blue-600")}>ط¹ط¯ط¯ طµظˆط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ ط§ظ„ظ…طھط§ط­ط©</span>
                         <span className="text-3xl sm:text-4xl font-bold text-blue-500">{images.length}</span>
                       </div>
-                      <div className="text-4xl sm:text-5xl">📷</div>
+                      <div className="text-4xl sm:text-5xl">ًں“·</div>
                     </div>
                   </div>
 
                   {/* Image Preview Gallery */}
                   <div className={cn("mb-6 p-4 rounded-2xl border", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
-                    <p className={cn("text-sm font-normal mb-3", isDarkMode ? "text-gray-300" : "text-gray-600")}>عينة من الصور:</p>
+                    <p className={cn("text-sm font-normal mb-3", isDarkMode ? "text-gray-300" : "text-gray-600")}>ط¹ظٹظ†ط© ظ…ظ† ط§ظ„طµظˆط±:</p>
                     <div className="grid grid-cols-3 gap-2">
                       {images.slice(0, 3).map((imageUrl: any, idx: number) => (
                         <a 
@@ -8592,7 +8629,7 @@ const CustomerStorefront = () => {
                     </div>
                     {images.length > 3 && (
                       <p className={cn("text-xs mt-2", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                        ... و {images.length - 3} صور إضافية
+                        ... ظˆ {images.length - 3} طµظˆط± ط¥ط¶ط§ظپظٹط©
                       </p>
                     )}
                   </div>
@@ -8601,7 +8638,7 @@ const CustomerStorefront = () => {
 
               <div className="flex justify-between items-end pb-6 border-b border-black/10 mb-6">
                 <div>
-                  <p className={cn("text-xs font-normal mb-2 uppercase", isDarkMode ? "text-gray-500" : "text-gray-500")}>ط§ظ„ط³ط¹ط±</p>
+                  <p className={cn("text-xs font-normal mb-2 uppercase", isDarkMode ? "text-gray-500" : "text-gray-500")}>ط·آ§ط¸â€‍ط·آ³ط·آ¹ط·آ±</p>
                   <p className={cn("text-3xl sm:text-5xl font-bold", isDarkMode ? "text-white" : "text-gray-900")}>{formatCurrency(selectedProduct.price)}</p>
                 </div>
               </div>
@@ -8615,7 +8652,7 @@ const CustomerStorefront = () => {
                 style={{ backgroundColor: primaryColor }}
               >
                 <ShoppingCart size={24} />
-                شراء البطاقات
+                ط´ط±ط§ط، ط§ظ„ط¨ط·ط§ظ‚ط§طھ
               </button>
             </div>
           </motion.div>
@@ -8642,14 +8679,14 @@ const CustomerStorefront = () => {
 
   return (
     <div className={cn("min-h-screen pb-28 md:pb-0 flex flex-col", isDarkMode ? "bg-gray-900" : "bg-gray-50")}>
-      {/* التحقق من العميل لمتاجر الشحن */}
+      {/* ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط¹ظ…ظٹظ„ ظ„ظ…طھط§ط¬ط± ط§ظ„ط´ط­ظ† */}
       {storeType === 'topup' && (
         <>
           {verificationLoading && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center">
               <div className={cn("rounded-2xl p-8 text-center", isDarkMode ? "bg-gray-800" : "bg-white")}>
                 <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-600 border-t-transparent mx-auto mb-4"></div>
-                <p className={cn("text-lg font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>جاري التحقق من بيانات العميل...</p>
+                <p className={cn("text-lg font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط¬ط§ط±ظٹ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظٹظ„...</p>
               </div>
             </div>
           )}
@@ -8658,14 +8695,14 @@ const CustomerStorefront = () => {
             <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
               <div className={cn("rounded-2xl p-8 max-w-md", isDarkMode ? "bg-gray-800" : "bg-white")}>
                 <div className="text-center">
-                  <div className="text-6xl mb-4">🔐</div>
-                  <h2 className={cn("text-2xl font-bold mb-4", isDarkMode ? "text-white" : "text-gray-900")}>الوصول مقيد</h2>
+                  <div className="text-6xl mb-4">ًں”گ</div>
+                  <h2 className={cn("text-2xl font-bold mb-4", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ظˆطµظˆظ„ ظ…ظ‚ظٹط¯</h2>
                   <p className={cn("text-lg mb-6", isDarkMode ? "text-gray-300" : "text-gray-700")}>{verificationError}</p>
                   <button
                     onClick={() => navigate('/stores')}
                     className="w-full py-3 rounded-lg text-white font-normal bg-indigo-600 hover:bg-indigo-700 transition-all"
                   >
-                    العودة للمتاجر
+                    ط§ظ„ط¹ظˆط¯ط© ظ„ظ„ظ…طھط§ط¬ط±
                   </button>
                 </div>
               </div>
@@ -8674,7 +8711,7 @@ const CustomerStorefront = () => {
         </>
       )}
       
-      {/* إظهار المحتوى فقط إذا تم التحقق */}
+      {/* ط¥ط¸ظ‡ط§ط± ط§ظ„ظ…ط­طھظˆظ‰ ظپظ‚ط· ط¥ط°ط§ طھظ… ط§ظ„طھط­ظ‚ظ‚ */}
       {(storeType !== 'topup' || isCustomerVerified) && (
         <>
           {renderProductDetails()}
@@ -8684,7 +8721,7 @@ const CustomerStorefront = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
           <div className={cn('rounded-2xl shadow-lg p-4 sm:p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto', isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900')}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">سلة المشتريات</h2>
+              <h2 className="text-2xl font-bold">ط³ظ„ط© ط§ظ„ظ…ط´طھط±ظٹط§طھ</h2>
               <button
                 className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800"
                 onClick={() => setShowCartModal(false)}
@@ -8694,7 +8731,7 @@ const CustomerStorefront = () => {
             </div>
             
             {items.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">السلة فارغة</p>
+              <p className="text-center text-gray-500 py-8">ط§ظ„ط³ظ„ط© ظپط§ط±ط؛ط©</p>
             ) : (
               <div className="space-y-4">
                 {items.map((item) => (
@@ -8710,7 +8747,7 @@ const CustomerStorefront = () => {
                 ))}
                 <Link to="/cart" className="block mt-6 w-full">
                   <button className="w-full py-3 rounded-lg text-white font-bold transition-all" style={{ backgroundColor: primaryColor }}>
-                    عرض السلة المفصلة
+                    ط¹ط±ط¶ ط§ظ„ط³ظ„ط© ط§ظ„ظ…ظپطµظ„ط©
                   </button>
                 </Link>
               </div>
@@ -8727,7 +8764,7 @@ const CustomerStorefront = () => {
             <button 
               onClick={() => navigate('/stores')} 
               className="relative flex items-center justify-center p-2 hover:bg-indigo-700 rounded-lg transition-all"
-              title="العودة للشاشة الرئيسية"
+              title="ط§ظ„ط¹ظˆط¯ط© ظ„ظ„ط´ط§ط´ط© ط§ظ„ط±ط¦ظٹط³ظٹط©"
             >
               <ArrowRight size={24} />
             </button>
@@ -8735,7 +8772,7 @@ const CustomerStorefront = () => {
             <button 
               onClick={() => setShowCartModal(true)} 
               className="relative flex items-center justify-center p-2 hover:bg-indigo-700 rounded-lg transition-all"
-              title="عرض السلة"
+              title="ط¹ط±ط¶ ط§ظ„ط³ظ„ط©"
             >
               {displayLogoUrl ? (
                 <img src={displayLogoUrl} alt={displayAppName} className="h-10 w-10 sm:h-12 sm:w-12 object-contain" />
@@ -8747,13 +8784,13 @@ const CustomerStorefront = () => {
 
           {/* Center: Platform Name or Store Name */}
           <div className="flex-1 text-center min-w-0">
-            <h1 className="text-base sm:text-2xl font-normal truncate">{storeId ? displayAppName : 'منصة مير للتجارة الالكترونية'}</h1>
-            <p className="text-[10px] sm:text-xs text-indigo-200 truncate">{storeId ? 'متجر متخصص' : 'جميع متاجر السوق في مكان واحد'}</p>
+            <h1 className="text-base sm:text-2xl font-normal truncate">{storeId ? displayAppName : 'ظ…ظ†طµط© ظ…ظٹط± ظ„ظ„طھط¬ط§ط±ط© ط§ظ„ط§ظ„ظƒطھط±ظˆظ†ظٹط©'}</h1>
+            <p className="text-[10px] sm:text-xs text-indigo-200 truncate">{storeId ? 'ظ…طھط¬ط± ظ…طھط®طµطµ' : 'ط¬ظ…ظٹط¹ ظ…طھط§ط¬ط± ط§ظ„ط³ظˆظ‚ ظپظٹ ظ…ظƒط§ظ† ظˆط§ط­ط¯'}</p>
           </div>
 
           {/* Left: Cart and Auth */}
           <div className="flex gap-2 items-center">
-            <Link to="/cart" className="relative flex items-center justify-center p-2 hover:bg-indigo-700 rounded-lg transition-all" title="عرض السلة">
+            <Link to="/cart" className="relative flex items-center justify-center p-2 hover:bg-indigo-700 rounded-lg transition-all" title="ط¹ط±ط¶ ط§ظ„ط³ظ„ط©">
               <ShoppingCart size={20} />
               <AnimatePresence>
                 {items && items.length > 0 && (
@@ -8784,7 +8821,7 @@ const CustomerStorefront = () => {
               <div className="mb-8 sm:mb-12 pb-6 sm:pb-8">
                 <h2 className={cn("text-2xl sm:text-3xl font-bold mb-3", isDarkMode ? "text-white" : "text-indigo-600")}>{category}</h2>
                 <p className={cn("text-sm sm:text-base font-semibold mb-6", isDarkMode ? "text-white" : "text-gray-700")}>
-                  عدد المنتجات: <span className={cn("text-xl sm:text-2xl", isDarkMode ? "text-white" : "text-gray-900")}>{productsByCategory[category].length}</span>
+                  ط¹ط¯ط¯ ط§ظ„ظ…ظ†طھط¬ط§طھ: <span className={cn("text-xl sm:text-2xl", isDarkMode ? "text-white" : "text-gray-900")}>{productsByCategory[category].length}</span>
                 </p>
                 <div className="h-2 w-32 rounded-full" style={{ backgroundColor: isDarkMode ? '#818cf8' : '#4f46e5' }} />
                 <div className="h-1 w-full mt-6 rounded-full" style={{ backgroundColor: isDarkMode ? '#374151' : '#e5e7eb' }} />
@@ -8797,7 +8834,7 @@ const CustomerStorefront = () => {
                     const productImage = getPrimaryProductImage(product);
                     const productImageCandidates = getProductImageCandidates(product);
                     const hasImage = productImage !== PLACEHOLDER_IMAGE;
-                    console.log('🎨 RENDERING CARD:', { 
+                    console.log('ًںژ¨ RENDERING CARD:', { 
                       id: product.id, 
                       name: product.name, 
                       image_url: product.image_url,
@@ -8806,7 +8843,7 @@ const CustomerStorefront = () => {
                       image_url_length: product.image_url ? String(product.image_url).length : 0,
                       hasImage: hasImage,
                       category: category,
-                      will_show_image: hasImage ? 'YES ✅' : 'NO - WILL SHOW PACKAGE ❌'
+                      will_show_image: hasImage ? 'YES âœ…' : 'NO - WILL SHOW PACKAGE â‌Œ'
                     });
                     return (
                       <motion.div 
@@ -8847,7 +8884,7 @@ const CustomerStorefront = () => {
 
                             {/* Price */}
                             <div className="flex items-center justify-between pb-1.5 border-b" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
-                              <span className={cn("text-[8px] font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط§ظ„ط³ط¹ط±</span>
+                              <span className={cn("text-[8px] font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط·آ§ط¸â€‍ط·آ³ط·آ¹ط·آ±</span>
                               {/* Display smart price based on customer type */}
                               <div className="text-right">
                                 <span className={cn("text-xs font-bold", isDarkMode ? "text-white" : "text-gray-900")}>
@@ -8878,8 +8915,8 @@ const CustomerStorefront = () => {
         {filteredProducts.length === 0 && (
           <div className="text-center py-20">
             <Search size={64} className={cn("mx-auto mb-4", isDarkMode ? "text-gray-600" : "text-gray-200")} />
-            <h3 className={cn("text-xl font-normal", isDarkMode ? "text-white" : "text-gray-900")}>لا توجد منتجات تطابق بحثك</h3>
-            <p className={cn(isDarkMode ? "text-gray-400" : "text-gray-500")}>حاول استخدام كلمات بحث أخرى أو استكشاف الأقسام</p>
+            <h3 className={cn("text-xl font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ظ„ط§ طھظˆط¬ط¯ ظ…ظ†طھط¬ط§طھ طھط·ط§ط¨ظ‚ ط¨ط­ط«ظƒ</h3>
+            <p className={cn(isDarkMode ? "text-gray-400" : "text-gray-500")}>ط­ط§ظˆظ„ ط§ط³طھط®ط¯ط§ظ… ظƒظ„ظ…ط§طھ ط¨ط­ط« ط£ط®ط±ظ‰ ط£ظˆ ط§ط³طھظƒط´ط§ظپ ط§ظ„ط£ظ‚ط³ط§ظ…</p>
           </div>
         )}
       </main>
@@ -9028,18 +9065,18 @@ const MarketplacePage = () => {
     // Check if auction has ended
     const auctionStatus = getTimeRemaining(selectedAuction.auction_end_time, selectedAuction.auction_date);
     if (auctionStatus.isEnded) {
-      setBidMessage({ type: 'error', text: '❌ انتهى وقت المزاد، لا يمكن إضافة عروض' });
+      setBidMessage({ type: 'error', text: 'â‌Œ ط§ظ†طھظ‡ظ‰ ظˆظ‚طھ ط§ظ„ظ…ط²ط§ط¯طŒ ظ„ط§ ظٹظ…ظƒظ† ط¥ط¶ط§ظپط© ط¹ط±ظˆط¶' });
       return;
     }
 
     if (!selectedAuction || !auctionBidForm.bid_price || !auctionBidForm.customer_name || !auctionBidForm.customer_phone) {
-      setBidMessage({ type: 'error', text: 'يرجى ملء جميع الحقول (الاسم، الهاتف، والعرض)' });
+      setBidMessage({ type: 'error', text: 'ظٹط±ط¬ظ‰ ظ…ظ„ط، ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ (ط§ظ„ط§ط³ظ…طŒ ط§ظ„ظ‡ط§طھظپطŒ ظˆط§ظ„ط¹ط±ط¶)' });
       return;
     }
 
     // Validate phone number (basic validation)
     if (!/^\d{7,}$/.test(auctionBidForm.customer_phone.replace(/\D/g, ''))) {
-      setBidMessage({ type: 'error', text: 'يرجى إدخال رقم هاتف صحيح' });
+      setBidMessage({ type: 'error', text: 'ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط±ظ‚ظ… ظ‡ط§طھظپ طµط­ظٹط­' });
       return;
     }
 
@@ -9052,7 +9089,7 @@ const MarketplacePage = () => {
     if (bidPrice <= minBidPrice) {
       setBidMessage({ 
         type: 'error', 
-        text: `العرض يجب أن يكون أكثر من ${formatCurrency(minBidPrice)}` 
+        text: `ط§ظ„ط¹ط±ط¶ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط£ظƒط«ط± ظ…ظ† ${formatCurrency(minBidPrice)}` 
       });
       return;
     }
@@ -9072,7 +9109,7 @@ const MarketplacePage = () => {
 
       if (res.ok) {
         const bidData = await res.json();
-        setBidMessage({ type: 'success', text: '✅ تم قبول عرضك! سيتم تحديث البيانات تلقائياً...' });
+        setBidMessage({ type: 'success', text: 'âœ… طھظ… ظ‚ط¨ظˆظ„ ط¹ط±ط¶ظƒ! ط³ظٹطھظ… طھط­ط¯ظٹط« ط§ظ„ط¨ظٹط§ظ†ط§طھ طھظ„ظ‚ط§ط¦ظٹط§ظ‹...' });
         
         // Update both field names for compatibility
         const updatedAuction = {
@@ -9096,11 +9133,11 @@ const MarketplacePage = () => {
         setAuctionBidForm({ bid_price: '', customer_name: '', customer_phone: '' });
       } else {
         const errData = await res.json();
-        setBidMessage({ type: 'error', text: errData.error || 'فشل تقديم العرض' });
+        setBidMessage({ type: 'error', text: errData.error || 'ظپط´ظ„ طھظ‚ط¯ظٹظ… ط§ظ„ط¹ط±ط¶' });
       }
     } catch (err) {
       console.error('Error submitting bid:', err);
-      setBidMessage({ type: 'error', text: 'حدث خطأ في الاتصال بالخادم' });
+      setBidMessage({ type: 'error', text: 'ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط®ط§ط¯ظ…' });
     } finally {
       setBidSubmitting(false);
     }
@@ -9127,25 +9164,25 @@ const MarketplacePage = () => {
       <header className={cn('border-b sticky top-0 z-40', isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-black/5')}>
         <div className="max-w-7xl mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between gap-3 md:gap-4">
-            {/* شعار الآدمن (صورة) أقصى اليمين */}
+            {/* ط´ط¹ط§ط± ط§ظ„ط¢ط¯ظ…ظ† (طµظˆط±ط©) ط£ظ‚طµظ‰ ط§ظ„ظٹظ…ظٹظ† */}
             <div className="flex-shrink-0 flex items-center justify-start w-auto md:w-36 h-auto md:h-28">
               <button
                 className="relative focus:outline-none"
                 onClick={() => setShowCartModal(true)}
-                title="عرض المشتريات"
+                title="ط¹ط±ط¶ ط§ظ„ظ…ط´طھط±ظٹط§طھ"
               >
-                {/* شعار الآدمن */}
+                {/* ط´ط¹ط§ط± ط§ظ„ط¢ط¯ظ…ظ† */}
                 {useSettingsStore.getState().logoUrl ? (
                   <img
                     src={useSettingsStore.getState().logoUrl}
-                    alt="شعار الآدمن"
+                    alt="ط´ط¹ط§ط± ط§ظ„ط¢ط¯ظ…ظ†"
                     className="h-14 w-14 md:h-24 md:w-24 object-contain rounded-full border-2 border-indigo-200 bg-white shadow"
                     style={{ maxHeight: 112, maxWidth: 112 }}
                   />
                 ) : (
                   <UserIcon size={40} className={isDarkMode ? 'text-indigo-400' : 'text-indigo-700'} />
                 )}
-                {/* رقم السلة */}
+                {/* ط±ظ‚ظ… ط§ظ„ط³ظ„ط© */}
                 {items.length > 0 && (
                   <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-red-600 text-white text-xs md:text-lg font-bold min-w-6 h-6 md:w-9 md:h-9 px-1 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-10">
                     {items.length}
@@ -9156,7 +9193,7 @@ const MarketplacePage = () => {
 
             <div className="flex flex-col items-center flex-1 text-center min-w-0 px-1">
               <h1 className={cn('text-lg sm:text-2xl md:text-4xl font-normal leading-tight truncate', isDarkMode ? 'text-white' : 'text-gray-900')}>
-                {appName || 'منصة مير للتجارة الالكترونية'}
+                {appName || 'ظ…ظ†طµط© ظ…ظٹط± ظ„ظ„طھط¬ط§ط±ط© ط§ظ„ط§ظ„ظƒطھط±ظˆظ†ظٹط©'}
               </h1>
             </div>
 
@@ -9164,21 +9201,21 @@ const MarketplacePage = () => {
               <button 
                 onClick={() => setIsDarkMode(!isDarkMode)}
                 className={cn('p-2 rounded-lg transition-all', isDarkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300')}
-                title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}
+                title={isDarkMode ? 'ط§ظ„ظˆط¶ط¹ ط§ظ„ظپط§طھط­' : 'ط§ظ„ظˆط¶ط¹ ط§ظ„ط¯ط§ظƒظ†'}
               >
                 {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
               <Link to="/stores">
                 <button className={cn("px-4 py-2 rounded-lg font-normal text-lg transition-all flex items-center gap-2", isDarkMode ? "bg-gray-700 text-white hover:bg-gray-800 border border-gray-600" : "bg-white text-indigo-700 hover:bg-indigo-50 border border-indigo-100")}>
                   <StoreIcon size={20} />
-                  المتاجر
+                  ط§ظ„ظ…طھط§ط¬ط±
                 </button>
               </Link>
               <Link to="/register-merchant">
-                <button className="px-4 py-2 rounded-lg font-normal text-white bg-indigo-600 hover:bg-indigo-700 transition-all">انضم كتاجر</button>
+                <button className="px-4 py-2 rounded-lg font-normal text-white bg-indigo-600 hover:bg-indigo-700 transition-all">ط§ظ†ط¶ظ… ظƒطھط§ط¬ط±</button>
               </Link>
               <button className="hidden px-4 py-2 rounded-lg font-normal text-indigo-600 border border-indigo-200 bg-white hover:bg-indigo-50 transition-all" onClick={() => setShowLoginModal(true)}>
-                تسجيل الدخول
+                طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„
               </button>
             </div>
 
@@ -9186,14 +9223,14 @@ const MarketplacePage = () => {
               <button 
                 onClick={() => setIsDarkMode(!isDarkMode)}
                 className={cn('p-2 rounded-lg transition-all', isDarkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300')}
-                title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}
+                title={isDarkMode ? 'ط§ظ„ظˆط¶ط¹ ط§ظ„ظپط§طھط­' : 'ط§ظ„ظˆط¶ط¹ ط§ظ„ط¯ط§ظƒظ†'}
               >
                 {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
               </button>
               <button
                 onClick={() => setShowMobileMenu(prev => !prev)}
                 className={cn('p-2 rounded-lg transition-all', isDarkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-100 text-gray-800 hover:bg-gray-200')}
-                title="القائمة"
+                title="ط§ظ„ظ‚ط§ط¦ظ…ط©"
               >
                 {showMobileMenu ? <X size={18} /> : <Menu size={18} />}
               </button>
@@ -9205,11 +9242,11 @@ const MarketplacePage = () => {
               <Link to="/stores" onClick={() => setShowMobileMenu(false)}>
                 <button className={cn("w-full px-3 py-2.5 rounded-xl font-normal text-sm transition-all flex items-center justify-center gap-2", isDarkMode ? "bg-gray-700 text-white hover:bg-gray-600 border border-gray-600" : "bg-white text-indigo-700 hover:bg-indigo-50 border border-indigo-100")}>
                   <StoreIcon size={16} />
-                  المتاجر
+                  ط§ظ„ظ…طھط§ط¬ط±
                 </button>
               </Link>
               <Link to="/register-merchant" onClick={() => setShowMobileMenu(false)}>
-                <button className="w-full px-3 py-2.5 rounded-xl font-normal text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-all">انضم كتاجر</button>
+                <button className="w-full px-3 py-2.5 rounded-xl font-normal text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-all">ط§ظ†ط¶ظ… ظƒطھط§ط¬ط±</button>
               </Link>
               <button
                 className="hidden col-span-2 w-full px-3 py-2.5 rounded-xl font-normal text-sm text-indigo-600 border border-indigo-200 bg-white hover:bg-indigo-50 transition-all"
@@ -9218,12 +9255,12 @@ const MarketplacePage = () => {
                   setShowLoginModal(true);
                 }}
               >
-                تسجيل الدخول
+                طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„
               </button>
             </div>
           )}
 
-          {/* Cart Modal (عند الضغط على شعار الآدمن) */}
+          {/* Cart Modal (ط¹ظ†ط¯ ط§ظ„ط¶ط؛ط· ط¹ظ„ظ‰ ط´ط¹ط§ط± ط§ظ„ط¢ط¯ظ…ظ†) */}
           {showCartModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
               <div className={cn('bg-white rounded-2xl shadow-lg p-8 w-full max-w-lg relative', isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900')}>
@@ -9233,10 +9270,10 @@ const MarketplacePage = () => {
                 >
                   <X size={20} />
                 </button>
-                <h2 className="text-2xl font-normal mb-6 text-center">سلة المشتريات</h2>
+                <h2 className="text-2xl font-normal mb-6 text-center">ط³ظ„ط© ط§ظ„ظ…ط´طھط±ظٹط§طھ</h2>
                 <div className="space-y-4">
                   {items.length === 0 ? (
-                    <p className="text-center text-gray-500">لا توجد منتجات في السلة.</p>
+                    <p className="text-center text-gray-500">ظ„ط§ طھظˆط¬ط¯ ظ…ظ†طھط¬ط§طھ ظپظٹ ط§ظ„ط³ظ„ط©.</p>
                   ) : (
                     <>
                       <ul className="divide-y divide-gray-200 max-h-64 overflow-y-auto">
@@ -9248,7 +9285,7 @@ const MarketplacePage = () => {
                               )}
                               <div>
                                 <div className="font-medium text-base">{(item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name}</div>
-                                <div className="text-xs text-gray-500">الكمية: {item.quantity || 1}</div>
+                                <div className="text-xs text-gray-500">ط§ظ„ظƒظ…ظٹط©: {item.quantity || 1}</div>
                               </div>
                             </div>
                             <div className="font-bold text-indigo-600">{formatCurrency(item.price)}</div>
@@ -9258,22 +9295,22 @@ const MarketplacePage = () => {
                       <button
                         className="w-full mt-6 py-3 rounded-xl text-white font-normal text-lg transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 shadow-lg bg-indigo-600 hover:bg-indigo-700"
                         onClick={() => {
-                          // التحقق إذا كانت جميع المنتجات من الشحن فقط
+                          // ط§ظ„طھط­ظ‚ظ‚ ط¥ط°ط§ ظƒط§ظ†طھ ط¬ظ…ظٹط¹ ط§ظ„ظ…ظ†طھط¬ط§طھ ظ…ظ† ط§ظ„ط´ط­ظ† ظپظ‚ط·
                           const allTopup = items.every((item: any) => item.store_type === 'topup');
                           
                           if (allTopup && items.length > 0) {
-                            // جميع المنتجات من الشحن - الذهاب مباشرة إلى تأكيد الشراء
+                            // ط¬ظ…ظٹط¹ ط§ظ„ظ…ظ†طھط¬ط§طھ ظ…ظ† ط§ظ„ط´ط­ظ† - ط§ظ„ط°ظ‡ط§ط¨ ظ…ط¨ط§ط´ط±ط© ط¥ظ„ظ‰ طھط£ظƒظٹط¯ ط§ظ„ط´ط±ط§ط،
                             setShowCartModal(false);
                             handleCheckout();
                           } else {
-                            // منتجات عادية أو مختلطة - الذهاب إلى صفحة السلة
+                            // ظ…ظ†طھط¬ط§طھ ط¹ط§ط¯ظٹط© ط£ظˆ ظ…ط®طھظ„ط·ط© - ط§ظ„ط°ظ‡ط§ط¨ ط¥ظ„ظ‰ طµظپط­ط© ط§ظ„ط³ظ„ط©
                             setShowCartModal(false);
                             navigate('/cart');
                           }
                         }}
                       >
                         <Send size={20} />
-                        إرسال الطلب إلى المتجر
+                        ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨ ط¥ظ„ظ‰ ط§ظ„ظ…طھط¬ط±
                       </button>
                     </>
                   )}
@@ -9294,7 +9331,7 @@ const MarketplacePage = () => {
             >
               <X size={20} />
             </button>
-            <h2 className="text-2xl font-normal mb-6 text-center">تسجيل الدخول</h2>
+            <h2 className="text-2xl font-normal mb-6 text-center">طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„</h2>
             
             <form onSubmit={async (e) => {
               e.preventDefault();
@@ -9322,14 +9359,14 @@ const MarketplacePage = () => {
                     navigate('/');
                   }
                 } else {
-                  alert('رقم الهاتف أو كلمة المرور غير صحيحة');
+                  alert('ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ط£ظˆ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط؛ظٹط± طµط­ظٹط­ط©');
                 }
               } catch (err) {
-                alert('حدث خطأ ما');
+                alert('ط­ط¯ط« ط®ط·ط£ ظ…ط§');
               }
             }} className="space-y-4">
               <div>
-                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>رقم الهاتف</label>
+                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ</label>
                 <input 
                   type="text" 
                   name="phone"
@@ -9339,25 +9376,25 @@ const MarketplacePage = () => {
                 />
               </div>
               <div>
-                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>كلمة المرور</label>
+                <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</label>
                 <input 
                   type="password" 
                   name="password"
                   className={cn("w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/10 text-gray-900")}  
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   required
                 />
               </div>
               <button type="submit" className="w-full bg-indigo-600 text-white py-2 rounded-lg font-normal hover:bg-indigo-700 transition-all">
-                تسجيل الدخول
+                طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„
               </button>
             </form>
 
             <div className="mt-4 text-center text-sm">
               <p className={isDarkMode ? "text-gray-400" : "text-gray-500"}>
-                لا تملك حساب؟{' '}
+                ظ„ط§ طھظ…ظ„ظƒ ط­ط³ط§ط¨طں{' '}
                 <Link to="/register-merchant" className="text-indigo-600 hover:text-indigo-700 font-normal">
-                  سجل كتاجر
+                  ط³ط¬ظ„ ظƒطھط§ط¬ط±
                 </Link>
               </p>
             </div>
@@ -9373,7 +9410,7 @@ const MarketplacePage = () => {
               <Search size={20} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
               <input
                 type="text"
-                placeholder="ابحث عن منتج..."
+                placeholder="ط§ط¨ط­ط« ط¹ظ† ظ…ظ†طھط¬..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={cn('flex-1 bg-transparent outline-none text-sm', isDarkMode ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500')}
@@ -9391,7 +9428,7 @@ const MarketplacePage = () => {
             <div className="flex items-center gap-3 mb-6">
               <Zap size={24} className="text-amber-500" />
               <h2 className={cn('text-xl sm:text-2xl font-bold', isDarkMode ? 'text-white' : 'text-gray-900')}>
-                🔥 المنتجات قيد المزاد
+                ًں”¥ ط§ظ„ظ…ظ†طھط¬ط§طھ ظ‚ظٹط¯ ط§ظ„ظ…ط²ط§ط¯
               </h2>
             </div>
             
@@ -9416,13 +9453,13 @@ const MarketplacePage = () => {
                         {/* Auction Badge */}
                         <div className="absolute top-2 right-2 bg-gradient-to-r from-amber-500 to-red-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                           <Zap size={12} />
-                          ظ…ط²ط§ط¯
+                          ط¸â€¦ط·آ²ط·آ§ط·آ¯
                         </div>
                         
                         {/* Timer Badge */}
                         <div className={cn('absolute bottom-2 left-2 px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1', isEnded ? 'bg-red-500 text-white' : 'bg-green-500 text-white')}>
                           <Clock size={12} />
-                          {isEnded ? 'انتهى' : `${timer.hours}:${timer.minutes.toString().padStart(2, '0')}`}
+                          {isEnded ? 'ط§ظ†طھظ‡ظ‰' : `${timer.hours}:${timer.minutes.toString().padStart(2, '0')}`}
                         </div>
                       </div>
 
@@ -9441,7 +9478,7 @@ const MarketplacePage = () => {
                         <div className="space-y-0.5 border-t border-black/10 pt-2">
                           <div className="flex justify-between items-center gap-1">
                             <span className={cn('text-[9px] font-normal', isDarkMode ? 'text-gray-400' : 'text-gray-600')}>
-                              ط§ظ„ط³ط¹ط±:
+                              ط·آ§ط¸â€‍ط·آ³ط·آ¹ط·آ±:
                             </span>
                             <span className={cn('text-xs font-bold', isDarkMode ? 'text-amber-400' : 'text-amber-600')}>
                               {formatCurrency(auction.starting_price)}
@@ -9451,7 +9488,7 @@ const MarketplacePage = () => {
                           {(auction.current_highest_price || auction.highest_bid) && (
                             <div className="flex justify-between items-center gap-1">
                               <span className={cn('text-[9px] font-normal', isDarkMode ? 'text-gray-400' : 'text-gray-600')}>
-                                ط£ط¹ظ„ظ‰:
+                                ط·آ£ط·آ¹ط¸â€‍ط¸â€°:
                               </span>
                               <span className={cn('text-xs font-bold', isDarkMode ? 'text-green-400' : 'text-green-600')}>
                                 {formatCurrency(auction.current_highest_price || auction.highest_bid)}
@@ -9462,7 +9499,7 @@ const MarketplacePage = () => {
                           {auction.total_bids && (
                             <div className="flex justify-between items-center gap-1">
                               <span className={cn('text-[9px] font-normal', isDarkMode ? 'text-gray-400' : 'text-gray-600')}>
-                                ط¹ط±ظˆط¶:
+                                ط·آ¹ط·آ±ط¸ث†ط·آ¶:
                               </span>
                               <span className={cn('text-xs font-bold', isDarkMode ? 'text-blue-400' : 'text-blue-600')}>
                                 {auction.total_bids}
@@ -9473,7 +9510,7 @@ const MarketplacePage = () => {
 
                         {/* Button */}
                         <button onClick={(e) => { e.stopPropagation(); setSelectedAuction(auction); }} className={cn('w-full py-1.5 rounded-lg font-bold text-xs transition-all mt-1 cursor-pointer', isDarkMode ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white')}>
-                          ط¹ط±ط¶
+                          ط·آ¹ط·آ±ط·آ¶
                         </button>
                       </div>
                     </Card>
@@ -9492,28 +9529,28 @@ const MarketplacePage = () => {
         {/* Regular Products Section */}
         <div>
           <h2 className={cn('text-xl sm:text-2xl font-bold mb-6', isDarkMode ? 'text-white' : 'text-gray-900')}>
-            المنتجات
+            ط§ظ„ظ…ظ†طھط¬ط§طھ
           </h2>
         {loading ? (
           <div className="text-center py-20">
             <div className="w-12 h-12 rounded-full border-4 border-gray-200 border-t-indigo-600 animate-spin mx-auto mb-4"></div>
-            <p className={cn('font-normal', isDarkMode ? 'text-gray-300' : 'text-gray-600')}>جاري تحميل المنتجات...</p>
+            <p className={cn('font-normal', isDarkMode ? 'text-gray-300' : 'text-gray-600')}>ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ظ…ظ†طھط¬ط§طھ...</p>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-20">
             <Package size={64} className={cn('mx-auto mb-4', isDarkMode ? 'text-gray-600' : 'text-gray-300')} />
             <h3 className={cn('text-xl font-normal', isDarkMode ? 'text-white' : 'text-gray-900')}>
-              {searchQuery ? 'لا توجد منتجات تطابق البحث' : 'لا توجد منتجات متاحة حالياً'}
+              {searchQuery ? 'ظ„ط§ طھظˆط¬ط¯ ظ…ظ†طھط¬ط§طھ طھط·ط§ط¨ظ‚ ط§ظ„ط¨ط­ط«' : 'ظ„ط§ طھظˆط¬ط¯ ظ…ظ†طھط¬ط§طھ ظ…طھط§ط­ط© ط­ط§ظ„ظٹط§ظ‹'}
             </h3>
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} className={cn('mt-4 px-4 py-2 rounded-lg font-normal text-white', isDarkMode ? 'bg-indigo-700 hover:bg-indigo-800' : 'bg-indigo-600 hover:bg-indigo-700')}>
-                مسح البحث
+                ظ…ط³ط­ ط§ظ„ط¨ط­ط«
               </button>
             )}
             {!searchQuery && (
               <Link to="/stores" className="mt-6 inline-block">
                 <button className={cn("px-6 py-3 rounded-lg font-normal text-white transition-all", isDarkMode ? "bg-indigo-700 hover:bg-indigo-800" : "bg-indigo-600 hover:bg-indigo-700")}>
-                  استكشف المتاجر
+                  ط§ط³طھظƒط´ظپ ط§ظ„ظ…طھط§ط¬ط±
                 </button>
               </Link>
             )}
@@ -9553,7 +9590,7 @@ const MarketplacePage = () => {
 
                     {/* Price */}
                     <div className="flex items-center justify-between pb-1.5 border-b" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
-                      <span className={cn('text-[8px] font-normal', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>ط§ظ„ط³ط¹ط±</span>
+                      <span className={cn('text-[8px] font-normal', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>ط·آ§ط¸â€‍ط·آ³ط·آ¹ط·آ±</span>
                       <span className={cn('text-xs font-bold', isDarkMode ? 'text-white' : 'text-gray-900')}>{formatCurrency(p.price)}</span>
                     </div>
                   </div>
@@ -9605,7 +9642,7 @@ const MarketplacePage = () => {
                 </h2>
               </div>
               <p className={cn('text-[11px] truncate', isDarkMode ? 'text-amber-100' : 'text-amber-700')}>
-                من متجر {selectedAuction.store_name}
+                ظ…ظ† ظ…طھط¬ط± {selectedAuction.store_name}
               </p>
             </div>
 
@@ -9622,7 +9659,7 @@ const MarketplacePage = () => {
               <div className="grid grid-cols-2 gap-2">
                 <div className={cn('p-2 rounded-lg text-center text-xs', isDarkMode ? 'bg-green-900/30' : 'bg-green-50')}>
                   <p className={cn('text-[10px] font-normal mb-1', isDarkMode ? 'text-green-300' : 'text-green-600')}>
-                    السعر الأساسي
+                    ط§ظ„ط³ط¹ط± ط§ظ„ط£ط³ط§ط³ظٹ
                   </p>
                   <p className={cn('text-sm font-bold', isDarkMode ? 'text-green-400' : 'text-green-700')}>
                     {formatCurrency(selectedAuction.starting_price)}
@@ -9631,16 +9668,16 @@ const MarketplacePage = () => {
 
                 <div className={cn('p-2 rounded-lg text-center text-xs', isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50')}>
                   <p className={cn('text-[9px] font-normal mb-0.5', isDarkMode ? 'text-blue-300' : 'text-blue-600')}>
-                    أعلى عرض
+                    ط£ط¹ظ„ظ‰ ط¹ط±ط¶
                   </p>
                   <p className={cn('text-xs font-bold', isDarkMode ? 'text-blue-400' : 'text-blue-700')}>
-                    {(selectedAuction.current_highest_price || selectedAuction.highest_bid) ? formatCurrency(selectedAuction.current_highest_price || selectedAuction.highest_bid) : 'لا توجد عروض'}
+                    {(selectedAuction.current_highest_price || selectedAuction.highest_bid) ? formatCurrency(selectedAuction.current_highest_price || selectedAuction.highest_bid) : 'ظ„ط§ طھظˆط¬ط¯ ط¹ط±ظˆط¶'}
                   </p>
                 </div>
 
                 <div className={cn('p-2 rounded-lg text-center text-xs', isDarkMode ? 'bg-purple-900/30' : 'bg-purple-50')}>
                   <p className={cn('text-[9px] font-normal mb-0.5', isDarkMode ? 'text-purple-300' : 'text-purple-600')}>
-                    عدد العروض
+                    ط¹ط¯ط¯ ط§ظ„ط¹ط±ظˆط¶
                   </p>
                   <p className={cn('text-xs font-bold', isDarkMode ? 'text-purple-400' : 'text-purple-700')}>
                     {selectedAuction.total_bids || 0}
@@ -9649,12 +9686,12 @@ const MarketplacePage = () => {
 
                 <div className={cn('p-2 rounded-lg text-center text-xs', isDarkMode ? 'bg-red-900/30' : 'bg-red-50')}>
                   <p className={cn('text-[9px] font-normal mb-0.5', isDarkMode ? 'text-red-300' : 'text-red-600')}>
-                    الوقت المتبقي
+                    ط§ظ„ظˆظ‚طھ ط§ظ„ظ…طھط¨ظ‚ظٹ
                   </p>
                   <p className={cn('text-xs font-bold', isDarkMode ? 'text-red-400' : 'text-red-700')}>
                     {(() => {
                       const timer = getTimeRemaining(selectedAuction.auction_end_time, selectedAuction.auction_date);
-                      return timer.isEnded ? 'انتهى' : `${timer.hours}:${timer.minutes.toString().padStart(2, '0')}`;
+                      return timer.isEnded ? 'ط§ظ†طھظ‡ظ‰' : `${timer.hours}:${timer.minutes.toString().padStart(2, '0')}`;
                     })()}
                   </p>
                 </div>
@@ -9663,17 +9700,17 @@ const MarketplacePage = () => {
               {/* Auction Times */}
               <div className={cn('p-2.5 rounded-lg border text-xs', isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200')}>
                 <h3 className={cn('font-bold mb-1.5 text-xs', isDarkMode ? 'text-white' : 'text-gray-900')}>
-                  📅 تفاصيل المزاد
+                  ًں“… طھظپط§طµظٹظ„ ط§ظ„ظ…ط²ط§ط¯
                 </h3>
                 <div className="space-y-0.5 text-[11px]">
                   <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
-                    <span className="font-semibold">التاريخ:</span> <span title={formatDateOnly(selectedAuction.auction_date)}>{formatDateOnly(selectedAuction.auction_date)}</span>
+                    <span className="font-semibold">ط§ظ„طھط§ط±ظٹط®:</span> <span title={formatDateOnly(selectedAuction.auction_date)}>{formatDateOnly(selectedAuction.auction_date)}</span>
                   </p>
                   <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
-                    <span className="font-semibold">ظ…ظ†:</span> {selectedAuction.auction_start_time}
+                    <span className="font-semibold">ط¸â€¦ط¸â€ :</span> {selectedAuction.auction_start_time}
                   </p>
                   <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
-                    <span className="font-semibold">ط¥ظ„ظ‰:</span> {selectedAuction.auction_end_time}
+                    <span className="font-semibold">ط·آ¥ط¸â€‍ط¸â€°:</span> {selectedAuction.auction_end_time}
                   </p>
                 </div>
               </div>
@@ -9694,7 +9731,7 @@ const MarketplacePage = () => {
                   return auctionStatus.isEnded ? (
                     <div className="w-full p-2 rounded-lg bg-red-100 text-red-700 text-xs font-normal flex items-center gap-1.5">
                       <AlertCircle size={14} />
-                      <span>❌ انتهى وقت المزاد ولا يمكن إضافة عروض جديدة</span>
+                      <span>â‌Œ ط§ظ†طھظ‡ظ‰ ظˆظ‚طھ ط§ظ„ظ…ط²ط§ط¯ ظˆظ„ط§ ظٹظ…ظƒظ† ط¥ط¶ط§ظپط© ط¹ط±ظˆط¶ ط¬ط¯ظٹط¯ط©</span>
                     </div>
                   ) : null;
                 })()}
@@ -9711,7 +9748,7 @@ const MarketplacePage = () => {
                         type="text" 
                         value={auctionBidForm.customer_name}
                         onChange={(e) => setAuctionBidForm({ ...auctionBidForm, customer_name: e.target.value })}
-                        placeholder="أدخل اسمك"
+                        placeholder="ط£ط¯ط®ظ„ ط§ط³ظ…ظƒ"
                         disabled={bidSubmitting || isAuctionEnded}
                         className={cn('w-full px-2 py-1.5 rounded-lg border outline-none font-normal text-xs', isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500', (bidSubmitting || isAuctionEnded) && 'opacity-50 cursor-not-allowed')}
                       />
@@ -9721,7 +9758,7 @@ const MarketplacePage = () => {
                         type="tel" 
                         value={auctionBidForm.customer_phone}
                         onChange={(e) => setAuctionBidForm({ ...auctionBidForm, customer_phone: e.target.value })}
-                        placeholder="رقم هاتفك"
+                        placeholder="ط±ظ‚ظ… ظ‡ط§طھظپظƒ"
                         disabled={bidSubmitting || isAuctionEnded}
                         className={cn('w-full px-2 py-1.5 rounded-lg border outline-none font-normal text-xs', isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500', (bidSubmitting || isAuctionEnded) && 'opacity-50 cursor-not-allowed')}
                       />
@@ -9733,18 +9770,18 @@ const MarketplacePage = () => {
                             type="number" 
                             value={auctionBidForm.bid_price}
                             onChange={(e) => setAuctionBidForm({ ...auctionBidForm, bid_price: e.target.value })}
-                                placeholder={`أكثر من ${formatCurrency(Math.max(selectedAuction.current_highest_price || selectedAuction.highest_bid || selectedAuction.starting_price, selectedAuction.starting_price))}`}
+                                placeholder={`ط£ظƒط«ط± ظ…ظ† ${formatCurrency(Math.max(selectedAuction.current_highest_price || selectedAuction.highest_bid || selectedAuction.starting_price, selectedAuction.starting_price))}`}
                                 disabled={bidSubmitting || isAuctionEnded}
                                 className={cn('w-full px-2 py-1.5 rounded-lg border outline-none font-normal text-xs pl-6', isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500', (bidSubmitting || isAuctionEnded) && 'opacity-50 cursor-not-allowed')}
                               />
-                              <span className={cn("absolute left-1.5 top-1/2 -translate-y-1/2 font-semibold text-[10px]", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط¯.ط¹</span>
+                              <span className={cn("absolute left-1.5 top-1/2 -translate-y-1/2 font-semibold text-[10px]", isDarkMode ? "text-gray-400" : "text-gray-500")}>ط·آ¯.ط·آ¹</span>
                             </div>
                             <button 
                               onClick={submitAuctionBid}
                               disabled={bidSubmitting || isAuctionEnded}
                               className={cn('flex-1 py-1.5 rounded-lg font-bold text-xs text-white transition-all', (bidSubmitting || isAuctionEnded) ? 'opacity-50 bg-green-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700')}
                             >
-                              {bidSubmitting ? '⏳ جاري...' : isAuctionEnded ? '❌ انتهى' : '💰 عرض'}
+                              {bidSubmitting ? 'âڈ³ ط¬ط§ط±ظٹ...' : isAuctionEnded ? 'â‌Œ ط§ظ†طھظ‡ظ‰' : 'ًں’° ط¹ط±ط¶'}
                             </button>
                           </div>
                         </div>
@@ -9756,7 +9793,7 @@ const MarketplacePage = () => {
                       onClick={() => setSelectedAuction(null)}
                       className={cn('w-full py-1.5 rounded-lg font-bold text-xs transition-all', isDarkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-100 text-gray-900 hover:bg-gray-200')}
                     >
-                      إغلاق
+                      ط¥ط؛ظ„ط§ظ‚
                     </button>
               </div>
             </div>
@@ -9769,25 +9806,25 @@ const MarketplacePage = () => {
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <h4 className={cn("text-xl font-normal tracking-tighter mb-4", isDarkMode ? "text-white" : "text-indigo-600")}>{appName}</h4>
-            <p className={cn("text-sm", isDarkMode ? "text-gray-300" : "text-gray-500")}>منصة التجارة الإلكترونية متعددة المستأجرين النهائية للشركات الحديثة.</p>
+            <p className={cn("text-sm", isDarkMode ? "text-gray-300" : "text-gray-500")}>ظ…ظ†طµط© ط§ظ„طھط¬ط§ط±ط© ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹط© ظ…طھط¹ط¯ط¯ط© ط§ظ„ظ…ط³طھط£ط¬ط±ظٹظ† ط§ظ„ظ†ظ‡ط§ط¦ظٹط© ظ„ظ„ط´ط±ظƒط§طھ ط§ظ„ط­ط¯ظٹط«ط©.</p>
           </div>
           <div>
-            <h5 className={cn("font-normal mb-4", isDarkMode ? "text-white" : "text-gray-900")}>المنصة</h5>
+            <h5 className={cn("font-normal mb-4", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ظ…ظ†طµط©</h5>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/about" className={cn("transition-colors", isDarkMode ? "hover:text-indigo-400 text-gray-300" : "hover:text-indigo-600 text-gray-500")}>ظ…ظ† ظ†ط­ظ†</Link></li>
+              <li><Link to="/about" className={cn("transition-colors", isDarkMode ? "hover:text-indigo-400 text-gray-300" : "hover:text-indigo-600 text-gray-500")}>ط¸â€¦ط¸â€  ط¸â€ ط·آ­ط¸â€ </Link></li>
             </ul>
           </div>
           <div>
-            <h5 className={cn("font-normal mb-4", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ط¯ط¹ظ…</h5>
+            <h5 className={cn("font-normal mb-4", isDarkMode ? "text-white" : "text-gray-900")}>ط·آ§ط¸â€‍ط·آ¯ط·آ¹ط¸â€¦</h5>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/help" className={cn("transition-colors", isDarkMode ? "hover:text-indigo-400 text-gray-300" : "hover:text-indigo-600 text-gray-500")}>مركز المساعدة</Link></li>
+              <li><Link to="/help" className={cn("transition-colors", isDarkMode ? "hover:text-indigo-400 text-gray-300" : "hover:text-indigo-600 text-gray-500")}>ظ…ط±ظƒط² ط§ظ„ظ…ط³ط§ط¹ط¯ط©</Link></li>
             </ul>
           </div>
           <div>
-            <h5 className={cn("font-normal mb-4", isDarkMode ? "text-white" : "text-gray-900")}>القانونية</h5>
+            <h5 className={cn("font-normal mb-4", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ظ‚ط§ظ†ظˆظ†ظٹط©</h5>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/security" className={cn("transition-colors", isDarkMode ? "hover:text-indigo-400 text-gray-300" : "hover:text-indigo-600 text-gray-500")}>سياسة الأمان</Link></li>
-              <li><Link to="/privacy" className={cn("transition-colors", isDarkMode ? "hover:text-indigo-400 text-gray-300" : "hover:text-indigo-600 text-gray-500")}>سياسة الخصوصية</Link></li>
+              <li><Link to="/security" className={cn("transition-colors", isDarkMode ? "hover:text-indigo-400 text-gray-300" : "hover:text-indigo-600 text-gray-500")}>ط³ظٹط§ط³ط© ط§ظ„ط£ظ…ط§ظ†</Link></li>
+              <li><Link to="/privacy" className={cn("transition-colors", isDarkMode ? "hover:text-indigo-400 text-gray-300" : "hover:text-indigo-600 text-gray-500")}>ط³ظٹط§ط³ط© ط§ظ„ط®طµظˆطµظٹط©</Link></li>
             </ul>
           </div>
         </div>
@@ -9797,33 +9834,33 @@ const MarketplacePage = () => {
   );
 };
 
-// About Page - من نحن
+// About Page - ظ…ظ† ظ†ط­ظ†
 const AboutPage = () => {
   const { isDarkMode } = useTheme();
   return (
     <div className={cn("min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-28 md:pb-0 flex flex-col", isDarkMode ? 'bg-gray-900' : '')}>
       <div className="flex-1 max-w-4xl mx-auto px-6 py-16">
-        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>من نحن</h1>
+        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>ظ…ظ† ظ†ط­ظ†</h1>
         <div className={cn("rounded-2xl shadow-lg p-8 space-y-6", isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white')}>
           <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🌍 منصتنا</h2>
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>ًںŒچ ظ…ظ†طµطھظ†ط§</h2>
             <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              نحن منصة تجارة إلكترونية حديثة توفر حلولاً شاملة للتجار والمتاجر الإلكترونية. تأسست المنصة بهدف تمكين الشركات الصغيرة والمتوسطة من الانطلاق رقمياً بسهولة وفعالية.
+              ظ†ط­ظ† ظ…ظ†طµط© طھط¬ط§ط±ط© ط¥ظ„ظƒطھط±ظˆظ†ظٹط© ط­ط¯ظٹط«ط© طھظˆظپط± ط­ظ„ظˆظ„ط§ظ‹ ط´ط§ظ…ظ„ط© ظ„ظ„طھط¬ط§ط± ظˆط§ظ„ظ…طھط§ط¬ط± ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹط©. طھط£ط³ط³طھ ط§ظ„ظ…ظ†طµط© ط¨ظ‡ط¯ظپ طھظ…ظƒظٹظ† ط§ظ„ط´ط±ظƒط§طھ ط§ظ„طµط؛ظٹط±ط© ظˆط§ظ„ظ…طھظˆط³ط·ط© ظ…ظ† ط§ظ„ط§ظ†ط·ظ„ط§ظ‚ ط±ظ‚ظ…ظٹط§ظ‹ ط¨ط³ظ‡ظˆظ„ط© ظˆظپط¹ط§ظ„ظٹط©.
             </p>
           </div>
           <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🎯 رسالتنا</h2>
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>ًںژ¯ ط±ط³ط§ظ„طھظ†ط§</h2>
             <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              توفير أدوات وخدمات متقدمة تمكّن التجار من إدارة متاجرهم الإلكترونية بكفاءة وتوسيع أعمالهم في السوق الرقمي.
+              طھظˆظپظٹط± ط£ط¯ظˆط§طھ ظˆط®ط¯ظ…ط§طھ ظ…طھظ‚ط¯ظ…ط© طھظ…ظƒظ‘ظ† ط§ظ„طھط¬ط§ط± ظ…ظ† ط¥ط¯ط§ط±ط© ظ…طھط§ط¬ط±ظ‡ظ… ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹط© ط¨ظƒظپط§ط،ط© ظˆطھظˆط³ظٹط¹ ط£ط¹ظ…ط§ظ„ظ‡ظ… ظپظٹ ط§ظ„ط³ظˆظ‚ ط§ظ„ط±ظ‚ظ…ظٹ.
             </p>
           </div>
           <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>✨ قيمنا</h2>
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>âœ¨ ظ‚ظٹظ…ظ†ط§</h2>
             <ul className={cn("space-y-2", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              <li>✓ الشفافية والأمانة في جميع معاملاتنا</li>
-              <li>✓ الابتكار المستمر لتحسين الخدمات</li>
-              <li>✓ دعم العملاء على مدار الساعة</li>
-              <li>✓ أمن البيانات والخصوصية</li>
+              <li>âœ“ ط§ظ„ط´ظپط§ظپظٹط© ظˆط§ظ„ط£ظ…ط§ظ†ط© ظپظٹ ط¬ظ…ظٹط¹ ظ…ط¹ط§ظ…ظ„ط§طھظ†ط§</li>
+              <li>âœ“ ط§ظ„ط§ط¨طھظƒط§ط± ط§ظ„ظ…ط³طھظ…ط± ظ„طھط­ط³ظٹظ† ط§ظ„ط®ط¯ظ…ط§طھ</li>
+              <li>âœ“ ط¯ط¹ظ… ط§ظ„ط¹ظ…ظ„ط§ط، ط¹ظ„ظ‰ ظ…ط¯ط§ط± ط§ظ„ط³ط§ط¹ط©</li>
+              <li>âœ“ ط£ظ…ظ† ط§ظ„ط¨ظٹط§ظ†ط§طھ ظˆط§ظ„ط®طµظˆطµظٹط©</li>
             </ul>
           </div>
         </div>
@@ -9833,35 +9870,35 @@ const AboutPage = () => {
   );
 };
 
-// Help Center Page - مركز المساعدة
+// Help Center Page - ظ…ط±ظƒط² ط§ظ„ظ…ط³ط§ط¹ط¯ط©
 const HelpCenterPage = () => {
   const { isDarkMode } = useTheme();
   return (
     <div className={cn("min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-28 md:pb-0 flex flex-col", isDarkMode ? 'bg-gray-900' : '')}>
       <div className="flex-1 max-w-4xl mx-auto px-6 py-16">
-        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>مركز المساعدة</h1>
+        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>ظ…ط±ظƒط² ط§ظ„ظ…ط³ط§ط¹ط¯ط©</h1>
         <div className={cn("rounded-2xl shadow-lg p-8 space-y-6", isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white')}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className={cn("border-l-4 border-indigo-600 pl-4", isDarkMode ? 'bg-gray-700' : '')}>
-              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>❓ الأسئلة الشائعة</h3>
-              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>ستجد الإجابات على الأسئلة الأكثر شيوعاً حول استخدام المنصة وإدارة متجرك.</p>
+              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>â‌“ ط§ظ„ط£ط³ط¦ظ„ط© ط§ظ„ط´ط§ط¦ط¹ط©</h3>
+              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>ط³طھط¬ط¯ ط§ظ„ط¥ط¬ط§ط¨ط§طھ ط¹ظ„ظ‰ ط§ظ„ط£ط³ط¦ظ„ط© ط§ظ„ط£ظƒط«ط± ط´ظٹظˆط¹ط§ظ‹ ط­ظˆظ„ ط§ط³طھط®ط¯ط§ظ… ط§ظ„ظ…ظ†طµط© ظˆط¥ط¯ط§ط±ط© ظ…طھط¬ط±ظƒ.</p>
             </div>
             <div className={cn("border-l-4 border-indigo-600 pl-4", isDarkMode ? 'bg-gray-700' : '')}>
-              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>📚 الدلائل والأدلة</h3>
-              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>خطوات مفصلة وأدلة شاملة تساعدك في البدء والقيام بمختلف العمليات.</p>
+              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>ًں“ڑ ط§ظ„ط¯ظ„ط§ط¦ظ„ ظˆط§ظ„ط£ط¯ظ„ط©</h3>
+              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>ط®ط·ظˆط§طھ ظ…ظپطµظ„ط© ظˆط£ط¯ظ„ط© ط´ط§ظ…ظ„ط© طھط³ط§ط¹ط¯ظƒ ظپظٹ ط§ظ„ط¨ط¯ط، ظˆط§ظ„ظ‚ظٹط§ظ… ط¨ظ…ط®طھظ„ظپ ط§ظ„ط¹ظ…ظ„ظٹط§طھ.</p>
             </div>
             <div className={cn("border-l-4 border-indigo-600 pl-4", isDarkMode ? 'bg-gray-700' : '')}>
-              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>💬 دعم العملاء</h3>
-              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>فريق الدعم الخاص بنا متاح لمساعدتك على مدار الساعة يومياً.</p>
+              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>ًں’¬ ط¯ط¹ظ… ط§ظ„ط¹ظ…ظ„ط§ط،</h3>
+              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>ظپط±ظٹظ‚ ط§ظ„ط¯ط¹ظ… ط§ظ„ط®ط§طµ ط¨ظ†ط§ ظ…طھط§ط­ ظ„ظ…ط³ط§ط¹ط¯طھظƒ ط¹ظ„ظ‰ ظ…ط¯ط§ط± ط§ظ„ط³ط§ط¹ط© ظٹظˆظ…ظٹط§ظ‹.</p>
             </div>
             <div className={cn("border-l-4 border-indigo-600 pl-4", isDarkMode ? 'bg-gray-700' : '')}>
-              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🛠️ الصيانة والتحديثات</h3>
-              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>تابع آخر التحديثات والصيانة الدورية للمنصة.</p>
+              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>ًں› ï¸ڈ ط§ظ„طµظٹط§ظ†ط© ظˆط§ظ„طھط­ط¯ظٹط«ط§طھ</h3>
+              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>طھط§ط¨ط¹ ط¢ط®ط± ط§ظ„طھط­ط¯ظٹط«ط§طھ ظˆط§ظ„طµظٹط§ظ†ط© ط§ظ„ط¯ظˆط±ظٹط© ظ„ظ„ظ…ظ†طµط©.</p>
             </div>
           </div>
           <div className={cn("p-6 rounded-xl mt-8", isDarkMode ? 'bg-gray-700' : 'bg-indigo-50')}>
             <p className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>
-              <strong>📧 تواصل معنا:</strong> إذا لم تجد الإجابة، يمكنك التواصل مع فريقنا عبر البريد الإلكتروني أو خلال ساعات العمل.
+              <strong>ًں“§ طھظˆط§طµظ„ ظ…ط¹ظ†ط§:</strong> ط¥ط°ط§ ظ„ظ… طھط¬ط¯ ط§ظ„ط¥ط¬ط§ط¨ط©طŒ ظٹظ…ظƒظ†ظƒ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ظپط±ظٹظ‚ظ†ط§ ط¹ط¨ط± ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط£ظˆ ط®ظ„ط§ظ„ ط³ط§ط¹ط§طھ ط§ظ„ط¹ظ…ظ„.
             </p>
           </div>
         </div>
@@ -9871,36 +9908,36 @@ const HelpCenterPage = () => {
   );
 };
 
-// Security Policy Page - سياسة الأمان
+// Security Policy Page - ط³ظٹط§ط³ط© ط§ظ„ط£ظ…ط§ظ†
 const SecurityPolicyPage = () => {
   const { isDarkMode } = useTheme();
   return (
     <div className={cn("min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-28 md:pb-0 flex flex-col", isDarkMode ? 'bg-gray-900' : '')}>
       <div className="flex-1 max-w-4xl mx-auto px-6 py-16">
-        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>سياسة الأمان</h1>
+        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>ط³ظٹط§ط³ط© ط§ظ„ط£ظ…ط§ظ†</h1>
         <div className={cn("rounded-2xl shadow-lg p-8 space-y-6", isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white')}>
           <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🔒 أمان البيانات</h2>
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>ًں”’ ط£ظ…ط§ظ† ط§ظ„ط¨ظٹط§ظ†ط§طھ</h2>
             <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              نستخدم تقنيات التشفير الحديثة لحماية معلومات عملائنا والحفاظ على سرية بيانات المتاجر والعملاء.
+              ظ†ط³طھط®ط¯ظ… طھظ‚ظ†ظٹط§طھ ط§ظ„طھط´ظپظٹط± ط§ظ„ط­ط¯ظٹط«ط© ظ„ط­ظ…ط§ظٹط© ظ…ط¹ظ„ظˆظ…ط§طھ ط¹ظ…ظ„ط§ط¦ظ†ط§ ظˆط§ظ„ط­ظپط§ط¸ ط¹ظ„ظ‰ ط³ط±ظٹط© ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…طھط§ط¬ط± ظˆط§ظ„ط¹ظ…ظ„ط§ط،.
             </p>
           </div>
           <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🛡️ حماية المعاملات</h2>
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>ًں›،ï¸ڈ ط­ظ…ط§ظٹط© ط§ظ„ظ…ط¹ط§ظ…ظ„ط§طھ</h2>
             <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              جميع المعاملات المالية محمية بمعايير أمان دولية. لا نقبل بطاقات ائتمان مباشرة - يتم التعامل من خلال بوابات دفع آمنة معتمدة.
+              ط¬ظ…ظٹط¹ ط§ظ„ظ…ط¹ط§ظ…ظ„ط§طھ ط§ظ„ظ…ط§ظ„ظٹط© ظ…ط­ظ…ظٹط© ط¨ظ…ط¹ط§ظٹظٹط± ط£ظ…ط§ظ† ط¯ظˆظ„ظٹط©. ظ„ط§ ظ†ظ‚ط¨ظ„ ط¨ط·ط§ظ‚ط§طھ ط§ط¦طھظ…ط§ظ† ظ…ط¨ط§ط´ط±ط© - ظٹطھظ… ط§ظ„طھط¹ط§ظ…ظ„ ظ…ظ† ط®ظ„ط§ظ„ ط¨ظˆط§ط¨ط§طھ ط¯ظپط¹ ط¢ظ…ظ†ط© ظ…ط¹طھظ…ط¯ط©.
             </p>
           </div>
           <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🔐 كلمات المرور</h2>
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>ًں”گ ظƒظ„ظ…ط§طھ ط§ظ„ظ…ط±ظˆط±</h2>
             <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              استخدم كلمات مرور قوية ولا تشارك حسابك مع أحد. يمكنك تحديث كلمة المرور في أي وقت من إعدادات الحساب.
+              ط§ط³طھط®ط¯ظ… ظƒظ„ظ…ط§طھ ظ…ط±ظˆط± ظ‚ظˆظٹط© ظˆظ„ط§ طھط´ط§ط±ظƒ ط­ط³ط§ط¨ظƒ ظ…ط¹ ط£ط­ط¯. ظٹظ…ظƒظ†ظƒ طھط­ط¯ظٹط« ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظپظٹ ط£ظٹ ظˆظ‚طھ ظ…ظ† ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط­ط³ط§ط¨.
             </p>
           </div>
           <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>الإبلاغ عن المشاكل الأمنية</h2>
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>ط§ظ„ط¥ط¨ظ„ط§ط؛ ط¹ظ† ط§ظ„ظ…ط´ط§ظƒظ„ ط§ظ„ط£ظ…ظ†ظٹط©</h2>
             <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              إذا اكتشفت أي مشكلة أمنية، يرجى الإبلاغ عنها فوراً إلى فريق الأمان بخصوصية تامة.
+              ط¥ط°ط§ ط§ظƒطھط´ظپطھ ط£ظٹ ظ…ط´ظƒظ„ط© ط£ظ…ظ†ظٹط©طŒ ظٹط±ط¬ظ‰ ط§ظ„ط¥ط¨ظ„ط§ط؛ ط¹ظ†ظ‡ط§ ظپظˆط±ط§ظ‹ ط¥ظ„ظ‰ ظپط±ظٹظ‚ ط§ظ„ط£ظ…ط§ظ† ط¨ط®طµظˆطµظٹط© طھط§ظ…ط©.
             </p>
           </div>
         </div>
@@ -9910,36 +9947,36 @@ const SecurityPolicyPage = () => {
   );
 };
 
-// Privacy Policy Page - سياسة الخصوصية
+// Privacy Policy Page - ط³ظٹط§ط³ط© ط§ظ„ط®طµظˆطµظٹط©
 const PrivacyPolicyPage = () => {
   const { isDarkMode } = useTheme();
   return (
     <div className={cn("min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-28 md:pb-0 flex flex-col", isDarkMode ? 'bg-gray-900' : '')}>
       <div className="flex-1 max-w-4xl mx-auto px-6 py-16">
-        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>سياسة الخصوصية</h1>
+        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>ط³ظٹط§ط³ط© ط§ظ„ط®طµظˆطµظٹط©</h1>
         <div className={cn("rounded-2xl shadow-lg p-8 space-y-6", isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white')}>
           <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>📋 جمع البيانات</h2>
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>ًں“‹ ط¬ظ…ط¹ ط§ظ„ط¨ظٹط§ظ†ط§طھ</h2>
             <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              نجمع المعلومات الضرورية لتقديم الخدمة فقط، مثل البيانات الشخصية والمعاملات التجارية.
+              ظ†ط¬ظ…ط¹ ط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ط¶ط±ظˆط±ظٹط© ظ„طھظ‚ط¯ظٹظ… ط§ظ„ط®ط¯ظ…ط© ظپظ‚ط·طŒ ظ…ط«ظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط´ط®طµظٹط© ظˆط§ظ„ظ…ط¹ط§ظ…ظ„ط§طھ ط§ظ„طھط¬ط§ط±ظٹط©.
             </p>
           </div>
           <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🔒 استخدام البيانات</h2>
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>ًں”’ ط§ط³طھط®ط¯ط§ظ… ط§ظ„ط¨ظٹط§ظ†ط§طھ</h2>
             <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              نستخدم بيانات العملاء فقط لتحسين الخدمة والتواصل حول الحسابات والعروض الخاصة. لا بيع البيانات لأطراف ثالثة.
+              ظ†ط³طھط®ط¯ظ… ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظ„ط§ط، ظپظ‚ط· ظ„طھط­ط³ظٹظ† ط§ظ„ط®ط¯ظ…ط© ظˆط§ظ„طھظˆط§طµظ„ ط­ظˆظ„ ط§ظ„ط­ط³ط§ط¨ط§طھ ظˆط§ظ„ط¹ط±ظˆط¶ ط§ظ„ط®ط§طµط©. ظ„ط§ ط¨ظٹط¹ ط§ظ„ط¨ظٹط§ظ†ط§طھ ظ„ط£ط·ط±ط§ظپ ط«ط§ظ„ط«ط©.
             </p>
           </div>
           <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🚀 ملفات تعريف الارتباط</h2>
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>ًںڑ€ ظ…ظ„ظپط§طھ طھط¹ط±ظٹظپ ط§ظ„ط§ط±طھط¨ط§ط·</h2>
             <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              نستخدم الملفات التعريفية لتحسين تجربة الاستخدام. يمكنك إدارة الملفات التعريفية من إعدادات المتصفح.
+              ظ†ط³طھط®ط¯ظ… ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„طھط¹ط±ظٹظپظٹط© ظ„طھط­ط³ظٹظ† طھط¬ط±ط¨ط© ط§ظ„ط§ط³طھط®ط¯ط§ظ…. ظٹظ…ظƒظ†ظƒ ط¥ط¯ط§ط±ط© ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„طھط¹ط±ظٹظپظٹط© ظ…ظ† ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…طھطµظپط­.
             </p>
           </div>
           <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🗑️ حقوقك</h2>
+            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>ًں—‘ï¸ڈ ط­ظ‚ظˆظ‚ظƒ</h2>
             <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              لديك الحق في طلب معلوماتك الشخصية، تصحيحها، أو حذفها في أي وقت.
+              ظ„ط¯ظٹظƒ ط§ظ„ط­ظ‚ ظپظٹ ط·ظ„ط¨ ظ…ط¹ظ„ظˆظ…ط§طھظƒ ط§ظ„ط´ط®طµظٹط©طŒ طھطµط­ظٹط­ظ‡ط§طŒ ط£ظˆ ط­ط°ظپظ‡ط§ ظپظٹ ط£ظٹ ظˆظ‚طھ.
             </p>
           </div>
         </div>
@@ -9995,17 +10032,17 @@ const StoresPage = () => {
   useEffect(() => {
     const fetchStores = async () => {
       try {
-        console.log('🏪 Fetching stores from /api/stores...');
+        console.log('ًںڈھ Fetching stores from /api/stores...');
         const res = await fetch('/api/stores?limit=50');
         const data = await res.json();
-        console.log('🏪 STORES RESPONSE:', { count: Array.isArray(data) ? data.length : 0, data });
+        console.log('ًںڈھ STORES RESPONSE:', { count: Array.isArray(data) ? data.length : 0, data });
         // API now returns only active stores, no need to filter
         setStores(Array.isArray(data) ? data : []);
 
         setStoresWithLogos(buildStoreLogosMap(Array.isArray(data) ? data : []));
         setLoading(false);
       } catch (err) {
-        console.error("❌ Fetch error:", err);
+        console.error("â‌Œ Fetch error:", err);
         setStores([]);
         setLoading(false);
       }
@@ -10048,7 +10085,7 @@ const StoresPage = () => {
       useEffect(() => {
         const handleSettingsUpdate = (event: any) => {
           const updatedStoreId = event?.detail?.storeId;
-          console.log('🔔 StoresPage received storeSettingsUpdated event for store:', updatedStoreId);
+          console.log('ًں”” StoresPage received storeSettingsUpdated event for store:', updatedStoreId);
 
           setStoresWithLogos(buildStoreLogosMap(stores));
         };
@@ -10063,7 +10100,7 @@ const StoresPage = () => {
   const handleStoreClick = (store: any) => {
     // If topup store, show auth modal instead of navigating directly
     if (store.store_type === 'topup') {
-      console.log(`🏪 Store clicked: ID=${store.id}, Name=${store.name}, Slug=${store.slug}`);
+      console.log(`ًںڈھ Store clicked: ID=${store.id}, Name=${store.name}, Slug=${store.slug}`);
       setIsolatedTopupAuthFlow(false);
       setSelectedTopupStore(store);
       setTopupAuthName('');
@@ -10091,7 +10128,7 @@ const StoresPage = () => {
 
   const handleTopupStoreVerification = async () => {
     if (!topupAuthName.trim() || !topupAuthPhone.trim()) {
-      setTopupAuthError('يرجى إدخال الاسم ورقم الهاتف');
+      setTopupAuthError('ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط§ظ„ط§ط³ظ… ظˆط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ');
       return;
     }
 
@@ -10103,23 +10140,23 @@ const StoresPage = () => {
       });
       const customersData = await res.json();
       
-      console.log(`🔎 VERIFICATION INPUT: Name="${topupAuthName}", Phone="${topupAuthPhone}"`);
-      console.log(`📦 API RESPONSE: ${Array.isArray(customersData) ? customersData.length : 0} customers`);
+      console.log(`ًں”ژ VERIFICATION INPUT: Name="${topupAuthName}", Phone="${topupAuthPhone}"`);
+      console.log(`ًں“¦ API RESPONSE: ${Array.isArray(customersData) ? customersData.length : 0} customers`);
       
       // Normalize input phone number
       const normalizedInputPhone = normalizePhone(topupAuthPhone);
-      console.log(`📱 Normalized Input Phone: "${normalizedInputPhone}"`);
+      console.log(`ًں“± Normalized Input Phone: "${normalizedInputPhone}"`);
       
       // Filter customers for the topup store
       const registeredCustomers = Array.isArray(customersData) ? customersData.filter((c: any) => {
         const normalizedDbPhone = normalizePhone(c.phone);
         const nameMatch = c.name.toLowerCase().trim() === topupAuthName.toLowerCase().trim();
         const phoneMatch = normalizedDbPhone === normalizedInputPhone;
-        console.log(`  ✓ Checking: Name="${c.name}" (match=${nameMatch}), Phone="${c.phone}" -> "${normalizedDbPhone}" (match=${phoneMatch})`);
+        console.log(`  âœ“ Checking: Name="${c.name}" (match=${nameMatch}), Phone="${c.phone}" -> "${normalizedDbPhone}" (match=${phoneMatch})`);
         return nameMatch && phoneMatch;
       }) : [];
 
-      console.log(`✅ Found ${registeredCustomers.length} matching customer(s)`);
+      console.log(`âœ… Found ${registeredCustomers.length} matching customer(s)`);
       
       if (registeredCustomers.length > 0) {
         // Customer verified - save data to localStorage
@@ -10133,7 +10170,7 @@ const StoresPage = () => {
           credit_limit: customer.credit_limit,
           current_debt: customer.current_debt
         };
-        console.log('✅ Customer verified, saving:', customerData);
+        console.log('âœ… Customer verified, saving:', customerData);
         // Save to localStorage
         localStorage.setItem('topupCustomer', JSON.stringify(customerData));
         
@@ -10148,15 +10185,15 @@ const StoresPage = () => {
         // Wait a bit to ensure localStorage is synced, then navigate
         setTimeout(() => {
           const storeSlug = selectedTopupStore.slug || selectedTopupStore.id;
-          console.log('🚀 Navigating to topup store:', storeSlug);
+          console.log('ًںڑ€ Navigating to topup store:', storeSlug);
           navigate(`/topup/${storeSlug}`);
         }, 100);
       } else {
-        setTopupAuthError('❌ لم يتم العثور على بيانات مطابقة. تأكد من اسم العميل ورقم الهاتف الصحيح');
+        setTopupAuthError('â‌Œ ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط¨ظٹط§ظ†ط§طھ ظ…ط·ط§ط¨ظ‚ط©. طھط£ظƒط¯ ظ…ظ† ط§ط³ظ… ط§ظ„ط¹ظ…ظٹظ„ ظˆط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ط§ظ„طµط­ظٹط­');
       }
     } catch (error) {
       console.error('Verification error:', error);
-      setTopupAuthError('حدث خطأ في التحقق. يرجى المحاولة لاحقاً');
+      setTopupAuthError('ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„طھط­ظ‚ظ‚. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ„ط§ط­ظ‚ط§ظ‹');
     } finally {
       setTopupAuthLoading(false);
     }
@@ -10167,7 +10204,7 @@ const StoresPage = () => {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 rounded-full border-4 border-gray-200 border-t-indigo-600 animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 font-normal">جاري تحميل المتاجر...</p>
+          <p className="text-gray-600 font-normal">ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ظ…طھط§ط¬ط±...</p>
         </div>
       </div>
     );
@@ -10202,9 +10239,9 @@ const StoresPage = () => {
             className={cn("flex items-center gap-2 font-normal transition-colors", isDarkMode ? "text-gray-400 hover:text-indigo-400" : "text-gray-600 hover:text-indigo-600")}
           >
             <ChevronRight size={20} />
-            <span className="hidden sm:inline">العودة</span>
+            <span className="hidden sm:inline">ط§ظ„ط¹ظˆط¯ط©</span>
           </Link>
-          <h1 className={cn("text-lg sm:text-2xl font-normal text-center flex-1 truncate", isDarkMode ? "text-white" : "text-gray-900")}>استكشف جميع المتاجر</h1>
+          <h1 className={cn("text-lg sm:text-2xl font-normal text-center flex-1 truncate", isDarkMode ? "text-white" : "text-gray-900")}>ط§ط³طھظƒط´ظپ ط¬ظ…ظٹط¹ ط§ظ„ظ…طھط§ط¬ط±</h1>
           <div className="w-8 sm:w-16"></div>
         </div>
       </div>
@@ -10217,7 +10254,7 @@ const StoresPage = () => {
           <Card className={cn("w-full max-w-md", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className={cn("text-xl font-normal", isDarkMode ? "text-white" : "text-gray-900")}>دخول متجر البطاقات</h2>
+                <h2 className={cn("text-xl font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط¯ط®ظˆظ„ ظ…طھط¬ط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ</h2>
                 <button
                   onClick={closeTopupAuthModal}
                   className={cn("p-1 rounded hover:bg-gray-100", isDarkMode ? "hover:bg-gray-700" : "")}
@@ -10226,7 +10263,7 @@ const StoresPage = () => {
                 </button>
               </div>
 
-              <p className={cn("text-sm mb-4", isDarkMode ? "text-gray-400" : "text-gray-600")}>أدخل بيانات الحساب للتحقق</p>
+              <p className={cn("text-sm mb-4", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط£ط¯ط®ظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط­ط³ط§ط¨ ظ„ظ„طھط­ظ‚ظ‚</p>
 
               {topupAuthError && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 items-start">
@@ -10237,7 +10274,7 @@ const StoresPage = () => {
 
               <div className="space-y-4">
                 <div>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط§ظ„ط§ط³ظ…</label>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط·آ§ط¸â€‍ط·آ§ط·آ³ط¸â€¦</label>
                   <input
                     type="text"
                     value={topupAuthName}
@@ -10245,13 +10282,13 @@ const StoresPage = () => {
                       setTopupAuthName(e.target.value);
                       setTopupAuthError('');
                     }}
-                    placeholder="أدخل الاسم"
+                    placeholder="ط£ط¯ط®ظ„ ط§ظ„ط§ط³ظ…"
                     className={cn("w-full px-4 py-2 rounded-lg font-normal text-sm border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-300 text-gray-900")}
                   />
                 </div>
 
                 <div>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>رقم الهاتف</label>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ</label>
                   <input
                     type="tel"
                     value={topupAuthPhone}
@@ -10259,7 +10296,7 @@ const StoresPage = () => {
                       setTopupAuthPhone(e.target.value);
                       setTopupAuthError('');
                     }}
-                    placeholder="أدخل رقم الهاتف"
+                    placeholder="ط£ط¯ط®ظ„ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ"
                     className={cn("w-full px-4 py-2 rounded-lg font-normal text-sm border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-300 text-gray-900")}
                   />
                 </div>
@@ -10270,7 +10307,7 @@ const StoresPage = () => {
                   onClick={closeTopupAuthModal}
                   className={cn("flex-1 px-4 py-2 rounded-lg font-normal text-sm transition-colors", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-gray-200" : "bg-gray-100 hover:bg-gray-200 text-gray-800")}
                 >
-                  إلغاء
+                  ط¥ظ„ط؛ط§ط،
                 </button>
                 <button
                   onClick={handleTopupStoreVerification}
@@ -10280,10 +10317,10 @@ const StoresPage = () => {
                   {topupAuthLoading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      جاري التحقق...
+                      ط¬ط§ط±ظٹ ط§ظ„طھط­ظ‚ظ‚...
                     </>
                   ) : (
-                    <>التحقق ودخول المتجر</>
+                    <>ط§ظ„طھط­ظ‚ظ‚ ظˆط¯ط®ظˆظ„ ط§ظ„ظ…طھط¬ط±</>
                   )}
                 </button>
               </div>
@@ -10297,8 +10334,8 @@ const StoresPage = () => {
         {stores.length === 0 ? (
           <div className="text-center py-20">
             <StoreIcon size={64} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-xl font-normal text-white">لا توجد متاجر متاحة حالياً</h3>
-            <p className="text-gray-300">تحقق لاحقاً للتسوق من متاجر جديدة</p>
+            <h3 className="text-xl font-normal text-white">ظ„ط§ طھظˆط¬ط¯ ظ…طھط§ط¬ط± ظ…طھط§ط­ط© ط­ط§ظ„ظٹط§ظ‹</h3>
+            <p className="text-gray-300">طھط­ظ‚ظ‚ ظ„ط§ط­ظ‚ط§ظ‹ ظ„ظ„طھط³ظˆظ‚ ظ…ظ† ظ…طھط§ط¬ط± ط¬ط¯ظٹط¯ط©</p>
           </div>
         ) : (
             <div className="max-w-full sm:max-w-[75%] mx-auto">
@@ -10330,8 +10367,8 @@ const StoresPage = () => {
                       // Default logo for topup stores
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
                         <div className="text-center">
-                          <div className="text-4xl font-bold text-red-600 mb-1">💳</div>
-                          <p className="text-xs font-normal text-red-600">بطاقات شحن</p>
+                          <div className="text-4xl font-bold text-red-600 mb-1">ًں’³</div>
+                          <p className="text-xs font-normal text-red-600">ط¨ط·ط§ظ‚ط§طھ ط´ط­ظ†</p>
                         </div>
                       </div>
                     ) : (
@@ -10348,14 +10385,14 @@ const StoresPage = () => {
                         {store.store_name}
                       </h3>
                       <p className={cn("text-[11px] font-normal line-clamp-2 min-h-[2.2rem]", isDarkMode ? "text-gray-300" : "text-gray-600")}>
-                        {store.description || 'متجر متخصص'}
+                        {store.description || 'ظ…طھط¬ط± ظ…طھط®طµطµ'}
                       </p>
                     </div>
 
                     {/* Store Owner */}
                     {store.owner_name && (
                       <div className="text-[10px] space-y-1">
-                        <p className={cn("font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>صاحب المتجر</p>
+                        <p className={cn("font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>طµط§ط­ط¨ ط§ظ„ظ…طھط¬ط±</p>
                         <p className={cn("font-normal line-clamp-2", isDarkMode ? "text-white" : "text-gray-900")}>{store.owner_name}</p>
                       </div>
                     )}
@@ -10365,7 +10402,7 @@ const StoresPage = () => {
                       className="mt-1 w-full py-2 px-3 rounded-xl font-normal text-white text-xs transition-all transform hover:scale-105 active:scale-95 shadow-sm"
                       style={{ backgroundColor: primaryColor }}
                     >
-                      زيارة المتجر
+                      ط²ظٹط§ط±ط© ط§ظ„ظ…طھط¬ط±
                     </button>
                   </div>
                 </Card>
@@ -10407,7 +10444,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     if (this.state.hasError) {
       return (
         <div className="p-10 bg-red-50 text-red-700 min-h-screen">
-          <h1 className="text-2xl font-normal mb-4">حدث خطأ في التطبيق</h1>
+          <h1 className="text-2xl font-normal mb-4">ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„طھط·ط¨ظٹظ‚</h1>
           <pre className="bg-white p-4 rounded border border-red-200 overflow-auto max-w-full">
             {this.state.error?.message || "Unknown error"}
           </pre>
@@ -10415,7 +10452,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             onClick={() => window.location.reload()} 
             className="mt-4 px-4 py-2 bg-red-600 text-white rounded"
           >
-            إعادة تحميل التطبيق
+            ط¥ط¹ط§ط¯ط© طھط­ظ…ظٹظ„ ط§ظ„طھط·ط¨ظٹظ‚
           </button>
         </div>
       );
@@ -10431,7 +10468,7 @@ function App() {
   const { setSettings } = useSettingsStore();
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('isDarkMode');
-    return saved !== null ? JSON.parse(saved) : true; // الوضع الليلي افتراضيًا
+    return saved !== null ? JSON.parse(saved) : true; // ط§ظ„ظˆط¶ط¹ ط§ظ„ظ„ظٹظ„ظٹ ط§ظپطھط±ط§ط¶ظٹظ‹ط§
   });
   console.log("App Render - User:", user);
 
@@ -10467,7 +10504,7 @@ function App() {
     const keysToCheck = ['settings-store', 'cart-store', 'regular-cart-store', 'topup-cart-store'];
     keysToCheck.forEach(key => {
       localStorage.removeItem(key);
-      console.log(`🧹 Cleared localStorage key: ${key}`);
+      console.log(`ًں§¹ Cleared localStorage key: ${key}`);
     });
   }, []);
 
@@ -10648,7 +10685,7 @@ const MerchantTopupDashboard = () => {
     const keysToRemove = ['storeInfo_13', 'storeSettings_13', 'topupStorefront_lastBuild'];
     keysToRemove.forEach(key => {
       if (localStorage.getItem(key)) {
-        console.log(`🧹 Removing old localStorage key: ${key}`);
+        console.log(`ًں§¹ Removing old localStorage key: ${key}`);
         localStorage.removeItem(key);
       }
     });
@@ -10661,7 +10698,7 @@ const MerchantTopupDashboard = () => {
         const data = await response.json();
 
         if (!Array.isArray(data) || data.length === 0) {
-          console.warn('⚠️ No stores found while resolving topup store');
+          console.warn('âڑ ï¸ڈ No stores found while resolving topup store');
           setTopupStoreId(null);
           return;
         }
@@ -10671,7 +10708,7 @@ const MerchantTopupDashboard = () => {
         const resolvedStore = userTopupStore || topupStores[0] || null;
         const resolvedStoreId = Number(resolvedStore?.id) || null;
 
-        console.log('🔍 Resolved topup store:', {
+        console.log('ًں”چ Resolved topup store:', {
           userStoreId: user?.store_id,
           topupStoreIds: topupStores.map((store: any) => store.id),
           resolvedStoreId,
@@ -10700,7 +10737,7 @@ const MerchantTopupDashboard = () => {
   const refreshDashboardData = async (targetStoreId: number | null = topupStoreId) => {
     try {
       if (!targetStoreId || targetStoreId === null || targetStoreId === undefined) {
-        console.warn('⛔ ABORT: Invalid topupStoreId:', targetStoreId);
+        console.warn('â›” ABORT: Invalid topupStoreId:', targetStoreId);
         return;
       }
 
@@ -10820,16 +10857,16 @@ const MerchantTopupDashboard = () => {
     const targetCustomerId = customerId || selectedCustomerStatement?.customer_id || selectedCustomerStatement?.id;
     
     if (!targetCustomerId) {
-      console.warn('⚠️ No customer_id found');
+      console.warn('âڑ ï¸ڈ No customer_id found');
       return;
     }
     
     setIsLoadingCustomerTransactions(true);
     try {
-      console.log('🔍 Fetching statement for customer:', targetCustomerId);
+      console.log('ًں”چ Fetching statement for customer:', targetCustomerId);
       const res = await fetch(`/api/topup/customers/${targetCustomerId}/statement`);
       const data = await res.json();
-      console.log('📊 Raw API response:', data);
+      console.log('ًں“ٹ Raw API response:', data);
       
       if (res.ok) {
         let transactions = [];
@@ -10838,12 +10875,12 @@ const MerchantTopupDashboard = () => {
         } else if (Array.isArray(data)) {
           transactions = data;
         }
-        console.log('📌 Setting transactions:', transactions.length);
+        console.log('ًں“Œ Setting transactions:', transactions.length);
         setCustomerTransactions(transactions);
         
-        // ✅ CRITICAL FIX: Also update customer data (credit_limit, current_debt) from fresh API response
+        // âœ… CRITICAL FIX: Also update customer data (credit_limit, current_debt) from fresh API response
         if (data.customer) {
-          console.log('✅ Updating customer data from API:', {
+          console.log('âœ… Updating customer data from API:', {
             id: data.customer.id,
             current_debt: data.customer.current_debt,
             credit_limit: data.customer.credit_limit
@@ -10851,11 +10888,11 @@ const MerchantTopupDashboard = () => {
           setSelectedCustomerStatement(data.customer);
         }
       } else {
-        console.error('❌ API Error:', data);
+        console.error('â‌Œ API Error:', data);
         setCustomerTransactions([]);
       }
     } catch (error) {
-      console.error('❌ Error loading statement:', error);
+      console.error('â‌Œ Error loading statement:', error);
       setCustomerTransactions([]);
     } finally {
       setIsLoadingCustomerTransactions(false);
@@ -10863,20 +10900,20 @@ const MerchantTopupDashboard = () => {
   };
 
   useEffect(() => {
-    // ⛔ CRITICAL: Never allow store ID 13 (doesn't exist in database)
+    // â›” CRITICAL: Never allow store ID 13 (doesn't exist in database)
     if (!topupStoreId || !user) {
-      console.log('⏭️ Skipping refresh: topupStoreId=', topupStoreId, 'user=', user?.id);
+      console.log('âڈ­ï¸ڈ Skipping refresh: topupStoreId=', topupStoreId, 'user=', user?.id);
       return;
     }
 
-    console.log('✅ Starting data refresh for store:', topupStoreId, 'user:', user?.id);
+    console.log('âœ… Starting data refresh for store:', topupStoreId, 'user:', user?.id);
     
     // Load data immediately
     refreshDashboardData();
 
     // Set up auto-refresh every 5 seconds for real-time updates
     const interval = setInterval(() => {
-      console.log('🔄 Auto-refreshing data...');
+      console.log('ًں”„ Auto-refreshing data...');
       refreshDashboardData();
     }, 5000);
 
@@ -10885,9 +10922,9 @@ const MerchantTopupDashboard = () => {
 
   // Fetch store settings on mount
   useEffect(() => {
-    // ⛔ CRITICAL: Validate topupStoreId before any fetch
+    // â›” CRITICAL: Validate topupStoreId before any fetch
     if (!topupStoreId || topupStoreId === null || topupStoreId === undefined) {
-      console.log('⏭️ topupStoreId not ready yet or invalid, skipping fetch:', topupStoreId);
+      console.log('âڈ­ï¸ڈ topupStoreId not ready yet or invalid, skipping fetch:', topupStoreId);
       return;
     }
     
@@ -10934,69 +10971,69 @@ const MerchantTopupDashboard = () => {
 
   // Load and sync dashboard logo with events
   useEffect(() => {
-    console.log('📍 Dashboard useEffect triggered, loading logo from localStorage for storeId:', topupStoreId);
+    console.log('ًں“چ Dashboard useEffect triggered, loading logo from localStorage for storeId:', topupStoreId);
     const storeSettings = localStorage.getItem(`storeSettings_${topupStoreId}`);
     if (storeSettings) {
       try {
         const parsed = JSON.parse(storeSettings);
         if (parsed.logo_url && parsed.logo_url.length > 100) {
-          console.log('📍 Found valid logo, setting it. Length:', parsed.logo_url.length);
-          console.log('📍 Logo data ends with:', parsed.logo_url.substring(parsed.logo_url.length - 30));
+          console.log('ًں“چ Found valid logo, setting it. Length:', parsed.logo_url.length);
+          console.log('ًں“چ Logo data ends with:', parsed.logo_url.substring(parsed.logo_url.length - 30));
           setDashboardLogo(prev => {
             if (prev !== parsed.logo_url) {
-              console.log('📍 Logo is different from previous, updating');
+              console.log('ًں“چ Logo is different from previous, updating');
               return parsed.logo_url;
             }
-            console.log('📍 Logo is same as previous, skipping');
+            console.log('ًں“چ Logo is same as previous, skipping');
             return prev;
           });
         } else {
-          console.log('📍 No valid logo found in settings');
+          console.log('ًں“چ No valid logo found in settings');
         }
       } catch (err) {
-        console.error('❌ Error parsing store settings:', err);
+        console.error('â‌Œ Error parsing store settings:', err);
       }
     } else {
-      console.log('📍 No store settings in localStorage for key:', `storeSettings_${topupStoreId}`);
+      console.log('ًں“چ No store settings in localStorage for key:', `storeSettings_${topupStoreId}`);
     }
   }, [topupStoreId]);
 
   // Trigger refresh when dashboardLogo changes
   useEffect(() => {
-    console.log('📍 dashboardLogo changed, length:', dashboardLogo.length);
+    console.log('ًں“چ dashboardLogo changed, length:', dashboardLogo.length);
     setLogoRefreshKey(prev => prev + 1);
   }, [dashboardLogo]);
 
   // Listen for custom event from settings panel
   useEffect(() => {
     const handleSettingsUpdate = (e: any) => {
-      console.log('🔔 Event received on Dashboard, topupStoreId:', topupStoreId);
+      console.log('ًں”” Event received on Dashboard, topupStoreId:', topupStoreId);
       const storeSettings = localStorage.getItem(`storeSettings_${topupStoreId}`);
-      console.log('🔔 Reading from key:', `storeSettings_${topupStoreId}`);
+      console.log('ًں”” Reading from key:', `storeSettings_${topupStoreId}`);
       if (storeSettings) {
         try {
           const parsed = JSON.parse(storeSettings);
-          console.log('🔔 Parsed from localStorage:', {
+          console.log('ًں”” Parsed from localStorage:', {
             has_logo: !!parsed.logo_url,
             logoLength: parsed.logo_url?.length,
             logoEnds: parsed.logo_url?.substring(parsed.logo_url.length - 30)
           });
           if (parsed.logo_url && parsed.logo_url.length > 100) {
-            console.log('🔔 Setting logo from event. Length:', parsed.logo_url.length);
+            console.log('ًں”” Setting logo from event. Length:', parsed.logo_url.length);
             // Clear first
             setDashboardLogo('');
             setTimeout(() => {
-              console.log('🔔 Now setting new logo');
+              console.log('ًں”” Now setting new logo');
               setDashboardLogo(parsed.logo_url);
               setLogoRefreshKey(prev => {
                 const newKey = prev + 1;
-                console.log('🔔 Incrementing refresh key from', prev, 'to', newKey);
+                console.log('ًں”” Incrementing refresh key from', prev, 'to', newKey);
                 return newKey;
               });
             }, 50);
           }
         } catch (err) {
-          console.error('❌ Error in event handler:', err);
+          console.error('â‌Œ Error in event handler:', err);
         }
       }
     };
@@ -11009,13 +11046,13 @@ const MerchantTopupDashboard = () => {
 
   // Fetch store info for sidebar branding
   useEffect(() => {
-    // ⛔ CRITICAL: Reject invalid store IDs before any fetch
+    // â›” CRITICAL: Reject invalid store IDs before any fetch
     if (!topupStoreId || topupStoreId === null || topupStoreId === undefined) {
-      console.log('⏭️ topupStoreId not ready yet or invalid:', topupStoreId);
+      console.log('âڈ­ï¸ڈ topupStoreId not ready yet or invalid:', topupStoreId);
       return;
     }
     
-    console.log('📦 MerchantTopupDashboard - Fetching store info for store:', topupStoreId);
+    console.log('ًں“¦ MerchantTopupDashboard - Fetching store info for store:', topupStoreId);
     
     // Try to load from localStorage first
     const cachedInfo = localStorage.getItem(`storeInfo_${topupStoreId}`);
@@ -11027,7 +11064,7 @@ const MerchantTopupDashboard = () => {
         if (cached.logo_url && cached.logo_url.length > 100) {
           setDashboardLogo(cached.logo_url);
         }
-        console.log('✅ Loaded store info from cache for sidebar');
+        console.log('âœ… Loaded store info from cache for sidebar');
       } catch (e) {
         console.error('Failed to parse cached store info:', e);
       }
@@ -11039,7 +11076,7 @@ const MerchantTopupDashboard = () => {
           if (!r.ok) {
             // If store doesn't exist (404), just use default fallback data
             if (r.status === 404) {
-              console.warn(`⚠️ Store ${topupStoreId} not found, using defaults`);
+              console.warn(`âڑ ï¸ڈ Store ${topupStoreId} not found, using defaults`);
               throw new Error(`Store ${topupStoreId} not found`);
             }
             throw new Error(`Store fetch failed with status ${r.status}`);
@@ -11052,7 +11089,7 @@ const MerchantTopupDashboard = () => {
             // Enrich with store_name fallback
             const enrichedData = {
               ...data,
-              store_name: data.store_name || data.name || data.title || 'متجر البطاقات'
+              store_name: data.store_name || data.name || data.title || 'ظ…طھط¬ط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ'
             };
             setStoreInfo(enrichedData);
             // Also set logo if available
@@ -11061,16 +11098,16 @@ const MerchantTopupDashboard = () => {
               setLogoRefreshKey(prev => prev + 1); // Force refresh the img tag
             }
             localStorage.setItem(`storeInfo_${topupStoreId}`, JSON.stringify(enrichedData));
-            console.log('✅ Updated store info for sidebar:', enrichedData.store_name, 'with logo:', !!enrichedData.logo_url);
+            console.log('âœ… Updated store info for sidebar:', enrichedData.store_name, 'with logo:', !!enrichedData.logo_url);
           }
         })
         .catch(err => {
           console.error('Failed to fetch store info:', err);
           // Set default store info as fallback
           setStoreInfo({ 
-            store_name: 'متجر البطاقات',
-            name: 'متجر البطاقات',
-            description: 'متجر البطاقات'
+            store_name: 'ظ…طھط¬ط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ',
+            name: 'ظ…طھط¬ط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ',
+            description: 'ظ…طھط¬ط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ'
           });
         });
   }, [topupStoreId]);
@@ -11078,7 +11115,7 @@ const MerchantTopupDashboard = () => {
   const handleStoreLogoUpload = async (file: File) => {
     if (!file) return;
 
-    console.log('🔄 handleStoreLogoUpload called with file:', {
+    console.log('ًں”„ handleStoreLogoUpload called with file:', {
       name: file.name,
       size: file.size,
       type: file.type,
@@ -11093,7 +11130,7 @@ const MerchantTopupDashboard = () => {
         try {
           const base64Data = e.target?.result as string;
           
-          console.log('📸 Base64 Data Preview:', {
+          console.log('ًں“¸ Base64 Data Preview:', {
             length: base64Data.length,
             firstChars: base64Data.substring(0, 50),
             lastChars: base64Data.substring(base64Data.length - 30),
@@ -11101,7 +11138,7 @@ const MerchantTopupDashboard = () => {
           });
           
           // Compare with current logo
-          console.log('📸 Comparing with current dashboard logo:', {
+          console.log('ًں“¸ Comparing with current dashboard logo:', {
             currentLength: dashboardLogo.length,
             currentEnds: dashboardLogo.substring(dashboardLogo.length - 30),
             newLength: base64Data.length,
@@ -11115,7 +11152,7 @@ const MerchantTopupDashboard = () => {
             logo_url: base64Data
           };
           
-          console.log('📝 Updated Settings:', {
+          console.log('ًں“‌ Updated Settings:', {
             store_name: updatedSettings.store_name,
             logo_url_length: updatedSettings.logo_url?.length,
             logoEnds: updatedSettings.logo_url?.substring(updatedSettings.logo_url.length - 30)
@@ -11127,7 +11164,7 @@ const MerchantTopupDashboard = () => {
           
           // Save to localStorage
           localStorage.setItem(`storeSettings_${topupStoreId}`, JSON.stringify(updatedSettings));
-          console.log('✓ Saved to localStorage - verifying:', {
+          console.log('âœ“ Saved to localStorage - verifying:', {
             topupStoreId: topupStoreId,
             keyName: `storeSettings_${topupStoreId}`,
             storedLength: localStorage.getItem(`storeSettings_${topupStoreId}`)?.length,
@@ -11144,21 +11181,21 @@ const MerchantTopupDashboard = () => {
               body: JSON.stringify({ logo_url: base64Data })
             });
             if (dbRes.ok) {
-              console.log('✅ Logo saved to database for store', topupStoreId);
+              console.log('âœ… Logo saved to database for store', topupStoreId);
             } else {
-              console.warn('⚠️ Failed to save logo to database:', await dbRes.json());
+              console.warn('âڑ ï¸ڈ Failed to save logo to database:', await dbRes.json());
             }
           } catch (err) {
-            console.error('❌ Error saving logo to database:', err);
+            console.error('â‌Œ Error saving logo to database:', err);
           }
           
           // Dispatch event for menu component
           window.dispatchEvent(new CustomEvent('storeSettingsUpdated', {
             detail: { storeId: topupStoreId, settings: updatedSettings }
           }));
-          console.log('📢 Dispatched storeSettingsUpdated event with storeId:', topupStoreId);
+          console.log('ًں“¢ Dispatched storeSettingsUpdated event with storeId:', topupStoreId);
           
-          console.log('✓ Logo uploaded and saved:', {
+          console.log('âœ“ Logo uploaded and saved:', {
             size: file.size,
             type: file.type,
             name: file.name,
@@ -11166,45 +11203,45 @@ const MerchantTopupDashboard = () => {
           });
           
           setStoreLogoFile(null);
-          alert('✓ تم تحميل الشعار بنجاح');
+          alert('âœ“ طھظ… طھط­ظ…ظٹظ„ ط§ظ„ط´ط¹ط§ط± ط¨ظ†ط¬ط§ط­');
           setLogoUploadLoading(false);
         } catch (error) {
           console.error('Error processing logo:', error);
-          alert('❌ حدث خطأ في معالجة الشعار');
+          alert('â‌Œ ط­ط¯ط« ط®ط·ط£ ظپظٹ ظ…ط¹ط§ظ„ط¬ط© ط§ظ„ط´ط¹ط§ط±');
           setLogoUploadLoading(false);
         }
       };
       
       reader.onerror = () => {
         console.error('Error reading file');
-        alert('❌ خطأ في قراءة الملف');
+        alert('â‌Œ ط®ط·ط£ ظپظٹ ظ‚ط±ط§ط،ط© ط§ظ„ظ…ظ„ظپ');
         setLogoUploadLoading(false);
       };
       
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Error uploading logo:', error);
-      alert('❌ حدث خطأ في التحميل');
+      alert('â‌Œ ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„طھط­ظ…ظٹظ„');
       setLogoUploadLoading(false);
     }
   };
 
   const saveStoreSettings = async () => {
     if (!storeSettings.store_name.trim()) {
-      alert('يرجى إدخال اسم المتجر');
+      alert('ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط§ط³ظ… ط§ظ„ظ…طھط¬ط±');
       return;
     }
 
     try {
       // Save to localStorage first (always works)
       localStorage.setItem(`storeSettings_${topupStoreId}`, JSON.stringify(storeSettings));
-      console.log('✓ Saved to localStorage:', storeSettings);
+      console.log('âœ“ Saved to localStorage:', storeSettings);
 
       // Dispatch custom event to notify other components
       window.dispatchEvent(new CustomEvent('storeSettingsUpdated', {
         detail: { storeId: topupStoreId, settings: storeSettings }
       }));
-      console.log('📢 Dispatched storeSettingsUpdated event');
+      console.log('ًں“¢ Dispatched storeSettingsUpdated event');
 
       // Try to save to API endpoint
       try {
@@ -11218,31 +11255,31 @@ const MerchantTopupDashboard = () => {
         });
 
         if (response.ok) {
-          alert('✓ تم حفظ الإعدادات بنجاح (في الخادم والتطبيق)');
+          alert('âœ“ طھظ… ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط¨ظ†ط¬ط§ط­ (ظپظٹ ط§ظ„ط®ط§ط¯ظ… ظˆط§ظ„طھط·ط¨ظٹظ‚)');
         } else if (response.status === 404) {
-          alert('✓ تم حفظ الإعدادات بنجاح (في التطبيق)');
+          alert('âœ“ طھظ… ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط¨ظ†ط¬ط§ط­ (ظپظٹ ط§ظ„طھط·ط¨ظٹظ‚)');
           console.log('Note: API endpoint not available, saved locally');
         } else {
-          alert('✓ تم حفظ الإعدادات بنجاح (في التطبيق)\n⚠️ لم يتم حفظها في الخادم');
+          alert('âœ“ طھظ… ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط¨ظ†ط¬ط§ط­ (ظپظٹ ط§ظ„طھط·ط¨ظٹظ‚)\nâڑ ï¸ڈ ظ„ظ… ظٹطھظ… ط­ظپط¸ظ‡ط§ ظپظٹ ط§ظ„ط®ط§ط¯ظ…');
         }
       } catch (apiError) {
         console.log('API not available, but saved locally:', apiError);
-        alert('✓ تم حفظ الإعدادات بنجاح (في التطبيق)');
+        alert('âœ“ طھظ… ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط¨ظ†ط¬ط§ط­ (ظپظٹ ط§ظ„طھط·ط¨ظٹظ‚)');
       }
     } catch (error) {
       console.error('Error saving store settings:', error);
-      alert('❌ حدث خطأ: ' + (error as any).message);
+      alert('â‌Œ ط­ط¯ط« ط®ط·ط£: ' + (error as any).message);
     }
   };
 
   const saveCompany = async () => {
     if (!companyForm.name) {
-      alert('يرجى إدخال اسم الشركة');
+      alert('ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط§ط³ظ… ط§ظ„ط´ط±ظƒط©');
       return;
     }
 
     if (!topupStoreId) {
-      alert('❌ خطأ: لم يتم تحديد متجر الشحن. جاري التحميل...');
+      alert('â‌Œ ط®ط·ط£: ظ„ظ… ظٹطھظ… طھط­ط¯ظٹط¯ ظ…طھط¬ط± ط§ظ„ط´ط­ظ†. ط¬ط§ط±ظٹ ط§ظ„طھط­ظ…ظٹظ„...');
       return;
     }
 
@@ -11250,7 +11287,7 @@ const MerchantTopupDashboard = () => {
       const method = isEditingCompany ? 'PUT' : 'POST';
       const url = isEditingCompany ? `/api/topup/companies/${isEditingCompany}` : '/api/topup/companies';
       
-      console.log('📤 Sending company data:', {
+      console.log('ًں“¤ Sending company data:', {
         store_id: topupStoreId,
         name: companyForm.name,
         logo_url: companyForm.logo_url
@@ -11276,7 +11313,7 @@ const MerchantTopupDashboard = () => {
       }
 
       if (response.ok) {
-        alert(isEditingCompany ? 'تم التحديث بنجاح' : 'تمت الإضافة بنجاح');
+        alert(isEditingCompany ? 'طھظ… ط§ظ„طھط­ط¯ظٹط« ط¨ظ†ط¬ط§ط­' : 'طھظ…طھ ط§ظ„ط¥ط¶ط§ظپط© ط¨ظ†ط¬ط§ط­');
         setShowCompanyModal(false);
         setCompanyForm({ name: '', logo_url: '' });
         const reloadStoreId = Number(responseData?.store_id || topupStoreId);
@@ -11288,19 +11325,19 @@ const MerchantTopupDashboard = () => {
         const data = await res.json();
         setCompanies(Array.isArray(data) ? data : []);
       } else {
-        console.error('❌ Server error response:', responseData);
-        const errorMsg = responseData?.error || responseData?.details || 'فشل الحفظ';
-        alert('خطأ من السيرفر: ' + errorMsg);
+        console.error('â‌Œ Server error response:', responseData);
+        const errorMsg = responseData?.error || responseData?.details || 'ظپط´ظ„ ط§ظ„ط­ظپط¸';
+        alert('ط®ط·ط£ ظ…ظ† ط§ظ„ط³ظٹط±ظپط±: ' + errorMsg);
       }
     } catch (error) {
       console.error('Error saving company:', error);
-      alert('حدث خطأ في الاتصال: ' + (error as any).message);
+      alert('ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: ' + (error as any).message);
     }
   };
 
   const saveCustomer = async () => {
     if (!customerForm.name || !customerForm.phone || !customerForm.password) {
-      alert('يرجى ملء جميع الحقول المطلوبة');
+      alert('ظٹط±ط¬ظ‰ ظ…ظ„ط، ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط©');
       return;
     }
 
@@ -11324,7 +11361,7 @@ const MerchantTopupDashboard = () => {
       });
 
       if (response.ok) {
-        alert(isEditingCustomer ? 'تم التحديث بنجاح' : 'تمت الإضافة بنجاح');
+        alert(isEditingCustomer ? 'طھظ… ط§ظ„طھط­ط¯ظٹط« ط¨ظ†ط¬ط§ط­' : 'طھظ…طھ ط§ظ„ط¥ط¶ط§ظپط© ط¨ظ†ط¬ط§ط­');
         setShowCustomerModal(false);
         setCustomerForm({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
         // Reload customers
@@ -11333,21 +11370,21 @@ const MerchantTopupDashboard = () => {
         setCustomers(Array.isArray(data) ? data : []);
       } else {
         const errorData = await response.json();
-        alert(errorData.error || 'حدث خطأ');
+        alert(errorData.error || 'ط­ط¯ط« ط®ط·ط£');
       }
     } catch (error) {
       console.error('Error saving customer:', error);
-      alert('حدث خطأ في الاتصال');
+      alert('ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„');
     }
   };
 
-  // 🎯 Handle create product for TOPUP merchant dashboard
+  // ًںژ¯ Handle create product for TOPUP merchant dashboard
   const handleCreateProductTopup = () => {
     if (!user?.store_id) {
-      alert("عذراً، لم يتم العثور على معرّف المتجر!");
+      alert("ط¹ط°ط±ط§ظ‹طŒ ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ…ط¹ط±ظ‘ظپ ط§ظ„ظ…طھط¬ط±!");
       return;
     }
-    console.log('🎯 handleCreateProductTopup triggered');
+    console.log('ًںژ¯ handleCreateProductTopup triggered');
     setProductForm({
       company_id: '',
       amount: '',
@@ -11359,12 +11396,12 @@ const MerchantTopupDashboard = () => {
     setProductImages([]);
     setExistingProductImages([]);
     setIsEditingProduct(null);
-    console.log('🎯 About to setShowProductModal(true)');
+    console.log('ًںژ¯ About to setShowProductModal(true)');
     setShowProductModal(true);
-    console.log('🎯 setShowProductModal called - modal should appear!');
+    console.log('ًںژ¯ setShowProductModal called - modal should appear!');
   };
 
-  // 🖼️ Compress image using Canvas API
+  // ًں–¼ï¸ڈ Compress image using Canvas API
   const compressImage = (file: File, maxWidth: number = 1200, maxHeight: number = 1200, quality: number = 0.7): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -11401,11 +11438,11 @@ const MerchantTopupDashboard = () => {
           const originalSize = reader.result?.toString().length || 0;
           const compressedSize = compressedDataUrl.length;
           
-          console.log('🔧 Image Compression:');
+          console.log('ًں”§ Image Compression:');
           console.log(`  Original: ${(originalSize / 1024).toFixed(2)} KB`);
           console.log(`  Compressed: ${(compressedSize / 1024).toFixed(2)} KB`);
           console.log(`  Ratio: ${((1 - compressedSize / originalSize) * 100).toFixed(1)}% reduction`);
-          console.log(`  Dimensions: ${img.width}x${img.height} → ${width}x${height}`);
+          console.log(`  Dimensions: ${img.width}x${img.height} â†’ ${width}x${height}`);
           
           resolve(compressedDataUrl);
         };
@@ -11417,7 +11454,7 @@ const MerchantTopupDashboard = () => {
 
   const saveProduct = async () => {
     if (!productForm.company_id || !productForm.amount || !productForm.price) {
-      alert('يرجى ملء جميع الحقول المطلوبة');
+      alert('ظٹط±ط¬ظ‰ ظ…ظ„ط، ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط©');
       return;
     }
 
@@ -11430,7 +11467,7 @@ const MerchantTopupDashboard = () => {
       const bulkPriceInt = productForm.bulk_price ? parseInt(productForm.bulk_price) : priceInt;
       
       if (isNaN(amountInt) || isNaN(priceInt)) {
-        alert('يرجى إدخال أرقام صحيحة للمبلغ والسعر');
+        alert('ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط£ط±ظ‚ط§ظ… طµط­ظٹط­ط© ظ„ظ„ظ…ط¨ظ„ط؛ ظˆط§ظ„ط³ط¹ط±');
         return;
       }
       
@@ -11443,7 +11480,7 @@ const MerchantTopupDashboard = () => {
         quantity_type: productForm.quantity_type
       };
 
-      console.log('📤 Sending product payload:', payload);
+      console.log('ًں“¤ Sending product payload:', payload);
 
       const response = await fetch(url, {
         method,
@@ -11452,18 +11489,18 @@ const MerchantTopupDashboard = () => {
       });
 
       const responseData = await response.json();
-      console.log('📥 Product response:', responseData);
+      console.log('ًں“¥ Product response:', responseData);
 
       if (response.ok) {
         // Get product ID from response - backend returns product directly
         const productId = isEditingProduct ? isEditingProduct : (responseData.id || responseData.product?.id);
         
-        console.log('✅ Product saved with ID:', productId);
+        console.log('âœ… Product saved with ID:', productId);
         
         // Upload NEW images first if any are selected
         const uploadedImageUrls: string[] = [];
         if (productImages.length > 0 && productId) {
-          console.log('📸 Uploading', productImages.length, 'new images to Firebase...');
+          console.log('ًں“¸ Uploading', productImages.length, 'new images to Firebase...');
           
           const uploadPromises = productImages.map(imageFile => {
             return new Promise<void>((resolve, reject) => {
@@ -11483,29 +11520,29 @@ const MerchantTopupDashboard = () => {
                   .then(async (imageResponse) => {
                     if (!imageResponse.ok) {
                       const imgError = await imageResponse.json();
-                      console.warn('⚠️ Error uploading image to Firebase:', imgError);
+                      console.warn('âڑ ï¸ڈ Error uploading image to Firebase:', imgError);
                     } else {
                       const uploadResult = await imageResponse.json();
-                      console.log('✅ Image uploaded successfully');
-                      console.log('📊 File:', imageFile.name, `(${(imageFile.size / 1024).toFixed(2)} KB)`);
-                      console.log('📥 Server response:', JSON.stringify(uploadResult, null, 2));
+                      console.log('âœ… Image uploaded successfully');
+                      console.log('ًں“ٹ File:', imageFile.name, `(${(imageFile.size / 1024).toFixed(2)} KB)`);
+                      console.log('ًں“¥ Server response:', JSON.stringify(uploadResult, null, 2));
                       
                       // Track uploaded image URLs if API returns them
                       if (uploadResult.image_urls && Array.isArray(uploadResult.image_urls)) {
-                        console.log('🔗 URLs received from server:', uploadResult.image_urls);
+                        console.log('ًں”— URLs received from server:', uploadResult.image_urls);
                         uploadedImageUrls.push(...uploadResult.image_urls);
                       } else {
-                        console.warn('⚠️ No image_urls in response. Response keys:', Object.keys(uploadResult));
+                        console.warn('âڑ ï¸ڈ No image_urls in response. Response keys:', Object.keys(uploadResult));
                       }
                     }
                     resolve();
                   })
                   .catch((err) => {
-                    console.error('❌ Error uploading image:', err);
+                    console.error('â‌Œ Error uploading image:', err);
                     reject(err);
                   });
               } catch (err) {
-                console.error('❌ Error creating FormData:', err);
+                console.error('â‌Œ Error creating FormData:', err);
                 reject(err);
               }
             });
@@ -11513,9 +11550,9 @@ const MerchantTopupDashboard = () => {
           
           try {
             await Promise.all(uploadPromises);
-            console.log('✅ All new images uploaded successfully');
+            console.log('âœ… All new images uploaded successfully');
           } catch (err) {
-            console.error('❌ Error uploading images:', err);
+            console.error('â‌Œ Error uploading images:', err);
           }
         }
         
@@ -11524,7 +11561,7 @@ const MerchantTopupDashboard = () => {
           // DO NOT send images in PUT - images are managed separately via topup_product_images table
           // Only send to update product metadata (amount, price, company, etc.)
           
-          console.log('🔄 Updating product metadata (images handled separately)');
+          console.log('ًں”„ Updating product metadata (images handled separately)');
             
           const updateResponse = await fetch(`/api/topup/products/${productId}`, {
             method: 'PUT',
@@ -11536,20 +11573,20 @@ const MerchantTopupDashboard = () => {
               price: parseInt(productForm.price),
               bulk_price: productForm.bulk_price ? parseInt(productForm.bulk_price) : parseInt(productForm.price),
               quantity_type: productForm.quantity_type
-              // ❌ NO images field - images are ONLY stored in topup_product_images table
+              // â‌Œ NO images field - images are ONLY stored in topup_product_images table
             })
           });
           
           if (updateResponse.ok) {
-            console.log('✅ Product metadata updated successfully');
+            console.log('âœ… Product metadata updated successfully');
           } else {
-            console.warn('⚠️ Failed to update product metadata, status:', updateResponse.status);
+            console.warn('âڑ ï¸ڈ Failed to update product metadata, status:', updateResponse.status);
           }
         } catch (err) {
-          console.warn('⚠️ Error updating product metadata:', err);
+          console.warn('âڑ ï¸ڈ Error updating product metadata:', err);
         }
 
-        alert(isEditingProduct ? 'تم التحديث بنجاح' : 'تمت الإضافة بنجاح');
+        alert(isEditingProduct ? 'طھظ… ط§ظ„طھط­ط¯ظٹط« ط¨ظ†ط¬ط§ط­' : 'طھظ…طھ ط§ظ„ط¥ط¶ط§ظپط© ط¨ظ†ط¬ط§ط­');
         setShowProductModal(false);
         setProductForm({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
         setProductImages([]);
@@ -11561,30 +11598,30 @@ const MerchantTopupDashboard = () => {
           const data = await res.json();
           setProducts(Array.isArray(data) ? data : []);
           
-          // ✨ Trigger refresh for TopupStorefront to see new products
+          // âœ¨ Trigger refresh for TopupStorefront to see new products
           const { triggerProductsRefresh } = useRefreshStore.getState();
           triggerProductsRefresh();
-          console.log('✅ Products refresh triggered for TopupStorefront');
+          console.log('âœ… Products refresh triggered for TopupStorefront');
         }, 500);
       } else {
-        const errorMsg = responseData.error || responseData.message || 'فشل حفظ المنتج';
-        alert('ط®ط·ط£: ' + errorMsg);
-        console.error('❌ Server error:', responseData);
+        const errorMsg = responseData.error || responseData.message || 'ظپط´ظ„ ط­ظپط¸ ط§ظ„ظ…ظ†طھط¬';
+        alert('ط·آ®ط·آ·ط·آ£: ' + errorMsg);
+        console.error('â‌Œ Server error:', responseData);
       }
     } catch (error) {
-      console.error('❌ Error saving product:', error);
-      alert('حدث خطأ: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
+      console.error('â‌Œ Error saving product:', error);
+      alert('ط­ط¯ط« ط®ط·ط£: ' + (error instanceof Error ? error.message : 'ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ'));
     }
   };
 
   const handleUploadCodes = async () => {
     if (uploadedFiles.length === 0) {
-      alert('يرجى اختيار صور');
+      alert('ظٹط±ط¬ظ‰ ط§ط®طھظٹط§ط± طµظˆط±');
       return;
     }
 
     if (!selectedProductForCodes) {
-      alert('يرجى اختيار منتج أولاً');
+      alert('ظٹط±ط¬ظ‰ ط§ط®طھظٹط§ط± ظ…ظ†طھط¬ ط£ظˆظ„ط§ظ‹');
       return;
     }
 
@@ -11658,7 +11695,7 @@ const MerchantTopupDashboard = () => {
         });
       };
 
-      console.log('📤 Starting upload for', uploadedFiles.length, 'images for product:', selectedProductForCodes);
+      console.log('ًں“¤ Starting upload for', uploadedFiles.length, 'images for product:', selectedProductForCodes);
       
       // Use FormData for multipart upload (binary files, no base64 conversion!)
       const formData = new FormData();
@@ -11667,11 +11704,11 @@ const MerchantTopupDashboard = () => {
       
       // Add all files directly (no compression, no base64)
       uploadedFiles.forEach((file) => {
-        console.log(`📁 Adding file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+        console.log(`ًں“پ Adding file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
         formData.append('images', file);
       });
       
-      console.log('✅ FormData prepared with', uploadedFiles.length, 'files');
+      console.log('âœ… FormData prepared with', uploadedFiles.length, 'files');
 
       const response = await fetchWithTimeout('/api/topup/upload-images-firebase', {
         method: 'POST',
@@ -11682,8 +11719,8 @@ const MerchantTopupDashboard = () => {
       const responseData = await response.json();
 
       if (response.ok) {
-        console.log('✅ All images uploaded successfully');
-        alert(responseData.message || `تم تحميل ${uploadedFiles.length} صورة بنجاح!`);
+        console.log('âœ… All images uploaded successfully');
+        alert(responseData.message || `طھظ… طھط­ظ…ظٹظ„ ${uploadedFiles.length} طµظˆط±ط© ط¨ظ†ط¬ط§ط­!`);
         setShowCodeUploadModal(false);
         setUploadedFiles([]);
         setSelectedProductForCodes(null);
@@ -11693,18 +11730,18 @@ const MerchantTopupDashboard = () => {
           const updatedRes = await fetchWithTimeout(`/api/topup/products/${topupStoreId}`, {});
           const data = await updatedRes.json();
           setProducts(Array.isArray(data) ? data : []);
-          console.log('✅ Products refreshed after upload');
+          console.log('âœ… Products refreshed after upload');
         } catch (refreshError) {
-          console.warn('⚠️ Failed to refresh products:', refreshError);
+          console.warn('âڑ ï¸ڈ Failed to refresh products:', refreshError);
           // Don't fail the whole upload if refresh fails, just log it
         }
       } else {
-        alert(`خطأ: ${responseData.error || 'فشل تحميل الصورة'}`);
+        alert(`ط®ط·ط£: ${responseData.error || 'ظپط´ظ„ طھط­ظ…ظٹظ„ ط§ظ„طµظˆط±ط©'}`);
       }
     } catch (error) {
-      console.error('❌ Error uploading image:', error);
-      const errorMsg = error instanceof Error ? error.message : 'خطأ غير معروف';
-      alert('حدث خطأ: ' + errorMsg);
+      console.error('â‌Œ Error uploading image:', error);
+      const errorMsg = error instanceof Error ? error.message : 'ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ';
+      alert('ط­ط¯ط« ط®ط·ط£: ' + errorMsg);
     } finally {
       setIsUploadingImage(false);
     }
@@ -11722,7 +11759,7 @@ const MerchantTopupDashboard = () => {
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-indigo-600/20 mb-4">
             <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <p className={cn("text-lg font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>جاري تحميل البيانات...</p>
+          <p className={cn("text-lg font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ...</p>
         </div>
       </div>
     );
@@ -11753,7 +11790,7 @@ const MerchantTopupDashboard = () => {
                   setDashboardLogo('');
                 }}
                 onLoad={() => {
-                  console.log('✅ Sidebar image loaded successfully! Key:', logoRefreshKey, 'Src ends with:', dashboardLogo.substring(dashboardLogo.length - 30));
+                  console.log('âœ… Sidebar image loaded successfully! Key:', logoRefreshKey, 'Src ends with:', dashboardLogo.substring(dashboardLogo.length - 30));
                 }}
               />
             ) : (
@@ -11762,26 +11799,26 @@ const MerchantTopupDashboard = () => {
               </div>
             )}
             <div>
-              <h2 className={cn("font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{storeInfo?.store_name || 'الإدارة'}</h2>
-              <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>متجر البطاقات</p>
+              <h2 className={cn("font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{storeInfo?.store_name || 'ط§ظ„ط¥ط¯ط§ط±ط©'}</h2>
+              <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>ظ…طھط¬ط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ</p>
             </div>
           </div>
 
           <nav className="space-y-2">
             {[
-              { id: 'overview', label: 'ملخص المبيعات', icon: BarChart3, badge: null },
-              { id: 'companies', label: 'الشركات', icon: StoreIcon, badge: companies.length },
-              { id: 'products', label: 'المنتجات', icon: CreditCard, badge: products.length },
-              { id: 'codes', label: 'الأكواد', icon: Ticket, badge: products.reduce((sum: number, p: any) => {
+              { id: 'overview', label: 'ظ…ظ„ط®طµ ط§ظ„ظ…ط¨ظٹط¹ط§طھ', icon: BarChart3, badge: null },
+              { id: 'companies', label: 'ط§ظ„ط´ط±ظƒط§طھ', icon: StoreIcon, badge: companies.length },
+              { id: 'products', label: 'ط§ظ„ظ…ظ†طھط¬ط§طھ', icon: CreditCard, badge: products.length },
+              { id: 'codes', label: 'ط§ظ„ط£ظƒظˆط§ط¯', icon: Ticket, badge: products.reduce((sum: number, p: any) => {
                 // Count uploaded images from each product
                 const count = (p.images && Array.isArray(p.images)) 
                   ? p.images.filter((img: any) => img && String(img).length > 0).length 
                   : 0;
                 return sum + count;
               }, 0) },
-              { id: 'customers', label: 'العملاء', icon: Users, badge: customers.length },
-              { id: 'orders', label: 'الطلبات', icon: ShoppingCart, badge: orders.filter((o: any) => o.status !== 'returned').length },
-              { id: 'settings', label: 'الإعدادات', icon: Settings, badge: null },
+              { id: 'customers', label: 'ط§ظ„ط¹ظ…ظ„ط§ط،', icon: Users, badge: customers.length },
+              { id: 'orders', label: 'ط§ظ„ط·ظ„ط¨ط§طھ', icon: ShoppingCart, badge: orders.filter((o: any) => o.status !== 'returned').length },
+              { id: 'settings', label: 'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ', icon: Settings, badge: null },
             ].map(item => (
               <Link
                 key={item.id}
@@ -11811,7 +11848,7 @@ const MerchantTopupDashboard = () => {
                       ? currentSection === item.id ? "bg-purple-400/30 text-purple-200" : isDarkMode ? "bg-purple-900/40 text-purple-300" : "bg-purple-100 text-purple-800"
                       : currentSection === item.id ? "bg-white/20" : isDarkMode ? "bg-gray-700 text-indigo-400" : "bg-indigo-100 text-indigo-700"
                   )}>
-                    {item.badge === 0 && item.id === 'codes' ? '0️⃣' : item.badge}
+                    {item.badge === 0 && item.id === 'codes' ? '0ï¸ڈâƒ£' : item.badge}
                   </span>
                 )}
               </Link>
@@ -11820,8 +11857,8 @@ const MerchantTopupDashboard = () => {
 
           <div className={cn("mt-8 pt-8 border-t", isDarkMode ? "border-gray-800" : "border-gray-200")}>
             <div className={cn("p-4 rounded-lg mb-4", isDarkMode ? "bg-gray-800" : "bg-gray-100")}>
-              <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>أنت مسجل بصفة</p>
-              <p className={cn("font-normal mb-4", isDarkMode ? "text-gray-100" : "text-gray-900")}>{user?.name || 'تاجر'}</p>
+              <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط£ظ†طھ ظ…ط³ط¬ظ„ ط¨طµظپط©</p>
+              <p className={cn("font-normal mb-4", isDarkMode ? "text-gray-100" : "text-gray-900")}>{user?.name || 'طھط§ط¬ط±'}</p>
             </div>
           </div>
         </div>
@@ -11834,13 +11871,13 @@ const MerchantTopupDashboard = () => {
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className={cn("text-3xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>
-                {currentSection === 'overview' ? 'ملخص المبيعات' :
-                 currentSection === 'companies' ? 'إدارة الشركات' :
-                 currentSection === 'products' ? 'إدارة المنتجات' :
-                 currentSection === 'codes' ? 'إدارة الأكواد' :
-                 currentSection === 'orders' ? 'الطلبات' :
-                 currentSection === 'customers' ? 'العملاء' :
-                 currentSection === 'settings' ? 'الإعدادات' : 'اللوحة'}
+                {currentSection === 'overview' ? 'ظ…ظ„ط®طµ ط§ظ„ظ…ط¨ظٹط¹ط§طھ' :
+                 currentSection === 'companies' ? 'ط¥ط¯ط§ط±ط© ط§ظ„ط´ط±ظƒط§طھ' :
+                 currentSection === 'products' ? 'ط¥ط¯ط§ط±ط© ط§ظ„ظ…ظ†طھط¬ط§طھ' :
+                 currentSection === 'codes' ? 'ط¥ط¯ط§ط±ط© ط§ظ„ط£ظƒظˆط§ط¯' :
+                 currentSection === 'orders' ? 'ط§ظ„ط·ظ„ط¨ط§طھ' :
+                 currentSection === 'customers' ? 'ط§ظ„ط¹ظ…ظ„ط§ط،' :
+                 currentSection === 'settings' ? 'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ' : 'ط§ظ„ظ„ظˆط­ط©'}
               </h1>
             </div>
             <button
@@ -11857,10 +11894,10 @@ const MerchantTopupDashboard = () => {
               {/* Main Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {[
-                  { label: '📊 إجمالي الطلبات', value: stats.totalOrders.toString(), color: 'indigo' },
-                  { label: '💰 الإيرادات', value: `${formatNumber(typeof stats.totalRevenue === 'number' ? stats.totalRevenue : parseFloat(String(stats.totalRevenue) || '0'))} د.ع`, color: 'green' },
-                  { label: '📦 الأكواد المتاحة', value: stats.totalCodes.toString(), color: 'blue' },
-                  { label: '✅ الأكواد المستخدمة', value: ((stats.totalCodes || 0) - (stats.activeCodes || 0)).toString(), color: 'purple' },
+                  { label: 'ًں“ٹ ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط·ظ„ط¨ط§طھ', value: stats.totalOrders.toString(), color: 'indigo' },
+                  { label: 'ًں’° ط§ظ„ط¥ظٹط±ط§ط¯ط§طھ', value: `${formatNumber(typeof stats.totalRevenue === 'number' ? stats.totalRevenue : parseFloat(String(stats.totalRevenue) || '0'))} ط¯.ط¹`, color: 'green' },
+                  { label: 'ًں“¦ ط§ظ„ط£ظƒظˆط§ط¯ ط§ظ„ظ…طھط§ط­ط©', value: stats.totalCodes.toString(), color: 'blue' },
+                  { label: 'âœ… ط§ظ„ط£ظƒظˆط§ط¯ ط§ظ„ظ…ط³طھط®ط¯ظ…ط©', value: ((stats.totalCodes || 0) - (stats.activeCodes || 0)).toString(), color: 'purple' },
                 ].map((stat, i) => (
                   <Card key={i} className={cn("p-6 border-none", isDarkMode ? "bg-gray-800" : "bg-white")}>
                     <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>{stat.label}</p>
@@ -11872,15 +11909,15 @@ const MerchantTopupDashboard = () => {
               {/* Additional Stats Row */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className={cn("p-6 border-none", isDarkMode ? "bg-gray-800" : "bg-white")}>
-                  <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>📈 متوسط قيمة الطلب</p>
-                  <p className={cn("text-2xl font-normal text-blue-600")}>{stats.totalOrders > 0 ? formatNumber(stats.totalRevenue / stats.totalOrders) : '0'} ط¯.ط¹</p>
+                  <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>ًں“ˆ ظ…طھظˆط³ط· ظ‚ظٹظ…ط© ط§ظ„ط·ظ„ط¨</p>
+                  <p className={cn("text-2xl font-normal text-blue-600")}>{stats.totalOrders > 0 ? formatNumber(stats.totalRevenue / stats.totalOrders) : '0'} ط·آ¯.ط·آ¹</p>
                 </Card>
                 <Card className={cn("p-6 border-none", isDarkMode ? "bg-gray-800" : "bg-white")}>
-                  <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>📊 نسبة الاستخدام</p>
+                  <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>ًں“ٹ ظ†ط³ط¨ط© ط§ظ„ط§ط³طھط®ط¯ط§ظ…</p>
                   <p className={cn("text-2xl font-normal text-orange-600")}>{stats.totalCodes > 0 ? Math.round(((stats.totalCodes - stats.activeCodes) / stats.totalCodes) * 100) : 0}%</p>
                 </Card>
                 <Card className={cn("p-6 border-none", isDarkMode ? "bg-gray-800" : "bg-white")}>
-                  <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>🏢 إجمالي الشركات</p>
+                  <p className={cn("text-sm font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>ًںڈ¢ ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط´ط±ظƒط§طھ</p>
                   <p className={cn("text-2xl font-normal text-green-600")}>{companies.length}</p>
                 </Card>
               </div>
@@ -11890,7 +11927,7 @@ const MerchantTopupDashboard = () => {
                 {/* Top Products */}
                 <Card className={cn("border-none", isDarkMode ? "bg-gray-800" : "bg-white")}>
                   <div className={cn("p-6 border-b", isDarkMode ? "border-gray-700" : "border-gray-200")}>
-                    <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>🔥 أعلى المنتجات</h3>
+                    <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>ًں”¥ ط£ط¹ظ„ظ‰ ط§ظ„ظ…ظ†طھط¬ط§طھ</h3>
                   </div>
                   <div className="p-6">
                     {Array.isArray(products) && products.length > 0 ? (
@@ -11906,14 +11943,14 @@ const MerchantTopupDashboard = () => {
                             <div key={p.id} className="flex justify-between items-center pb-3 border-b last:border-b-0" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
                               <div>
                                 <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{i + 1}. {p.company_name}</p>
-                                <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>المبلغ: {formatNumber(p.amount || 0)} د.ع</p>
+                                <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>ط§ظ„ظ…ط¨ظ„ط؛: {formatNumber(p.amount || 0)} ط¯.ط¹</p>
                               </div>
-                              <span className={cn("text-sm font-normal font-mono", isDarkMode ? "text-green-400" : "text-green-600")}>{(p.images && Array.isArray(p.images)) ? p.images.filter((img: any) => img && String(img).length > 0).length : 0} صورة</span>
+                              <span className={cn("text-sm font-normal font-mono", isDarkMode ? "text-green-400" : "text-green-600")}>{(p.images && Array.isArray(p.images)) ? p.images.filter((img: any) => img && String(img).length > 0).length : 0} طµظˆط±ط©</span>
                             </div>
                           ))}
                       </div>
                     ) : (
-                      <p className={cn("text-center py-8", isDarkMode ? "text-gray-500" : "text-gray-400")}>لا توجد منتجات</p>
+                      <p className={cn("text-center py-8", isDarkMode ? "text-gray-500" : "text-gray-400")}>ظ„ط§ طھظˆط¬ط¯ ظ…ظ†طھط¬ط§طھ</p>
                     )}
                   </div>
                 </Card>
@@ -11921,7 +11958,7 @@ const MerchantTopupDashboard = () => {
                 {/* Top Companies */}
                 <Card className={cn("border-none", isDarkMode ? "bg-gray-800" : "bg-white")}>
                   <div className={cn("p-6 border-b", isDarkMode ? "border-gray-700" : "border-gray-200")}>
-                    <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>🏆 أعلى الشركات</h3>
+                    <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>ًںڈ† ط£ط¹ظ„ظ‰ ط§ظ„ط´ط±ظƒط§طھ</h3>
                   </div>
                   <div className="p-6">
                     {Array.isArray(companies) && companies.length > 0 ? (
@@ -11937,15 +11974,15 @@ const MerchantTopupDashboard = () => {
                           .map((c, i) => (
                             <div key={c.id} className="flex justify-between items-center pb-3 border-b last:border-b-0" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
                               <div>
-                                <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{i + 1}. {c.name}</p>
-                                <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>الإيرادات: {Number(c.totalRevenue || 0).toLocaleString('en-US')} د.ع</p>
+                                <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{i + 1}. {sanitizeDisplayText(c.name, 'ط´ط±ظƒط©')}</p>
+                                <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>ط§ظ„ط¥ظٹط±ط§ط¯ط§طھ: {Number(c.totalRevenue || 0).toLocaleString('en-US')} ط¯.ط¹</p>
                               </div>
-                              <span className={cn("text-xs px-2 py-1 rounded", isDarkMode ? "bg-green-900 text-green-300" : "bg-green-100 text-green-700")}>نشطة</span>
+                              <span className={cn("text-xs px-2 py-1 rounded", isDarkMode ? "bg-green-900 text-green-300" : "bg-green-100 text-green-700")}>ظ†ط´ط·ط©</span>
                             </div>
                           ))}
                       </div>
                     ) : (
-                      <p className={cn("text-center py-8", isDarkMode ? "text-gray-500" : "text-gray-400")}>لا توجد شركات</p>
+                      <p className={cn("text-center py-8", isDarkMode ? "text-gray-500" : "text-gray-400")}>ظ„ط§ طھظˆط¬ط¯ ط´ط±ظƒط§طھ</p>
                     )}
                   </div>
                 </Card>
@@ -11964,15 +12001,15 @@ const MerchantTopupDashboard = () => {
                 }}
                 className="px-6 py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700 flex items-center gap-2"
               >
-                <Plus size={18} /> إضافة شركة جديدة
+                <Plus size={18} /> ط¥ط¶ط§ظپط© ط´ط±ظƒط© ط¬ط¯ظٹط¯ط©
               </button>
 
               <Card className={cn("overflow-hidden", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
                 <table className="w-full">
                   <thead>
                     <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الاسم</th>
-                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الإجراءات</th>
+                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ط§ط³ظ…</th>
+                      <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -11993,18 +12030,18 @@ const MerchantTopupDashboard = () => {
                             </button>
                             <button 
                               onClick={async () => {
-                                if (!confirm('هل تريد حذف هذه الشركة؟')) return;
+                                if (!confirm('ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„ط´ط±ظƒط©طں')) return;
                                 try {
                                   const res = await fetch(`/api/topup/companies/${company.id}`, { method: 'DELETE' });
                                   if (res.ok) {
-                                    alert('تم الحذف بنجاح');
+                                    alert('طھظ… ط§ظ„ط­ط°ظپ ط¨ظ†ط¬ط§ط­');
                                     const updatedRes = await fetch(`/api/topup/companies/${topupStoreId}`);
                                     const data = await updatedRes.json();
                                     setCompanies(Array.isArray(data) ? data : []);
                                   }
                                 } catch (error) {
                                   console.error('Error deleting company:', error);
-                                  alert('حدث خطأ');
+                                  alert('ط­ط¯ط« ط®ط·ط£');
                                 }
                               }}
                               className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-red-900/30 text-red-400 hover:bg-red-900/60" : "text-red-600 hover:bg-red-50")}
@@ -12026,13 +12063,13 @@ const MerchantTopupDashboard = () => {
             <div className="space-y-6">
               <button
                 onClick={() => {
-                  console.log('✅ Add Product button clicked in TOPUP merchant!');
+                  console.log('âœ… Add Product button clicked in TOPUP merchant!');
                   // Call the TOPUP-specific handler
                   handleCreateProductTopup();
                 }}
                 className="px-6 py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700 flex items-center gap-2"
               >
-                <Plus size={18} /> إضافة منتج جديد
+                <Plus size={18} /> ط¥ط¶ط§ظپط© ظ…ظ†طھط¬ ط¬ط¯ظٹط¯
               </button>
 
               {/* Group products by company */}
@@ -12057,7 +12094,7 @@ const MerchantTopupDashboard = () => {
                       {group.company_name}
                     </h3>
                     <span className={cn("ml-auto px-3 py-1 rounded-full text-sm font-medium", isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-700")}>
-                      {group.products.length} منتج
+                      {group.products.length} ظ…ظ†طھط¬
                     </span>
                   </div>
 
@@ -12119,13 +12156,13 @@ const MerchantTopupDashboard = () => {
                             {/* Price Info */}
                             <div className="space-y-2">
                               <div className="flex justify-between items-center text-sm">
-                                <span className={isDarkMode ? "text-gray-400" : "text-gray-700"}>السعر:</span>
-                                <span className={cn("font-semibold", isDarkMode ? "text-green-400" : "text-green-600")}>{formatNumber(product.price)} ط¯.ط¹</span>
+                                <span className={isDarkMode ? "text-gray-400" : "text-gray-700"}>ط§ظ„ط³ط¹ط±:</span>
+                                <span className={cn("font-semibold", isDarkMode ? "text-green-400" : "text-green-600")}>{formatNumber(product.price)} ط·آ¯.ط·آ¹</span>
                               </div>
                               {product.bulk_price && (
                                 <div className="flex justify-between items-center text-sm">
-                                  <span className={isDarkMode ? "text-gray-400" : "text-gray-700"}>سعر الجملة:</span>
-                                  <span className={cn("font-semibold", isDarkMode ? "text-orange-400" : "text-orange-600")}>{formatNumber(product.bulk_price)} ط¯.ط¹</span>
+                                  <span className={isDarkMode ? "text-gray-400" : "text-gray-700"}>ط³ط¹ط± ط§ظ„ط¬ظ…ظ„ط©:</span>
+                                  <span className={cn("font-semibold", isDarkMode ? "text-orange-400" : "text-orange-600")}>{formatNumber(product.bulk_price)} ط·آ¯.ط·آ¹</span>
                                 </div>
                               )}
                             </div>
@@ -12149,7 +12186,7 @@ const MerchantTopupDashboard = () => {
                                 }}
                                 className={cn("flex-1 p-2 rounded-lg transition-all flex items-center justify-center gap-1 text-sm font-medium", isDarkMode ? "bg-blue-900/40 text-blue-400 hover:bg-blue-900/60" : "bg-blue-50 text-blue-600 hover:bg-blue-100")}
                               >
-                                <Edit2 size={14} /> تعديل
+                                <Edit2 size={14} /> طھط¹ط¯ظٹظ„
                               </button>
                               <button 
                                 onClick={() => {
@@ -12158,22 +12195,22 @@ const MerchantTopupDashboard = () => {
                                 }}
                                 className={cn("flex-1 p-2 rounded-lg transition-all flex items-center justify-center gap-1 text-sm font-medium", isDarkMode ? "bg-green-900/40 text-green-400 hover:bg-green-900/60" : "bg-green-50 text-green-600 hover:bg-green-100")}
                               >
-                                <Upload size={14} /> أكواد ({product.images?.filter((img: any) => img && String(img).length > 0).length || 0})
+                                <Upload size={14} /> ط£ظƒظˆط§ط¯ ({product.images?.filter((img: any) => img && String(img).length > 0).length || 0})
                               </button>
                               <button 
                                 onClick={async () => {
-                                  if (!confirm('هل تريد حذف هذا المنتج؟')) return;
+                                  if (!confirm('ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ظ‡ط°ط§ ط§ظ„ظ…ظ†طھط¬طں')) return;
                                   try {
                                     const res = await fetch(`/api/topup/products/${product.id}`, { method: 'DELETE' });
                                     if (res.ok) {
-                                      alert('تم الحذف بنجاح');
+                                      alert('طھظ… ط§ظ„ط­ط°ظپ ط¨ظ†ط¬ط§ط­');
                                       const updatedRes = await fetch(`/api/topup/products/${topupStoreId}`);
                                       const data = await updatedRes.json();
                                       setProducts(Array.isArray(data) ? data : []);
                                     }
                                   } catch (error) {
                                     console.error('Error deleting product:', error);
-                                    alert('حدث خطأ');
+                                    alert('ط­ط¯ط« ط®ط·ط£');
                                   }
                                 }}
                                 className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-red-900/40 text-red-400 hover:bg-red-900/60" : "bg-red-50 text-red-600 hover:bg-red-100")}
@@ -12193,21 +12230,21 @@ const MerchantTopupDashboard = () => {
               {products.length === 0 && (
                 <div className={cn("rounded-xl border-2 border-dashed p-12 text-center", isDarkMode ? "border-gray-700" : "border-gray-200")}>
                   <Package size={48} className={cn("mx-auto mb-4 opacity-50", isDarkMode ? "text-gray-600" : "text-gray-400")} />
-                  <p className={cn("text-lg font-medium mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>لا توجد منتجات</p>
-                  <p className={cn("text-sm", isDarkMode ? "text-gray-500" : "text-gray-500")}>ابدأ بإضافة منتج جديد لعرضه هنا</p>
+                  <p className={cn("text-lg font-medium mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>ظ„ط§ طھظˆط¬ط¯ ظ…ظ†طھط¬ط§طھ</p>
+                  <p className={cn("text-sm", isDarkMode ? "text-gray-500" : "text-gray-500")}>ط§ط¨ط¯ط£ ط¨ط¥ط¶ط§ظپط© ظ…ظ†طھط¬ ط¬ط¯ظٹط¯ ظ„ط¹ط±ط¶ظ‡ ظ‡ظ†ط§</p>
                 </div>
               )}
 
               {/* Product Modal with Image Upload - MOVED INSIDE TOPUP SCOPE */}
               {showProductModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" dir="rtl" onClick={() => console.log('🎬 Modal visible in DOM!')}>
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" dir="rtl" onClick={() => console.log('ًںژ¬ Modal visible in DOM!')}>
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className={cn("rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
                   >
                     <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
-                      <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>{isEditingProduct ? 'تعديل المنتج' : 'إضافة منتج جديد'}</h3>
+                      <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>{isEditingProduct ? 'طھط¹ط¯ظٹظ„ ط§ظ„ظ…ظ†طھط¬' : 'ط¥ط¶ط§ظپط© ظ…ظ†طھط¬ ط¬ط¯ظٹط¯'}</h3>
                       <button onClick={() => setShowProductModal(false)}>
                         <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
                       </button>
@@ -12216,27 +12253,27 @@ const MerchantTopupDashboard = () => {
                       {/* Row 1: Company & Amount */}
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>الشركة</label>
+                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>ط§ظ„ط´ط±ظƒط©</label>
                           <select
                             value={productForm.company_id}
                             onChange={(e) => setProductForm({ ...productForm, company_id: e.target.value })}
                             className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white" : "bg-gray-50 border-gray-200")}
                           >
-                            <option value="">اختر شركة</option>
+                            <option value="">ط§ط®طھط± ط´ط±ظƒط©</option>
                             {companies && companies.length > 0 ? (
-                              companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                              companies.map(c => <option key={c.id} value={c.id}>{sanitizeDisplayText(c.name, 'ط´ط±ظƒط©')}</option>)
                             ) : (
-                              <option disabled>جاري التحميل...</option>
+                              <option disabled>ط¬ط§ط±ظٹ ط§ظ„طھط­ظ…ظٹظ„...</option>
                             )}
                           </select>
                         </div>
                         <div>
-                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>المبلغ</label>
+                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>ط§ظ„ظ…ط¨ظ„ط؛</label>
                           <input
                             type="number"
                             value={productForm.amount}
                             onChange={(e) => setProductForm({ ...productForm, amount: e.target.value })}
-                            placeholder="المبلغ (5000, 10000...)"
+                            placeholder="ط§ظ„ظ…ط¨ظ„ط؛ (5000, 10000...)"
                             className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
                           />
                         </div>
@@ -12245,22 +12282,22 @@ const MerchantTopupDashboard = () => {
                       {/* Row 2: Price & Bulk Price */}
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>السعر</label>
+                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>ط§ظ„ط³ط¹ط±</label>
                           <input
                             type="number"
                             value={productForm.price}
                             onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                            placeholder="السعر (بالدينار)"
+                            placeholder="ط§ظ„ط³ط¹ط± (ط¨ط§ظ„ط¯ظٹظ†ط§ط±)"
                             className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
                           />
                         </div>
                         <div>
-                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>سعر الجملة</label>
+                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>ط³ط¹ط± ط§ظ„ط¬ظ…ظ„ط©</label>
                           <input
                             type="number"
                             value={productForm.bulk_price}
                             onChange={(e) => setProductForm({ ...productForm, bulk_price: e.target.value })}
-                            placeholder="سعر الجملة (اختياري)"
+                            placeholder="ط³ط¹ط± ط§ظ„ط¬ظ…ظ„ط© (ط§ط®طھظٹط§ط±ظٹ)"
                             className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
                           />
                         </div>
@@ -12268,7 +12305,7 @@ const MerchantTopupDashboard = () => {
 
                       {/* Row 3: Images Upload Section */}
                       <div>
-                        <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>🖼️ صور البطاقات (اختياري)</label>
+                        <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>ًں–¼ï¸ڈ طµظˆط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ (ط§ط®طھظٹط§ط±ظٹ)</label>
                         <label className={cn("border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all", productImages.length > 0 ? "border-blue-500 bg-blue-50/10" : isDarkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-200 hover:border-gray-300")}>
                           <input
                             type="file"
@@ -12283,7 +12320,7 @@ const MerchantTopupDashboard = () => {
                           {productImages.length > 0 ? (
                             <div>
                               <p className={cn("text-sm font-normal", isDarkMode ? "text-blue-400" : "text-blue-600")}>
-                                ✓ {productImages.length} صورة
+                                âœ“ {productImages.length} طµظˆط±ط©
                               </p>
                               <button
                                 type="button"
@@ -12293,13 +12330,13 @@ const MerchantTopupDashboard = () => {
                                 }}
                                 className={cn("mt-2 text-xs px-3 py-1 rounded", isDarkMode ? "bg-red-900 text-red-200 hover:bg-red-800" : "bg-red-100 text-red-600 hover:bg-red-200")}
                               >
-                                ط­ط°ظپ
+                                ط·آ­ط·آ°ط¸ظ¾
                               </button>
                             </div>
                           ) : (
                             <div>
-                              <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>🖼️ اختر صور</p>
-                              <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>اسحب أو انقر</p>
+                              <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-700")}>ًں–¼ï¸ڈ ط§ط®طھط± طµظˆط±</p>
+                              <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط§ط³ط­ط¨ ط£ظˆ ط§ظ†ظ‚ط±</p>
                             </div>
                           )}
                         </label>
@@ -12308,7 +12345,7 @@ const MerchantTopupDashboard = () => {
                       {/* Row 4: Existing Images Display */}
                       {existingProductImages.length > 0 && (
                         <div>
-                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>📸 الصور الموجودة</label>
+                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>ًں“¸ ط§ظ„طµظˆط± ط§ظ„ظ…ظˆط¬ظˆط¯ط©</label>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                             {existingProductImages.map((imageUrl, index) => (
                               <div key={`existing-${index}`} className="relative group">
@@ -12323,17 +12360,17 @@ const MerchantTopupDashboard = () => {
                                     e.preventDefault();
                                     
                                     if (!isEditingProduct) {
-                                      console.warn('⚠️ Cannot delete image for new product');
+                                      console.warn('âڑ ï¸ڈ Cannot delete image for new product');
                                       return;
                                     }
 
                                     // Confirm deletion
-                                    if (!confirm('هل تريد حذف هذه الصورة؟')) {
+                                    if (!confirm('ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„طµظˆط±ط©طں')) {
                                       return;
                                     }
 
                                     try {
-                                      console.log('🗑️ Deleting image:', imageUrl);
+                                      console.log('ًں—‘ï¸ڈ Deleting image:', imageUrl);
                                       
                                       const deleteRes = await fetch(`/api/topup/products/${isEditingProduct}/remove-image`, {
                                         method: 'POST',
@@ -12347,22 +12384,22 @@ const MerchantTopupDashboard = () => {
                                       const deleteData = await deleteRes.json();
 
                                       if (deleteRes.ok) {
-                                        console.log('✅ Image deleted successfully');
+                                        console.log('âœ… Image deleted successfully');
                                         // Update local state
                                         setExistingProductImages(prev => prev.filter((_, i) => i !== index));
                                         // Update UI feedback
-                                        alert('✅ تم حذف الصورة بنجاح');
+                                        alert('âœ… طھظ… ط­ط°ظپ ط§ظ„طµظˆط±ط© ط¨ظ†ط¬ط§ط­');
                                       } else {
-                                        console.error('❌ Delete failed:', deleteData.error);
-                                        alert('❌ فشل حذف الصورة: ' + deleteData.error);
+                                        console.error('â‌Œ Delete failed:', deleteData.error);
+                                        alert('â‌Œ ظپط´ظ„ ط­ط°ظپ ط§ظ„طµظˆط±ط©: ' + deleteData.error);
                                       }
                                     } catch (err) {
-                                      console.error('❌ Error deleting image:', err);
-                                      alert('❌ خطأ في حذف الصورة');
+                                      console.error('â‌Œ Error deleting image:', err);
+                                      alert('â‌Œ ط®ط·ط£ ظپظٹ ط­ط°ظپ ط§ظ„طµظˆط±ط©');
                                     }
                                   }}
                                   className={cn("absolute top-1 right-1 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity", isDarkMode ? "bg-red-900 text-red-200 hover:bg-red-800" : "bg-red-600 text-white hover:bg-red-700")}
-                                  title="حذف الصورة"
+                                  title="ط­ط°ظپ ط§ظ„طµظˆط±ط©"
                                 >
                                   <X size={16} />
                                 </button>
@@ -12374,7 +12411,7 @@ const MerchantTopupDashboard = () => {
 
                       {/* Row 5: Submit Button */}
                       <button onClick={saveProduct} className="w-full py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700">
-                        {isEditingProduct ? 'تحديث' : 'إضافة'}
+                        {isEditingProduct ? 'طھط­ط¯ظٹط«' : 'ط¥ط¶ط§ظپط©'}
                       </button>
                     </div>
                   </motion.div>
@@ -12383,11 +12420,11 @@ const MerchantTopupDashboard = () => {
             </div>
           )}
 
-          {/* Card Images Section - صور البطاقات */}
+          {/* Card Images Section - طµظˆط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ */}
           {currentSection === 'codes' && (
             <div className="space-y-6">
               <div className="flex items-center gap-2 mb-4">
-                <h2 className={cn("text-2xl font-normal", isDarkMode ? "text-white" : "text-gray-900")}>🖼️ صور البطاقات المرفوعة</h2>
+                <h2 className={cn("text-2xl font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ًں–¼ï¸ڈ طµظˆط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ ط§ظ„ظ…ط±ظپظˆط¹ط©</h2>
               </div>
               
               <Card className={cn("overflow-hidden", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
@@ -12395,10 +12432,10 @@ const MerchantTopupDashboard = () => {
                   <table className="w-full">
                     <thead>
                       <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الشركة</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>المبلغ</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>عدد الصور</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الصور المرفوعة</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ط´ط±ظƒط©</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ظ…ط¨ظ„ط؛</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط¹ط¯ط¯ ط§ظ„طµظˆط±</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„طµظˆط± ط§ظ„ظ…ط±ظپظˆط¹ط©</th>
                       </tr>
                     </thead>
                   <tbody>
@@ -12411,7 +12448,7 @@ const MerchantTopupDashboard = () => {
                         return imagesCount > 0 && (
                           <tr key={product.id} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{product.company_name}</td>
-                            <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{formatNumber(product.amount)} ط¯.ط¹</td>
+                            <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{formatNumber(product.amount)} ط·آ¯.ط·آ¹</td>
                             <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-green-400" : "text-green-600")}>{imagesCount}</td>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-gray-300" : "text-gray-700")}>
                               <div className="flex flex-wrap gap-2">
@@ -12426,12 +12463,12 @@ const MerchantTopupDashboard = () => {
                                       rel="noopener noreferrer"
                                       className={cn("inline-block px-2 py-1 text-xs rounded hover:opacity-80 transition-opacity cursor-pointer", isDarkMode ? "bg-blue-900 text-blue-300" : "bg-blue-50 text-blue-700")}
                                     >
-                                      📷 صورة {idx + 1}
+                                      ًں“· طµظˆط±ط© {idx + 1}
                                     </a>
                                   ))}
                                 {product.images && Array.isArray(product.images) && product.images.filter((img: any) => img && String(img).length > 0).length > 5 && (
                                   <span className={cn("px-2 py-1 text-xs rounded", isDarkMode ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-600")}>
-                                    +{product.images.filter((img: any) => img && String(img).length > 0).length - 5} صور أخرى
+                                    +{product.images.filter((img: any) => img && String(img).length > 0).length - 5} طµظˆط± ط£ط®ط±ظ‰
                                   </span>
                                 )}
                               </div>
@@ -12442,7 +12479,7 @@ const MerchantTopupDashboard = () => {
                     ) : (
                       <tr className={cn("border-t", isDarkMode ? "border-gray-700" : "border-gray-200")}>
                         <td colSpan={4} className={cn("px-6 py-8 text-center", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                          📸 الصور المرفوعة ستظهر هنا
+                          ًں“¸ ط§ظ„طµظˆط± ط§ظ„ظ…ط±ظپظˆط¹ط© ط³طھط¸ظ‡ط± ظ‡ظ†ط§
                         </td>
                       </tr>
                     )}
@@ -12463,7 +12500,7 @@ const MerchantTopupDashboard = () => {
                   }}
                   className="px-6 py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700 flex items-center gap-2"
                 >
-                  <Plus size={18} /> إضافة عميل جديد
+                  <Plus size={18} /> ط¥ط¶ط§ظپط© ط¹ظ…ظٹظ„ ط¬ط¯ظٹط¯
                 </button>
               </div>
 
@@ -12472,13 +12509,13 @@ const MerchantTopupDashboard = () => {
                   <table className="w-full">
                     <thead>
                       <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الاسم</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الهاتف</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>النوع</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>حد الائتمان</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ديون سابقة</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الديون الحالية</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الإجراءات</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ط§ط³ظ…</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ظ‡ط§طھظپ</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ظ†ظˆط¹</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط­ط¯ ط§ظ„ط§ط¦طھظ…ط§ظ†</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط¯ظٹظˆظ† ط³ط§ط¨ظ‚ط©</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط­ط§ظ„ظٹط©</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ</th>
                       </tr>
                     </thead>
                   <tbody>
@@ -12489,12 +12526,12 @@ const MerchantTopupDashboard = () => {
                           <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{customer.phone}</td>
                           <td className={cn("px-6 py-4")}>
                             <span className={cn("text-xs px-2 py-1 rounded", customer.customer_type === 'reseller' ? (isDarkMode ? "bg-blue-900 text-blue-300" : "bg-blue-100 text-blue-700") : (isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-700"))}>
-                              {customer.customer_type === 'reseller' ? '🏪 جملة' : '👤 مفرد'}
+                              {customer.customer_type === 'reseller' ? 'ًںڈھ ط¬ظ…ظ„ط©' : 'ًں‘¤ ظ…ظپط±ط¯'}
                             </span>
                           </td>
-                          <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{formatNumber(customer.credit_limit)} ط¯.ط¹</td>
-                          <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-purple-300" : "text-purple-700")}>{formatNumber(customer.starting_balance || 0)} ط¯.ط¹</td>
-                          <td className={cn("px-6 py-4 font-semibold", customer.current_debt > customer.credit_limit ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-400" : "text-yellow-600"))}>{formatNumber(customer.current_debt)} ط¯.ط¹</td>
+                          <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{formatNumber(customer.credit_limit)} ط·آ¯.ط·آ¹</td>
+                          <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-purple-300" : "text-purple-700")}>{formatNumber(customer.starting_balance || 0)} ط·آ¯.ط·آ¹</td>
+                          <td className={cn("px-6 py-4 font-semibold", customer.current_debt > customer.credit_limit ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-yellow-400" : "text-yellow-600"))}>{formatNumber(customer.current_debt)} ط·آ¯.ط·آ¹</td>
                           <td className="px-6 py-4">
                             <div className="flex gap-2 pointer-events-auto">
                               {/* Statement button */}
@@ -12506,34 +12543,34 @@ const MerchantTopupDashboard = () => {
                                   setShowCustomerStatement(true);
                                   
                                   try {
-                                    console.log('🔍 Fetching statement for customer ID:', customer.id);
+                                    console.log('ًں”چ Fetching statement for customer ID:', customer.id);
                                     const res = await fetch(`/api/topup/customers/${customer.id}/statement`);
                                     if (res.ok) {
                                       const data = await res.json();
-                                      console.log('✅ Statement loaded for customer:', data.customer?.id, 'Transactions:', data.transactions?.length);
+                                      console.log('âœ… Statement loaded for customer:', data.customer?.id, 'Transactions:', data.transactions?.length);
                                       
-                                      // ⭐ CRITICAL: Validate data belongs to correct customer
+                                      // â­گ CRITICAL: Validate data belongs to correct customer
                                       if (data.customer?.id !== customer.id) {
-                                        console.error('❌ SECURITY: Data mismatch! Requested:', customer.id, 'Received:', data.customer?.id);
-                                        alert('⚠️ خطأ في البيانات: تمت طلب بيانات عميل مختلف');
+                                        console.error('â‌Œ SECURITY: Data mismatch! Requested:', customer.id, 'Received:', data.customer?.id);
+                                        alert('âڑ ï¸ڈ ط®ط·ط£ ظپظٹ ط§ظ„ط¨ظٹط§ظ†ط§طھ: طھظ…طھ ط·ظ„ط¨ ط¨ظٹط§ظ†ط§طھ ط¹ظ…ظٹظ„ ظ…ط®طھظ„ظپ');
                                         return;
                                       }
                                       
                                       setCustomerTransactions(Array.isArray(data.transactions) ? data.transactions : []);
                                     } else {
                                       const errorData = await res.json();
-                                      console.error('❌ API Error:', res.status, errorData);
-                                      alert(`فشل تحميل كشف الحساب: ${errorData.error || 'خطأ غير معروف'}`);
+                                      console.error('â‌Œ API Error:', res.status, errorData);
+                                      alert(`ظپط´ظ„ طھط­ظ…ظٹظ„ ظƒط´ظپ ط§ظ„ط­ط³ط§ط¨: ${errorData.error || 'ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ'}`);
                                     }
                                   } catch (error) {
                                     console.error('Error loading statement:', error);
-                                    alert('حدث خطأ في تحميل كشف الحساب');
+                                    alert('ط­ط¯ط« ط®ط·ط£ ظپظٹ طھط­ظ…ظٹظ„ ظƒط´ظپ ط§ظ„ط­ط³ط§ط¨');
                                   } finally {
                                     setIsLoadingCustomerTransactions(false);
                                   }
                                 }}
                                 className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-blue-900/30 text-blue-400 hover:bg-blue-900/60" : "text-blue-600 hover:bg-blue-50")}
-                                title="كشف الحساب"
+                                title="ظƒط´ظپ ط§ظ„ط­ط³ط§ط¨"
                               >
                                 <FileText size={16} />
                               </button>
@@ -12546,7 +12583,7 @@ const MerchantTopupDashboard = () => {
                                   setShowCustomerModal(true);
                                 }}
                                 className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-amber-900/30 text-amber-400 hover:bg-amber-900/60" : "text-amber-600 hover:bg-amber-50")}
-                                title="تعديل"
+                                title="طھط¹ط¯ظٹظ„"
                               >
                                 <Edit size={16} />
                               </button>
@@ -12554,22 +12591,22 @@ const MerchantTopupDashboard = () => {
                               {/* Delete button */}
                               <button 
                                 onClick={async () => {
-                                  if (!confirm('هل تريد حذف هذا العميل؟')) return;
+                                  if (!confirm('ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ظ‡ط°ط§ ط§ظ„ط¹ظ…ظٹظ„طں')) return;
                                   try {
                                     const res = await fetch(`/api/topup/customers/${customer.id}`, { method: 'DELETE' });
                                     if (res.ok) {
-                                      alert('تم الحذف بنجاح');
+                                      alert('طھظ… ط§ظ„ط­ط°ظپ ط¨ظ†ط¬ط§ط­');
                                       const updatedRes = await fetch(`/api/topup/customers/${topupStoreId}`);
                                       const data = await updatedRes.json();
                                       setCustomers(Array.isArray(data) ? data : []);
                                     }
                                   } catch (error) {
                                     console.error('Error deleting customer:', error);
-                                    alert('حدث خطأ');
+                                    alert('ط­ط¯ط« ط®ط·ط£');
                                   }
                                 }}
                                 className={cn("p-2 rounded-lg transition-all", isDarkMode ? "bg-red-900/30 text-red-400 hover:bg-red-900/60" : "text-red-600 hover:bg-red-50")}
-                                title="ط­ط°ظپ"
+                                title="ط·آ­ط·آ°ط¸ظ¾"
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -12580,7 +12617,7 @@ const MerchantTopupDashboard = () => {
                     ) : (
                       <tr className={cn("border-t", isDarkMode ? "border-gray-700" : "border-gray-200")}>
                         <td colSpan={6} className={cn("px-6 py-8 text-center", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                          لا توجد عملاء مسجلين حالياً
+                          ظ„ط§ طھظˆط¬ط¯ ط¹ظ…ظ„ط§ط، ظ…ط³ط¬ظ„ظٹظ† ط­ط§ظ„ظٹط§ظ‹
                         </td>
                       </tr>
                     )}
@@ -12596,18 +12633,18 @@ const MerchantTopupDashboard = () => {
             <div className="space-y-6">
               <Card className={cn("overflow-hidden", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
                 <div className={cn("p-6 border-b font-normal", isDarkMode ? "border-gray-700 text-white" : "border-gray-200 text-gray-900")}>
-                  طلبات البيع
+                  ط·ظ„ط¨ط§طھ ط§ظ„ط¨ظٹط¹
                 </div>
                 <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
                   <table className="w-full">
                     <thead>
                       <tr className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>رقم الطلب</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>العميل</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>المنتج</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>المبلغ</th>
-                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الحالة</th>
-                        <th className={cn("px-6 py-3 text-center text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>الإجراءات</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط±ظ‚ظ… ط§ظ„ط·ظ„ط¨</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ط¹ظ…ظٹظ„</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ظ…ظ†طھط¬</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ظ…ط¨ظ„ط؛</th>
+                        <th className={cn("px-6 py-3 text-right text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ط­ط§ظ„ط©</th>
+                        <th className={cn("px-6 py-3 text-center text-sm font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ</th>
                       </tr>
                     </thead>
                   <tbody>
@@ -12615,38 +12652,38 @@ const MerchantTopupDashboard = () => {
                       orders.map((order: any) => (
                         <tr key={order.id} className={cn("border-t hover:bg-opacity-50", isDarkMode ? "border-gray-700 hover:bg-gray-700" : "border-gray-200 hover:bg-gray-50")}>
                           <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>#{order.id}</td>
-                          <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>{order.phone || 'غير محدد'}</td>
-                          <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>{order.company_name && order.product_amount ? `${order.company_name} - ${order.product_amount}` : order.company_name || 'منتج'}</td>
-                          <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>{order.total_amount} ط¯.ط¹</td>
+                          <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>{order.phone || 'ط؛ظٹط± ظ…ط­ط¯ط¯'}</td>
+                          <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>{order.company_name && order.product_amount ? `${order.company_name} - ${order.product_amount}` : order.company_name || 'ظ…ظ†طھط¬'}</td>
+                          <td className={cn("px-6 py-4 text-right text-sm", isDarkMode ? "text-white" : "text-gray-900")}>{order.total_amount} ط·آ¯.ط·آ¹</td>
                           <td className={cn("px-6 py-4 text-right text-sm font-medium", isDarkMode ? order.status === 'completed' ? "text-green-400" : order.status === 'pending' ? "text-yellow-400" : "text-red-400" : order.status === 'completed' ? "text-green-600" : order.status === 'pending' ? "text-yellow-600" : "text-red-600")}>
-                            {order.status === 'completed' ? '✓ مكتمل' : order.status === 'pending' ? '⏳ معلق' : order.status === 'returned' ? '↩️ مسترجع' : 'ملغي'}
+                            {order.status === 'completed' ? 'âœ“ ظ…ظƒطھظ…ظ„' : order.status === 'pending' ? 'âڈ³ ظ…ط¹ظ„ظ‚' : order.status === 'returned' ? 'â†©ï¸ڈ ظ…ط³طھط±ط¬ط¹' : 'ظ…ظ„ط؛ظٹ'}
                           </td>
                           <td className={cn("px-6 py-4 text-center")}>
                             <div className="flex items-center justify-center gap-2">
                               {(order.status === 'completed' || order.status === 'returned') && (
                                 <button
                                   onClick={async () => {
-                                    const orderType = order.status === 'returned' ? 'المسترجع' : 'المكتمل';
-                                    if (!confirm(`هل تريد حذف الطلب ${orderType} #${order.id}؟`)) return;
+                                    const orderType = order.status === 'returned' ? 'ط§ظ„ظ…ط³طھط±ط¬ط¹' : 'ط§ظ„ظ…ظƒطھظ…ظ„';
+                                    if (!confirm(`ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ط§ظ„ط·ظ„ط¨ ${orderType} #${order.id}طں`)) return;
                                     try {
                                       const res = await fetch(`/api/topup/orders/${order.id}`, { 
                                         method: 'DELETE',
                                         headers: { 'Content-Type': 'application/json' }
                                       });
                                       if (res.ok) {
-                                        alert('✓ تم حذف الطلب بنجاح');
+                                        alert('âœ“ طھظ… ط­ط°ظپ ط§ظ„ط·ظ„ط¨ ط¨ظ†ط¬ط§ط­');
                                         refreshDashboardData();
                                       } else {
                                         const data = await res.json();
-                                        alert(`❌ ${data.error || 'فشل الحذف'}`);
+                                        alert(`â‌Œ ${data.error || 'ظپط´ظ„ ط§ظ„ط­ط°ظپ'}`);
                                       }
                                     } catch (error) {
                                       console.error('Error deleting order:', error);
-                                      alert('❌ حدث خطأ في الحذف');
+                                      alert('â‌Œ ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط­ط°ظپ');
                                     }
                                   }}
                                   className={cn("inline-flex items-center justify-center p-2 rounded-lg transition-all duration-200", isDarkMode ? "bg-red-900/40 text-red-300 hover:bg-red-900/70 hover:text-red-200" : "bg-red-100 text-red-600 hover:bg-red-200")}
-                                  title="حذف الطلب"
+                                  title="ط­ط°ظپ ط§ظ„ط·ظ„ط¨"
                                 >
                                   <Trash2 size={18} />
                                 </button>
@@ -12658,7 +12695,7 @@ const MerchantTopupDashboard = () => {
                     ) : (
                       <tr className={cn("border-t", isDarkMode ? "border-gray-700" : "border-gray-200")}>
                         <td colSpan={6} className={cn("px-6 py-8 text-center", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                          لا توجد طلبات حالياً
+                          ظ„ط§ طھظˆط¬ط¯ ط·ظ„ط¨ط§طھ ط­ط§ظ„ظٹط§ظ‹
                         </td>
                       </tr>
                     )}
@@ -12673,24 +12710,24 @@ const MerchantTopupDashboard = () => {
               {/* Store Information Card */}
               <Card className={cn("border-none", isDarkMode ? "bg-gray-800" : "bg-white")}>
                 <div className={cn("p-6 border-b", isDarkMode ? "border-gray-700" : "border-gray-200")}>
-                  <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>⚙️ إعدادات المتجر</h3>
+                  <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>âڑ™ï¸ڈ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…طھط¬ط±</h3>
                 </div>
                 <div className="p-6 space-y-6">
                   {/* Store Name */}
                   <div>
-                    <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>🏪 اسم المتجر</label>
+                    <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ًںڈھ ط§ط³ظ… ط§ظ„ظ…طھط¬ط±</label>
                     <input
                       type="text"
                       value={storeSettings.store_name}
                       onChange={(e) => setStoreSettings({ ...storeSettings, store_name: e.target.value })}
-                      placeholder="أدخل اسم المتجر"
+                      placeholder="ط£ط¯ط®ظ„ ط§ط³ظ… ط§ظ„ظ…طھط¬ط±"
                       className={cn("w-full px-4 py-3 rounded-lg border font-normal", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400")}
                     />
                   </div>
 
                   {/* Store Logo */}
                   <div>
-                    <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>🖼️ شعار المتجر</label>
+                    <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ًں–¼ï¸ڈ ط´ط¹ط§ط± ط§ظ„ظ…طھط¬ط±</label>
                     <label className="w-full px-4 py-3 rounded-lg border-2 border-dashed cursor-pointer transition-all font-normal block"
                       style={{
                         borderColor: isDarkMode ? '#4b5563' : '#d1d5db',
@@ -12701,7 +12738,7 @@ const MerchantTopupDashboard = () => {
                         e.preventDefault();
                         const file = e.dataTransfer.files[0];
                         if (file && file.type.startsWith('image/')) {
-                          console.log('📁 File dropped for upload:', {
+                          console.log('ًں“پ File dropped for upload:', {
                             name: file.name,
                             size: file.size,
                             type: file.type,
@@ -12718,7 +12755,7 @@ const MerchantTopupDashboard = () => {
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            console.log('📁 File selected for upload:', {
+                            console.log('ًں“پ File selected for upload:', {
                               name: file.name,
                               size: file.size,
                               type: file.type,
@@ -12731,7 +12768,7 @@ const MerchantTopupDashboard = () => {
                         className="hidden"
                       />
                       <div className={cn("text-center text-sm font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                        {logoUploadLoading ? '⏳ جاري تحميل الشعار...' : '📤 اختر الصورة أو اسحبها هنا'}
+                        {logoUploadLoading ? 'âڈ³ ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ط´ط¹ط§ط±...' : 'ًں“¤ ط§ط®طھط± ط§ظ„طµظˆط±ط© ط£ظˆ ط§ط³ط­ط¨ظ‡ط§ ظ‡ظ†ط§'}
                       </div>
                     </label>
                     {(logoPreview || storeSettings.logo_url) && (
@@ -12746,7 +12783,7 @@ const MerchantTopupDashboard = () => {
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}
                           onLoad={() => {
-                            console.log('✓ Preview image loaded successfully');
+                            console.log('âœ“ Preview image loaded successfully');
                           }}
                         />
                       </div>
@@ -12758,7 +12795,7 @@ const MerchantTopupDashboard = () => {
                     onClick={saveStoreSettings}
                     className="w-full py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700 transition-all"
                   >
-                    💾 حفظ الإعدادات
+                    ًں’¾ ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ
                   </button>
                 </div>
               </Card>
@@ -12766,27 +12803,27 @@ const MerchantTopupDashboard = () => {
               {/* Statistics Card */}
               <Card className={cn("border-none", isDarkMode ? "bg-gray-800" : "bg-white")}>
                 <div className={cn("p-6 border-b", isDarkMode ? "border-gray-700" : "border-gray-200")}>
-                  <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>📊 الإحصائيات</h3>
+                  <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>ًں“ٹ ط§ظ„ط¥ط­طµط§ط¦ظٹط§طھ</h3>
                 </div>
                 <div className="p-6 space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                      <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>📊 إجمالي الطلبات</p>
+                      <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>ًں“ٹ ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط·ظ„ط¨ط§طھ</p>
                       <p className={cn("text-2xl font-normal", isDarkMode ? "text-indigo-400" : "text-indigo-600")}>{stats.totalOrders}</p>
                     </div>
                     <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                      <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>💰 إجمالي الإيرادات</p>
-                      <p className={cn("text-2xl font-normal", isDarkMode ? "text-green-400" : "text-green-600")}>{formatNumber(typeof stats.totalRevenue === 'number' ? stats.totalRevenue : parseFloat(String(stats.totalRevenue) || '0'))} ط¯.ط¹</p>
+                      <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>ًں’° ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ظٹط±ط§ط¯ط§طھ</p>
+                      <p className={cn("text-2xl font-normal", isDarkMode ? "text-green-400" : "text-green-600")}>{formatNumber(typeof stats.totalRevenue === 'number' ? stats.totalRevenue : parseFloat(String(stats.totalRevenue) || '0'))} ط·آ¯.ط·آ¹</p>
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                      <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>📦 الأكواد المتاحة</p>
+                      <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>ًں“¦ ط§ظ„ط£ظƒظˆط§ط¯ ط§ظ„ظ…طھط§ط­ط©</p>
                       <p className={cn("text-2xl font-normal", isDarkMode ? "text-blue-400" : "text-blue-600")}>{stats.activeCodes}</p>
                     </div>
                     <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-                      <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>✅ المستخدمة</p>
+                      <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>âœ… ط§ظ„ظ…ط³طھط®ط¯ظ…ط©</p>
                       <p className={cn("text-2xl font-normal", isDarkMode ? "text-purple-400" : "text-purple-600")}>{stats.totalCodes - stats.activeCodes}</p>
                     </div>
                   </div>
@@ -12796,19 +12833,19 @@ const MerchantTopupDashboard = () => {
               {/* Store Info Card */}
               <Card className={cn("border-none", isDarkMode ? "bg-gray-800" : "bg-white")}>
                 <div className={cn("p-6 border-b", isDarkMode ? "border-gray-700" : "border-gray-200")}>
-                  <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>ℹ️ معلومات المتجر</h3>
+                  <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>â„¹ï¸ڈ ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ظ…طھط¬ط±</h3>
                 </div>
                 <div className="p-6 space-y-3">
                   <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
-                    <span className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>معرّف المتجر:</span>
+                    <span className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>ظ…ط¹ط±ظ‘ظپ ط§ظ„ظ…طھط¬ط±:</span>
                     <span className={cn("font-mono font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{topupStoreId}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
-                    <span className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>عدد الشركات:</span>
+                    <span className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط¹ط¯ط¯ ط§ظ„ط´ط±ظƒط§طھ:</span>
                     <span className={cn("font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{companies.length}</span>
                   </div>
                   <div className="flex justify-between items-center py-2">
-                    <span className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>عدد المنتجات:</span>
+                    <span className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط¹ط¯ط¯ ط§ظ„ظ…ظ†طھط¬ط§طھ:</span>
                     <span className={cn("font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{products.length}</span>
                   </div>
                 </div>
@@ -12827,7 +12864,7 @@ const MerchantTopupDashboard = () => {
             className={cn("rounded-2xl w-full max-w-md shadow-2xl", isDarkMode ? "bg-gray-800" : "bg-white")}
           >
             <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
-              <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>{isEditingCompany ? 'تعديل الشركة' : 'إضافة شركة جديدة'}</h3>
+              <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>{isEditingCompany ? 'طھط¹ط¯ظٹظ„ ط§ظ„ط´ط±ظƒط©' : 'ط¥ط¶ط§ظپط© ط´ط±ظƒط© ط¬ط¯ظٹط¯ط©'}</h3>
               <button onClick={() => setShowCompanyModal(false)}>
                 <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
               </button>
@@ -12837,11 +12874,11 @@ const MerchantTopupDashboard = () => {
                 type="text"
                 value={companyForm.name}
                 onChange={(e) => setCompanyForm({ ...companyForm, name: e.target.value })}
-                placeholder="اسم الشركة (مثال: Zain, Asiacell)"
+                placeholder="ط§ط³ظ… ط§ظ„ط´ط±ظƒط© (ظ…ط«ط§ظ„: Zain, Asiacell)"
                 className={cn("w-full px-4 py-3 rounded-lg border", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-50 border-gray-200 text-gray-900")}
               />
               <button onClick={saveCompany} className="w-full py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700">
-                {isEditingCompany ? 'تحديث' : 'إضافة'}
+                {isEditingCompany ? 'طھط­ط¯ظٹط«' : 'ط¥ط¶ط§ظپط©'}
               </button>
             </div>
           </motion.div>
@@ -12857,14 +12894,14 @@ const MerchantTopupDashboard = () => {
             className={cn("rounded-2xl w-full max-w-md shadow-2xl", isDarkMode ? "bg-gray-800" : "bg-white")}
           >
             <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
-              <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>🖼️ رفع صور البطاقات</h3>
+              <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>ًں–¼ï¸ڈ ط±ظپط¹ طµظˆط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ</h3>
               <button onClick={() => setShowCodeUploadModal(false)}>
                 <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <p className={cn("text-sm", isDarkMode ? "text-white" : "text-gray-600")}>
-                رفع صور بطاقات الشحن (الكود والسيريال مطبوع على الصورة)
+                ط±ظپط¹ طµظˆط± ط¨ط·ط§ظ‚ط§طھ ط§ظ„ط´ط­ظ† (ط§ظ„ظƒظˆط¯ ظˆط§ظ„ط³ظٹط±ظٹط§ظ„ ظ…ط·ط¨ظˆط¹ ط¹ظ„ظ‰ ط§ظ„طµظˆط±ط©)
               </p>
               <label className={cn("border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all", uploadedFiles.length > 0 ? "border-green-500 bg-green-50/10" : isDarkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-200 hover:border-gray-300")}>
                 <input
@@ -12876,13 +12913,13 @@ const MerchantTopupDashboard = () => {
                     let hasError = false;
 
                     for (const file of files) {
-                      // ✅ REMOVED 500KB limit - support large files with multipart/form-data!
+                      // âœ… REMOVED 500KB limit - support large files with multipart/form-data!
                       // Check MIME type only
                       if (!file.type.startsWith('image/')) {
-                        alert(`الملف "${file.name}" ليس صورة. الرجاء اختيار ملفات صور فقط.`);
+                        alert(`ط§ظ„ظ…ظ„ظپ "${file.name}" ظ„ظٹط³ طµظˆط±ط©. ط§ظ„ط±ط¬ط§ط، ط§ط®طھظٹط§ط± ظ…ظ„ظپط§طھ طµظˆط± ظپظ‚ط·.`);
                         hasError = true;
                       } else {
-                        console.log(`📁 Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+                        console.log(`ًں“پ Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
                         validFiles.push(file);
                       }
                     }
@@ -12896,7 +12933,7 @@ const MerchantTopupDashboard = () => {
                 />
                 {uploadedFiles.length > 0 ? (
                   <div className={cn("font-normal space-y-2", isDarkMode ? "text-green-400" : "text-green-600")}>
-                    <div className="font-semibold">✓ تم اختيار {uploadedFiles.length} صورة</div>
+                    <div className="font-semibold">âœ“ طھظ… ط§ط®طھظٹط§ط± {uploadedFiles.length} طµظˆط±ط©</div>
                     <div className="max-h-32 overflow-y-auto text-xs space-y-1">
                       {uploadedFiles.map((file, idx) => (
                         <div key={idx} className="flex items-center justify-between bg-white/10 p-2 rounded">
@@ -12908,8 +12945,8 @@ const MerchantTopupDashboard = () => {
                   </div>
                 ) : (
                   <div>
-                    <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>اختر صور أو اسحبها هنا</p>
-                    <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>يمكنك اختيار عدة صور بدون حد لحجم الملف</p>
+                    <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>ط§ط®طھط± طµظˆط± ط£ظˆ ط§ط³ط­ط¨ظ‡ط§ ظ‡ظ†ط§</p>
+                    <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>ظٹظ…ظƒظ†ظƒ ط§ط®طھظٹط§ط± ط¹ط¯ط© طµظˆط± ط¨ط¯ظˆظ† ط­ط¯ ظ„ط­ط¬ظ… ط§ظ„ظ…ظ„ظپ</p>
                   </div>
                 )}
               </label>
@@ -12918,7 +12955,7 @@ const MerchantTopupDashboard = () => {
                 disabled={isUploadingImage || uploadedFiles.length === 0}
                 className={cn("w-full py-3 text-white font-normal rounded-lg transition-all", isUploadingImage ? "bg-green-500 cursor-not-allowed opacity-70" : "bg-green-600 hover:bg-green-700")}
               >
-                {isUploadingImage ? '⏳ جاري التحميل...' : `رفع ${uploadedFiles.length} صورة`}
+                {isUploadingImage ? 'âڈ³ ط¬ط§ط±ظٹ ط§ظ„طھط­ظ…ظٹظ„...' : `ط±ظپط¹ ${uploadedFiles.length} طµظˆط±ط©`}
               </button>
             </div>
           </motion.div>
@@ -12938,9 +12975,9 @@ const MerchantTopupDashboard = () => {
             <div className={cn("sticky top-0 p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gradient-to-r from-indigo-50 to-blue-50 border-gray-200")}>
               <div>
                 <h3 className={cn("font-bold text-xl", isDarkMode ? "text-white" : "text-gray-900")}>
-                  {isEditingCustomer ? '✏️ تعديل بيانات العميل' : '➕ إضافة عميل جديد'}
+                  {isEditingCustomer ? 'âœڈï¸ڈ طھط¹ط¯ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظٹظ„' : 'â‍• ط¥ط¶ط§ظپط© ط¹ظ…ظٹظ„ ط¬ط¯ظٹط¯'}
                 </h3>
-                <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>أكمل جميع الحقول المطلوبة</p>
+                <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط£ظƒظ…ظ„ ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط©</p>
               </div>
               <button 
                 onClick={() => setShowCustomerModal(false)}
@@ -12955,17 +12992,17 @@ const MerchantTopupDashboard = () => {
               {/* Row 1: Name & Phone */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>📝 اسم العميل <span className="text-red-500">*</span></label>
+                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>ًں“‌ ط§ط³ظ… ط§ظ„ط¹ظ…ظٹظ„ <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     value={customerForm.name}
                     onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
-                    placeholder="أدخل اسم العميل كاملاً"
+                    placeholder="ط£ط¯ط®ظ„ ط§ط³ظ… ط§ظ„ط¹ظ…ظٹظ„ ظƒط§ظ…ظ„ط§ظ‹"
                     className={cn("w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-500" : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-indigo-500")}
                   />
                 </div>
                 <div>
-                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>📱 رقم الهاتف <span className="text-red-500">*</span></label>
+                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>ًں“± ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ <span className="text-red-500">*</span></label>
                   <input
                     type="tel"
                     value={customerForm.phone}
@@ -12979,17 +13016,17 @@ const MerchantTopupDashboard = () => {
               {/* Row 2: Password & Credit Limit */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>🔐 كلمة المرور <span className="text-red-500">*</span></label>
+                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>ًں”گ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± <span className="text-red-500">*</span></label>
                   <input
                     type="password"
                     value={customerForm.password}
                     onChange={(e) => setCustomerForm({ ...customerForm, password: e.target.value })}
-                    placeholder="أدخل كلمة المرور"
+                    placeholder="ط£ط¯ط®ظ„ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±"
                     className={cn("w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-500" : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-indigo-500")}
                   />
                 </div>
                 <div>
-                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>💳 حد الائتمان (د.ع) <span className="text-red-500">*</span></label>
+                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>ًں’³ ط­ط¯ ط§ظ„ط§ط¦طھظ…ط§ظ† (ط¯.ط¹) <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -13009,7 +13046,7 @@ const MerchantTopupDashboard = () => {
               {/* Row 3: Starting Balance & Customer Type */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>💰 ديون سابقة (د.ع) <span className="text-red-500">*</span></label>
+                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>ًں’° ط¯ظٹظˆظ† ط³ط§ط¨ظ‚ط© (ط¯.ط¹) <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -13025,25 +13062,25 @@ const MerchantTopupDashboard = () => {
                   />
                 </div>
                 <div>
-                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>🏷️ نوع العميل <span className="text-red-500">*</span></label>
+                  <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>ًںڈ·ï¸ڈ ظ†ظˆط¹ ط§ظ„ط¹ظ…ظٹظ„ <span className="text-red-500">*</span></label>
                   <select
                     value={customerForm.customer_type}
                     onChange={(e) => setCustomerForm({ ...customerForm, customer_type: e.target.value })}
                     className={cn("w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-white focus:border-indigo-500" : "bg-white border-gray-300 text-gray-900 focus:border-indigo-500")}
                   >
-                    <option value="cash">👤 مفرد (عميل فردي)</option>
-                    <option value="reseller">🏪 جملة (نقطة بيع)</option>
+                    <option value="cash">ًں‘¤ ظ…ظپط±ط¯ (ط¹ظ…ظٹظ„ ظپط±ط¯ظٹ)</option>
+                    <option value="reseller">ًںڈھ ط¬ظ…ظ„ط© (ظ†ظ‚ط·ط© ط¨ظٹط¹)</option>
                   </select>
                 </div>
               </div>
 
               {/* Row 4: Notes */}
               <div>
-                <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>📌 ملاحظات إضافية (اختياري)</label>
+                <label className={cn("block text-sm font-bold mb-2", isDarkMode ? "text-white" : "text-gray-900")}>ًں“Œ ظ…ظ„ط§ط­ط¸ط§طھ ط¥ط¶ط§ظپظٹط© (ط§ط®طھظٹط§ط±ظٹ)</label>
                 <textarea
                   value={customerForm.notes}
                   onChange={(e) => setCustomerForm({ ...customerForm, notes: e.target.value })}
-                  placeholder="أضف أي ملاحظات خاصة بهذا العميل..."
+                  placeholder="ط£ط¶ظپ ط£ظٹ ظ…ظ„ط§ط­ط¸ط§طھ ط®ط§طµط© ط¨ظ‡ط°ط§ ط§ظ„ط¹ظ…ظٹظ„..."
                   rows={3}
                   className={cn("w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm resize-none", isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-500" : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-indigo-500")}
                 />
@@ -13056,13 +13093,13 @@ const MerchantTopupDashboard = () => {
                 onClick={() => setShowCustomerModal(false)}
                 className={cn("px-6 py-2.5 rounded-lg font-bold transition-all text-sm", isDarkMode ? "bg-gray-600 text-white hover:bg-gray-500" : "bg-gray-300 text-gray-900 hover:bg-gray-400")}
               >
-                ✕ إلغاء
+                âœ• ط¥ظ„ط؛ط§ط،
               </button>
               <button
                 onClick={saveCustomer}
                 className={cn("px-6 py-2.5 rounded-lg font-bold transition-all text-sm text-white shadow-lg hover:shadow-xl active:scale-95", isEditingCustomer ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700")}
               >
-                {isEditingCustomer ? '💾 تحديث' : '➕ إضافة عميل'}
+                {isEditingCustomer ? 'ًں’¾ طھط­ط¯ظٹط«' : 'â‍• ط¥ط¶ط§ظپط© ط¹ظ…ظٹظ„'}
               </button>
             </div>
           </motion.div>
@@ -13078,13 +13115,13 @@ const MerchantTopupDashboard = () => {
             className={cn("rounded-2xl w-full max-w-4xl shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
           >
             <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
-              <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>كشف حساب - {selectedCustomerStatement?.name}</h3>
+              <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>ظƒط´ظپ ط­ط³ط§ط¨ - {selectedCustomerStatement?.name}</h3>
               <div className="flex gap-2">
                 <button 
                   onClick={() => setShowPaymentForm(!showPaymentForm)}
                   className={cn("px-4 py-2 rounded-lg text-white font-normal text-sm flex items-center gap-2", isDarkMode ? "bg-green-600 hover:bg-green-700" : "bg-green-600 hover:bg-green-700")}
                 >
-                  <Plus size={16} /> تسديد
+                  <Plus size={16} /> طھط³ط¯ظٹط¯
                 </button>
                 <button onClick={() => {
                   setShowCustomerStatement(false);
@@ -13120,28 +13157,28 @@ const MerchantTopupDashboard = () => {
                 <div className={cn("p-4 sm:p-6 border-b grid grid-cols-3 gap-2 sm:gap-4", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
                   {/* Credit Limit */}
                   <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-blue-900/30 border border-blue-700/50" : "bg-blue-50 border border-blue-200")}>
-                    <p className={cn("text-[10px] sm:text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-blue-300" : "text-blue-600")}>حد الائتمان</p>
+                    <p className={cn("text-[10px] sm:text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-blue-300" : "text-blue-600")}>ط­ط¯ ط§ظ„ط§ط¦طھظ…ط§ظ†</p>
                     <p className={cn("text-[clamp(0.95rem,4vw,1.5rem)] font-semibold leading-tight break-words", isDarkMode ? "text-blue-300" : "text-blue-700")}>
                       {formatNumber(creditLimit)}
-                      <span className="block text-[0.9em]">ط¯.ط¹</span>
+                      <span className="block text-[0.9em]">ط·آ¯.ط·آ¹</span>
                     </p>
                   </div>
                   
                   {/* Current Debt */}
                   <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-red-900/30 border border-red-700/50" : "bg-red-50 border border-red-200")}>
-                    <p className={cn("text-[10px] sm:text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
+                    <p className={cn("text-[10px] sm:text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-red-300" : "text-red-600")}>ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط­ط§ظ„ظٹط©</p>
                     <p className={cn("text-[clamp(0.95rem,4vw,1.5rem)] font-semibold leading-tight break-words", isDarkMode ? "text-red-300" : "text-red-700")}>
                       {formatNumber(currentDebt)}
-                      <span className="block text-[0.9em]">ط¯.ط¹</span>
+                      <span className="block text-[0.9em]">ط·آ¯.ط·آ¹</span>
                     </p>
                   </div>
 
                   {/* Available Balance */}
                   <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-green-900/30 border border-green-700/50" : "bg-green-50 border border-green-200")}>
-                    <p className={cn("text-[10px] sm:text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-green-300" : "text-green-600")}>الرصيد الحالي</p>
+                    <p className={cn("text-[10px] sm:text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-green-300" : "text-green-600")}>ط§ظ„ط±طµظٹط¯ ط§ظ„ط­ط§ظ„ظٹ</p>
                     <p className={cn("text-[clamp(0.95rem,4vw,1.5rem)] font-semibold leading-tight break-words", isDarkMode ? "text-green-300" : "text-green-700")}>
                       {formatNumber(availableBalance)}
-                      <span className="block text-[0.9em]">ط¯.ط¹</span>
+                      <span className="block text-[0.9em]">ط·آ¯.ط·آ¹</span>
                     </p>
                   </div>
                 </div>
@@ -13155,7 +13192,7 @@ const MerchantTopupDashboard = () => {
                   <div className="flex gap-3">
                     <input
                       type="number"
-                      placeholder="أدخل المبلغ..."
+                      placeholder="ط£ط¯ط®ظ„ ط§ظ„ظ…ط¨ظ„ط؛..."
                       value={paymentForm.amount}
                       onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
                       max={selectedCustomerStatement?.current_debt || 0}
@@ -13164,7 +13201,7 @@ const MerchantTopupDashboard = () => {
                     <button
                       onClick={async () => {
                         if (!paymentForm.amount || parseFloat(paymentForm.amount) <= 0) {
-                          alert('أدخل مبلغ صحيح');
+                          alert('ط£ط¯ط®ظ„ ظ…ط¨ظ„ط؛ طµط­ظٹط­');
                           return;
                         }
                         try {
@@ -13179,13 +13216,13 @@ const MerchantTopupDashboard = () => {
                           });
                           if (res.ok) {
                             const paymentData = await res.json();
-                            alert('✓ تم التسديد بنجاح');
+                            alert('âœ“ طھظ… ط§ظ„طھط³ط¯ظٹط¯ ط¨ظ†ط¬ط§ط­');
                             setPaymentForm({ amount: '' });
                             setShowPaymentForm(false);
                             
                             // Update customer data immediately from response
                             if (paymentData.customer) {
-                              console.log('💳 Payment response received:', {
+                              console.log('ًں’³ Payment response received:', {
                                 starting_balance: paymentData.customer.starting_balance,
                                 current_debt: paymentData.customer.current_debt,
                                 credit_limit: paymentData.customer.credit_limit
@@ -13201,40 +13238,40 @@ const MerchantTopupDashboard = () => {
                             // Reload statement after short delay to ensure DB is updated
                             setTimeout(async () => {
                               setIsLoadingCustomerTransactions(true);
-                              console.log('🔄 Reloading statement for customer:', selectedCustomerStatement.id);
+                              console.log('ًں”„ Reloading statement for customer:', selectedCustomerStatement.id);
                               const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
-                              console.log('📡 Statement response status:', statementRes.status);
+                              console.log('ًں“، Statement response status:', statementRes.status);
                               if (statementRes.ok) {
                                 const data = await statementRes.json();
-                                console.log('✅ Statement data received:', data);
-                                console.log('✅ Transactions array:', data.transactions);
-                                console.log('✅ Transactions count:', data.transactions?.length || 0);
+                                console.log('âœ… Statement data received:', data);
+                                console.log('âœ… Transactions array:', data.transactions);
+                                console.log('âœ… Transactions count:', data.transactions?.length || 0);
                                 if (data.transactions && Array.isArray(data.transactions)) {
-                                  console.log('✅ Setting transactions:', data.transactions.length, 'items');
+                                  console.log('âœ… Setting transactions:', data.transactions.length, 'items');
                                   setCustomerTransactions(data.transactions);
                                 } else {
-                                  console.error('❌ Transactions is not an array:', typeof data.transactions);
+                                  console.error('â‌Œ Transactions is not an array:', typeof data.transactions);
                                   setCustomerTransactions([]);
                                 }
                                 setSelectedCustomerStatement(data.customer);
                               } else {
-                                console.error('❌ Statement fetch failed:', statementRes.status);
+                                console.error('â‌Œ Statement fetch failed:', statementRes.status);
                               }
                               setIsLoadingCustomerTransactions(false);
                             }, 300);
                           } else {
                             const errorData = await res.json();
-                            console.error('❌ Payment failed:', res.status, errorData);
-                            alert(`❌ فشل التسديد: ${errorData.error || 'خطأ غير معروف'}`);
+                            console.error('â‌Œ Payment failed:', res.status, errorData);
+                            alert(`â‌Œ ظپط´ظ„ ط§ظ„طھط³ط¯ظٹط¯: ${errorData.error || 'ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ'}`);
                           }
                         } catch (error) {
                           console.error('Payment error:', error);
-                          alert(`❌ حدث خطأ: ${(error as any).message}`);
+                          alert(`â‌Œ ط­ط¯ط« ط®ط·ط£: ${(error as any).message}`);
                         }
                       }}
                       className={cn("px-6 py-2 rounded-lg text-white font-normal text-sm", isDarkMode ? "bg-green-600 hover:bg-green-700" : "bg-green-600 hover:bg-green-700")}
                     >
-                      تأكيد
+                      طھط£ظƒظٹط¯
                     </button>
                   </div>
                 </div>
@@ -13245,23 +13282,23 @@ const MerchantTopupDashboard = () => {
               {isLoadingCustomerTransactions ? (
                 <div className="text-center py-8">
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2" style={{borderColor: primaryColor}}></div>
-                  <p className={cn("mt-3", isDarkMode ? "text-gray-300" : "text-gray-600")}>جاري تحميل البيانات...</p>
+                  <p className={cn("mt-3", isDarkMode ? "text-gray-300" : "text-gray-600")}>ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ...</p>
                 </div>
               ) : !customerTransactions || customerTransactions.length === 0 ? (
                 <div className={cn("text-center py-8", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                  <p className="text-sm">لا توجد معاملات</p>
+                  <p className="text-sm">ظ„ط§ طھظˆط¬ط¯ ظ…ط¹ط§ظ…ظ„ط§طھ</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                   <table className="w-full text-sm border-collapse">
                     <thead>
                       <tr className={cn("sticky top-0", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
-                        <th className={cn("px-4 py-3 text-right font-normal border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
-                        <th className={cn("px-4 py-3 text-right font-normal border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
-                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>ظ…ط¯ظٹظ†</th>
-                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>ط¯ط§ط¦ظ†</th>
-                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الرصيد</th>
-                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>الإجراءات</th>
+                        <th className={cn("px-4 py-3 text-right font-normal border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>ط§ظ„طھط§ط±ظٹط®</th>
+                        <th className={cn("px-4 py-3 text-right font-normal border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>ط§ظ„ط¨ظٹط§ظ†</th>
+                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>ط¸â€¦ط·آ¯ط¸ظ¹ط¸â€ </th>
+                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>ط·آ¯ط·آ§ط·آ¦ط¸â€ </th>
+                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>ط§ظ„ط±طµظٹط¯</th>
+                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -13269,7 +13306,7 @@ const MerchantTopupDashboard = () => {
                         const isPayment = tx.is_payment === true;
                         const debit = isPayment ? 0 : Math.abs(tx.amount || 0);
                         const credit = isPayment ? Math.abs(tx.amount || 0) : 0;
-                        console.log(`📊 Statement Row ${idx}:`, { 
+                        console.log(`ًں“ٹ Statement Row ${idx}:`, { 
                           description: tx.description, 
                           description_bytes: Array.from(tx.description || '').map(c => c.charCodeAt(0)),
                           type: tx.type, 
@@ -13281,16 +13318,16 @@ const MerchantTopupDashboard = () => {
                         return (
                           <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
                             <td className={cn("px-4 py-3 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
-                              {tx.created_at ? new Date(tx.created_at).toLocaleDateString('ar-IQ') : '—'}
+                              {tx.created_at ? new Date(tx.created_at).toLocaleDateString('ar-IQ') : 'â€”'}
                             </td>
                             <td className={cn("px-4 py-3 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
-                              {tx.description || 'معاملة'}
+                              {tx.description || 'ظ…ط¹ط§ظ…ظ„ط©'}
                             </td>
                             <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-red-400 border-gray-700" : "text-red-600 border-gray-200")}>
-                              {debit > 0 ? formatNumber(debit) : '—'}
+                              {debit > 0 ? formatNumber(debit) : 'â€”'}
                             </td>
                             <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-green-400 border-gray-700" : "text-green-600 border-gray-200")}>
-                              {credit > 0 ? formatNumber(credit) : '—'}
+                              {credit > 0 ? formatNumber(credit) : 'â€”'}
                             </td>
                             <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-blue-400 border-gray-700" : "text-blue-600 border-gray-200")}>
                               {(tx.balance || 0).toLocaleString('en-US')}
@@ -13302,12 +13339,12 @@ const MerchantTopupDashboard = () => {
                                     <button
                                       onClick={async () => {
                                         try {
-                                          const newAmountStr = prompt(`أدخل المبلغ الجديد للتسديد (المبلغ الحالي: ${tx.amount}):`);
+                                          const newAmountStr = prompt(`ط£ط¯ط®ظ„ ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ط¬ط¯ظٹط¯ ظ„ظ„طھط³ط¯ظٹط¯ (ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ط­ط§ظ„ظٹ: ${tx.amount}):`);
                                           if (!newAmountStr) return;
                                           
                                           const newAmount = parseFloat(newAmountStr);
                                           if (isNaN(newAmount) || newAmount <= 0) {
-                                            alert('❌ الرجاء إدخال مبلغ صحيح');
+                                            alert('â‌Œ ط§ظ„ط±ط¬ط§ط، ط¥ط¯ط®ط§ظ„ ظ…ط¨ظ„ط؛ طµط­ظٹط­');
                                             return;
                                           }
                                           
@@ -13318,7 +13355,7 @@ const MerchantTopupDashboard = () => {
                                           });
                                           
                                           if (res.ok) {
-                                            alert('✓ تم التحديث بنجاح');
+                                            alert('âœ“ طھظ… ط§ظ„طھط­ط¯ظٹط« ط¨ظ†ط¬ط§ط­');
                                             // Reload statement
                                             setIsLoadingCustomerTransactions(true);
                                             const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`);
@@ -13330,25 +13367,25 @@ const MerchantTopupDashboard = () => {
                                             setIsLoadingCustomerTransactions(false);
                                           } else {
                                             const error = await res.json();
-                                            alert(`❌ ${error.error}`);
+                                            alert(`â‌Œ ${error.error}`);
                                           }
                                         } catch (error) {
                                           console.error('Edit error:', error);
-                                          alert('❌ حدث خطأ');
+                                          alert('â‌Œ ط­ط¯ط« ط®ط·ط£');
                                         }
                                       }}
                                       className={cn("p-1.5 rounded transition-all", isDarkMode ? "text-amber-400 hover:bg-amber-900/30" : "text-amber-600 hover:bg-amber-50")}
-                                      title="تحديث"
+                                      title="طھط­ط¯ظٹط«"
                                     >
                                       <Edit2 size={14} />
                                     </button>
                                     <button
                                       onClick={async () => {
-                                        if (!confirm('هل تريد حذف هذا التسديد؟')) return;
+                                        if (!confirm('ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ظ‡ط°ط§ ط§ظ„طھط³ط¯ظٹط¯طں')) return;
                                         try {
                                           const res = await fetch(`/api/topup/payment/${tx.id}`, { method: 'DELETE' });
                                           if (res.ok) {
-                                            alert('✓ تم الحذف بنجاح');
+                                            alert('âœ“ طھظ… ط§ظ„ط­ط°ظپ ط¨ظ†ط¬ط§ط­');
                                             // Reload statement
                                             setIsLoadingCustomerTransactions(true);
                                             const statementRes = await fetch(`/api/topup/customers/${selectedCustomerStatement.id}/statement`, {
@@ -13365,15 +13402,15 @@ const MerchantTopupDashboard = () => {
                                             }
                                             setIsLoadingCustomerTransactions(false);
                                           } else {
-                                            alert('فشل الحذف');
+                                            alert('ظپط´ظ„ ط§ظ„ط­ط°ظپ');
                                           }
                                         } catch (error) {
                                           console.error('Delete error:', error);
-                                          alert('حدث خطأ');
+                                          alert('ط­ط¯ط« ط®ط·ط£');
                                         }
                                       }}
                                       className={cn("p-1.5 rounded transition-all", isDarkMode ? "text-red-400 hover:bg-red-900/30" : "text-red-600 hover:bg-red-50")}
-                                      title="ط­ط°ظپ"
+                                      title="ط·آ­ط·آ°ط¸ظ¾"
                                     >
                                       <Trash2 size={14} />
                                     </button>
@@ -13422,8 +13459,8 @@ const MerchantTopupDashboard = () => {
                     <CreditCard size={20} />
                   </div>
                   <div>
-                    <h2 className={cn("font-normal text-sm", isDarkMode ? "text-gray-100" : "text-gray-900")}>الإدارة</h2>
-                    <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>متجر البطاقات</p>
+                    <h2 className={cn("font-normal text-sm", isDarkMode ? "text-gray-100" : "text-gray-900")}>ط§ظ„ط¥ط¯ط§ط±ط©</h2>
+                    <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>ظ…طھط¬ط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ</p>
                   </div>
                 </div>
                 <button
@@ -13436,17 +13473,17 @@ const MerchantTopupDashboard = () => {
 
               <nav className="space-y-2">
                 {[
-                  { id: 'overview', label: 'ملخص المبيعات', icon: BarChart3, badge: null },
-                  { id: 'companies', label: 'الشركات', icon: StoreIcon, badge: companies.length },
-                  { id: 'products', label: 'المنتجات', icon: CreditCard, badge: products.length },
-                  { id: 'codes', label: 'الأكواد', icon: Ticket, badge: products.reduce((sum: number, p: any) => {
+                  { id: 'overview', label: 'ظ…ظ„ط®طµ ط§ظ„ظ…ط¨ظٹط¹ط§طھ', icon: BarChart3, badge: null },
+                  { id: 'companies', label: 'ط§ظ„ط´ط±ظƒط§طھ', icon: StoreIcon, badge: companies.length },
+                  { id: 'products', label: 'ط§ظ„ظ…ظ†طھط¬ط§طھ', icon: CreditCard, badge: products.length },
+                  { id: 'codes', label: 'ط§ظ„ط£ظƒظˆط§ط¯', icon: Ticket, badge: products.reduce((sum: number, p: any) => {
                     // Count uploaded images from each product
                     const count = getProductImageCount(p);
                     return sum + count;
                   }, 0) },
-                  { id: 'customers', label: 'العملاء', icon: Users, badge: customers.length },
-                  { id: 'orders', label: 'الطلبات', icon: ShoppingCart, badge: orders.filter((o: any) => o.status !== 'returned').length },
-                  { id: 'settings', label: 'الإعدادات', icon: Settings, badge: null },
+                  { id: 'customers', label: 'ط§ظ„ط¹ظ…ظ„ط§ط،', icon: Users, badge: customers.length },
+                  { id: 'orders', label: 'ط§ظ„ط·ظ„ط¨ط§طھ', icon: ShoppingCart, badge: orders.filter((o: any) => o.status !== 'returned').length },
+                  { id: 'settings', label: 'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ', icon: Settings, badge: null },
                 ].map(item => (
                   <button
                     key={item.id}
@@ -13479,7 +13516,7 @@ const MerchantTopupDashboard = () => {
                           ? currentSection === item.id ? "bg-purple-400/30 text-purple-200" : isDarkMode ? "bg-purple-900/40 text-purple-300" : "bg-purple-100 text-purple-800"
                           : currentSection === item.id ? "bg-white/20" : isDarkMode ? "bg-gray-700 text-indigo-400" : "bg-indigo-100 text-indigo-700"
                       )}>
-                        {item.badge === 0 && item.id === 'codes' ? '0️⃣' : item.badge}
+                        {item.badge === 0 && item.id === 'codes' ? '0ï¸ڈâƒ£' : item.badge}
                       </span>
                     )}
                   </button>
@@ -13488,8 +13525,8 @@ const MerchantTopupDashboard = () => {
 
               <div className={cn("mt-8 pt-8 border-t", isDarkMode ? "border-gray-800" : "border-gray-200")}>
                 <div className={cn("p-4 rounded-lg mb-4", isDarkMode ? "bg-gray-800" : "bg-gray-100")}>
-                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>أنت مسجل بصفة</p>
-                  <p className={cn("font-normal text-sm", isDarkMode ? "text-gray-100" : "text-gray-900")}>{user?.name || 'طھط§ط¬ط±'}</p>
+                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط£ظ†طھ ظ…ط³ط¬ظ„ ط¨طµظپط©</p>
+                  <p className={cn("font-normal text-sm", isDarkMode ? "text-gray-100" : "text-gray-900")}>{user?.name || 'ط·ع¾ط·آ§ط·آ¬ط·آ±'}</p>
                 </div>
                 <button
                   onClick={() => {
@@ -13498,7 +13535,7 @@ const MerchantTopupDashboard = () => {
                   }}
                   className={cn("w-full px-4 py-3 rounded-lg font-normal flex items-center justify-center gap-2 transition-all", isDarkMode ? "bg-red-900/20 text-red-400 hover:bg-red-900/40" : "bg-red-50 text-red-600 hover:bg-red-100")}
                 >
-                  <LogOut size={16} /> تسجيل خروج
+                  <LogOut size={16} /> طھط³ط¬ظٹظ„ ط®ط±ظˆط¬
                 </button>
               </div>
             </div>
@@ -13522,24 +13559,24 @@ const TopupStorefront = () => {
       let storeId = rawStoreId;
       const storeNum = parseInt(rawStoreId || '0');
 
-      console.log(`🔍 Determining store ID from rawStoreId: "${rawStoreId}" (parsed: ${storeNum})`);
+      console.log(`ًں”چ Determining store ID from rawStoreId: "${rawStoreId}" (parsed: ${storeNum})`);
 
       // If it's a numeric ID that equals 21 or 1, find the first available topup store
       if (!isNaN(storeNum) && (storeNum === 21 || storeNum === 1)) {
         try {
-          console.log('🔍 Finding available topup store...');
+          console.log('ًں”چ Finding available topup store...');
           const res = await fetch('/api/stores?page=1&pageSize=100');
           const stores = await res.json();
           const topupStore = Array.isArray(stores) ? stores.find((s: any) => s.store_type === 'topup') : null;
           if (topupStore) {
             storeId = String(topupStore.id);
-            console.log(`✅ Using available topup store: ${storeId}`);
+            console.log(`âœ… Using available topup store: ${storeId}`);
           } else if (Array.isArray(stores) && stores.length > 0) {
             storeId = String(stores[0].id);
-            console.log(`⚠️ No topup store found, using first available store: ${storeId}`);
+            console.log(`âڑ ï¸ڈ No topup store found, using first available store: ${storeId}`);
           } else {
             storeId = '1';
-            console.log(`⚠️ No stores found, defaulting to store 1`);
+            console.log(`âڑ ï¸ڈ No stores found, defaulting to store 1`);
           }
         } catch (err) {
           console.error('Error fetching stores:', err);
@@ -13548,7 +13585,7 @@ const TopupStorefront = () => {
       } else if (isNaN(storeNum)) {
         // It's a text slug, search for store by name
         try {
-          console.log(`🔍 Looking up store by slug/name: "${rawStoreId}"`);
+          console.log(`ًں”چ Looking up store by slug/name: "${rawStoreId}"`);
           const res = await fetch('/api/stores?page=1&pageSize=100');
           const stores = await res.json();
           
@@ -13562,16 +13599,16 @@ const TopupStorefront = () => {
           
           if (foundStore) {
             storeId = String(foundStore.id);
-            console.log(`✅ Found store by name: ${storeId}`);
+            console.log(`âœ… Found store by name: ${storeId}`);
           } else {
             // If no exact match, just use the first topup store
             const topupStore = Array.isArray(stores) ? stores.find((s: any) => s.store_type === 'topup') : null;
             if (topupStore) {
               storeId = String(topupStore.id);
-              console.log(`⚠️ No exact match, using first topup store: ${storeId}`);
+              console.log(`âڑ ï¸ڈ No exact match, using first topup store: ${storeId}`);
             } else {
               storeId = '1';
-              console.log(`⚠️ No topup store found, defaulting to store 1`);
+              console.log(`âڑ ï¸ڈ No topup store found, defaulting to store 1`);
             }
           }
         } catch (err) {
@@ -13580,7 +13617,7 @@ const TopupStorefront = () => {
         }
       }
 
-      console.log(`✅ Final storeId resolved to: ${storeId}`);
+      console.log(`âœ… Final storeId resolved to: ${storeId}`);
       setTopupStoreId(storeId);
       setIsLoadingStore(false);
     };
@@ -13604,7 +13641,7 @@ const TopupStorefront = () => {
     if (!lastBuild || (timestamp - parseInt(lastBuild)) > 60000) {
       // More than 1 minute old, reload
       sessionStorage.setItem('topupStorefront_lastBuild', timestamp.toString());
-      console.log('🔄 Cache-busting reload for TopupStorefront');
+      console.log('ًں”„ Cache-busting reload for TopupStorefront');
       // window.location.reload();
     }
   }, []);
@@ -13657,14 +13694,14 @@ const TopupStorefront = () => {
 
   // Load customer data from localStorage on component mount - HIGH PRIORITY
   useEffect(() => {
-    console.log('🔍 TopupStorefront: Loading customer from localStorage on mount');
+    console.log('ًں”چ TopupStorefront: Loading customer from localStorage on mount');
     const loadCustomerFromLocalStorage = () => {
       const topupData = localStorage.getItem('topupCustomer');
-      console.log('📦 topupCustomer in localStorage:', !!topupData);
+      console.log('ًں“¦ topupCustomer in localStorage:', !!topupData);
       if (topupData) {
         try {
           const customerData = JSON.parse(topupData);
-          console.log('✅ TopupStorefront: Loaded customer from localStorage:', customerData);
+          console.log('âœ… TopupStorefront: Loaded customer from localStorage:', customerData);
           setCustomer(customerData);
           setPurchaseForm({
             name: customerData.name || '',
@@ -13672,23 +13709,23 @@ const TopupStorefront = () => {
             customer_type: customerData.customer_type || 'cash'
           });
         } catch (err) {
-          console.error('⚠️ TopupStorefront: Error parsing topupCustomer:', err);
+          console.error('âڑ ï¸ڈ TopupStorefront: Error parsing topupCustomer:', err);
         }
       } else {
-        console.log('❌ No topupCustomer in localStorage');
+        console.log('â‌Œ No topupCustomer in localStorage');
         // Fallback to customerData
         const fallbackData = localStorage.getItem('customerData');
         if (fallbackData) {
           try {
             const data = JSON.parse(fallbackData);
-            console.log('✅ TopupStorefront: Fallback to customerData:', data);
+            console.log('âœ… TopupStorefront: Fallback to customerData:', data);
             setPurchaseForm({
               name: data.name || '',
               phone: data.phone || '',
               customer_type: data.customer_type || 'cash'
             });
           } catch (err) {
-            console.error('⚠️ Error parsing customerData:', err);
+            console.error('âڑ ï¸ڈ Error parsing customerData:', err);
           }
         }
       }
@@ -13699,7 +13736,7 @@ const TopupStorefront = () => {
 
     // Also listen for storage changes
     window.addEventListener('storage', () => {
-      console.log('🔄 Storage changed externally');
+      console.log('ًں”„ Storage changed externally');
       loadCustomerFromLocalStorage();
     });
 
@@ -13713,36 +13750,36 @@ const TopupStorefront = () => {
     if (!actualStoreId) return;
 
     const loadStoreLogo = () => {
-      console.log('🔍 TopupStorefront - Loading logo for actualStoreId:', actualStoreId);
+      console.log('ًں”چ TopupStorefront - Loading logo for actualStoreId:', actualStoreId);
       const storeSettings = localStorage.getItem(`storeSettings_${actualStoreId}`);
-      console.log('🔍 localStorage key:', `storeSettings_${actualStoreId}`);
-      console.log('🔍 Found in localStorage:', !!storeSettings);
+      console.log('ًں”چ localStorage key:', `storeSettings_${actualStoreId}`);
+      console.log('ًں”چ Found in localStorage:', !!storeSettings);
       
       if (storeSettings) {
         try {
           const parsed = JSON.parse(storeSettings);
-          console.log('🔍 Parsed settings:', {
+          console.log('ًں”چ Parsed settings:', {
             has_logo: !!parsed.logo_url,
             logo_length: parsed.logo_url?.length,
             ends_with: parsed.logo_url?.substring(parsed.logo_url.length - 30)
           });
           if (parsed.logo_url && parsed.logo_url.length > 100) {
-            console.log('✅ Setting store logo. Length:', parsed.logo_url.length);
+            console.log('âœ… Setting store logo. Length:', parsed.logo_url.length);
             setStoreLogo(parsed.logo_url);
           } else {
             // Check if there's a logo from store info
-            console.log('⚠️ Logo too short or missing, checking storeInfo');
+            console.log('âڑ ï¸ڈ Logo too short or missing, checking storeInfo');
             setStoreLogo('');
           }
         } catch (err) {
-          console.error('❌ Error parsing store settings:', err);
+          console.error('â‌Œ Error parsing store settings:', err);
           setStoreLogo('');
         }
       } else {
-        console.log('⚠️ No store settings found in localStorage');
+        console.log('âڑ ï¸ڈ No store settings found in localStorage');
         // Try to get logo from store info if available
         if (storeInfo?.logo_url && storeInfo.logo_url.length > 100) {
-          console.log('✅ Loading logo from storeInfo');
+          console.log('âœ… Loading logo from storeInfo');
           setStoreLogo(storeInfo.logo_url);
         } else {
           setStoreLogo('');
@@ -13757,7 +13794,7 @@ const TopupStorefront = () => {
 
     // Listen for custom event from settings panel
     const handleSettingsUpdate = (e: any) => {
-      console.log('🔔 TopupStorefront received storeSettingsUpdated event, loading logo');
+      console.log('ًں”” TopupStorefront received storeSettingsUpdated event, loading logo');
       loadStoreLogo();
     };
 
@@ -13771,33 +13808,33 @@ const TopupStorefront = () => {
 
   useEffect(() => {
     if (isLoadingStore) {
-      console.log('⏳ Still loading store ID, skipping data fetch');
+      console.log('âڈ³ Still loading store ID, skipping data fetch');
       return;
     }
     
     if (!storeId) {
-      console.log(`⚠️ No storeId resolved, using default store 1 (علي_الهادي)`);
+      console.log(`âڑ ï¸ڈ No storeId resolved, using default store 1 (ط¹ظ„ظٹ_ط§ظ„ظ‡ط§ط¯ظٹ)`);
       setActualStoreId(1); // Set default store 1 when no storeId
       return;
     }
     
-    console.log(`🚀 TopupStorefront mount with storeId: ${storeId}`);
-    console.log(`📡 API_BASE_URL: "${API_BASE_URL}"`);
+    console.log(`ًںڑ€ TopupStorefront mount with storeId: ${storeId}`);
+    console.log(`ًں“، API_BASE_URL: "${API_BASE_URL}"`);
     
     let isMounted = true; // Track if component is still mounted
     
     const fetchData = async () => {
-      console.log('📋 fetchData: Starting fetch operation');
+      console.log('ًں“‹ fetchData: Starting fetch operation');
       
       if (!isMounted) {
-        console.log('❌ Component unmounted, aborting fetch');
+        console.log('â‌Œ Component unmounted, aborting fetch');
         return;
       }
       
       try {
         // First, resolve the store slug to numeric ID
-        console.log(`🔍 Resolving store slug: "${storeId}"`);
-        console.log(`📍 Full API URL: /api/stores/slug/${storeId}`);
+        console.log(`ًں”چ Resolving store slug: "${storeId}"`);
+        console.log(`ًں“چ Full API URL: /api/stores/slug/${storeId}`);
         
         // If slug is just "store" or numeric, handle differently
         let actualStoreId: number | null = null;
@@ -13806,57 +13843,57 @@ const TopupStorefront = () => {
         const numericAttempt = parseInt(storeId);
         if (!isNaN(numericAttempt) && numericAttempt > 0) {
           actualStoreId = numericAttempt;
-          console.log(`✅ Parsed storeId as numeric directly: ${actualStoreId}`);
+          console.log(`âœ… Parsed storeId as numeric directly: ${actualStoreId}`);
         } else if (storeId === 'store' || storeId === 'topup') {
-          // For generic slugs, use store 1 (عل_الهادي - topup store)
-          console.log(`⚠️ Generic slug detected (${storeId}), using store 1...`);
+          // For generic slugs, use store 1 (ط¹ظ„_ط§ظ„ظ‡ط§ط¯ظٹ - topup store)
+          console.log(`âڑ ï¸ڈ Generic slug detected (${storeId}), using store 1...`);
           actualStoreId = 1;
         } else {
           // Try to resolve via API
           const storeRes = await fetch(`/api/stores/slug/${storeId}`);
-          console.log(`📊 Store response status: ${storeRes.status}`);
+          console.log(`ًں“ٹ Store response status: ${storeRes.status}`);
           
           if (!storeRes.ok) {
-            console.warn(`⚠️ Store slug not found (${storeRes.status}), searching for store with topup products...`);
+            console.warn(`âڑ ï¸ڈ Store slug not found (${storeRes.status}), searching for store with topup products...`);
             try {
               const storesRes = await fetch('/api/topup/products?limit=1');
               if (storesRes.ok) {
                 const firstProduct = await storesRes.json();
                 if (Array.isArray(firstProduct) && firstProduct.length > 0) {
                   actualStoreId = firstProduct[0].store_id;
-                  console.log(`✅ Found store from first product: ${actualStoreId}`);
+                  console.log(`âœ… Found store from first product: ${actualStoreId}`);
                 } else {
                   actualStoreId = 1;
-                  console.log(`⚠️ No products found, using default store: 1`);
+                  console.log(`âڑ ï¸ڈ No products found, using default store: 1`);
                 }
               }
             } catch (e) {
               actualStoreId = 1;
-              console.log(`⚠️ Error in fallback search: ${e}, using default: 1`);
+              console.log(`âڑ ï¸ڈ Error in fallback search: ${e}, using default: 1`);
             }
           } else {
             const storeData = await storeRes.json();
-            console.log(`📦 Store data received:`, storeData);
-            console.log(`📦 Store name field:`, storeData.store_name, `Other name fields: name=${storeData.name}, title=${storeData.title}`);
+            console.log(`ًں“¦ Store data received:`, storeData);
+            console.log(`ًں“¦ Store name field:`, storeData.store_name, `Other name fields: name=${storeData.name}, title=${storeData.title}`);
 
             if (storeData.slug && storeData.slug !== rawStoreId) {
-              console.log(`🔄 Redirecting topup customer to canonical slug: /topup/${storeData.slug}`);
+              console.log(`ًں”„ Redirecting topup customer to canonical slug: /topup/${storeData.slug}`);
               navigate(`/topup/${storeData.slug}`, { replace: true });
               return;
             }
             
             actualStoreId = storeData.id;
             if (!actualStoreId || actualStoreId === undefined) {
-              console.error(`❌ No ID in store data! Using default: 1`);
+              console.error(`â‌Œ No ID in store data! Using default: 1`);
               actualStoreId = 1;
             }
             
             // Store the info for later use - ensure store_name is available
             const enrichedStoreData = {
               ...storeData,
-              store_name: storeData.store_name || storeData.name || storeData.title || 'متجر البطاقات'
+              store_name: storeData.store_name || storeData.name || storeData.title || 'ظ…طھط¬ط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ'
             };
-            console.log(`✅ Enriched store data:`, enrichedStoreData);
+            console.log(`âœ… Enriched store data:`, enrichedStoreData);
             setStoreInfo(enrichedStoreData);
           }
         }
@@ -13864,98 +13901,98 @@ const TopupStorefront = () => {
         // Ensure it's numeric
         actualStoreId = Number(actualStoreId);
         if (isNaN(actualStoreId) || actualStoreId <= 0) {
-          console.error(`❌ Could not resolve store ID, using default: 1`);
+          console.error(`â‌Œ Could not resolve store ID, using default: 1`);
           actualStoreId = 1;
         }
         
-        console.log(`✅ Using store ID: ${actualStoreId}`);
+        console.log(`âœ… Using store ID: ${actualStoreId}`);
         if (isMounted) setActualStoreId(actualStoreId);
         
-        // 🔥 CRITICAL: Fetch store info even if not using slug resolution
+        // ًں”¥ CRITICAL: Fetch store info even if not using slug resolution
         if (!storeInfo || !storeInfo.store_name) {
-          console.log(`📦 Fetching store info for store ID ${actualStoreId}`);
+          console.log(`ًں“¦ Fetching store info for store ID ${actualStoreId}`);
           try {
             const storeInfoRes = await fetch(`/api/stores/${actualStoreId}`);
             if (storeInfoRes.ok) {
               const storeInfoData = await storeInfoRes.json();
-              console.log(`📦 Store info fetched:`, storeInfoData);
+              console.log(`ًں“¦ Store info fetched:`, storeInfoData);
               const enrichedStoreData = {
                 ...storeInfoData,
-                store_name: storeInfoData.store_name || storeInfoData.name || storeInfoData.title || 'متجر البطاقات'
+                store_name: storeInfoData.store_name || storeInfoData.name || storeInfoData.title || 'ظ…طھط¬ط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ'
               };
               if (isMounted) {
                 setStoreInfo(enrichedStoreData);
                 // Save to localStorage for later retrieval
                 localStorage.setItem(`storeInfo_${actualStoreId}`, JSON.stringify(enrichedStoreData));
-                console.log(`✅ Saved store info to localStorage:`, enrichedStoreData.store_name);
+                console.log(`âœ… Saved store info to localStorage:`, enrichedStoreData.store_name);
               }
             } else if (storeInfoRes.status === 404) {
               // Store not found - fallback to store 1
-              console.warn(`⚠️ Store ${actualStoreId} returned 404, trying store 1...`);
+              console.warn(`âڑ ï¸ڈ Store ${actualStoreId} returned 404, trying store 1...`);
               const fallbackRes = await fetch(`/api/stores/1`);
               if (fallbackRes.ok) {
                 const fallbackData = await fallbackRes.json();
                 const enrichedStoreData = {
                   ...fallbackData,
-                  store_name: fallbackData.store_name || fallbackData.name || fallbackData.title || 'متجر البطاقات'
+                  store_name: fallbackData.store_name || fallbackData.name || fallbackData.title || 'ظ…طھط¬ط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ'
                 };
                 if (isMounted) {
                   setStoreInfo(enrichedStoreData);
                   setActualStoreId(1); // Update to store 1
                   localStorage.setItem(`storeInfo_1`, JSON.stringify(enrichedStoreData));
-                  console.log(`✅ Fallback to store 1 successful`);
+                  console.log(`âœ… Fallback to store 1 successful`);
                 }
               } else {
                 throw new Error('Store 1 also not found');
               }
             } else {
-              console.warn(`⚠️ Could not fetch store info (status: ${storeInfoRes.status})`);
+              console.warn(`âڑ ï¸ڈ Could not fetch store info (status: ${storeInfoRes.status})`);
               // Try to load from localStorage as fallback
               const cachedInfo = localStorage.getItem(`storeInfo_${actualStoreId}`);
               if (cachedInfo) {
                 const cached = JSON.parse(cachedInfo);
                 if (isMounted) setStoreInfo(cached);
-                console.log(`✅ Loaded cached store info from localStorage`);
+                console.log(`âœ… Loaded cached store info from localStorage`);
               } else {
                 // Set default store info
                 if (isMounted) setStoreInfo({ 
-                  store_name: 'متجر البطاقات',
-                  name: 'متجر البطاقات',
-                  description: 'اختر شركتك المفضلة وقيمة الشحن'
+                  store_name: 'ظ…طھط¬ط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ',
+                  name: 'ظ…طھط¬ط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ',
+                  description: 'ط§ط®طھط± ط´ط±ظƒطھظƒ ط§ظ„ظ…ظپط¶ظ„ط© ظˆظ‚ظٹظ…ط© ط§ظ„ط´ط­ظ†'
                 });
               }
             }
           } catch (err) {
-            console.warn(`⚠️ Error fetching store info:`, err);
+            console.warn(`âڑ ï¸ڈ Error fetching store info:`, err);
             // Try to load from localStorage as fallback
             const cachedInfo = localStorage.getItem(`storeInfo_${actualStoreId}`);
             if (cachedInfo) {
               const cached = JSON.parse(cachedInfo);
               if (isMounted) setStoreInfo(cached);
-              console.log(`✅ Loaded cached store info from localStorage (on error)`);
+              console.log(`âœ… Loaded cached store info from localStorage (on error)`);
             } else {
               if (isMounted) setStoreInfo({ 
-                store_name: 'متجر البطاقات',
-                name: 'متجر البطاقات',
-                description: 'اختر شركتك المفضلة وقيمة الشحن'
+                store_name: 'ظ…طھط¬ط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ',
+                name: 'ظ…طھط¬ط± ط§ظ„ط¨ط·ط§ظ‚ط§طھ',
+                description: 'ط§ط®طھط± ط´ط±ظƒطھظƒ ط§ظ„ظ…ظپط¶ظ„ط© ظˆظ‚ظٹظ…ط© ط§ظ„ط´ط­ظ†'
               });
             }
           }
         }
         
-        // إضافة timestamp لفرض جلب البيانات الجديدة من قاعدة البيانات
+        // ط¥ط¶ط§ظپط© timestamp ظ„ظپط±ط¶ ط¬ظ„ط¨ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¬ط¯ظٹط¯ط© ظ…ظ† ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
         const timestamp = Date.now();
-        console.log('🔍 Fetching products with timestamp:', timestamp);
+        console.log('ًں”چ Fetching products with timestamp:', timestamp);
         
         // Create AbortController with 60-second timeout (increased from 30)
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
-          console.warn('⏱️ Fetch timeout after 60 seconds - aborting');
+          console.warn('âڈ±ï¸ڈ Fetch timeout after 60 seconds - aborting');
           controller.abort();
         }, 60000);
         
         // Fetch companies, categories, products with timeout in PARALLEL (no waiting for store)
-        console.log(`📡 Fetching companies, categories, and products in parallel for store ID: ${actualStoreId}...`);
+        console.log(`ًں“، Fetching companies, categories, and products in parallel for store ID: ${actualStoreId}...`);
         
         const [companiesRes, categoriesRes, productsRes] = await Promise.all([
           // Fetch companies
@@ -13965,31 +14002,31 @@ const TopupStorefront = () => {
           }).then(async r => {
             console.log('   Companies response status:', r.status);
             if (!r.ok) {
-              console.warn('⚠️ Companies fetch for store returned status:', r.status);
+              console.warn('âڑ ï¸ڈ Companies fetch for store returned status:', r.status);
               console.log('   Trying fallback: GET /api/topup/companies');
               // Fallback to get all companies
               const fallback = await fetch('/api/topup/companies', { cache: 'no-store', signal: controller.signal });
               if (!fallback.ok) {
-                console.warn('⚠️ Fallback companies fetch also failed:', fallback.status);
+                console.warn('âڑ ï¸ڈ Fallback companies fetch also failed:', fallback.status);
                 return [];
               }
               const data = await fallback.json();
-              console.log('✅ Companies fetched (fallback):', Array.isArray(data) ? data.length : 0);
+              console.log('âœ… Companies fetched (fallback):', Array.isArray(data) ? data.length : 0);
               return Array.isArray(data) ? data : [];
             }
             const data = await r.json();
-            console.log('✅ Companies fetched:', Array.isArray(data) ? data.length : 0);
+            console.log('âœ… Companies fetched:', Array.isArray(data) ? data.length : 0);
             if (!Array.isArray(data) || data.length === 0) {
               console.log('   No data from store endpoint, trying fallback');
               const fallback = await fetch('/api/topup/companies', { cache: 'no-store', signal: controller.signal });
               if (!fallback.ok) return [];
               const fallbackData = await fallback.json();
-              console.log('✅ Companies fetched (fallback):', Array.isArray(fallbackData) ? fallbackData.length : 0);
+              console.log('âœ… Companies fetched (fallback):', Array.isArray(fallbackData) ? fallbackData.length : 0);
               return Array.isArray(fallbackData) ? fallbackData : [];
             }
             return Array.isArray(data) ? data : [];
           }).catch(e => {
-            console.warn('⚠️ Companies fetch error:', e.message);
+            console.warn('âڑ ï¸ڈ Companies fetch error:', e.message);
             return [];
           }),
           
@@ -14000,14 +14037,14 @@ const TopupStorefront = () => {
           }).then(async r => {
             console.log('   Categories response status:', r.status);
             if (!r.ok) {
-              console.warn('⚠️ Categories fetch returned status:', r.status);
+              console.warn('âڑ ï¸ڈ Categories fetch returned status:', r.status);
               return [];
             }
             const data = await r.json();
-            console.log('✅ Categories fetched:', Array.isArray(data) ? data.length : 0);
+            console.log('âœ… Categories fetched:', Array.isArray(data) ? data.length : 0);
             return Array.isArray(data) ? data : [];
           }).catch(e => {
-            console.warn('⚠️ Categories fetch error:', e.message);
+            console.warn('âڑ ï¸ڈ Categories fetch error:', e.message);
             return [];
           }),
           
@@ -14018,14 +14055,14 @@ const TopupStorefront = () => {
           }).then(async r => {
             console.log('   Categories response status:', r.status);
             if (!r.ok) {
-              console.warn('⚠️ Categories fetch returned status:', r.status);
+              console.warn('âڑ ï¸ڈ Categories fetch returned status:', r.status);
               return [];
             }
             const data = await r.json();
-            console.log('✅ Categories fetched:', Array.isArray(data) ? data.length : 0);
+            console.log('âœ… Categories fetched:', Array.isArray(data) ? data.length : 0);
             return Array.isArray(data) ? data : [];
           }).catch(e => {
-            console.warn('⚠️ Categories fetch error:', e.message);
+            console.warn('âڑ ï¸ڈ Categories fetch error:', e.message);
             return [];
           }),
           
@@ -14035,20 +14072,20 @@ const TopupStorefront = () => {
           }).then(async r => {
             console.log('   Products response status:', r.status);
             if (!r.ok) {
-              console.warn('⚠️ Products fetch returned status:', r.status);
+              console.warn('âڑ ï¸ڈ Products fetch returned status:', r.status);
               // Log more details about the failed request
               console.log('   Trying fallback: GET /api/topup/products');
               const fallback = await fetch('/api/topup/products', { cache: 'no-store', signal: controller.signal });
               if (!fallback.ok) {
-                console.warn('⚠️ Fallback products fetch also failed:', fallback.status);
+                console.warn('âڑ ï¸ڈ Fallback products fetch also failed:', fallback.status);
                 return [];
               }
               const fallbackData = await fallback.json();
-              console.log('✅ Products fetched (fallback):', Array.isArray(fallbackData) ? fallbackData.length : 0);
+              console.log('âœ… Products fetched (fallback):', Array.isArray(fallbackData) ? fallbackData.length : 0);
               return Array.isArray(fallbackData) ? fallbackData : [];
             }
             const data = await r.json();
-            console.log('✅ Products fetched:', Array.isArray(data) ? data.length : 0);
+            console.log('âœ… Products fetched:', Array.isArray(data) ? data.length : 0);
             if (Array.isArray(data) && data.length > 0) {
               console.log('   Sample product:', { 
                 id: data[0].id, 
@@ -14059,7 +14096,7 @@ const TopupStorefront = () => {
             }
             return Array.isArray(data) ? data : [];
           }).catch(e => {
-            console.warn('⚠️ Products fetch error:', e.message);
+            console.warn('âڑ ï¸ڈ Products fetch error:', e.message);
             return [];
           })
         ]);
@@ -14067,59 +14104,59 @@ const TopupStorefront = () => {
         clearTimeout(timeoutId);
         
         if (!isMounted) {
-          console.log('⚠️ Component unmounted before state update');
+          console.log('âڑ ï¸ڈ Component unmounted before state update');
           return;
         }
         
-        console.log('📊 Data Summary:', {
+        console.log('ًں“ٹ Data Summary:', {
           companies: companiesRes.length,
           categories: categoriesRes.length,
           products: productsRes.length
         });
         
         if (companiesRes.length === 0) {
-          console.warn('⚠️ NO COMPANIES FETCHED! Checking data...');
+          console.warn('âڑ ï¸ڈ NO COMPANIES FETCHED! Checking data...');
           console.log('   Companies response:', companiesRes);
         }
         
         if (productsRes.length === 0) {
-          console.warn('⚠️ NO PRODUCTS FETCHED! Checking data...');
+          console.warn('âڑ ï¸ڈ NO PRODUCTS FETCHED! Checking data...');
           console.log('   Products response:', productsRes);
         }
         
-        console.log('🔄 Setting state (all at once)...');
+        console.log('ًں”„ Setting state (all at once)...');
         setCompanies(companiesRes);
         setCategories(categoriesRes);
         setProducts(productsRes);
         
-        console.log('✅ Setting loading to false');
+        console.log('âœ… Setting loading to false');
         setLoading(false);
-        console.log('✅ Data load complete');
+        console.log('âœ… Data load complete');
       } catch (error) {
-        console.error('❌ Error loading data - Caught in main try/catch:', error);
+        console.error('â‌Œ Error loading data - Caught in main try/catch:', error);
         console.error('   Error type:', error instanceof Error ? error.constructor.name : typeof error);
         console.error('   Error message:', error instanceof Error ? error.message : String(error));
         if (isMounted) {
-          alert(`خطأ في تحميل البيانات: ${(error as Error).message}`);
+          alert(`ط®ط·ط£ ظپظٹ طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ: ${(error as Error).message}`);
           setLoading(false);
         }
       }
     };
     
     // Fetch immediately on mount
-    console.log('📍 Calling fetchData on component mount');
+    console.log('ًں“چ Calling fetchData on component mount');
     fetchData();
     
-    // تحديث البيانات كل 30 ثانية للتحقق من تحديثات جديدة (بدلاً من كل 3 ثواني)
+    // طھط­ط¯ظٹط« ط§ظ„ط¨ظٹط§ظ†ط§طھ ظƒظ„ 30 ط«ط§ظ†ظٹط© ظ„ظ„طھط­ظ‚ظ‚ ظ…ظ† طھط­ط¯ظٹط«ط§طھ ط¬ط¯ظٹط¯ط© (ط¨ط¯ظ„ط§ظ‹ ظ…ظ† ظƒظ„ 3 ط«ظˆط§ظ†ظٹ)
     const refreshInterval = setInterval(() => {
       if (isMounted) {
-        console.log('🔄 Auto-refreshing products data...');
+        console.log('ًں”„ Auto-refreshing products data...');
         fetchData();
       }
     }, 30000);
     
     return () => {
-      console.log('🧹 Cleaning up TopupStorefront product fetch effect');
+      console.log('ًں§¹ Cleaning up TopupStorefront product fetch effect');
       isMounted = false;
       clearInterval(refreshInterval);
     };
@@ -14138,9 +14175,9 @@ const TopupStorefront = () => {
           phone: customerData.phone || '',
           customer_type: customerData.customer_type || 'cash'
         });
-        console.log('✅ Loaded customer from topupCustomer:', customerData);
+        console.log('âœ… Loaded customer from topupCustomer:', customerData);
       } catch (err) {
-        console.error('⚠️ Error parsing topupCustomer:', err);
+        console.error('âڑ ï¸ڈ Error parsing topupCustomer:', err);
       }
     } else {
       // Fallback to customerData if topupCustomer not available
@@ -14153,9 +14190,9 @@ const TopupStorefront = () => {
             phone: data.phone || '',
             customer_type: data.customer_type || 'cash'
           });
-          console.log('✅ Loaded purchase form from customerData:', data);
+          console.log('âœ… Loaded purchase form from customerData:', data);
         } catch (err) {
-          console.error('⚠️ Error parsing customerData:', err);
+          console.error('âڑ ï¸ڈ Error parsing customerData:', err);
         }
       }
     }
@@ -14170,10 +14207,10 @@ const TopupStorefront = () => {
     if (cachedInfo && (!storeInfo || !storeInfo.store_name)) {
       try {
         const cached = JSON.parse(cachedInfo);
-        console.log(`✅ Loading cached store info from localStorage:`, cached.store_name);
+        console.log(`âœ… Loading cached store info from localStorage:`, cached.store_name);
         setStoreInfo(cached);
       } catch (err) {
-        console.error('⚠️ Error loading cached store info:', err);
+        console.error('âڑ ï¸ڈ Error loading cached store info:', err);
       }
     }
 
@@ -14184,7 +14221,7 @@ const TopupStorefront = () => {
           const parsed = JSON.parse(storeSettings);
           if (parsed.logo_url) {
             setStoreLogo(parsed.logo_url);
-            console.log('✅ Loaded store logo from localStorage:', {
+            console.log('âœ… Loaded store logo from localStorage:', {
               hasLogo: !!parsed.logo_url,
               logoLength: parsed.logo_url?.length
             });
@@ -14192,10 +14229,10 @@ const TopupStorefront = () => {
             setStoreLogo('');
           }
         } catch (err) {
-          console.error('⚠️ Error parsing store settings:', err);
+          console.error('âڑ ï¸ڈ Error parsing store settings:', err);
         }
       } else {
-        console.log('⚠️ No store settings found in localStorage for ID:', actualStoreId);
+        console.log('âڑ ï¸ڈ No store settings found in localStorage for ID:', actualStoreId);
       }
     };
 
@@ -14205,7 +14242,7 @@ const TopupStorefront = () => {
     // Listen for custom event from settings panel
     const handleSettingsUpdate = (e: any) => {
       if (e.detail?.storeId === actualStoreId) {
-        console.log('🔔 Received storeSettingsUpdated event, reloading logo');
+        console.log('ًں”” Received storeSettingsUpdated event, reloading logo');
         loadStoreLogo();
       }
     };
@@ -14215,7 +14252,7 @@ const TopupStorefront = () => {
     // Listen for storage changes (for multi-tab support)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === `storeSettings_${actualStoreId}` || e.key === `storeInfo_${actualStoreId}`) {
-        console.log('🔄 Store settings or info changed in browser storage, reloading');
+        console.log('ًں”„ Store settings or info changed in browser storage, reloading');
         loadStoreLogo();
         const cachedInfo = localStorage.getItem(`storeInfo_${actualStoreId}`);
         if (cachedInfo) {
@@ -14233,15 +14270,15 @@ const TopupStorefront = () => {
     };
   }, [actualStoreId]);
 
-  // مراقب البيانات المحفوظة - تحديث تلقائي عند تغيير localStorage
+  // ظ…ط±ط§ظ‚ط¨ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط­ظپظˆط¸ط© - طھط­ط¯ظٹط« طھظ„ظ‚ط§ط¦ظٹ ط¹ظ†ط¯ طھط؛ظٹظٹط± localStorage
   useEffect(() => {
     const handleStorageChange = () => {
-      console.log('🔄 TopupStorefront: localStorage changed - reloading customer');
+      console.log('ًں”„ TopupStorefront: localStorage changed - reloading customer');
       const topupData = localStorage.getItem('topupCustomer');
       if (topupData) {
         try {
           const customerData = JSON.parse(topupData);
-          console.log('✅ TopupStorefront: Updated customer from topupCustomer:', customerData);
+          console.log('âœ… TopupStorefront: Updated customer from topupCustomer:', customerData);
           setCustomer(customerData);
           setPurchaseForm({
             name: customerData.name || '',
@@ -14249,15 +14286,15 @@ const TopupStorefront = () => {
             customer_type: customerData.customer_type || 'cash'
           });
         } catch (err) {
-          console.error('⚠️ TopupStorefront: Error parsing topupCustomer:', err);
+          console.error('âڑ ï¸ڈ TopupStorefront: Error parsing topupCustomer:', err);
         }
       }
     };
 
-    // استمع إلى تغييرات التخزين من نوافذ/علامات تبويب أخرى
+    // ط§ط³طھظ…ط¹ ط¥ظ„ظ‰ طھط؛ظٹظٹط±ط§طھ ط§ظ„طھط®ط²ظٹظ† ظ…ظ† ظ†ظˆط§ظپط°/ط¹ظ„ط§ظ…ط§طھ طھط¨ظˆظٹط¨ ط£ط®ط±ظ‰
     window.addEventListener('storage', handleStorageChange);
     
-    // تحقق من تغييرات topupCustomer بشكل دوري
+    // طھط­ظ‚ظ‚ ظ…ظ† طھط؛ظٹظٹط±ط§طھ topupCustomer ط¨ط´ظƒظ„ ط¯ظˆط±ظٹ
     const checkInterval = setInterval(() => {
       const current = localStorage.getItem('topupCustomer');
       const last = sessionStorage.getItem('lastTopupCustomerInTopupStorefront');
@@ -14276,7 +14313,7 @@ const TopupStorefront = () => {
   // Refetch products and companies when customer logs in
   useEffect(() => {
     if (customer && customer.customer_id && !loading) {
-      console.log('🔄 Customer logged in or changed - refetching products/companies...');
+      console.log('ًں”„ Customer logged in or changed - refetching products/companies...');
       setLoading(true);
       
       // Re-trigger the data fetch
@@ -14288,38 +14325,38 @@ const TopupStorefront = () => {
     }
   }, [customer?.customer_id]);
 
-  // راقب عند إغلاق نموذج الدخول للتأكد من تحميل البيانات مباشرة
+  // ط±ط§ظ‚ط¨ ط¹ظ†ط¯ ط¥ط؛ظ„ط§ظ‚ ظ†ظ…ظˆط°ط¬ ط§ظ„ط¯ط®ظˆظ„ ظ„ظ„طھط£ظƒط¯ ظ…ظ† طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ ظ…ط¨ط§ط´ط±ط©
   useEffect(() => {
     if (!showAuthForm) {
-      console.log('💡 Auth form closed - checking localStorage');
-      // تحقق من localStorage عندما يُغلق نموذج الدخول (بغض النظر عن customer state)
+      console.log('ًں’، Auth form closed - checking localStorage');
+      // طھط­ظ‚ظ‚ ظ…ظ† localStorage ط¹ظ†ط¯ظ…ط§ ظٹظڈط؛ظ„ظ‚ ظ†ظ…ظˆط°ط¬ ط§ظ„ط¯ط®ظˆظ„ (ط¨ط؛ط¶ ط§ظ„ظ†ط¸ط± ط¹ظ† customer state)
       const topupData = localStorage.getItem('topupCustomer');
       if (topupData) {
         try {
           const customerData = JSON.parse(topupData);
-          console.log('✅ Found customer data in localStorage:', customerData);
-          // تحديث customer بغض النظر عن الحالة السابقة
+          console.log('âœ… Found customer data in localStorage:', customerData);
+          // طھط­ط¯ظٹط« customer ط¨ط؛ط¶ ط§ظ„ظ†ط¸ط± ط¹ظ† ط§ظ„ط­ط§ظ„ط© ط§ظ„ط³ط§ط¨ظ‚ط©
           setCustomer(customerData);
         } catch (err) {
-          console.error('⚠️ Error loading from localStorage:', err);
+          console.error('âڑ ï¸ڈ Error loading from localStorage:', err);
         }
       } else {
-        console.log('❌ No customer data in localStorage');
+        console.log('â‌Œ No customer data in localStorage');
       }
     }
   }, [showAuthForm]);
 
   // Filter companies and categories - show ALL companies/categories for adding products
-  const companiesWithProducts = companies; // عرض جميع الشركات
+  const companiesWithProducts = companies; // ط¹ط±ط¶ ط¬ظ…ظٹط¹ ط§ظ„ط´ط±ظƒط§طھ
   
-  const categoriesWithProducts = categories; // عرض جميع الفئات دائماً
+  const categoriesWithProducts = categories; // ط¹ط±ط¶ ط¬ظ…ظٹط¹ ط§ظ„ظپط¦ط§طھ ط¯ط§ط¦ظ…ط§ظ‹
 
-  // تحديث selectedProduct عند تحديث البيانات للحصول على أحدث البيانات بما فيها available_codes
+  // طھط­ط¯ظٹط« selectedProduct ط¹ظ†ط¯ طھط­ط¯ظٹط« ط§ظ„ط¨ظٹط§ظ†ط§طھ ظ„ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ط£ط­ط¯ط« ط§ظ„ط¨ظٹط§ظ†ط§طھ ط¨ظ…ط§ ظپظٹظ‡ط§ available_codes
   useEffect(() => {
     if (selectedProduct?.id && products.length > 0) {
       const updatedProduct = products.find(p => p.id === selectedProduct.id);
       if (updatedProduct && updatedProduct.available_codes !== selectedProduct.available_codes) {
-        console.log('🔄 Product codes changed! Updating:', {
+        console.log('ًں”„ Product codes changed! Updating:', {
           id: updatedProduct.id,
           oldCodes: selectedProduct.available_codes,
           newCodes: updatedProduct.available_codes
@@ -14349,13 +14386,13 @@ const TopupStorefront = () => {
 
   const handleAuth = async () => {
     if (!authPhone || !authPassword) {
-      alert('يرجى ملء رقم الهاتف وكلمة المرور');
+      alert('ظٹط±ط¬ظ‰ ظ…ظ„ط، ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ظˆظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±');
       return;
     }
 
     setIsAuthenticating(true);
     try {
-      console.log('🔐 Auth attempt with:', { phone: authPhone, store_id: actualStoreId });
+      console.log('ًں”گ Auth attempt with:', { phone: authPhone, store_id: actualStoreId });
       const response = await fetch('/api/topup/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -14367,7 +14404,7 @@ const TopupStorefront = () => {
       });
 
       const data = await response.json();
-      console.log('🔐 Auth response:', { status: response.status, ok: response.ok, data });
+      console.log('ًں”گ Auth response:', { status: response.status, ok: response.ok, data });
       
       if (response.ok) {
         const customerData = {
@@ -14379,34 +14416,34 @@ const TopupStorefront = () => {
           credit_limit: data.credit_limit,
           current_debt: data.current_debt
         };
-        console.log('🔐 handleAuth - customerData prepared:', customerData);
-        // حذف البيانات القديمة أولاً
+        console.log('ًں”گ handleAuth - customerData prepared:', customerData);
+        // ط­ط°ظپ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ‚ط¯ظٹظ…ط© ط£ظˆظ„ط§ظ‹
         localStorage.removeItem('customerData');
         localStorage.removeItem('topupCustomer');
-        // حفظ البيانات الجديدة
+        // ط­ظپط¸ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¬ط¯ظٹط¯ط©
         localStorage.setItem('topupCustomer', JSON.stringify(customerData));
-        console.log('💾 handleAuth - saved to localStorage');
-        console.log('✅ handleAuth - calling setCustomer:', customerData);
+        console.log('ًں’¾ handleAuth - saved to localStorage');
+        console.log('âœ… handleAuth - calling setCustomer:', customerData);
         setCustomer(customerData);
         setPhone(data.phone); // Auto-fill phone in purchase form
         setAuthPassword(''); // Clear password from memory
         
-        // 🔄 IMMEDIATELY refresh customer debt from statement (not from DB)
-        console.log('🔄 [LOGIN] Refreshing customer debt from statement...');
+        // ًں”„ IMMEDIATELY refresh customer debt from statement (not from DB)
+        console.log('ًں”„ [LOGIN] Refreshing customer debt from statement...');
         await refreshCustomerDebt(data.customer_id);
         
-        // تأخير صغير للتأكد من تحديث state قبل إغلاق النموذج
+        // طھط£ط®ظٹط± طµط؛ظٹط± ظ„ظ„طھط£ظƒط¯ ظ…ظ† طھط­ط¯ظٹط« state ظ‚ط¨ظ„ ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظ†ظ…ظˆط°ط¬
         setTimeout(() => {
-          console.log('⏱️ handleAuth - closing auth form');
+          console.log('âڈ±ï¸ڈ handleAuth - closing auth form');
           setShowAuthForm(false);
         }, 100);
-        alert('تم تسجيل دخولك بنجاح! ✓');
+        alert('طھظ… طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ظƒ ط¨ظ†ط¬ط§ط­! âœ“');
       } else {
-        alert(data.error || 'فشل تسجيل الدخول');
+        alert(data.error || 'ظپط´ظ„ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„');
       }
     } catch (error) {
       console.error('Error authenticating:', error);
-      alert('حدث خطأ في تسجيل الدخول');
+      alert('ط­ط¯ط« ط®ط·ط£ ظپظٹ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„');
     } finally {
       setIsAuthenticating(false);
     }
@@ -14414,13 +14451,13 @@ const TopupStorefront = () => {
 
   const handlePayment = async () => {
     if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
-      alert('يرجى إدخال مبلغ صحيح');
+      alert('ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ظ…ط¨ظ„ط؛ طµط­ظٹط­');
       return;
     }
 
     const amount = parseFloat(paymentAmount);
     if (amount > Number(customer?.current_debt || 0)) {
-      alert(`المبلغ المدخل أكبر من الديون الحالية (${Math.round(Number(customer?.current_debt || 0))?.toLocaleString('en-US')} د.ع)`);
+      alert(`ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…ط¯ط®ظ„ ط£ظƒط¨ط± ظ…ظ† ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط­ط§ظ„ظٹط© (${Math.round(Number(customer?.current_debt || 0))?.toLocaleString('en-US')} ط¯.ط¹)`);
       return;
     }
 
@@ -14438,19 +14475,19 @@ const TopupStorefront = () => {
 
       const data = await response.json();
       if (response.ok) {
-        alert('✅ تم تسديد المبلغ بنجاح!');
+        alert('âœ… طھظ… طھط³ط¯ظٹط¯ ط§ظ„ظ…ط¨ظ„ط؛ ط¨ظ†ط¬ط§ط­!');
         
-        // 🔄 IMMEDIATE Update: Add payment transaction to statement INSTANTLY
-        console.log('⚡ IMMEDIATE UPDATE: Adding payment transaction to statement');
+        // ًں”„ IMMEDIATE Update: Add payment transaction to statement INSTANTLY
+        console.log('âڑ، IMMEDIATE UPDATE: Adding payment transaction to statement');
         
-        // 🎯 Get ACCURATE current debt from statement (not from DB)
+        // ًںژ¯ Get ACCURATE current debt from statement (not from DB)
         let currentActualDebt = Number(customer.current_debt || 0);
         if (statementTransactions && statementTransactions.length > 0) {
           // Use the latest balance from statement transactions
           currentActualDebt = Number(statementTransactions[0]?.balance || customer.current_debt || 0);
         }
         
-        console.log('💰 Payment calculation:', { 
+        console.log('ًں’° Payment calculation:', { 
           dbDebt: customer.current_debt, 
           statementDebt: statementTransactions[0]?.balance,
           actualDebt: currentActualDebt,
@@ -14461,7 +14498,7 @@ const TopupStorefront = () => {
         const newPaymentTransaction = {
           id: Math.random(),
           type: 'payment',
-          description: 'ط¯ظپط¹ط©',
+          description: 'ط·آ¯ط¸ظ¾ط·آ¹ط·آ©',
           amount: amount,
           is_payment: true,
           balance: Math.max(0, currentActualDebt - amount),
@@ -14479,22 +14516,22 @@ const TopupStorefront = () => {
           current_debt: newDebt
         }));
         
-        console.log('✅ Payment transaction added to statement immediately');
+        console.log('âœ… Payment transaction added to statement immediately');
         
         setPaymentAmount('');
         // Don't close payment form here, user's existing payment form
         
         // Then refresh from server in background (async)
         setTimeout(async () => {
-          console.log('🔄 Refreshing full statement from server');
+          console.log('ًں”„ Refreshing full statement from server');
           await handleLoadStatement();
         }, 300);
       } else {
-        alert(data.error || 'فشل تسديد المبلغ');
+        alert(data.error || 'ظپط´ظ„ طھط³ط¯ظٹط¯ ط§ظ„ظ…ط¨ظ„ط؛');
       }
     } catch (error) {
       console.error('Payment error:', error);
-      alert('حدث خطأ في عملية الدفع');
+      alert('ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¹ظ…ظ„ظٹط© ط§ظ„ط¯ظپط¹');
     } finally {
       setIsPaymentProcessing(false);
     }
@@ -14505,54 +14542,54 @@ const TopupStorefront = () => {
     const targetCustomerId = customerId || customer?.customer_id;
     
     if (!targetCustomerId) {
-      console.warn('⚠️ No customer_id found');
+      console.warn('âڑ ï¸ڈ No customer_id found');
       return;
     }
     
     setIsLoadingStatement(true);
     try {
-      console.log('🔍 Fetching TOPUP statement for customer:', targetCustomerId);
+      console.log('ًں”چ Fetching TOPUP statement for customer:', targetCustomerId);
       const res = await fetch(`/api/topup/customers/${targetCustomerId}/statement`);
       const data = await res.json();
-      console.log('📊 Raw API response:', data);
-      console.log('📊 Response status:', res.status, 'OK:', res.ok);
+      console.log('ًں“ٹ Raw API response:', data);
+      console.log('ًں“ٹ Response status:', res.status, 'OK:', res.ok);
       
       if (res.ok) {
         // Handle topup response format: { customer: {...}, transactions: [...], current_debt: X }
         let transactions = [];
         
         if (data.transactions && Array.isArray(data.transactions)) {
-          console.log('✓ Found data.transactions with', data.transactions.length, 'items');
+          console.log('âœ“ Found data.transactions with', data.transactions.length, 'items');
           transactions = data.transactions;
         } else if (Array.isArray(data)) {
-          console.log('✓ Data is array (fallback)');
+          console.log('âœ“ Data is array (fallback)');
           transactions = data;
         } else {
-          console.warn('⚠️ Unknown response format:', Object.keys(data));
+          console.warn('âڑ ï¸ڈ Unknown response format:', Object.keys(data));
           transactions = [];
         }
         
-        console.log('📊 Final transactions count:', transactions.length);
+        console.log('ًں“ٹ Final transactions count:', transactions.length);
         if (transactions.length > 0) {
-          console.log('📊 Sample transactions:', transactions.slice(0, 3));
+          console.log('ًں“ٹ Sample transactions:', transactions.slice(0, 3));
         }
         
         setStatementTransactions(transactions);
         
         // Update customer debt from API response
         if (data.current_debt !== undefined) {
-          console.log('💰 Updating customer debt from API:', data.current_debt);
+          console.log('ًں’° Updating customer debt from API:', data.current_debt);
           setCustomer(prevCustomer => ({
             ...prevCustomer,
             current_debt: data.current_debt
           }));
         }
       } else {
-        console.error('❌ API returned error status:', res.status);
+        console.error('â‌Œ API returned error status:', res.status);
         setStatementTransactions([]);
       }
     } catch (error) {
-      console.error('❌ Error loading statement:', error);
+      console.error('â‌Œ Error loading statement:', error);
       setStatementTransactions([]);
     } finally {
       setIsLoadingStatement(false);
@@ -14562,16 +14599,16 @@ const TopupStorefront = () => {
   // Load specific customer's statement (for merchant dashboard operations)
   const handleLoadCustomerStatement = async (customerId: number) => {
     if (!customerId) {
-      console.warn('⚠️ No customer_id provided to handleLoadCustomerStatement');
+      console.warn('âڑ ï¸ڈ No customer_id provided to handleLoadCustomerStatement');
       return;
     }
     
     setIsLoadingCustomerTransactions(true);
     try {
-      console.log('🔍 Fetching statement for customer:', customerId);
+      console.log('ًں”چ Fetching statement for customer:', customerId);
       const res = await fetch(`/api/customers/${customerId}/statement`);
       const data = await res.json();
-      console.log('📊 Raw API response:', data);
+      console.log('ًں“ٹ Raw API response:', data);
       
       if (res.ok) {
         // Handle different response formats
@@ -14587,11 +14624,11 @@ const TopupStorefront = () => {
         } else if (data.purchases && Array.isArray(data.purchases)) {
           transactions = data.purchases;
         } else {
-          console.warn('⚠️ Unknown response format:', Object.keys(data));
+          console.warn('âڑ ï¸ڈ Unknown response format:', Object.keys(data));
           transactions = [];
         }
         
-        console.log('📌 Setting customer transactions with:', transactions.length, 'items');
+        console.log('ًں“Œ Setting customer transactions with:', transactions.length, 'items');
         setCustomerTransactions(transactions);
         
         // Update selectedCustomerStatement with current_debt from API if available
@@ -14602,11 +14639,11 @@ const TopupStorefront = () => {
           }));
         }
       } else {
-        console.error('❌ API returned error status:', res.status);
+        console.error('â‌Œ API returned error status:', res.status);
         setCustomerTransactions([]);
       }
     } catch (error) {
-      console.error('❌ Error loading customer statement:', error);
+      console.error('â‌Œ Error loading customer statement:', error);
       setCustomerTransactions([]);
     } finally {
       setIsLoadingCustomerTransactions(false);
@@ -14622,7 +14659,7 @@ const TopupStorefront = () => {
     setAuthPassword('');
     setPhone('');
     setShowAuthForm(false);
-    alert('تم تسجيل خروجك');
+    alert('طھظ… طھط³ط¬ظٹظ„ ط®ط±ظˆط¬ظƒ');
     const targetSlug = rawStoreId || storeId || 'store';
     navigate(`/stores?openTopup=1&topupSlug=${encodeURIComponent(targetSlug)}`, { replace: true });
   };
@@ -14649,10 +14686,10 @@ const TopupStorefront = () => {
         setCreditStatus(creditData);
         
         if (!creditData.canProceed) {
-          setCreditError(`❌ حد الائتمان: لا يمكنك الشراء. الرصيد الحالي: ${formatCurrency(creditData.availableCredit)}`);
+          setCreditError(`â‌Œ ط­ط¯ ط§ظ„ط§ط¦طھظ…ط§ظ†: ظ„ط§ ظٹظ…ظƒظ†ظƒ ط§ظ„ط´ط±ط§ط،. ط§ظ„ط±طµظٹط¯ ط§ظ„ط­ط§ظ„ظٹ: ${formatCurrency(creditData.availableCredit)}`);
           setCanProceedWithPurchase(false);
         } else if (creditData.isNearLimit) {
-          setCreditError(`⚠️ تحذير: أنت قريب من حد الائتمان. ${creditData.warning}`);
+          setCreditError(`âڑ ï¸ڈ طھط­ط°ظٹط±: ط£ظ†طھ ظ‚ط±ظٹط¨ ظ…ظ† ط­ط¯ ط§ظ„ط§ط¦طھظ…ط§ظ†. ${creditData.warning}`);
           setShowCreditWarning(true);
           setCanProceedWithPurchase(true);
         } else {
@@ -14676,13 +14713,13 @@ const TopupStorefront = () => {
   // Get display price based on customer type (from purchase form or logged-in customer)
   const getDisplayPrice = () => {
     if (!selectedProduct) {
-      console.warn('⚠️ getDisplayPrice: selectedProduct is null');
+      console.warn('âڑ ï¸ڈ getDisplayPrice: selectedProduct is null');
       return 0;
     }
     
     const customerType = customer?.customer_type || purchaseForm.customer_type;
     
-    console.log('💰 getDisplayPrice DEBUG:', {
+    console.log('ًں’° getDisplayPrice DEBUG:', {
       selectedProductId: selectedProduct.id,
       selectedProductAmount: selectedProduct.amount,
       selectedProductPrice: selectedProduct.price,
@@ -14697,27 +14734,27 @@ const TopupStorefront = () => {
     if (customerType === 'reseller') {
       // Try retail_price first, then wholesale_price, then base price
       if (selectedProduct.retail_price && selectedProduct.retail_price > 0) {
-        console.log(`✅ Reseller: Using retail_price = ${selectedProduct.retail_price}`);
+        console.log(`âœ… Reseller: Using retail_price = ${selectedProduct.retail_price}`);
         return selectedProduct.retail_price;
       } else if (selectedProduct.wholesale_price && selectedProduct.wholesale_price > 0) {
-        console.log(`⚠️ Reseller: retail_price not available, using wholesale_price = ${selectedProduct.wholesale_price}`);
+        console.log(`âڑ ï¸ڈ Reseller: retail_price not available, using wholesale_price = ${selectedProduct.wholesale_price}`);
         return selectedProduct.wholesale_price;
       } else if (selectedProduct.price && selectedProduct.price > 0) {
-        console.log(`⚠️ Reseller: Using base price = ${selectedProduct.price}`);
+        console.log(`âڑ ï¸ڈ Reseller: Using base price = ${selectedProduct.price}`);
         return selectedProduct.price;
       }
     }
     
     // For cash customers, use wholesale_price
     if (selectedProduct.wholesale_price && selectedProduct.wholesale_price > 0) {
-      console.log(`✅ Cash: Using wholesale_price = ${selectedProduct.wholesale_price}`);
+      console.log(`âœ… Cash: Using wholesale_price = ${selectedProduct.wholesale_price}`);
       return selectedProduct.wholesale_price;
     } else if (selectedProduct.price && selectedProduct.price > 0) {
-      console.log(`✅ Cash: Using base price = ${selectedProduct.price}`);
+      console.log(`âœ… Cash: Using base price = ${selectedProduct.price}`);
       return selectedProduct.price;
     }
     
-    console.error('❌ Could not determine price!');
+    console.error('â‌Œ Could not determine price!');
     return 0;
   };
 
@@ -14726,7 +14763,7 @@ const TopupStorefront = () => {
     if (!customerId) return;
     
     try {
-      console.log('🔄 Refreshing customer debt data after purchase...');
+      console.log('ًں”„ Refreshing customer debt data after purchase...');
       // Fetch customer's statement to get current debt
       const response = await fetch(`/api/customers/${customerId}/statement`);
       
@@ -14742,7 +14779,7 @@ const TopupStorefront = () => {
           }
         }
         
-        console.log('📊 Updated customer debt from statement:', finalBalance);
+        console.log('ًں“ٹ Updated customer debt from statement:', finalBalance);
         
         // Update customer with new debt
         const updatedCustomer = {
@@ -14753,7 +14790,7 @@ const TopupStorefront = () => {
         
         // Save updated data to localStorage
         localStorage.setItem('topupCustomer', JSON.stringify(updatedCustomer));
-        console.log('✅ Customer data refreshed and saved to localStorage');
+        console.log('âœ… Customer data refreshed and saved to localStorage');
       }
     } catch (err) {
       console.error('Error refreshing customer debt:', err);
@@ -14784,27 +14821,27 @@ const TopupStorefront = () => {
     // Validate purchase form if showing
     if (showPurchaseForm) {
       if (!purchaseForm.name || !purchaseForm.phone) {
-        alert('يرجى ملء اسمك ورقم تلفونك');
+        alert('ظٹط±ط¬ظ‰ ظ…ظ„ط، ط§ط³ظ…ظƒ ظˆط±ظ‚ظ… طھظ„ظپظˆظ†ظƒ');
         return;
       }
     } else if (!customer) {
-      alert('يرجى تسجيل الدخول أولاً');
+      alert('ظٹط±ط¬ظ‰ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط£ظˆظ„ط§ظ‹');
       return;
     }
 
     if (!selectedProduct) {
-      alert('يرجى اختيار منتج');
+      alert('ظٹط±ط¬ظ‰ ط§ط®طھظٹط§ط± ظ…ظ†طھط¬');
       return;
     }
 
-    // التحقق من الكمية المتوفرة
+    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ظƒظ…ظٹط© ط§ظ„ظ…طھظˆظپط±ط©
     if (!selectedProduct.available_codes || selectedProduct.available_codes <= 0) {
-      alert('❌ عذراً، هذا المنتج غير متوفر حالياً');
+      alert('â‌Œ ط¹ط°ط±ط§ظ‹طŒ ظ‡ط°ط§ ط§ظ„ظ…ظ†طھط¬ ط؛ظٹط± ظ…طھظˆظپط± ط­ط§ظ„ظٹط§ظ‹');
       return;
     }
 
     if (quantity > selectedProduct.available_codes) {
-      alert(`❌ الكمية المطلوبة (${quantity}) تزيد عن المتوفر (${selectedProduct.available_codes})`);
+      alert(`â‌Œ ط§ظ„ظƒظ…ظٹط© ط§ظ„ظ…ط·ظ„ظˆط¨ط© (${quantity}) طھط²ظٹط¯ ط¹ظ† ط§ظ„ظ…طھظˆظپط± (${selectedProduct.available_codes})`);
       return;
     }
 
@@ -14814,7 +14851,7 @@ const TopupStorefront = () => {
     }
 
     if (showCreditWarning) {
-      const confirmed = window.confirm(`${creditError}\n\nهل تريد المتابعة رغم التحذير؟`);
+      const confirmed = window.confirm(`${creditError}\n\nظ‡ظ„ طھط±ظٹط¯ ط§ظ„ظ…طھط§ط¨ط¹ط© ط±ط؛ظ… ط§ظ„طھط­ط°ظٹط±طں`);
       if (!confirmed) return;
     }
 
@@ -14825,7 +14862,7 @@ const TopupStorefront = () => {
       const finalName = customer?.name || purchaseForm.name;
       const finalPhone = customer?.phone || purchaseForm.phone;
 
-      console.log('🛒 PURCHASE REQUEST DATA:', {
+      console.log('ًں›’ PURCHASE REQUEST DATA:', {
         selectedProduct: {
           id: selectedProduct.id,
           amount: selectedProduct.amount,
@@ -14857,30 +14894,30 @@ const TopupStorefront = () => {
 
       const data = await response.json();
       if (response.ok) {
-        // حفظ بيانات العميل في localStorage
+        // ط­ظپط¸ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظٹظ„ ظپظٹ localStorage
         localStorage.setItem('topupCustomer', JSON.stringify({
           name: finalName,
           phone: finalPhone,
           customer_type: finalCustomerType
         }));
-        // احذف customerData لتجنب التضارب
+        // ط§ط­ط°ظپ customerData ظ„طھط¬ظ†ط¨ ط§ظ„طھط¶ط§ط±ط¨
         localStorage.removeItem('customerData');
         playAddToCartSound();
         setShowPurchaseForm(false);
         setPurchaseForm({ name: '', phone: '', customer_type: 'cash' });
         
-        // 🔄 IMMEDIATE Update: Add new transaction to statement INSTANTLY
+        // ًں”„ IMMEDIATE Update: Add new transaction to statement INSTANTLY
         if (customer?.customer_id) {
-          console.log('⚡ IMMEDIATE UPDATE: Adding new topup transaction to statement');
+          console.log('âڑ، IMMEDIATE UPDATE: Adding new topup transaction to statement');
           
-          // 🎯 Get ACCURATE current debt from statement (not from DB)
+          // ًںژ¯ Get ACCURATE current debt from statement (not from DB)
           let currentActualDebt = Number(customer.current_debt || 0);
           if (statementTransactions && statementTransactions.length > 0) {
             // Use the latest balance from statement transactions
             currentActualDebt = Number(statementTransactions[0]?.balance || customer.current_debt || 0);
           }
           
-          console.log('💰 Debt calculation:', { 
+          console.log('ًں’° Debt calculation:', { 
             dbDebt: customer.current_debt, 
             statementDebt: statementTransactions[0]?.balance,
             actualDebt: currentActualDebt,
@@ -14892,7 +14929,7 @@ const TopupStorefront = () => {
           const newTransaction = {
             id: data.order_id || Math.random(),
             type: 'topup',
-            description: 'ط´ط±ط§ط،',
+            description: 'ط·آ´ط·آ±ط·آ§ط·طŒ',
             amount: displayPrice * quantity,
             is_payment: false,
             balance: currentActualDebt + (displayPrice * quantity),
@@ -14910,7 +14947,7 @@ const TopupStorefront = () => {
             current_debt: newDebt
           }));
           
-          console.log('✅ Transaction added to statement immediately with accurate debt');
+          console.log('âœ… Transaction added to statement immediately with accurate debt');
           
           // Then refresh from server in background (async)
           setTimeout(async () => {
@@ -14919,17 +14956,17 @@ const TopupStorefront = () => {
           }, 300);
         }
         
-        // 🔄 Refresh products list to show updated inventory
-        console.log('🔄 Refreshing products list after purchase');
+        // ًں”„ Refresh products list to show updated inventory
+        console.log('ًں”„ Refreshing products list after purchase');
         setRefreshProductsKey(prev => prev + 1);
         
         navigate(`/topup/${storeId}/order/${data.order_id}`);
       } else {
-        alert(data.error || 'فشل إتمام العملية');
+        alert(data.error || 'ظپط´ظ„ ط¥طھظ…ط§ظ… ط§ظ„ط¹ظ…ظ„ظٹط©');
       }
     } catch (error) {
       console.error('Error purchasing:', error);
-      alert('حدث خطأ في العملية');
+      alert('ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط¹ظ…ظ„ظٹط©');
     } finally {
       setIsProcessing(false);
     }
@@ -14938,16 +14975,16 @@ const TopupStorefront = () => {
   if (isLoadingStore) return (
     <div className={cn("p-8 text-center min-h-screen flex flex-col items-center justify-center", isDarkMode ? "bg-gray-900" : "bg-white")}>
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
-      <p className={isDarkMode ? "text-gray-300" : "text-gray-700"}>جاري تحديد المتجر...</p>
-      <p className={cn("text-sm mt-2", isDarkMode ? "text-gray-500" : "text-gray-500")}>يرجى الانتظار قليلاً</p>
+      <p className={isDarkMode ? "text-gray-300" : "text-gray-700"}>ط¬ط§ط±ظٹ طھط­ط¯ظٹط¯ ط§ظ„ظ…طھط¬ط±...</p>
+      <p className={cn("text-sm mt-2", isDarkMode ? "text-gray-500" : "text-gray-500")}>ظٹط±ط¬ظ‰ ط§ظ„ط§ظ†طھط¸ط§ط± ظ‚ظ„ظٹظ„ط§ظ‹</p>
     </div>
   );
 
   if (loading) return (
     <div className={cn("p-8 text-center min-h-screen flex flex-col items-center justify-center", isDarkMode ? "bg-gray-900" : "bg-white")}>
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
-      <p className={isDarkMode ? "text-gray-300" : "text-gray-700"}>جاري التحميل...</p>
-      <p className={cn("text-sm mt-2", isDarkMode ? "text-gray-500" : "text-gray-500")}>يرجى الانتظار قليلاً</p>
+      <p className={isDarkMode ? "text-gray-300" : "text-gray-700"}>ط¬ط§ط±ظٹ ط§ظ„طھط­ظ…ظٹظ„...</p>
+      <p className={cn("text-sm mt-2", isDarkMode ? "text-gray-500" : "text-gray-500")}>ظٹط±ط¬ظ‰ ط§ظ„ط§ظ†طھط¸ط§ط± ظ‚ظ„ظٹظ„ط§ظ‹</p>
     </div>
   );
 
@@ -14973,7 +15010,7 @@ const TopupStorefront = () => {
                     ? "bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800" 
                     : "bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100"
                 )}
-                title={isDarkMode ? "الوضع الفاتح" : "الوضع الداكن"}
+                title={isDarkMode ? "ط§ظ„ظˆط¶ط¹ ط§ظ„ظپط§طھط­" : "ط§ظ„ظˆط¶ط¹ ط§ظ„ط¯ط§ظƒظ†"}
               >
                 {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
               </button>
@@ -14981,7 +15018,7 @@ const TopupStorefront = () => {
                 <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2", isDarkMode ? "text-gray-500" : "text-gray-400")} size={16} />
                 <input 
                   type="text" 
-                  placeholder="بحث حسب الشركة أو المتج..." 
+                  placeholder="ط¨ط­ط« ط­ط³ط¨ ط§ظ„ط´ط±ظƒط© ط£ظˆ ط§ظ„ظ…ظ†طھط¬" 
                   value={selectedCompany}
                   onChange={(e) => setSelectedCompany(e.target.value)}
                   className={cn("w-full pl-9 pr-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition-colors text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500" : "bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400")}
@@ -14996,37 +15033,37 @@ const TopupStorefront = () => {
                   className={cn("flex items-center gap-1 font-normal transition-colors text-sm sm:text-base", isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-600 hover:text-gray-900")}
                 >
                   <ChevronRight size={18} />
-                  <span className="hidden sm:inline">العودة</span>
+                  <span className="hidden sm:inline">ط§ظ„ط¹ظˆط¯ط©</span>
                 </button>
               {/* Shopping Cart Button with Filters */}
               <div className="flex flex-row gap-2 ml-auto lg:ml-0 items-center sm:flex-col sm:gap-2">
                 <button
                   onClick={() => {
-                    // حفظ البيانات من customer أو purchaseForm إلى localStorage قبل الانتقال للعربة
-                    console.log('🛒 Cart button clicked - current customer:', customer);
-                    // حذف البيانات القديمة أولاً
+                    // ط­ظپط¸ ط§ظ„ط¨ظٹط§ظ†ط§طھ ظ…ظ† customer ط£ظˆ purchaseForm ط¥ظ„ظ‰ localStorage ظ‚ط¨ظ„ ط§ظ„ط§ظ†طھظ‚ط§ظ„ ظ„ظ„ط¹ط±ط¨ط©
+                    console.log('ًں›’ Cart button clicked - current customer:', customer);
+                    // ط­ط°ظپ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ‚ط¯ظٹظ…ط© ط£ظˆظ„ط§ظ‹
                     localStorage.removeItem('customerData');
                     localStorage.removeItem('topupCustomer');
                     
                     if (customer) {
-                      // إذا كان هناك customer مسجل، اخزن بياناته
-                      console.log('✅ Saving customer to topupCustomer:', customer);
+                      // ط¥ط°ط§ ظƒط§ظ† ظ‡ظ†ط§ظƒ customer ظ…ط³ط¬ظ„طŒ ط§ط®ط²ظ† ط¨ظٹط§ظ†ط§طھظ‡
+                      console.log('âœ… Saving customer to topupCustomer:', customer);
                       localStorage.setItem('topupCustomer', JSON.stringify(customer));
                     } else if (purchaseForm.name || purchaseForm.phone) {
-                      // وإلا، احفظ purchaseForm
-                      console.log('✅ Saving purchaseForm to topupCustomer:', purchaseForm);
+                      // ظˆط¥ظ„ط§طŒ ط§ط­ظپط¸ purchaseForm
+                      console.log('âœ… Saving purchaseForm to topupCustomer:', purchaseForm);
                       localStorage.setItem('topupCustomer', JSON.stringify(purchaseForm));
                     }
                     // Store the topup store slug for navigation back after checkout
-                    // Always use store 1 (علي_الهادي) - the main topup store
+                    // Always use store 1 (ط¹ظ„ظٹ_ط§ظ„ظ‡ط§ط¯ظٹ) - the main topup store
                     const safeStoreId = (parseInt(storeId || '0') === 21 || parseInt(storeId || '0') === 13) ? '1' : storeId;
                     localStorage.setItem('topupStoreSlug', safeStoreId);
-                    console.log('✅ Saved topupStoreSlug:', safeStoreId);
+                    console.log('âœ… Saved topupStoreSlug:', safeStoreId);
                     navigate('/topup-cart');
                   }}
                   className="relative rounded-lg font-normal text-white transition-all hover:scale-105 flex items-center gap-2 shadow group"
                   style={{ backgroundColor: primaryColor }}
-                  title="عرض سلة المشتريات"
+                  title="ط¹ط±ط¶ ط³ظ„ط© ط§ظ„ظ…ط´طھط±ظٹط§طھ"
                 >
                   <div className="p-2 sm:p-3 relative">
                     <ShoppingCart size={28} className="sm:w-9 sm:h-9 group-hover:scale-110 transition-transform" />
@@ -15047,24 +15084,24 @@ const TopupStorefront = () => {
                   }}
                   className={cn("px-2 sm:px-3 py-2 rounded-lg border text-xs sm:text-sm font-normal", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
                 >
-                  <option value="">جميع الشركات ({companiesWithProducts.length})</option>
+                  <option value="">ط¬ظ…ظٹط¹ ط§ظ„ط´ط±ظƒط§طھ ({companiesWithProducts.length})</option>
                   {companiesWithProducts.length === 0 ? (
-                    <option disabled>❌ لا توجد شركات متاحة</option>
+                    <option disabled>â‌Œ ظ„ط§ طھظˆط¬ط¯ ط´ط±ظƒط§طھ ظ…طھط§ط­ط©</option>
                   ) : (
-                    companiesWithProducts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                    companiesWithProducts.map(c => <option key={c.id} value={c.id}>{sanitizeDisplayText(c.name, 'ط´ط±ظƒط©')}</option>)
                   )}
                 </select>
                 {companiesWithProducts.length === 0 && (
                   <button
                     onClick={() => {
-                      console.log('🔄 Reloading data...');
+                      console.log('ًں”„ Reloading data...');
                       setLoading(true);
                       setTimeout(() => setLoading(false), 1000);
                     }}
                     className={cn("px-2 sm:px-3 py-2 rounded-lg border text-xs sm:text-sm font-normal ", isDarkMode ? "bg-yellow-900/30 border-yellow-600 text-yellow-300 hover:bg-yellow-900/50" : "bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100")}
-                    title="إعادة تحميل البيانات"
+                    title="ط¥ط¹ط§ط¯ط© طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ"
                   >
-                    🔄 تحديث
+                    ًں”„ طھط­ط¯ظٹط«
                   </button>
                 )}
               </div>
@@ -15077,7 +15114,7 @@ const TopupStorefront = () => {
                   alt="Store Logo" 
                   className="h-12 w-12 sm:h-16 sm:w-16 object-contain rounded-lg flex-shrink-0"
                   onLoad={() => {
-                    console.log('✅ TopupStorefront logo loaded successfully');
+                    console.log('âœ… TopupStorefront logo loaded successfully');
                   }}
                   onError={(e) => {
                     console.error('Error loading logo:', e);
@@ -15087,28 +15124,28 @@ const TopupStorefront = () => {
               )}
               <div className="flex-1 text-center">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-normal leading-tight">
-                  {storeInfo?.store_name ? storeInfo.store_name : 'متجر بطاقات الشحن'}
-                  {console.log('🔍 Store Name Debug:', { store_name: storeInfo?.store_name, storeInfo })}
+                  {sanitizeDisplayText(storeInfo?.store_name, 'ظ…طھط¬ط± ط¨ط·ط§ظ‚ط§طھ ط§ظ„ط´ط­ظ†')}
+                  {console.log('ًں”چ Store Name Debug:', { store_name: storeInfo?.store_name, storeInfo })}
                 </h1>
                 <p className={cn("mt-1 text-xs sm:text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                  {storeInfo?.description || 'اختر شركتك المفضلة وقيمة الشحن'}
+                  {sanitizeDisplayText(storeInfo?.description, 'ط§ط®طھط± ط´ط±ظƒطھظƒ ط§ظ„ظ…ظپط¶ظ„ط© ظˆظ‚ظٹظ…ط© ط§ظ„ط´ط­ظ†')}
                 </p>
               </div>
             </div>
             {customer ? (
               <>
-                {console.log('🟢 Rendering customer debt info for:', customer.name, customer.customer_id)}
+                {console.log('ًںں¢ Rendering customer debt info for:', customer.name, customer.customer_id)}
                 {/* Debt Summary Card */}
                 {customer.customer_id && (
                   <div className={cn("w-full lg:w-auto p-3 sm:p-4 rounded-lg border-2 space-y-2 sm:space-y-3 order-3", isDarkMode ? "bg-red-900/30 border-red-600" : "bg-red-50 border-red-300")}>
                     <div>
-                      <p className={cn("text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
+                      <p className={cn("text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-red-300" : "text-red-600")}>ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط­ط§ظ„ظٹط©</p>
                       <p className={cn("text-2xl sm:text-3xl font-bold", (() => {
-                        // المصدر الأساسي: statementTransactions الأخير (إذا متوفر)
-                        // المصدر الثانوي: customer.current_debt (بديل مباشر)
+                        // ط§ظ„ظ…طµط¯ط± ط§ظ„ط£ط³ط§ط³ظٹ: statementTransactions ط§ظ„ط£ط®ظٹط± (ط¥ط°ط§ ظ…طھظˆظپط±)
+                        // ط§ظ„ظ…طµط¯ط± ط§ظ„ط«ط§ظ†ظˆظٹ: customer.current_debt (ط¨ط¯ظٹظ„ ظ…ط¨ط§ط´ط±)
                         let currentDebt = Number(customer.current_debt || 0);
                         
-                        // إذا كان هناك transactions، استخدم الرصيد الأخير (الأحدث)
+                        // ط¥ط°ط§ ظƒط§ظ† ظ‡ظ†ط§ظƒ transactionsطŒ ط§ط³طھط®ط¯ظ… ط§ظ„ط±طµظٹط¯ ط§ظ„ط£ط®ظٹط± (ط§ظ„ط£ط­ط¯ط«)
                         if (statementTransactions && statementTransactions.length > 0) {
                           currentDebt = Number(statementTransactions[0]?.balance || customer.current_debt || 0);
                         }
@@ -15119,13 +15156,13 @@ const TopupStorefront = () => {
                       })())}>{(() => {
                         let currentDebt = Number(customer.current_debt || 0);
                         
-                        // استخدام أحدث رصيد من transactions
+                        // ط§ط³طھط®ط¯ط§ظ… ط£ط­ط¯ط« ط±طµظٹط¯ ظ…ظ† transactions
                         if (statementTransactions && statementTransactions.length > 0) {
                           currentDebt = Number(statementTransactions[0]?.balance || customer.current_debt || 0);
                         }
                         
                         return Math.round(currentDebt).toLocaleString('en-US');
-                      })()} <span className="text-base sm:text-lg">ط¯.ط¹</span></p>
+                      })()} <span className="text-base sm:text-lg">ط·آ¯.ط·آ¹</span></p>
                     </div>
 
                     {/* Buttons */}
@@ -15133,9 +15170,9 @@ const TopupStorefront = () => {
                       <button
                         onClick={handleLogout}
                         className={cn("py-2 px-2 sm:px-3 rounded text-xs font-normal hidden", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
-                        title="تسجيل الخروج"
+                        title="طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬"
                       >
-                        🚪 <span className="hidden sm:inline">خروج</span>
+                        ًںڑھ <span className="hidden sm:inline">ط®ط±ظˆط¬</span>
                       </button>
                       <button
                         onClick={async () => {
@@ -15143,9 +15180,9 @@ const TopupStorefront = () => {
                           setShowAccountStatement(true);
                         }}
                         className={cn("py-2 px-2 sm:px-3 rounded text-xs font-normal", isDarkMode ? "bg-blue-900 text-blue-100 hover:bg-blue-800" : "bg-blue-100 text-blue-700 hover:bg-blue-200")}
-                        title="عرض كشف الحساب الكامل"
+                        title="ط¹ط±ط¶ ظƒط´ظپ ط§ظ„ط­ط³ط§ط¨ ط§ظ„ظƒط§ظ…ظ„"
                       >
-                        📋 <span className="hidden sm:inline">كشف الحساب</span>
+                        ًں“‹ <span className="hidden sm:inline">ظƒط´ظپ ط§ظ„ط­ط³ط§ط¨</span>
                       </button>
                     </div>
                   </div>
@@ -15154,7 +15191,7 @@ const TopupStorefront = () => {
                   {/* Payment Form */}
                   {showPaymentForm && (
                     <div className={cn("mt-4 p-4 rounded-lg border-2", isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300")}>
-                      <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-green-400" : "text-green-700")}>أدخل المبلغ (د.ع)</label>
+                      <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-green-400" : "text-green-700")}>ط£ط¯ط®ظ„ ط§ظ„ظ…ط¨ظ„ط؛ (ط¯.ط¹)</label>
                       <div className="flex gap-2">
                         <input
                           type="number"
@@ -15169,7 +15206,7 @@ const TopupStorefront = () => {
                           disabled={isPaymentProcessing}
                           className={cn("px-4 py-2 rounded-lg text-white font-normal text-sm transition-colors", isPaymentProcessing ? "opacity-50" : "", isDarkMode ? "bg-green-600 hover:bg-green-700" : "bg-green-600 hover:bg-green-700")}
                         >
-                          {isPaymentProcessing ? 'جاري...' : 'تأكيد'}
+                          {isPaymentProcessing ? 'ط¬ط§ط±ظٹ...' : 'طھط£ظƒظٹط¯'}
                         </button>
                         <button
                           onClick={() => {
@@ -15178,7 +15215,7 @@ const TopupStorefront = () => {
                           }}
                           className={cn("px-4 py-2 rounded-lg text-white font-normal text-sm transition-colors", isDarkMode ? "bg-gray-600 hover:bg-gray-700" : "bg-gray-400 hover:bg-gray-500")}
                         >
-                          إلغاء
+                          ط¥ظ„ط؛ط§ط،
                         </button>
                       </div>
                     </div>
@@ -15190,20 +15227,20 @@ const TopupStorefront = () => {
                   onClick={() => navigate(`/stores?openTopup=1&topupSlug=${encodeURIComponent(rawStoreId || storeId || 'store')}`, { replace: true })}
                   className={cn("w-full py-2 px-3 rounded text-sm font-normal text-white", isDarkMode ? "bg-red-900 hover:bg-red-800" : "bg-red-600 hover:bg-red-700")}
                 >
-                  🔓 دخول
+                  ًں”“ ط¯ط®ظˆظ„
                 </button>
                 <div className={cn("p-3 rounded-lg border", isDarkMode ? "bg-amber-900/20 border-amber-600/30" : "bg-amber-50 border-amber-200")}>
-                  <p className={cn("text-xs font-bold mb-2", isDarkMode ? "text-amber-300" : "text-amber-700")}>📋 ملخص كشف الحساب</p>
+                  <p className={cn("text-xs font-bold mb-2", isDarkMode ? "text-amber-300" : "text-amber-700")}>ًں“‹ ظ…ظ„ط®طµ ظƒط´ظپ ط§ظ„ط­ط³ط§ط¨</p>
                   <p className={cn("text-[11px] mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>
                     <span className={cn("px-2 py-0.5 rounded inline-block text-[10px] font-bold", isDarkMode ? "bg-red-900 text-red-200" : "bg-red-100 text-red-700")}>
-                      🔒 غير مسجل
+                      ًں”’ ط؛ظٹط± ظ…ط³ط¬ظ„
                     </span>
                   </p>
                   <ul className={cn("text-[11px] space-y-1", isDarkMode ? "text-gray-300" : "text-gray-600")}>
-                    <li>💡 بعد الدخول ستظهر:</li>
-                    <li>✓ حد ائتمانك</li>
-                    <li>✓ ديونك الحالية</li>
-                    <li>✓ رصيدك المتاح</li>
+                    <li>ًں’، ط¨ط¹ط¯ ط§ظ„ط¯ط®ظˆظ„ ط³طھط¸ظ‡ط±:</li>
+                    <li>âœ“ ط­ط¯ ط§ط¦طھظ…ط§ظ†ظƒ</li>
+                    <li>âœ“ ط¯ظٹظˆظ†ظƒ ط§ظ„ط­ط§ظ„ظٹط©</li>
+                    <li>âœ“ ط±طµظٹط¯ظƒ ط§ظ„ظ…طھط§ط­</li>
                   </ul>
                 </div>
               </div>
@@ -15217,13 +15254,13 @@ const TopupStorefront = () => {
                 <div className={cn("p-6 border-b sticky top-0 z-10", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white")}>
                   <div className="flex justify-between items-center">
                     <h3 className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>
-                      📋 كشف الحساب الكامل
+                      ًں“‹ ظƒط´ظپ ط§ظ„ط­ط³ط§ط¨ ط§ظ„ظƒط§ظ…ظ„
                     </h3>
                     <button
                       onClick={() => setShowAccountStatement(false)}
                       className={cn("text-xl font-bold", isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-500 hover:text-gray-700")}
                     >
-                      ✕
+                      âœ•
                     </button>
                   </div>
                 </div>
@@ -15233,7 +15270,7 @@ const TopupStorefront = () => {
                   <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-gray-700/30" : "bg-gray-50")}>
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <p className={cn("text-xs mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>العميل</p>
+                        <p className={cn("text-xs mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط§ظ„ط¹ظ…ظٹظ„</p>
                         <p className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>{customer.name}</p>
                         <p className={cn("text-xs mt-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>{customer.phone}</p>
                       </div>
@@ -15243,31 +15280,31 @@ const TopupStorefront = () => {
                   {/* Quick Stats Row */}
                   <div className="grid grid-cols-3 gap-2 sm:gap-3">
                     <div className={cn("min-w-0 p-2 sm:p-3 rounded-lg border-2", isDarkMode ? "bg-blue-900/20 border-blue-600" : "bg-blue-50 border-blue-300")}>
-                      <p className={cn("text-[10px] sm:text-[11px] font-normal mb-1", isDarkMode ? "text-blue-400" : "text-blue-600")}>حد الائتمان</p>
+                      <p className={cn("text-[10px] sm:text-[11px] font-normal mb-1", isDarkMode ? "text-blue-400" : "text-blue-600")}>ط­ط¯ ط§ظ„ط§ط¦طھظ…ط§ظ†</p>
                       <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-blue-300" : "text-blue-600")}>
                         {Math.round(Number(customer.credit_limit) || 0)?.toLocaleString('en-US')}
-                        <span className="block text-[0.9em]">ط¯.ط¹</span>
+                        <span className="block text-[0.9em]">ط·آ¯.ط·آ¹</span>
                       </p>
                     </div>
                     <div className={cn("p-3 rounded-lg border-2 hidden", isDarkMode ? "bg-purple-900/20 border-purple-600" : "bg-purple-50 border-purple-300")}>
-                      <p className={cn("text-[11px] font-normal mb-1", isDarkMode ? "text-purple-400" : "text-purple-600")}>الرصيد الأولي</p>
+                      <p className={cn("text-[11px] font-normal mb-1", isDarkMode ? "text-purple-400" : "text-purple-600")}>ط§ظ„ط±طµظٹط¯ ط§ظ„ط£ظˆظ„ظٹ</p>
                       <p className={cn("text-lg font-bold", isDarkMode ? "text-purple-300" : "text-purple-600")}>
-                        {Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')} ط¯.ط¹
+                        {Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')} ط·آ¯.ط·آ¹
                       </p>
                     </div>
                     <div className={cn("min-w-0 p-2 sm:p-3 rounded-lg border-2", isDarkMode ? "bg-yellow-900/20 border-yellow-600" : "bg-yellow-50 border-yellow-300")}>
-                      <p className={cn("text-[10px] sm:text-[11px] font-normal mb-1", isDarkMode ? "text-yellow-400" : "text-yellow-600")}>الديون الحالية</p>
+                      <p className={cn("text-[10px] sm:text-[11px] font-normal mb-1", isDarkMode ? "text-yellow-400" : "text-yellow-600")}>ط§ظ„ط¯ظٹظˆظ† ط§ظ„ط­ط§ظ„ظٹط©</p>
                       <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-yellow-300" : "text-yellow-600")}>
                         {(() => {
-                          // حساب آخر رصيد من المعاملات
+                          // ط­ط³ط§ط¨ ط¢ط®ط± ط±طµظٹط¯ ظ…ظ† ط§ظ„ظ…ط¹ط§ظ…ظ„ط§طھ
                           if (statementTransactions && statementTransactions.length > 0) {
-                            const lastTransaction = statementTransactions[0]; // الأحدث في الأعلى
+                            const lastTransaction = statementTransactions[0]; // ط§ظ„ط£ط­ط¯ط« ظپظٹ ط§ظ„ط£ط¹ظ„ظ‰
                             const finalDebt = Math.round(Number(lastTransaction.balance) || 0);
                             return finalDebt.toLocaleString('en-US');
                           }
                           return Math.round(Number(customer.current_debt) || 0).toLocaleString('en-US');
                         })()}
-                        <span className="block text-[0.9em]">ط¯.ط¹</span>
+                        <span className="block text-[0.9em]">ط·آ¯.ط·آ¹</span>
                       </p>
                     </div>
                     <div className={cn("min-w-0 p-2 sm:p-3 rounded-lg border-2", (() => {
@@ -15281,7 +15318,7 @@ const TopupStorefront = () => {
                           ? Number(statementTransactions[0]?.balance || 0)
                           : Number(customer.current_debt || 0);
                         return (Number(customer.credit_limit || 0) - currentDebt) <= 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-green-400" : "text-green-600");
-                      })())}>الرصيد المتاح</p>
+                      })())}>ط§ظ„ط±طµظٹط¯ ط§ظ„ظ…طھط§ط­</p>
                       <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", (() => {
                         const currentDebt = statementTransactions && statementTransactions.length > 0 
                           ? Number(statementTransactions[0]?.balance || 0)
@@ -15294,7 +15331,7 @@ const TopupStorefront = () => {
                             : Number(customer.current_debt || 0);
                           return Math.round(Math.max(0, Number(customer.credit_limit || 0) - currentDebt)).toLocaleString('en-US');
                         })()}
-                        <span className="block text-[0.9em]">ط¯.ط¹</span>
+                        <span className="block text-[0.9em]">ط·آ¯.ط·آ¹</span>
                       </p>
                     </div>
                   </div>
@@ -15302,10 +15339,10 @@ const TopupStorefront = () => {
                   {/* Transactions Table */}
                   <div>
                     <h4 className={cn("text-sm font-bold mb-3", isDarkMode ? "text-white" : "text-gray-900")}>
-                      📊 المعاملات {isLoadingStatement && <span className="text-xs font-normal">(جاري التحميل...)</span>}
+                      ًں“ٹ ط§ظ„ظ…ط¹ط§ظ…ظ„ط§طھ {isLoadingStatement && <span className="text-xs font-normal">(ط¬ط§ط±ظٹ ط§ظ„طھط­ظ…ظٹظ„...)</span>}
                     </h4>
                     <div className={cn("border rounded-lg overflow-hidden", isDarkMode ? "border-gray-700 bg-gray-900/30" : "border-gray-200 bg-gray-50")}>
-                      {console.log('📋 Statement Modal Debug:', { 
+                      {console.log('ًں“‹ Statement Modal Debug:', { 
                         showAccountStatement, 
                         isLoadingStatement, 
                         transactionCount: statementTransactions?.length,
@@ -15314,53 +15351,53 @@ const TopupStorefront = () => {
                       {isLoadingStatement ? (
                         <div className="p-8 text-center">
                           <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2" style={{borderColor: primaryColor}}></div>
-                          <p className={cn("mt-2 text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>جاري تحميل البيانات...</p>
+                          <p className={cn("mt-2 text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ...</p>
                         </div>
                       ) : !statementTransactions || statementTransactions.length === 0 ? (
                         <div className={cn("p-8 text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                          <p className="text-sm font-semibold mb-2">⚠️ لا توجد معاملات</p>
-                          <p className="text-xs">قد لم يتم تحميل البيانات بعد. حاول مرة أخرى.</p>
+                          <p className="text-sm font-semibold mb-2">âڑ ï¸ڈ ظ„ط§ طھظˆط¬ط¯ ظ…ط¹ط§ظ…ظ„ط§طھ</p>
+                          <p className="text-xs">ظ‚ط¯ ظ„ظ… ظٹطھظ… طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط¨ط¹ط¯. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.</p>
                         </div>
                       ) : (
                         <div className="max-h-[18rem] overflow-auto">
                         <table className="w-full text-xs border-collapse">
                           <thead className={cn("sticky top-0 z-10", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
                             <tr>
-                              <th className={cn("px-3 py-2 text-right font-bold border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
-                              <th className={cn("px-3 py-2 text-right font-bold border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
-                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>ظ…ط¯ظٹظ†<br/>(Debit)</th>
-                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>ط¯ط§ط¦ظ†<br/>(Credit)</th>
-                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الرصيد</th>
+                              <th className={cn("px-3 py-2 text-right font-bold border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>ط§ظ„طھط§ط±ظٹط®</th>
+                              <th className={cn("px-3 py-2 text-right font-bold border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>ط§ظ„ط¨ظٹط§ظ†</th>
+                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>ط¸â€¦ط·آ¯ط¸ظ¹ط¸â€ <br/>(Debit)</th>
+                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>ط·آ¯ط·آ§ط·آ¦ط¸â€ <br/>(Credit)</th>
+                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>ط§ظ„ط±طµظٹط¯</th>
                             </tr>
                           </thead>
                           <tbody>
                             {statementTransactions && statementTransactions.map((transaction, idx) => {
                               const txDate = transaction.created_at || transaction.date || transaction.transaction_date;
                               const txType = transaction.type || transaction.transaction_type || 'unknown';
-                              let txDescription = transaction.description || transaction.notes || transaction.detail || `معاملة #${idx + 1}`;
+                              let txDescription = transaction.description || transaction.notes || transaction.detail || `ظ…ط¹ط§ظ…ظ„ط© #${idx + 1}`;
                               
                               // Translate transaction types to Arabic
                               if (txType === 'opening') {
-                                txDescription = transaction.description || 'ديون سابقة';
+                                txDescription = sanitizeDisplayText(transaction.description, 'ط¯ظٹظˆظ† ط³ط§ط¨ظ‚ط©');
                               } else if (txType === 'debit') {
-                                txDescription = 'ط®طµظ…';
+                                txDescription = 'ط·آ®ط·آµط¸â€¦';
                               } else if (txType === 'topup') {
-                                txDescription = transaction.description || 'بطاقة شحن';
+                                txDescription = sanitizeDisplayText(transaction.description, 'ط¨ط·ط§ظ‚ط© ط´ط­ظ†');
                               } else if (txType === 'payment') {
-                                txDescription = '✓ دفعة';
+                                txDescription = 'âœ“ ط¯ظپط¹ط©';
                               }
                               
                               const txAmount = Math.round(Number(transaction.amount || transaction.value || 0));
                               const txBalance = Math.round(Number(transaction.balance || transaction.current_balance || 0));
-                              // Payments (دفعات) are CREDIT (دائن) - they reduce debt
-                              // Opening balance (ديون سابقة) and Topup are DEBIT - they increase debt
+                              // Payments (ط¯ظپط¹ط§طھ) are CREDIT (ط¯ط§ط¦ظ†) - they reduce debt
+                              // Opening balance (ط¯ظٹظˆظ† ط³ط§ط¨ظ‚ط©) and Topup are DEBIT - they increase debt
                               const isPayment = transaction.is_payment === true || txType === 'payment' || txType === 'payment_received';
-                              const isDebit = !isPayment && (transaction.type === 'topup' || txType === 'debit' || txType === 'مدين' || txType === 'خصم' || txType === 'opening');
-                              const isCredit = isPayment || txType === 'credit' || txType === 'رصيد' || txType === 'دائن' || txType === 'إيداع';
+                              const isDebit = !isPayment && (transaction.type === 'topup' || txType === 'debit' || txType === 'ظ…ط¯ظٹظ†' || txType === 'ط®طµظ…' || txType === 'opening');
+                              const isCredit = isPayment || txType === 'credit' || txType === 'ط±طµظٹط¯' || txType === 'ط¯ط§ط¦ظ†' || txType === 'ط¥ظٹط¯ط§ط¹';
                               
                               // Debug logging for topup transactions
                               if (txType === 'topup') {
-                                console.log(`📊 [MerchantDashboard Statement] Topup TX #${idx}:`, {
+                                console.log(`ًں“ٹ [MerchantDashboard Statement] Topup TX #${idx}:`, {
                                   type: txType,
                                   amount: transaction.amount,
                                   txAmount: txAmount,
@@ -15390,16 +15427,16 @@ const TopupStorefront = () => {
                               return (
                                 <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-100")}>
                                   <td className={cn("px-3 py-2 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
-                                    {txDate ? new Date(txDate).toLocaleDateString('ar-IQ') : '—'}
+                                    {txDate ? new Date(txDate).toLocaleDateString('ar-IQ') : 'â€”'}
                                   </td>
                                   <td className={cn("px-3 py-2 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
                                     {txDescription}
                                   </td>
                                   <td className={cn("px-3 py-2 border text-center font-bold", debitAmount > 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"))}>
-                                    {debitAmount > 0 ? debitAmount.toLocaleString('en-US') : '—'}
+                                    {debitAmount > 0 ? debitAmount.toLocaleString('en-US') : 'â€”'}
                                   </td>
                                   <td className={cn("px-3 py-2 border text-center font-bold", creditAmount > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"))}>
-                                    {creditAmount > 0 ? creditAmount.toLocaleString('en-US') : '—'}
+                                    {creditAmount > 0 ? creditAmount.toLocaleString('en-US') : 'â€”'}
                                   </td>
                                   <td className={cn("px-3 py-2 border text-center font-bold", isDarkMode ? "text-blue-300" : "text-blue-700")}>
                                     {txBalance.toLocaleString('en-US')}
@@ -15420,13 +15457,13 @@ const TopupStorefront = () => {
                       onClick={handleLogout}
                       className={cn("py-2 px-3 rounded text-sm font-normal hidden", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
                     >
-                      ط®ط±ظˆط¬
+                      ط·آ®ط·آ±ط¸ث†ط·آ¬
                     </button>
                     <button
                       onClick={() => setShowAccountStatement(false)}
                       className={cn("py-2 px-3 rounded text-sm font-normal text-white transition-colors", isDarkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-400 hover:bg-gray-500")}
                     >
-                      إغلاق
+                      ط¥ط؛ظ„ط§ظ‚
                     </button>
                   </div>
                 </div>
@@ -15442,22 +15479,22 @@ const TopupStorefront = () => {
             <Card className={cn("mt-6 border-2", isDarkMode ? "bg-gray-800 border-indigo-700" : "bg-indigo-50 border-indigo-200")}> 
               <div className="p-6 space-y-4">
                 <div>
-                  <h3 className={cn("text-lg font-normal mb-4", isDarkMode ? "text-white" : "text-gray-900")}>📝 بيانات الشراء</h3>
+                  <h3 className={cn("text-lg font-normal mb-4", isDarkMode ? "text-white" : "text-gray-900")}>ًں“‌ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط´ط±ط§ط،</h3>
                 </div>
 
                 <div>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>👤 الاسم</label>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ًں‘¤ ط§ظ„ط§ط³ظ…</label>
                   <input 
                     type="text"
                     value={purchaseForm.name}
                     onChange={(e) => setPurchaseForm({...purchaseForm, name: e.target.value})}
-                    placeholder="أدخل اسمك"
+                    placeholder="ط£ط¯ط®ظ„ ط§ط³ظ…ظƒ"
                     className={cn("w-full px-3 py-2 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
                   />
                 </div>
 
                 <div>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>📱 رقم الهاتف</label>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ًں“± ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ</label>
                   <input 
                     type="tel"
                     value={purchaseForm.phone}
@@ -15468,17 +15505,17 @@ const TopupStorefront = () => {
                 </div>
 
                 <div>
-                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>🏪 نوع العميل</label>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>ًںڈھ ظ†ظˆط¹ ط§ظ„ط¹ظ…ظٹظ„</label>
                   <select 
                     value={purchaseForm.customer_type}
                     onChange={(e) => setPurchaseForm({...purchaseForm, customer_type: e.target.value as 'cash' | 'reseller'})}
                     className={cn("w-full px-3 py-2 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
                   >
-                    <option value="cash">👤 عميل نقدي (مفرد)</option>
-                    <option value="reseller">🏪 نقطة بيع (جملة)</option>
+                    <option value="cash">ًں‘¤ ط¹ظ…ظٹظ„ ظ†ظ‚ط¯ظٹ (ظ…ظپط±ط¯)</option>
+                    <option value="reseller">ًںڈھ ظ†ظ‚ط·ط© ط¨ظٹط¹ (ط¬ظ…ظ„ط©)</option>
                   </select>
                   <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                    السعر: {formatCurrency(getDisplayPrice())} د.ع / بطاقة
+                    ط§ظ„ط³ط¹ط±: {formatCurrency(getDisplayPrice())} ط¯.ط¹ / ط¨ط·ط§ظ‚ط©
                   </p>
                 </div>
 
@@ -15489,7 +15526,7 @@ const TopupStorefront = () => {
                     className={cn("py-2 rounded-lg text-white font-normal text-sm transition-all hover:scale-[1.02] active:scale-95", isProcessing ? "opacity-50" : "")}
                     style={{ backgroundColor: primaryColor }}
                   >
-                    {isProcessing ? 'جاري...' : '✓ شراء'}
+                    {isProcessing ? 'ط¬ط§ط±ظٹ...' : 'âœ“ ط´ط±ط§ط،'}
                   </button>
                   <button
                     onClick={() => {
@@ -15498,7 +15535,7 @@ const TopupStorefront = () => {
                     }}
                     className={cn("py-2 rounded-lg text-white font-normal text-sm transition-all hover:scale-[1.02] active:scale-95", isDarkMode ? "bg-gray-700" : "bg-gray-400")}
                   >
-                    ✕ إلغاء
+                    âœ• ط¥ظ„ط؛ط§ط،
                   </button>
                 </div>
               </div>
@@ -15507,14 +15544,14 @@ const TopupStorefront = () => {
 
           {/* Product Images Gallery - 100% Width */}
           <div className="w-full mx-auto">
-            {console.log('🔍 DEBUG TopupStorefront:', {
+            {console.log('ًں”چ DEBUG TopupStorefront:', {
               productsCount: products.length,
               filteredProductsCount: filteredProducts.length,
               selectedCompany,
               loading,
               hasImages: filteredProducts.some(p => Array.isArray(p.images) && p.images.length > 0)
             })}
-            <h2 className={cn("text-2xl font-normal mb-6", isDarkMode ? "text-white" : "text-gray-900")}>المنتجات المتاحة للشراء</h2>
+            <h2 className={cn("text-2xl font-normal mb-6", isDarkMode ? "text-white" : "text-gray-900")}>ط§ظ„ظ…ظ†طھط¬ط§طھ ط§ظ„ظ…طھط§ط­ط© ظ„ظ„ط´ط±ط§ط،</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4" key={`products-list-${products.length}-${Date.now()}`}>
               {filteredProducts
                 .map((product: any) => {
@@ -15525,7 +15562,7 @@ const TopupStorefront = () => {
                 const imagesCount = productImages.length;
                 
                 // Log all products for debugging
-                console.log(`📋 Product ${product.id}: amount=${product.amount}, price=${product.price}, images=${imagesCount}`, product);
+                console.log(`ًں“‹ Product ${product.id}: amount=${product.amount}, price=${product.price}, images=${imagesCount}`, product);
 
                 // Calculate price based on customer type
                 const displayPrice = (() => {
@@ -15552,7 +15589,7 @@ const TopupStorefront = () => {
                   >
                     {/* Company Name and Product Amount in One Line */}
                     <div className="flex items-center justify-between mb-2 gap-2">
-                      <div className="text-base font-bold text-gray-300">{product.company_name || 'غير محدد'}</div>
+                      <div className="text-base font-bold text-gray-300">{product.company_name || 'ط؛ظٹط± ظ…ط­ط¯ط¯'}</div>
                       <div className={cn("text-base font-bold whitespace-nowrap", isDarkMode ? "text-blue-400" : "text-indigo-600")}> 
                         {formatNumber(product.amount || 0)}
                       </div>
@@ -15561,13 +15598,13 @@ const TopupStorefront = () => {
                     {/* Price info */}
                     <div className="mb-2">
                       <div className="text-xs font-bold text-green-700">
-                        السعر: {formatNumber(displayPrice || 0)} د.ع {imagesCount > 0 ? `• ${imagesCount} صورة` : '• بدون صور'}
+                        ط§ظ„ط³ط¹ط±: {formatNumber(displayPrice || 0)} ط¯.ط¹ {imagesCount > 0 ? `â€¢ ${imagesCount} طµظˆط±ط©` : 'â€¢ ط¨ط¯ظˆظ† طµظˆط±'}
                       </div>
                     </div>
 
                     {/* Quantity Selector */}
                     <div className="mb-3">
-                      <label className="block text-xs font-normal mb-1">الكمية:</label>
+                      <label className="block text-xs font-normal mb-1">ط§ظ„ظƒظ…ظٹط©:</label>
                       <div className="flex gap-2">
                         <input 
                           type="number" 
@@ -15599,7 +15636,7 @@ const TopupStorefront = () => {
                         // Get images for this quantity
                         const imagesToAdd = productImages.slice(0, quantity);
                         
-                        console.log('🛒 Adding product to cart:', {
+                        console.log('ًں›’ Adding product to cart:', {
                           productId: product.id,
                           quantity,
                           imagesCount: imagesToAdd.length,
@@ -15628,10 +15665,10 @@ const TopupStorefront = () => {
                           ? isDarkMode ? "bg-gray-700 text-gray-500 cursor-not-allowed" : "bg-gray-100 text-gray-400 cursor-not-allowed"
                           : isDarkMode ? "bg-green-900 hover:bg-green-800 text-green-200" : "bg-green-100 hover:bg-green-200 text-green-700"
                       )}
-                      title={imagesCount === 0 ? "لا توجد صور متاحة" : "إضافة للسلة"}
+                      title={imagesCount === 0 ? "ظ„ط§ طھظˆط¬ط¯ طµظˆط± ظ…طھط§ط­ط©" : "ط¥ط¶ط§ظپط© ظ„ظ„ط³ظ„ط©"}
                     >
                       <ShoppingCart size={16} />
-                      <span>ط£ط¶ظپ</span>
+                      <span>ط·آ£ط·آ¶ط¸ظ¾</span>
                     </button>
                   </motion.div>
                 );
@@ -15644,17 +15681,17 @@ const TopupStorefront = () => {
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4 mx-auto"></div>
-                    <p className="text-lg font-normal">جاري التحميل...</p>
+                    <p className="text-lg font-normal">ط¬ط§ط±ظٹ ط§ظ„طھط­ظ…ظٹظ„...</p>
                   </>
                 ) : filteredProducts.length === 0 ? (
                   <>
-                    <p className="text-lg font-normal mb-2">📸 لا توجد منتجات</p>
-                    <p className="text-sm">اختر شركة من الفلتر أعلاه</p>
+                    <p className="text-lg font-normal mb-2">ًں“¸ ظ„ط§ طھظˆط¬ط¯ ظ…ظ†طھط¬ط§طھ</p>
+                    <p className="text-sm">ط§ط®طھط± ط´ط±ظƒط© ظ…ظ† ط§ظ„ظپظ„طھط± ط£ط¹ظ„ط§ظ‡</p>
                   </>
                 ) : (
                   <>
-                    <p className="text-lg font-normal mb-2">📸 لا توجد صور متاحة</p>
-                    <p className="text-sm">المنتجات المتاحة لا تحتوي على صور. تواصل مع المتجر.</p>
+                    <p className="text-lg font-normal mb-2">ًں“¸ ظ„ط§ طھظˆط¬ط¯ طµظˆط± ظ…طھط§ط­ط©</p>
+                    <p className="text-sm">ط§ظ„ظ…ظ†طھط¬ط§طھ ط§ظ„ظ…طھط§ط­ط© ظ„ط§ طھط­طھظˆظٹ ط¹ظ„ظ‰ طµظˆط±. طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ظ…طھط¬ط±.</p>
                   </>
                 )}
               </div>
@@ -15693,7 +15730,7 @@ const TopupOrderDetails = () => {
       const customer = JSON.parse(topupCustomer);
       if (!customer.customer_id) return;
       
-      console.log('🔄 [TopupOrderDetails] Refreshing customer debt...');
+      console.log('ًں”„ [TopupOrderDetails] Refreshing customer debt...');
       const response = await fetch(`/api/customers/${customer.customer_id}/statement`);
       
       if (response.ok) {
@@ -15708,7 +15745,7 @@ const TopupOrderDetails = () => {
           }
         }
         
-        console.log('📊 [TopupOrderDetails] Updated debt:', finalBalance);
+        console.log('ًں“ٹ [TopupOrderDetails] Updated debt:', finalBalance);
         
         // Update customer with new debt
         const updatedCustomer = {
@@ -15716,7 +15753,7 @@ const TopupOrderDetails = () => {
           current_debt: finalBalance
         };
         localStorage.setItem('topupCustomer', JSON.stringify(updatedCustomer));
-        console.log('✅ [TopupOrderDetails] Customer debt saved to localStorage');
+        console.log('âœ… [TopupOrderDetails] Customer debt saved to localStorage');
       }
     } catch (err) {
       console.error('[TopupOrderDetails] Error refreshing debt:', err);
@@ -15787,7 +15824,7 @@ const TopupOrderDetails = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (loading) return <div className="p-4 sm:p-8 text-center">جاري تحميل أكوادك...</div>;
+  if (loading) return <div className="p-4 sm:p-8 text-center">ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط£ظƒظˆط§ط¯ظƒ...</div>;
 
   return (
     <div className={cn("min-h-screen p-4 sm:p-8", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900")} dir="rtl">
@@ -15796,18 +15833,18 @@ const TopupOrderDetails = () => {
           <div className="inline-block p-4 rounded-full bg-green-100 mb-4">
             <CheckCircle size={48} className="text-green-600" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-normal mb-2">شكراً لك! 🎉</h1>
-          <p className={cn(isDarkMode ? "text-gray-400" : "text-gray-600")}>تم استلام طلبك بنجاح</p>
+          <h1 className="text-2xl sm:text-3xl font-normal mb-2">ط´ظƒط±ط§ظ‹ ظ„ظƒ! ًںژ‰</h1>
+          <p className={cn(isDarkMode ? "text-gray-400" : "text-gray-600")}>طھظ… ط§ط³طھظ„ط§ظ… ط·ظ„ط¨ظƒ ط¨ظ†ط¬ط§ط­</p>
         </div>
 
         <Card className={cn(isDarkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50")}>
           <div className={cn("p-6 border-b border-green-500", isDarkMode ? "border-green-900" : "")}>
-            <h2 className="font-normal text-lg text-green-600">أكوادك الخاصة</h2>
-            <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>احفظ هذه الأكواد في مكان آمن</p>
+            <h2 className="font-normal text-lg text-green-600">ط£ظƒظˆط§ط¯ظƒ ط§ظ„ط®ط§طµط©</h2>
+            <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>ط§ط­ظپط¸ ظ‡ط°ظ‡ ط§ظ„ط£ظƒظˆط§ط¯ ظپظٹ ظ…ظƒط§ظ† ط¢ظ…ظ†</p>
           </div>
 
           <div className="p-6 border-b border-gray-200 space-y-3">
-            <h3 className={cn("font-normal text-base", isDarkMode ? "text-gray-200" : "text-gray-800")}>ط§ظ„طµظˆط±</h3>
+            <h3 className={cn("font-normal text-base", isDarkMode ? "text-gray-200" : "text-gray-800")}>ط·آ§ط¸â€‍ط·آµط¸ث†ط·آ±</h3>
             {images.length > 0 ? (
               <div className="flex flex-wrap gap-3">
                 {images.map((imageUrl, idx) => {
@@ -15827,7 +15864,7 @@ const TopupOrderDetails = () => {
                       <img
                         src={primaryImage}
                         data-image-index="0"
-                        alt={`طµظˆط±ط© ${idx + 1}`}
+                        alt={`ط·آµط¸ث†ط·آ±ط·آ© ${idx + 1}`}
                         className="w-20 h-20 object-cover rounded-lg border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all"
                         onError={(event) => handleImageFallback(event, imageCandidates)}
                       />
@@ -15836,7 +15873,7 @@ const TopupOrderDetails = () => {
                 })}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">لا توجد صور متاحة</p>
+              <p className="text-sm text-gray-500">ظ„ط§ طھظˆط¬ط¯ طµظˆط± ظ…طھط§ط­ط©</p>
             )}
           </div>
 
@@ -15849,7 +15886,7 @@ const TopupOrderDetails = () => {
               ))
             ) : (
               <div className={cn("p-4 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-300" : "bg-white border-gray-200 text-gray-500")}>
-                لا توجد أكواد متاحة لهذا الطلب
+                ظ„ط§ طھظˆط¬ط¯ ط£ظƒظˆط§ط¯ ظ…طھط§ط­ط© ظ„ظ‡ط°ط§ ط§ظ„ط·ظ„ط¨
               </div>
             )}
           </div>
@@ -15860,20 +15897,20 @@ const TopupOrderDetails = () => {
               className="w-full py-3 rounded-lg font-normal transition-all"
               style={{ backgroundColor: copied ? '#22c55e' : '#3b82f6', color: 'white' }}
             >
-              {copied ? '✓ تم النسخ!' : 'نسخ جميع الأكواد'}
+              {copied ? 'âœ“ طھظ… ط§ظ„ظ†ط³ط®!' : 'ظ†ط³ط® ط¬ظ…ظٹط¹ ط§ظ„ط£ظƒظˆط§ط¯'}
             </button>
           </div>
         </Card>
 
         <div className={cn("mt-8 p-4 rounded-lg", isDarkMode ? "bg-blue-900/30 text-blue-300" : "bg-blue-50 text-blue-700")}>
-          <p className="text-sm font-normal">💡 نصيحة: سيتم إرسال الأكواد عبر تليجرام أيضاً على المعرّف أو الرقم المسجل</p>
+          <p className="text-sm font-normal">ًں’، ظ†طµظٹط­ط©: ط³ظٹطھظ… ط¥ط±ط³ط§ظ„ ط§ظ„ط£ظƒظˆط§ط¯ ط¹ط¨ط± طھظ„ظٹط¬ط±ط§ظ… ط£ظٹط¶ط§ظ‹ ط¹ظ„ظ‰ ط§ظ„ظ…ط¹ط±ظ‘ظپ ط£ظˆ ط§ظ„ط±ظ‚ظ… ط§ظ„ظ…ط³ط¬ظ„</p>
         </div>
 
         <button
           onClick={() => navigate(`/topup/${storeId}`)}
           className={cn("w-full mt-8 py-3 rounded-lg font-normal transition-all", isDarkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-200 hover:bg-gray-300")}
         >
-          ← العودة للمتجر
+          â†گ ط§ظ„ط¹ظˆط¯ط© ظ„ظ„ظ…طھط¬ط±
         </button>
 
         {showImageModal && selectedImage && (
@@ -15883,9 +15920,9 @@ const TopupOrderDetails = () => {
                 onClick={() => setShowImageModal(false)}
                 className="absolute -top-10 right-0 text-white text-2xl font-bold hover:text-gray-300"
               >
-                ✕
+                âœ•
               </button>
-              <img src={selectedImage} alt="صورة كاملة" className="w-full h-full object-contain rounded-lg" onError={(e: any) => e.target.style.display = 'none'} />
+              <img src={selectedImage} alt="طµظˆط±ط© ظƒط§ظ…ظ„ط©" className="w-full h-full object-contain rounded-lg" onError={(e: any) => e.target.style.display = 'none'} />
             </div>
           </div>
         )}

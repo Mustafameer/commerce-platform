@@ -86,6 +86,19 @@ function isBrokenGeneratedStoreSlug(slug: string | null | undefined): boolean {
   return !!slug && /^store(?:-store)+(?:-[a-z0-9]+)*$/.test(slug);
 }
 
+const normalizeKnownArabicText = (value: unknown): string => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value
+    .replaceAll('طظپطط', 'دفعة')
+    .replaceAll('طططط', 'شراء')
+    .replaceAll('طظٹظظ طططظط', 'ديون سابقة')
+    .replaceAll('ططظ', 'عام')
+    .trim();
+};
+
 function getPublicStoreSlug(store: { id?: number; store_name?: string; slug?: string | null }): string {
   if (isClientStoreSlug(store.slug) && !isBrokenGeneratedStoreSlug(store.slug)) {
     return store.slug as string;
