@@ -6950,12 +6950,12 @@ async function startServer() {
         const columnsResult = await pool.query(`
           SELECT column_name
           FROM information_schema.columns
-          WHERE table_schema = ''public'' AND table_name = ''topup_product_images''
+          WHERE table_schema = 'public' AND table_name = 'topup_product_images'
         `);
         const availableColumns = new Set(columnsResult.rows.map((row: any) => row.column_name));
-        const hasTopupProductId = availableColumns.has(''topup_product_id'');
-        const hasStoreId = availableColumns.has(''store_id'');
-        const hasProductId = availableColumns.has(''product_id'');
+        const hasTopupProductId = availableColumns.has('topup_product_id');
+        const hasStoreId = availableColumns.has('store_id');
+        const hasProductId = availableColumns.has('product_id');
 
         let queryText = `SELECT id, image_data, image_url, image_url_original, image_type, created_at, uploaded_at FROM topup_product_images WHERE 1 = 0`;
         let queryValues: any[] = [];
