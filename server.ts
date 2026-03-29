@@ -6590,7 +6590,10 @@ async function startServer() {
           FROM topup_products tp
           LEFT JOIN topup_companies tc ON tp.company_id = tc.id
           LEFT JOIN topup_product_categories tpc ON tp.category_id = tpc.id
-          LEFT JOIN topup_product_images tpi ON tp.id = tpi.topup_product_id
+          LEFT JOIN topup_product_images tpi ON (
+            tp.id = tpi.topup_product_id
+            OR (tp.store_id = tpi.store_id AND tp.id = tpi.product_id)
+          )
           WHERE tp.store_id = $1
           GROUP BY tp.id, tp.store_id, tp.company_id, tp.category_id, tp.amount, tp.price, tp.retail_price, tp.wholesale_price, tp.available_codes, tp.images, tp.codes, tp.is_active, tc.id, tc.name, tpc.id, tpc.name
           ORDER BY tp.created_at DESC
@@ -6650,7 +6653,10 @@ async function startServer() {
               COUNT(tpi.id)::int AS images_count
             FROM topup_products tp
             LEFT JOIN topup_companies tc ON tp.company_id = tc.id
-            LEFT JOIN topup_product_images tpi ON tp.id = tpi.topup_product_id
+            LEFT JOIN topup_product_images tpi ON (
+            tp.id = tpi.topup_product_id
+            OR (tp.store_id = tpi.store_id AND tp.id = tpi.product_id)
+          )
             WHERE tp.store_id = $1
             GROUP BY tp.id, tp.store_id, tp.company_id, tp.amount, tp.price, tp.retail_price, tp.wholesale_price, tp.is_active, tp.available_codes, tc.id, tc.name
             ORDER BY tp.id DESC
@@ -6694,7 +6700,10 @@ async function startServer() {
             ) AS gallery
           FROM topup_products tp
           LEFT JOIN topup_companies tc ON tp.company_id = tc.id
-          LEFT JOIN topup_product_images tpi ON tp.id = tpi.topup_product_id
+          LEFT JOIN topup_product_images tpi ON (
+            tp.id = tpi.topup_product_id
+            OR (tp.store_id = tpi.store_id AND tp.id = tpi.product_id)
+          )
           WHERE tp.store_id = $1
           GROUP BY tp.id, tp.store_id, tp.company_id, tp.amount, tp.price, tp.retail_price, tp.wholesale_price, tp.images, tp.codes, tp.is_active, tc.id, tc.name
           ORDER BY tp.id DESC
@@ -6763,7 +6772,10 @@ async function startServer() {
             ) AS gallery
           FROM topup_products tp
           LEFT JOIN topup_companies tc ON tp.company_id = tc.id
-          LEFT JOIN topup_product_images tpi ON tp.id = tpi.topup_product_id
+          LEFT JOIN topup_product_images tpi ON (
+            tp.id = tpi.topup_product_id
+            OR (tp.store_id = tpi.store_id AND tp.id = tpi.product_id)
+          )
           WHERE tp.store_id = $1
           GROUP BY tp.id, tp.store_id, tp.company_id, tp.amount, tp.price, tp.retail_price, tp.wholesale_price, tp.images, tp.codes, tp.is_active, tc.id, tc.name
           ORDER BY tp.id DESC
@@ -6948,10 +6960,10 @@ async function startServer() {
         const { storeId, productId } = req.params;
         
         const result = await pool.query(
-          `SELECT id, image_data, image_type, created_at 
+          `SELECT id, image_data, image_url, image_url_original, image_type, created_at, uploaded_at 
            FROM topup_product_images 
-           WHERE store_id = $1 AND product_id = $2 
-           ORDER BY created_at ASC`,
+           WHERE topup_product_id = $2 OR (store_id = $1 AND product_id = $2)
+           ORDER BY COALESCE(uploaded_at, created_at) ASC, id ASC`,
           [parseInt(storeId), parseInt(productId)]
         );
         

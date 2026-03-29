@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import * as React from 'react';
 // 🖼️ Image Upload System v2.0 - Refresh Build
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useParams, useNavigate, useSearchParams } from 'react-router-dom';
@@ -10671,13 +10671,12 @@ const MerchantTopupDashboard = () => {
   });
 
   const getProductImageCount = (product: any) => {
-    if (typeof product?.images_count === 'number') {
-      return product.images_count;
+    const numericImagesCount = Number(product?.images_count);
+    if (Number.isFinite(numericImagesCount) && numericImagesCount >= 0) {
+      return numericImagesCount;
     }
 
-    return (product?.images && Array.isArray(product.images))
-      ? product.images.filter((img: any) => img && String(img).length > 0).length
-      : 0;
+    return getProductImageCandidates(product).length;
   };
   
   // Clean up old localStorage entries on mount
