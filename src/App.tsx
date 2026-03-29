@@ -121,7 +121,7 @@ const getSafeImageUrl = (url: string | null | undefined): string => {
   return normalizedUrl;
 };
 
-const FRONTEND_BUILD_ID = '20260329-2359';
+const FRONTEND_BUILD_ID = '20260330-0038';
 
 if (typeof window !== 'undefined') {
   (window as any).__APP_BUILD_ID__ = FRONTEND_BUILD_ID;
@@ -2806,7 +2806,7 @@ const LoginPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className={cn('w-full px-4 py-3 rounded-xl border border-black/5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20', isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-gray-50 text-gray-900')}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="أدخل كلمة المرور"
                   required
                 />
               </div>
@@ -3068,7 +3068,7 @@ const RegisterMerchantPage = () => {
                 className={cn("w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500/20 outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5 text-gray-900")}
                 value={formData.password}
                 onChange={e => setFormData({...formData, password: e.target.value})}
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                placeholder="أدخل كلمة المرور"
               />
             </div>
 
@@ -7939,7 +7939,7 @@ const MerchantDashboard = () => {
                           // Format transaction type display
                           let displayType = 'معاملة';
                           if (transaction.type === 'opening') {
-                            displayType = sanitizeDisplayText(transaction.description, 'ديون سابقة');
+                            displayType = 'ديون سابقة';
                           } else if (transaction.is_payment) {
                             displayType = '✓ دفعة';
                           } else if (transaction.type === 'debit') {
@@ -9381,7 +9381,7 @@ const MarketplacePage = () => {
                   type="password" 
                   name="password"
                   className={cn("w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/10 text-gray-900")}  
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="أدخل كلمة المرور"
                   required
                 />
               </div>
@@ -13310,7 +13310,7 @@ const MerchantTopupDashboard = () => {
                         );
 
                         if (txType === 'opening') {
-                          txDescription = sanitizeDisplayText(tx.description, 'ديون سابقة');
+                          txDescription = 'ديون سابقة';
                         } else if (txType === 'debit') {
                           txDescription = 'خصم';
                         } else if (txType === 'topup') {
@@ -15395,7 +15395,7 @@ const TopupStorefront = () => {
                               
                               // Translate transaction types to Arabic
                               if (txType === 'opening') {
-                                txDescription = sanitizeDisplayText(transaction.description, 'ديون سابقة');
+                                txDescription = 'ديون سابقة';
                               } else if (txType === 'debit') {
                                 txDescription = 'خصم';
                               } else if (txType === 'topup') {
