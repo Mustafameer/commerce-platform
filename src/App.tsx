@@ -121,7 +121,7 @@ const getSafeImageUrl = (url: string | null | undefined): string => {
   return normalizedUrl;
 };
 
-const FRONTEND_BUILD_ID = '20260330-0038';
+const FRONTEND_BUILD_ID = '20260330-0410-topup-refresh-fix';
 
 if (typeof window !== 'undefined') {
   (window as any).__APP_BUILD_ID__ = FRONTEND_BUILD_ID;
