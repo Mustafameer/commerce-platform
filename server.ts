@@ -6604,7 +6604,7 @@ async function startServer() {
             ? row.gallery
                 .map((img: any) => ({
                   ...img,
-                  url: buildTopupImageUrl(img.url, img.image_data, img.type)
+                  url: buildTopupImageUrl(img.url, img.data, img.type)
                 }))
                 .filter((img: any) => img.url)
             : [];
@@ -6707,7 +6707,7 @@ async function startServer() {
             ? row.gallery
                 .map((img) => ({
                   ...img,
-                  url: buildTopupImageUrl(img.url, img.image_data, img.type)
+                  url: buildTopupImageUrl(img.url, img.data, img.type)
                 }))
                 .filter((img) => img.url)
             : [];
@@ -6776,7 +6776,7 @@ async function startServer() {
             ? row.gallery
                 .map((img: any) => ({
                   ...img,
-                  url: buildTopupImageUrl(img.url, img.image_data, img.type)
+                  url: buildTopupImageUrl(img.url, img.data, img.type)
                 }))
                 .filter((img: any) => img.url)
             : [];
@@ -9578,6 +9578,7 @@ async function startServer() {
 }
 
 startServer();
+
 
 
 
