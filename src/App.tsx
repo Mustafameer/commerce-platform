@@ -12124,7 +12124,7 @@ const MerchantTopupDashboard = () => {
                             <div className={cn("relative aspect-[4/3] overflow-hidden border-b", isDarkMode ? "border-gray-700 bg-gray-900" : "border-gray-200 bg-gray-50")}>
                               <img
                                 src={getSafeImageUrl(primaryProductImage)}
-                                alt={${sanitizeDisplayText(product.company_name, 'شركة')} }
+                                alt={`${sanitizeDisplayText(product.company_name, 'شركة')} ${formatNumber(product.amount)}`}
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                                 data-image-index="0"
                                 onError={(event) => handleImageFallback(event, productImages)}
