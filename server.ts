@@ -6546,6 +6546,84 @@ async function startServer() {
       }
     });
 
+    // Get specific topup product with gallery images
+    app.get("/api/topup/products/:storeId/:productId", async (req, res) => {
+      try {
+        const { storeId, productId } = req.params;
+
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+
+        const result = await pool.query(
+          `SELECT 
+            tp.id,
+            tp.store_id,
+            tp.company_id,
+            tp.category_id,
+            tp.amount,
+            tp.price,
+            tp.retail_price,
+            tp.wholesale_price,
+            tp.wholesale_price AS bulk_price,
+            tp.images,
+            tp.codes,
+            tp.is_active,
+            tc.name as company_name,
+            tpc.name as category_name,
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'id', tpi.id,
+                  'url', tpi.image_url,
+                  'data', tpi.image_data,
+                  'url_original', tpi.image_url_original,
+                  'hash', tpi.image_hash,
+                  'type', tpi.image_type,
+                  'uploaded_at', tpi.uploaded_at
+                ) ORDER BY tpi.id ASC
+              ) FILTER (WHERE tpi.id IS NOT NULL),
+              '[]'::json
+            ) AS gallery
+          FROM topup_products tp
+          LEFT JOIN topup_companies tc ON tp.company_id = tc.id
+          LEFT JOIN topup_product_categories tpc ON tp.category_id = tpc.id
+          LEFT JOIN topup_product_images tpi ON tp.id = tpi.topup_product_id
+          WHERE tp.store_id = $1 AND tp.id = $2
+          GROUP BY tp.id, tp.store_id, tp.company_id, tp.category_id, tp.amount, tp.price, tp.retail_price, tp.wholesale_price, tp.images, tp.codes, tp.is_active, tc.id, tc.name, tpc.id, tpc.name
+          LIMIT 1`,
+          [storeId, productId]
+        );
+
+        if (result.rows.length === 0) {
+          return res.status(404).json({ error: 'Product not found' });
+        }
+
+        const row = result.rows[0];
+        const gallery = Array.isArray(row.gallery)
+          ? row.gallery
+              .map((img: any) => {
+                const builtUrl = buildTopupImageUrl(img.url, img.data, img.type);
+                return {
+                  ...img,
+                  url: builtUrl
+                };
+              })
+              .filter((img: any) => Boolean(img.url))
+          : [];
+
+        const imageUrls = Array.from(new Set([
+          ...gallery.map((img: any) => img.url),
+          ...extractTopupImageUrls(row.images)
+        ].filter(Boolean)));
+
+        console.log(`📸 Product ${row.id} gallery: ${gallery.length} images`);
+
+        res.json({ ...row, gallery, images: imageUrls });
+      } catch (error) {
+        res.status(500).json({ error: (error as any).message });
+      }
+    });
+
+
     // Get all topup products (default to store 13 - topup store with actual data)
     app.get("/api/topup/products", async (req, res) => {
       try {
