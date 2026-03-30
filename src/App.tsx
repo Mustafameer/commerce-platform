@@ -10671,12 +10671,17 @@ const MerchantTopupDashboard = () => {
   });
 
   const getProductImageCount = (product: any) => {
+    const actualImageCount = getProductImageCandidates(product).length;
+    if (actualImageCount > 0) {
+      return actualImageCount;
+    }
+
     const numericImagesCount = Number(product?.images_count);
     if (Number.isFinite(numericImagesCount) && numericImagesCount >= 0) {
       return numericImagesCount;
     }
 
-    return getProductImageCandidates(product).length;
+    return 0;
   };
   
   // Clean up old localStorage entries on mount
@@ -12100,38 +12105,8 @@ const MerchantTopupDashboard = () => {
                   {/* Products Grid - Modern Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {group.products.map((product: any) => {
-                      // Parse product images - handle both object and string formats
-                      let productImages: string[] = [];
-                      if (product.images) {
-                        if (Array.isArray(product.images)) {
-                          productImages = product.images
-                            .map((img: any) => {
-                              // If it's an object with url property, extract the URL
-                              if (typeof img === 'object' && img !== null && img.url) {
-                                return img.url;
-                              }
-                              // If it's a string, use it directly
-                              return typeof img === 'string' ? img : null;
-                            })
-                            .filter((img: any) => img && String(img).length > 0);
-                        } else if (typeof product.images === 'string') {
-                          try {
-                            const parsed = JSON.parse(product.images);
-                            if (Array.isArray(parsed)) {
-                              productImages = parsed
-                                .map((img: any) => {
-                                  if (typeof img === 'object' && img !== null && img.url) {
-                                    return img.url;
-                                  }
-                                  return typeof img === 'string' ? img : null;
-                                })
-                                .filter((img: any) => img && String(img).length > 0);
-                            }
-                          } catch (e) {
-                            productImages = [];
-                          }
-                        }
-                      }
+                      const productImages = getProductImageCandidates(product);
+                      const primaryProductImage = productImages[0] || '';
 
                       return (
                         <motion.div
@@ -12145,6 +12120,22 @@ const MerchantTopupDashboard = () => {
                               : "bg-white border-gray-200 hover:shadow-xl hover:shadow-indigo-500/20"
                           )}
                         >
+                          {productImages.length > 0 && (
+                            <div className={cn("relative aspect-[4/3] overflow-hidden border-b", isDarkMode ? "border-gray-700 bg-gray-900" : "border-gray-200 bg-gray-50")}>
+                              <img
+                                src={getSafeImageUrl(primaryProductImage)}
+                                alt={${sanitizeDisplayText(product.company_name, 'شركة')} }
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                data-image-index="0"
+                                onError={(event) => handleImageFallback(event, productImages)}
+                              />
+                              <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent"></div>
+                              <div className="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-semibold bg-black/70 text-white">
+                                {productImages.length} صورة
+                              </div>
+                            </div>
+                          )}
+
                           {/* Content Section */}
                           <div className="p-4 space-y-3">
                             {/* Amount - Main Value */}
@@ -12451,13 +12442,12 @@ const MerchantTopupDashboard = () => {
                             <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-green-400" : "text-green-600")}>{imagesCount}</td>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-gray-300" : "text-gray-700")}>
                               <div className="flex flex-wrap gap-2">
-                                {product.images && Array.isArray(product.images) && product.images
-                                  .filter((img: any) => img && String(img).length > 0)
+                                {productImages
                                   .slice(0, 5)
                                   .map((imageUrl: any, idx: number) => (
                                     <a 
                                       key={idx} 
-                                      href={imageUrl}
+                                      href={getSafeImageUrl(imageUrl)}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className={cn("inline-block px-2 py-1 text-xs rounded hover:opacity-80 transition-opacity cursor-pointer", isDarkMode ? "bg-blue-900 text-blue-300" : "bg-blue-50 text-blue-700")}
@@ -12465,9 +12455,9 @@ const MerchantTopupDashboard = () => {
                                       📷 صورة {idx + 1}
                                     </a>
                                   ))}
-                                {product.images && Array.isArray(product.images) && product.images.filter((img: any) => img && String(img).length > 0).length > 5 && (
+                                {productImages.length > 5 && (
                                   <span className={cn("px-2 py-1 text-xs rounded", isDarkMode ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-600")}>
-                                    +{product.images.filter((img: any) => img && String(img).length > 0).length - 5} صور أخرى
+                                    +{productImages.length - 5} صور أخرى
                                   </span>
                                 )}
                               </div>
