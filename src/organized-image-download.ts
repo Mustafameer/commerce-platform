@@ -17,7 +17,8 @@ type PreparedDownloadItem = {
   companyFolderName: string;
   fileName: string;
   relativePath: string;
-  blob: Blob;
+  bytes: Uint8Array;
+  mimeType: string;
 };
 
 type DirectoryPickerWindow = Window & {
@@ -40,9 +41,9 @@ const getDownloadTimestamp = () => {
   return `${datePart}_${timePart}`;
 };
 
-const getDownloadExtension = (imageUrl: string, blob?: Blob) => {
-  if (blob?.type?.startsWith('image/')) {
-    const mimeExt = blob.type.split('/')[1]?.toLowerCase();
+const getDownloadExtension = (imageUrl: string, mimeType?: string) => {
+  if (mimeType?.startsWith('image/')) {
+    const mimeExt = mimeType.split('/')[1]?.toLowerCase();
     if (mimeExt) {
       return mimeExt === 'svg+xml' ? 'svg' : mimeExt;
     }
@@ -72,6 +73,54 @@ const isSecurityError = (error: unknown) => {
   return error instanceof DOMException && error.name === 'SecurityError';
 };
 
+const dataUrlToBytes = (dataUrl: string) => {
+  const match = dataUrl.match(/^data:([^;,]+)?(?:;charset=[^;,]+)?(;base64)?,(.*)$/i);
+  if (!match) {
+    throw new Error('Invalid data URL');
+  }
+
+  const mimeType = match[1] || 'application/octet-stream';
+  const isBase64 = Boolean(match[2]);
+  const payload = match[3] || '';
+
+  if (isBase64) {
+    const binary = atob(payload);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    return { bytes, mimeType };
+  }
+
+  const decoded = decodeURIComponent(payload);
+  return {
+    bytes: new TextEncoder().encode(decoded),
+    mimeType,
+  };
+};
+
+const loadImageBytes = async (imageUrl: string) => {
+  if (imageUrl.startsWith('data:')) {
+    return dataUrlToBytes(imageUrl);
+  }
+
+  const response = await fetch(imageUrl, {
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Image fetch failed with status ${response.status}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return {
+    bytes: new Uint8Array(arrayBuffer),
+    mimeType: response.headers.get('content-type') || 'application/octet-stream',
+  };
+};
+
 const isMobileDownloadContext = () => {
   if (typeof navigator === 'undefined') {
     return false;
@@ -97,22 +146,18 @@ const prepareDownloadItems = async (items: DownloadableImageItem[], timestamp: s
     }
 
     try {
-      const response = await fetch(imageUrl, {
-        cache: 'no-store',
-      });
-
-      if (!response.ok) {
+      const { bytes, mimeType } = await loadImageBytes(imageUrl);
+      if (!bytes.length) {
         continue;
       }
 
-      const blob = await response.blob();
       const companyFolderName = sanitizeDownloadName(item.companyName || 'شركة_غير_محددة');
       const productName = sanitizeDownloadName(item.productName || item.fallbackName || 'منتج');
       const productCounterKey = `${companyFolderName}/${productName}`;
       const nextCounter = (productFileCounters.get(productCounterKey) || 0) + 1;
       productFileCounters.set(productCounterKey, nextCounter);
 
-      const extension = getDownloadExtension(imageUrl, blob);
+      const extension = getDownloadExtension(imageUrl, mimeType);
       const fileName = `${productName}_${timestamp}_${nextCounter}.${extension}`;
       const relativePath = `${companyFolderName}/${fileName}`;
 
@@ -124,7 +169,8 @@ const prepareDownloadItems = async (items: DownloadableImageItem[], timestamp: s
         companyFolderName,
         fileName,
         relativePath,
-        blob,
+        bytes,
+        mimeType,
       });
       addedPaths.add(relativePath);
     } catch (error) {
@@ -142,9 +188,10 @@ const writeFolderDownloads = async (parentDirectoryHandle: any, rootFolderName: 
     const companyDirectoryHandle = await rootDirectoryHandle.getDirectoryHandle(item.companyFolderName, { create: true });
     const fileHandle = await companyDirectoryHandle.getFileHandle(item.fileName, { create: true });
     const writable = await fileHandle.createWritable();
+    const blob = new Blob([item.bytes], { type: item.mimeType || 'application/octet-stream' });
 
     try {
-      await writable.write(item.blob);
+      await writable.write(blob);
     } finally {
       await writable.close();
     }
@@ -156,7 +203,7 @@ const downloadZipFallback = async (rootFolderName: string, preparedItems: Prepar
   const zip = new JSZip();
 
   for (const item of preparedItems) {
-    zip.file(`${rootFolderName}/${item.relativePath}`, item.blob, {
+    zip.file(`${rootFolderName}/${item.relativePath}`, item.bytes, {
       binary: true,
       compression: 'STORE',
     });
@@ -178,7 +225,7 @@ const downloadZipFallback = async (rootFolderName: string, preparedItems: Prepar
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(zipUrl);
+  window.setTimeout(() => URL.revokeObjectURL(zipUrl), 30000);
 
   return zipFileName;
 };
