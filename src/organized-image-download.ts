@@ -72,6 +72,19 @@ const isSecurityError = (error: unknown) => {
   return error instanceof DOMException && error.name === 'SecurityError';
 };
 
+const isMobileDownloadContext = () => {
+  if (typeof navigator === 'undefined') {
+    return false;
+  }
+
+  const userAgentData = (navigator as Navigator & { userAgentData?: { mobile?: boolean } }).userAgentData;
+  if (typeof userAgentData?.mobile === 'boolean') {
+    return userAgentData.mobile;
+  }
+
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent || '');
+};
+
 const prepareDownloadItems = async (items: DownloadableImageItem[], timestamp: string) => {
   const preparedItems: PreparedDownloadItem[] = [];
   const addedPaths = new Set<string>();
@@ -179,10 +192,11 @@ export const downloadOrganizedImages = async (items: DownloadableImageItem[]): P
   const timestamp = getDownloadTimestamp();
   const rootFolderName = `صور_الشركات_${timestamp}`;
   const directoryPicker = (window as DirectoryPickerWindow).showDirectoryPicker;
+  const isMobileDevice = isMobileDownloadContext();
   let parentDirectoryHandle: any = null;
   let shouldUseFolderDownload = false;
 
-  if (typeof directoryPicker === 'function' && window.isSecureContext) {
+  if (!isMobileDevice && typeof directoryPicker === 'function' && window.isSecureContext) {
     try {
       parentDirectoryHandle = await directoryPicker({
         id: 'topup-purchased-images',

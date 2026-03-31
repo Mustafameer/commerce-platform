@@ -151,7 +151,7 @@ export const TopupOrderDetails = () => {
       if (result.mode === 'folder') {
         alert(`✅ تم تنزيل ${result.count} صورة داخل المجلد ${result.containerName || 'المنظم'}.`);
       } else {
-        alert(`✅ هذا المتصفح لا يدعم الحفظ المباشر داخل المجلدات، لذلك تم تنزيل ملف ZIP منظم يحتوي على ${result.count} صورة.`);
+        alert(`✅ تم تنزيل ملف ZIP منظم يحتوي على ${result.count} صورة. على الموبايل سيُحفَظ مباشرة في Download، وعلى الأجهزة الأخرى يُستخدم هذا الأسلوب بدل اختيار المجلد عند الحاجة.`);
       }
     } catch (error) {
       console.error('خطأ في تنزيل صور الطلب من شاشة الموبايل:', error);
