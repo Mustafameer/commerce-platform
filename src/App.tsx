@@ -1,17 +1,16 @@
-// @ts-nocheck
-import * as React from 'react';
+﻿import * as React from 'react';
 // 🖼️ Image Upload System v2.0 - Refresh Build
-import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
-import { 
-  LayoutDashboard, 
-  Store as StoreIcon, 
-  Package, 
-  ShoppingCart, 
-  Users, 
-  Settings, 
-  LogOut, 
-  Plus, 
+import {
+  LayoutDashboard,
+  Store as StoreIcon,
+  Package,
+  ShoppingCart,
+  Users,
+  Settings,
+  LogOut,
+  Plus,
   ChevronRight,
   ChevronDown,
   Search,
@@ -49,86 +48,37 @@ import {
   PowerOff,
   Save
 } from 'lucide-react';
-import JSZip from 'jszip';
-import { motion, AnimatePresence } from 'motion/react';
+import { LazyMotion, AnimatePresence } from 'motion/react';
+import * as motion from 'motion/react-m';
 import { useAuthStore, useRegularCartStore, useSettingsStore, useSearchStore, useRefreshStore, useTopupCartStore } from './store';
 import type { User, Store, Product, Order } from './types';
+import { resolveApiBaseUrl } from './api';
+import { ThemeProvider, useTheme } from './theme';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-function cn(...inputs: ClassValue[]) {
+export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-type ThemeContextValue = {
-  isDarkMode: boolean;
-  setIsDarkMode: React.Dispatch<React.SetStateAction<boolean>>;
-};
+export const loadJSZip = async () => (await import('jszip')).default;
+const loadMotionFeatures = () => import('./motion-features').then((module) => module.default);
+const AboutPage = React.lazy(() => import('./info-pages').then((module) => ({ default: module.AboutPage })));
+const HelpCenterPage = React.lazy(() => import('./info-pages').then((module) => ({ default: module.HelpCenterPage })));
+const SecurityPolicyPage = React.lazy(() => import('./info-pages').then((module) => ({ default: module.SecurityPolicyPage })));
+const PrivacyPolicyPage = React.lazy(() => import('./info-pages').then((module) => ({ default: module.PrivacyPolicyPage })));
+const LazyLoginPage = React.lazy(() => import('./auth-pages').then((module) => ({ default: module.LoginPage })));
+const LazyRegisterMerchantPage = React.lazy(() => import('./auth-pages').then((module) => ({ default: module.RegisterMerchantPage })));
+const LazyTopupOrderDetails = React.lazy(() => import('./topup-order-details').then((module) => ({ default: module.TopupOrderDetails })));
+const LazyMerchantDashboard = React.lazy(() => import('./merchant-dashboard'));
 
-const ThemeContext = React.createContext<ThemeContextValue | undefined>(undefined);
-
-const ThemeProvider = ({
-  children,
-  isDarkMode,
-  setIsDarkMode,
-}: {
-  children: React.ReactNode;
-  isDarkMode: boolean;
-  setIsDarkMode: React.Dispatch<React.SetStateAction<boolean>>;
-}) => {
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDarkMode);
-  }, [isDarkMode]);
-
-  return (
-    <ThemeContext.Provider value={{ isDarkMode, setIsDarkMode }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-};
-
-const useTheme = () => {
-  const context = React.useContext(ThemeContext);
-
-  if (!context) {
-    throw new Error('useTheme must be used within ThemeProvider');
-  }
-
-  return context;
-};
-
-// --- Constants ---
-// Local SVG placeholder instead of external resources
-const PLACEHOLDER_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" font-size="14" fill="%239ca3af" text-anchor="middle" dominant-baseline="middle" font-family="system-ui"%3Eاضافة صورة%3C/text%3E%3Cpath d="M80 120 L100 100 L120 120" stroke="%239ca3af" stroke-width="2" fill="none"/%3E%3C/svg%3E';
-
-const getSafeImageUrl = (url: string | null | undefined): string => {
-  if (!url) return PLACEHOLDER_IMAGE;
-
-  const normalizedUrl = String(url).trim().replace(/\\/g, '/');
-
-  if (
-    normalizedUrl.startsWith('data:') ||
-    normalizedUrl.startsWith('/') ||
-    normalizedUrl.startsWith('http') ||
-    normalizedUrl.startsWith('blob:')
-  ) {
-    return normalizedUrl;
-  }
-
-  if (normalizedUrl.includes('via.placeholder')) {
-    return PLACEHOLDER_IMAGE;
-  }
-
-  return normalizedUrl;
-};
-
-const FRONTEND_BUILD_ID = '20260330-0410-topup-refresh-fix';
-
-if (typeof window !== 'undefined') {
-  (window as any).__APP_BUILD_ID__ = FRONTEND_BUILD_ID;
-}
+const MerchantDashboardRoute = () => (
+  <React.Suspense fallback={null}>
+    <LazyMerchantDashboard />
+  </React.Suspense>
+);
 
 // --- API Configuration ---
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL = resolveApiBaseUrl();
 console.log(`🛠️ API_BASE_URL initialized: "${API_BASE_URL}" ${API_BASE_URL ? '✅' : '⚠️ EMPTY'}`);
 console.log(`🛠️ Environment: ${typeof window !== 'undefined' ? 'Browser' : 'Node'}`);
 console.log(`🛠️ Current URL: ${typeof window !== 'undefined' ? window.location.href : 'N/A'}`);
@@ -158,186 +108,112 @@ console.log(`🔧 Original fetch function: ${originalFetch ? '✅' : '❌'}`);
 };
 console.log(`🔧 Fetch monkey-patch applied`);
 
-const formatCurrency = (amount: number | string) => {
-  const n = typeof amount === 'string' ? parseFloat(amount) : amount;
-  if (isNaN(n)) return '0 IQD';
-  return Math.floor(n).toLocaleString('en-US') + ' IQD';
-};
-
-// Play sound when item is added to cart
-const playAddToCartSound = () => {
-  try {
-    // Create a simple beep using Web Audio API
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.frequency.value = 800; // 800 Hz tone
-    oscillator.type = 'sine';
-    
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-    
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.1);
-  } catch (error) {
-    console.log('Audio playback not available:', error);
-  }
+export const formatCurrency = (amount: number | string) => {
+  const val = typeof amount === 'string' ? parseFloat(amount) : amount;
+  const rounded = Math.floor(val);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'IQD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(rounded);
 };
 
 // Format number without decimals and with thousands separator
-const formatNumber = (num: number | string) => {
+export const formatNumber = (num: number | string) => {
   const n = typeof num === 'string' ? parseFloat(num) : num;
   if (isNaN(n)) return '0';
   return Math.floor(n).toLocaleString('en-US');
 };
 
-const mojibakeTextPattern = /ط|ط|ط|ط|ط|ط|ط|ط|ط|طھ|ظ|ظٹ|ظƒ|ظ|ظ|ظپ|ظ|ظ|âœ|â|âڑ|ں/;
-
-const mojibakeTextReplacements: Array<[string, string]> = [
-  ['طظپطط', 'دفعة'],
-  ['طططط', 'شراء'],
-  ['طظٹظظ طططظط', 'ديون سابقة'],
-  ['ططظ', 'عام'],
-  ['ط.ب', 'IQD'],
-  ['ط.ط', 'IQD'],
-];
-
-const repairMojibakeText = (value: string): string => {
-  let repaired = value;
-
-  for (const [brokenText, fixedText] of mojibakeTextReplacements) {
-    repaired = repaired.replaceAll(brokenText, fixedText);
-  }
-
-  return repaired.trim();
-};
-
-const sanitizeDisplayText = (value: unknown, fallback = ''): string => {
-  if (typeof value !== 'string') return fallback;
-
-  const text = repairMojibakeText(value);
-  if (!text || text === 'undefined' || text === 'null') return fallback;
-
-  return mojibakeTextPattern.test(text) ? fallback : text;
-};
-
-const getSanitizedProductTitle = (product: any, fallback = 'منتج'): string => {
-  const productName = sanitizeDisplayText(product?.name, fallback);
-  const storeName = sanitizeDisplayText(product?.store_name, '');
-
-  return storeName ? `${storeName} - ${productName}` : productName;
-};
-
 // Format date as DD/MM/YYYY
-const formatDateOnly = (dateStr: string | Date) => {
+export const formatDateOnly = (dateStr: string | Date) => {
   try {
-    // If it's already a string in YYYY-MM-DD format, parse it directly
     if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
       const [year, month, day] = dateStr.split('-');
       return `${day}/${month}/${year}`;
     }
-
+    
     const date = new Date(dateStr);
-    if (Number.isNaN(date.getTime())) return '';
-    return date.toLocaleDateString('en-GB');
-  } catch {
-    return '';
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch (e) {
+    return dateStr.toString();
   }
 };
 
-const getImageCandidateValue = (value: any): string | null => {
-  if (!value) return null;
+// --- Sound Notification ---
+const playAddToCartSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    const oscillator1 = audioContext.createOscillator();
+    const gainNode1 = audioContext.createGain();
+    oscillator1.connect(gainNode1);
+    gainNode1.connect(audioContext.destination);
+    oscillator1.frequency.setValueAtTime(1000, audioContext.currentTime);
+    gainNode1.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+    oscillator1.start(audioContext.currentTime);
+    oscillator1.stop(audioContext.currentTime + 0.15);
+    
+    const oscillator2 = audioContext.createOscillator();
+    const gainNode2 = audioContext.createGain();
+    oscillator2.connect(gainNode2);
+    gainNode2.connect(audioContext.destination);
+    oscillator2.frequency.setValueAtTime(700, audioContext.currentTime + 0.1);
+    gainNode2.gain.setValueAtTime(0, audioContext.currentTime);
+    gainNode2.gain.setValueAtTime(0.2, audioContext.currentTime + 0.1);
+    gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
+    oscillator2.start(audioContext.currentTime + 0.1);
+    oscillator2.stop(audioContext.currentTime + 0.25);
+  } catch (error) {
+    // Ignore audio errors on browsers that block autoplay.
+  }
+};
 
-  if (typeof value === 'object') {
-    if ('image_url' in value) {
-      return getImageCandidateValue(value.image_url);
+// --- Clear All Data Function ---
+const clearAllData = async () => {
+  try {
+    const response = await fetch('/api/clear-all', { method: 'POST' });
+    const result = await response.json();
+
+    if (result.success) {
+      localStorage.clear();
+      sessionStorage.clear();
+
+      document.cookie.split(";").forEach((cookie) => {
+        document.cookie = cookie
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+
+      console.log('✅ تم مسح جميع البيانات بنجاح!');
+      window.location.href = '/';
     }
+  } catch (error) {
+    console.error('❌ خطأ في مسح البيانات:', error);
+    alert('حدث خطأ أثناء مسح البيانات');
+  }
+}
 
-    if ('url' in value) {
-      return getImageCandidateValue(value.url);
-    }
+// --- Constants ---
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" font-size="14" fill="%239ca3af" text-anchor="middle" dominant-baseline="middle" font-family="system-ui"%3Eاضافة صورة%3C/text%3E%3Cpath d="M80 120 L100 100 L120 120" stroke="%239ca3af" stroke-width="2" fill="none"/%3E%3C/svg%3E';
 
-    return null;
+export const getSafeImageUrl = (url: string | null | undefined): string => {
+  if (!url) return PLACEHOLDER_IMAGE;
+
+  if (url.startsWith('data:') || url.startsWith('/') || url.startsWith('http')) {
+    return url;
   }
 
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
-};
-
-const parseImageCollection = (value: any): string[] => {
-  if (!value) return [];
-
-  if (Array.isArray(value)) {
-    return value.map(getImageCandidateValue).filter(Boolean) as string[];
+  if (url.includes('via.placeholder')) {
+    return PLACEHOLDER_IMAGE;
   }
 
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (!trimmed) return [];
-
-    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
-      try {
-        return parseImageCollection(JSON.parse(trimmed));
-      } catch {
-        return [trimmed];
-      }
-    }
-
-    return [trimmed];
-  }
-
-  const singleValue = getImageCandidateValue(value);
-  return singleValue ? [singleValue] : [];
-};
-
-const getProductImageCandidates = (product: any): string[] => {
-  if (!product) return [];
-
-  const candidates = [
-    ...parseImageCollection(product.image_url),
-    ...parseImageCollection(product.gallery),
-    ...parseImageCollection(product.images)
-  ].map(getSafeImageUrl);
-
-  return Array.from(new Set(candidates.filter((candidate) => candidate && candidate !== PLACEHOLDER_IMAGE)));
-};
-
-const getOrderItemImageCandidates = (item: any): string[] => {
-  if (!item) return [];
-
-  const candidates = [
-    ...parseImageCollection(item.product_images),
-    ...getProductImageCandidates(item)
-  ].map(getSafeImageUrl);
-
-  return Array.from(new Set(candidates.filter((candidate) => candidate && candidate !== PLACEHOLDER_IMAGE)));
-};
-
-const handleImageFallback = (event: React.SyntheticEvent<HTMLImageElement>, candidates: string[]) => {
-  const currentIndex = Number(event.currentTarget.dataset.imageIndex || '0');
-  const nextIndex = currentIndex + 1;
-
-  if (nextIndex < candidates.length) {
-    event.currentTarget.dataset.imageIndex = String(nextIndex);
-    event.currentTarget.src = candidates[nextIndex];
-    return;
-  }
-
-  event.currentTarget.onerror = null;
-  event.currentTarget.src = PLACEHOLDER_IMAGE;
-};
-
-const getPrimaryProductImage = (product: any): string => {
-  const candidates = getProductImageCandidates(product);
-  return candidates[0] || PLACEHOLDER_IMAGE;
+  return url;
 };
 
 // --- Components ---
 
-const Button = ({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+export const Button = ({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
   <button
     className={cn(
       "px-4 py-2 rounded-lg font-medium transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none",
@@ -347,7 +223,7 @@ const Button = ({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonEl
   />
 );
 
-const Card = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
+export const Card = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
   const { isDarkMode } = useTheme();
   return (
     <div
@@ -363,173 +239,97 @@ const Card = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivEle
   );
 };
 
-const RegularProductModal = ({
-  product,
-  isDarkMode,
-  primaryColor,
-  appLabel,
-  quantities,
-  setQuantities,
-  onAddToCart,
-  onClose,
-}: {
-  product: any;
-  isDarkMode: boolean;
-  primaryColor: string;
-  appLabel: string;
-  quantities: Record<number, number>;
-  setQuantities: React.Dispatch<React.SetStateAction<Record<number, number>>>;
-  onAddToCart: (product: any) => void;
-  onClose: () => void;
-}) => {
-  const [mainImage, setMainImage] = useState<string>('');
-
-  useEffect(() => {
-    if (product) {
-      setMainImage(getPrimaryProductImage(product));
-    }
-  }, [product]);
-
-  if (!product) return null;
-
-  const gallery = getProductImageCandidates(product);
-  const quantity = quantities[product.id] || 1;
-
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className={cn("rounded-[2.5rem] w-full max-w-5xl max-h-[95vh] overflow-hidden shadow-2xl flex flex-col md:flex-row relative", isDarkMode ? "bg-gray-800" : "bg-white")}
-      >
-        <button onClick={onClose} className={cn("absolute top-4 right-4 z-20 p-3 backdrop-blur-xl border rounded-full transition-all", isDarkMode ? "bg-gray-700/40 border-gray-600/50 text-gray-300 hover:bg-gray-700" : "bg-white/20 border-white/30 text-gray-400 hover:bg-gray-100")}>
-          <X size={24} />
-        </button>
-
-        <div className={cn("md:w-1/2 p-4 md:p-8 flex flex-col gap-6 overflow-y-auto min-h-0", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
-          <motion.div
-            key={mainImage}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="w-full aspect-square relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white"
-          >
-            <img src={getSafeImageUrl(mainImage)} className="w-full h-full object-cover" />
-            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/20 to-transparent"></div>
-          </motion.div>
-
-          <div className={cn("grid grid-cols-4 gap-3 p-3 rounded-2xl border shadow-sm", isDarkMode ? "bg-gray-600 border-gray-500" : "bg-white border-black/5")}>
-            {gallery.map((img, idx) => (
-              <div
-                key={idx}
-                onClick={() => setMainImage(img)}
-                className={`aspect-square rounded-xl overflow-hidden cursor-pointer transition-all ${mainImage === img ? 'ring-4 ring-indigo-500 ring-offset-2' : 'hover:scale-105 opacity-70 hover:opacity-100'}`}
-              >
-                <img src={getSafeImageUrl(img)} className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="md:w-1/2 p-6 md:p-8 flex flex-col justify-between gap-6">
-          <div className="space-y-4">
-            <div className="mb-2">
-              <span className={cn("px-4 py-1.5 rounded-xl text-[10px] font-normal uppercase tracking-widest border inline-block", isDarkMode ? "bg-indigo-900/30 text-indigo-400 border-indigo-700" : "bg-indigo-50 text-indigo-600 border-indigo-100")}>{appLabel}</span>
-              <h2 className={cn('text-3xl sm:text-4xl font-normal mt-4 tracking-tight leading-tight', isDarkMode ? 'text-white' : 'text-gray-900')}>{product.name}</h2>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className={cn("text-xs font-normal uppercase tracking-widest border-b pb-2", isDarkMode ? "text-gray-500 border-gray-600" : "text-gray-400 border-black/5")}>وصف المنتج</h4>
-              <p className={cn('text-lg leading-relaxed font-medium', isDarkMode ? 'text-gray-300' : 'text-gray-600')}>{product.description}</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              <div className={cn('p-4 rounded-xl border', isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200')}>
-                <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>المخزون المتاح</p>
-                <p className={cn('font-bold text-2xl', product.stock === 0 ? 'text-red-600' : 'text-green-600')}>
-                  {product.stock === 0 ? 'غير متوفر' : `${product.stock} متاح`}
-                </p>
-              </div>
-              <div className={cn('p-4 rounded-xl border', isDarkMode ? 'bg-green-900/30 border-green-700' : 'bg-green-50 border-green-200')}>
-                <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-green-400' : 'text-green-600')}>الحالة</p>
-                <p className={cn('font-bold text-xl', isDarkMode ? 'text-green-300' : 'text-green-700')}>منتج أصلي ✓</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4 pt-6 border-t" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
-            <div>
-              <label className={cn('block mb-2 text-xs font-normal uppercase', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>اختر الكمية</label>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setQuantities(prev => ({
-                    ...prev,
-                    [product.id]: Math.max(1, (prev[product.id] || 1) - 1)
-                  }))}
-                  className={cn('p-3 rounded-lg transition-all active:scale-95', isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700')}
-                >
-                  <Minus size={20} />
-                </button>
-                <input
-                  type="number"
-                  min="1"
-                  max={product.stock || 999}
-                  value={quantity}
-                  onChange={(e) => setQuantities(prev => ({
-                    ...prev,
-                    [product.id]: Math.max(1, Math.min(product.stock || 999, parseInt(e.target.value) || 1))
-                  }))}
-                  className={cn('flex-1 px-4 py-3 text-center text-lg font-normal rounded-lg border outline-none transition-all', isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900')}
-                />
-                <button
-                  onClick={() => setQuantities(prev => ({
-                    ...prev,
-                    [product.id]: Math.min(product.stock || 999, (prev[product.id] || 1) + 1)
-                  }))}
-                  className={cn('p-3 rounded-lg transition-all active:scale-95', isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700')}
-                >
-                  <Plus size={20} />
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className={cn('p-4 rounded-lg border-2', isDarkMode ? 'bg-indigo-900/30 border-indigo-700' : 'bg-indigo-50 border-indigo-200')}>
-                <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>السعر النهائي</p>
-                <p className={cn('text-2xl sm:text-3xl font-bold', isDarkMode ? 'text-indigo-300' : 'text-indigo-900')}>
-                  {formatCurrency(product.price * quantity)}
-                </p>
-              </div>
-
-              <button
-                onClick={() => {
-                  onAddToCart(product);
-                  onClose();
-                }}
-                disabled={product.stock === 0}
-                className={cn('w-full py-4 rounded-xl text-white font-normal text-lg transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100')}
-                style={{ backgroundColor: product.stock === 0 ? '#999' : primaryColor }}
-              >
-                <ShoppingCart size={20} />
-                إضافة للسلة ({quantity})
-              </button>
-
-              <button
-                onClick={onClose}
-                className={cn('w-full py-3 rounded-xl font-normal text-base transition-all border-2', isDarkMode ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50')}
-              >
-                إغلاق
-              </button>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
-
 // --- Layouts ---
 
-const DashboardLayout = ({ children, title, role, counts }: { children: React.ReactNode; title: string; role: string; counts?: Record<string, number> }) => {
+const getPublicStorePath = (user: any) => {
+  if (!user?.store_id) {
+    return null;
+  }
+
+  return user.store_type === 'topup' ? `/topup/${user.store_id}` : `/store/${user.store_id}`;
+};
+
+const getDashboardLayoutNavItems = (role: string, counts?: Record<string, number>) => {
+  if (role === 'admin') {
+    return [
+      { icon: LayoutDashboard, label: 'لوحة التحكم', path: '/admin' },
+      { icon: Users, label: 'المستخدمون', path: '/admin/users' },
+      { icon: CheckCircle, label: 'طلبات الانضمام', path: '/admin/approvals', count: counts?.approvals },
+      { icon: StoreIcon, label: 'المتاجر', path: '/admin/stores', count: counts?.stores },
+      { icon: BarChart3, label: 'الإحصائيات', path: '/admin/stats' },
+      { icon: Settings, label: 'الإعدادات', path: '/admin/settings' },
+    ];
+  }
+
+  return [
+    { icon: LayoutDashboard, label: 'لوحة التحكم', path: '/merchant' },
+    { icon: Package, label: 'المنتجات', path: '/merchant/products', count: counts?.products },
+    { icon: Layout, label: 'الأقسام', path: '/merchant/categories', count: counts?.categories },
+    { icon: Zap, label: 'المزادات', path: '/merchant/auctions', count: counts?.auctions },
+    { icon: ShoppingCart, label: 'الطلبات', path: '/merchant/orders', count: counts?.orders },
+    { icon: Ticket, label: 'قسائم الخصم', path: '/merchant/coupons', count: counts?.coupons },
+    { icon: Users, label: 'العملاء', path: '/merchant/customers', count: counts?.customers },
+    { icon: Settings, label: 'إعدادات المتجر', path: '/merchant/settings' },
+  ];
+};
+
+const getMobileDashboardMenuItems = (user: any) => {
+  if (!user) {
+    return [];
+  }
+
+  if (user.role === 'admin') {
+    return [
+      { icon: LayoutDashboard, label: 'لوحة التحكم', path: '/admin' },
+      { icon: Users, label: 'المستخدمون', path: '/admin/users' },
+      { icon: CheckCircle, label: 'طلبات الانضمام', path: '/admin/approvals' },
+      { icon: StoreIcon, label: 'المتاجر', path: '/admin/stores' },
+      { icon: BarChart3, label: 'الإحصائيات', path: '/admin/stats' },
+      { icon: Settings, label: 'الإعدادات', path: '/admin/settings' },
+    ];
+  }
+
+  if (user.store_type === 'topup') {
+    return [
+      { icon: BarChart3, label: 'ملخص المبيعات', path: '/topup-merchant/overview' },
+      { icon: StoreIcon, label: 'الشركات', path: '/topup-merchant/companies' },
+      { icon: CreditCard, label: 'المنتجات', path: '/topup-merchant/products' },
+      { icon: Ticket, label: 'الأكواد', path: '/topup-merchant/codes' },
+      { icon: Users, label: 'العملاء', path: '/topup-merchant/customers' },
+      { icon: ShoppingCart, label: 'الطلبات', path: '/topup-merchant/orders' },
+      { icon: Settings, label: 'الإعدادات', path: '/topup-merchant/settings' },
+    ];
+  }
+
+  return [
+    { icon: LayoutDashboard, label: 'لوحة التحكم', path: '/merchant' },
+    { icon: Package, label: 'المنتجات', path: '/merchant/products' },
+    { icon: Layout, label: 'الأقسام', path: '/merchant/categories' },
+    { icon: Zap, label: 'المزادات', path: '/merchant/auctions' },
+    { icon: ShoppingCart, label: 'الطلبات', path: '/merchant/orders' },
+    { icon: Ticket, label: 'قسائم الخصم', path: '/merchant/coupons' },
+    { icon: Users, label: 'العملاء', path: '/merchant/customers' },
+    { icon: Settings, label: 'إعدادات المتجر', path: '/merchant/settings' },
+  ];
+};
+
+const isDashboardRouteActive = (pathname: string, user: any) => {
+  if (!user) {
+    return false;
+  }
+
+  if (user.role === 'admin') {
+    return pathname === '/admin' || pathname.startsWith('/admin/');
+  }
+
+  if (user.store_type === 'topup') {
+    return pathname === '/topup-merchant' || pathname.startsWith('/topup-merchant/');
+  }
+
+  return pathname === '/merchant' || pathname.startsWith('/merchant/');
+};
+
+export const DashboardLayout = ({ children, title, role, counts }: { children: React.ReactNode; title: string; role: string; counts?: Record<string, number> }) => {
   const { user, logout } = useAuthStore();
   const { appName, logoUrl } = useSettingsStore();
   const { dashboardQuery, setDashboardQuery } = useSearchStore();
@@ -557,10 +357,12 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
   useEffect(() => {
     const storeId = user?.role === 'merchant' ? user.store_id : '';
     const roleParam = user?.role || '';
+    console.log("🔄 DashboardLayout fetching settings:", { storeId, roleParam });
 
-    fetch('/api/settings' + (storeId ? '?storeId=' + storeId + '&role=' + roleParam : '?role=' + roleParam))
+    fetch(`/api/settings${storeId ? `?storeId=${storeId}&role=${roleParam}` : `?role=${roleParam}`}`)
       .then(res => res.json())
       .then(data => {
+        console.log("📥 DashboardLayout received settings:", data);
         if (data && !data.error) {
           const settingsData = {
             app_name: data.app_name || appName,
@@ -569,10 +371,11 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
 
           setSettings(settingsData);
           useSettingsStore.getState().setSettings(settingsData);
+          console.log("✅ Settings updated in both local and Zustand store:", settingsData);
         }
       })
       .catch((err) => {
-        console.error('Failed to fetch settings:', err);
+        console.error("❌ Failed to fetch settings:", err);
       });
   }, [appName, user?.role, user?.store_id]);
 
@@ -582,100 +385,85 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
     setDashboardQuery('');
   };
 
-  const navItems = role === 'admin'
-    ? [
-        { icon: LayoutDashboard, label: 'الرئيسية', path: '/admin' },
-        { icon: Users, label: 'المستخدمون', path: '/admin/users', count: counts?.users },
-        { icon: StoreIcon, label: 'المتاجر', path: '/admin/stores', count: counts?.stores },
-        { icon: CheckCircle, label: 'طلبات التفعيل', path: '/admin/approvals', count: counts?.approvals },
-        { icon: BarChart3, label: 'الإحصاءات', path: '/admin/stats' },
-        { icon: Settings, label: 'الإعدادات', path: '/admin/settings' },
-      ]
-    : [
-        { icon: LayoutDashboard, label: 'الرئيسية', path: '/merchant' },
-        { icon: Package, label: 'المنتجات', path: '/merchant/products', count: counts?.products },
-        { icon: Layout, label: 'التصنيفات', path: '/merchant/categories', count: counts?.categories },
-        { icon: Zap, label: 'المزادات', path: '/merchant/auctions', count: counts?.auctions },
-        { icon: ShoppingCart, label: 'الطلبات', path: '/merchant/orders', count: counts?.orders },
-        { icon: Ticket, label: 'القسائم', path: '/merchant/coupons', count: counts?.coupons },
-        { icon: Users, label: 'العملاء', path: '/merchant/customers', count: counts?.customers },
-        { icon: Settings, label: 'الإعدادات', path: '/merchant/settings' },
-      ];
+  const navItems = getDashboardLayoutNavItems(role, counts);
+  const publicStorePath = getPublicStorePath(user);
 
   const isNavItemActive = (path: string) => {
     const rootPath = role === 'admin' ? '/admin' : '/merchant';
     if (path === rootPath) {
       return location.pathname === path;
     }
-    return location.pathname === path || location.pathname.startsWith(path + '/');
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
   if (isMobile) {
+    // Mobile Layout
     return (
-      <div className={cn('flex flex-col h-screen w-screen overflow-hidden', isDarkMode ? 'bg-gray-900' : 'bg-[#F5F5F5]')}
+      <div className={cn("flex flex-col h-screen w-screen overflow-hidden", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} 
         data-dashboard-layout="mobile"
         dir="rtl"
       >
-        <div className={cn('border-b px-4 py-3 sticky top-0 z-30 backdrop-blur-sm', isDarkMode ? 'bg-gray-800/95 border-gray-700' : 'bg-white/95 border-black/5')}>
+        {/* Mobile Header */}
+        <div className={cn("border-b px-4 py-3 sticky top-0 z-30 backdrop-blur-sm", isDarkMode ? "bg-gray-800/95 border-gray-700" : "bg-white/95 border-black/5")}>
           <div className="flex items-center gap-3">
-            <button
+            <button 
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className={cn('p-2 rounded-lg transition-colors flex-shrink-0', isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100')}
-              aria-label={'فتح القائمة'}
+              className={cn("p-2 rounded-lg transition-colors flex-shrink-0", isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100")}
+              aria-label="فتح القائمة"
             >
-              {sidebarOpen ? <X size={22} className={isDarkMode ? 'text-gray-100' : 'text-gray-900'} /> : <Menu size={22} className={isDarkMode ? 'text-gray-100' : 'text-gray-900'} />}
+              {sidebarOpen ? <X size={22} className={isDarkMode ? "text-gray-100" : "text-gray-900"} /> : <Menu size={22} className={isDarkMode ? "text-gray-100" : "text-gray-900"} />}
             </button>
             <div className="min-w-0 flex-1 text-center">
-              <h2 className={cn('text-base font-normal truncate', isDarkMode ? 'text-gray-100' : 'text-gray-900')}>{title}</h2>
-              <p className={cn('text-[10px] truncate', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>{settings.app_name}</p>
+              <h2 className={cn("text-base font-normal truncate", isDarkMode ? "text-gray-100" : "text-gray-900")}>{title}</h2>
+              <p className={cn("text-[10px] truncate", isDarkMode ? "text-gray-400" : "text-gray-500")}>{settings.app_name}</p>
             </div>
-            <button
+            <button 
               onClick={() => setIsDarkMode(!isDarkMode)}
               className={cn(
-                'p-2 rounded-lg border transition-all flex items-center justify-center flex-shrink-0',
-                isDarkMode
-                  ? 'bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800'
-                  : 'bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100'
+                "p-2 rounded-lg border transition-all flex items-center justify-center flex-shrink-0",
+                isDarkMode 
+                  ? "bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800" 
+                  : "bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100"
               )}
-              title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}
+              title={isDarkMode ? "الوضع الفاتح" : "الوضع الداكن"}
             >
               {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
           </div>
           <div className="relative mt-3">
-            <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2', isDarkMode ? 'text-gray-500' : 'text-gray-400')} size={16} />
-            <input
-              type="text"
-              placeholder={'بحث...'}
+            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2", isDarkMode ? "text-gray-500" : "text-gray-400")} size={16} />
+            <input 
+              type="text" 
+              placeholder="بحث..." 
               value={dashboardQuery}
               onChange={(e) => setDashboardQuery(e.target.value)}
-              className={cn('w-full pl-9 pr-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition-colors text-sm', isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500' : 'bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400')}
+              className={cn("w-full pl-9 pr-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition-colors text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500" : "bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400")}
             />
           </div>
         </div>
 
+        {/* Mobile Menu Drawer Overlay */}
         {sidebarOpen && (
-          <div
+          <div 
             className="fixed inset-0 bg-black/50 z-40"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
+        {/* Mobile Menu Drawer */}
         <div className={cn(
-          'fixed inset-y-0 right-0 z-50 w-72 max-w-[85vw] transform border-l transition-transform',
-          sidebarOpen ? '-translate-x-0' : 'translate-x-full',
-          isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-black/5'
+          "fixed inset-y-0 right-0 z-50 w-72 max-w-[85vw] transform border-l transition-transform",
+          sidebarOpen ? "-translate-x-0" : "translate-x-full",
+          isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5"
         )}>
-          <div className={cn('p-5 border-b', isDarkMode ? 'border-gray-700' : 'border-black/5')}>
+          <div className={cn("p-5 border-b", isDarkMode ? "border-gray-700" : "border-black/5")}>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <h3 className={cn('text-lg font-normal truncate', isDarkMode ? 'text-gray-100' : 'text-gray-900')}>{settings.app_name}</h3>
-                <p className={cn('text-xs', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>
-                  {'لوحة'} {role === 'admin' ? 'الإدارة' : 'التاجر'}
-                </p>
+                <h3 className={cn("text-lg font-normal truncate", isDarkMode ? "text-gray-100" : "text-gray-900")}>{settings.app_name}</h3>
+                <p className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-500")}>لوحة {role === 'admin' ? 'الإدارة' : 'التاجر'}</p>
               </div>
               {settings.logo_url ? (
-                <div className={cn('w-14 h-14 rounded-full overflow-hidden ring-2 flex-shrink-0', isDarkMode ? 'ring-gray-600 bg-gray-700' : 'ring-indigo-100 bg-gray-50')}>
+                <div className={cn("w-14 h-14 rounded-full overflow-hidden ring-2 flex-shrink-0", isDarkMode ? "ring-gray-600 bg-gray-700" : "ring-indigo-100 bg-gray-50")}>
                   <img src={settings.logo_url} className="w-full h-full object-cover" alt="logo" />
                 </div>
               ) : (
@@ -695,10 +483,10 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
                   setSidebarOpen(false);
                 }}
                 className={cn(
-                  'flex items-center justify-between px-4 py-3 rounded-xl transition-colors group',
+                  "flex items-center justify-between px-4 py-3 rounded-xl transition-colors group",
                   isNavItemActive(item.path)
-                    ? (isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-indigo-50 text-indigo-600')
-                    : (isDarkMode ? 'text-gray-300 hover:bg-gray-700 hover:text-blue-400' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-600')
+                    ? (isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-indigo-50 text-indigo-600")
+                    : (isDarkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-indigo-50 hover:text-indigo-600")
                 )}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -706,158 +494,162 @@ const DashboardLayout = ({ children, title, role, counts }: { children: React.Re
                   <span className="font-medium text-sm truncate">{item.label}</span>
                 </div>
                 {item.count !== undefined && item.count > 0 && (
-                  <span className={cn('text-[10px] font-normal px-2 py-0.5 rounded-full ring-2 shadow-sm flex-shrink-0', isDarkMode ? 'bg-blue-900 text-blue-300 ring-gray-700' : 'bg-indigo-100 text-indigo-600 ring-white')}>
+                  <span className={cn("text-[10px] font-normal px-2 py-0.5 rounded-full ring-2 shadow-sm flex-shrink-0", isDarkMode ? "bg-blue-900 text-blue-300 ring-gray-700" : "bg-indigo-100 text-indigo-600 ring-white")}>
                     {item.count}
                   </span>
                 )}
               </Link>
             ))}
           </nav>
-          <div className={cn('p-3 border-t space-y-2', isDarkMode ? 'border-gray-700' : 'border-black/5')}>
-            {role === 'merchant' && user?.store_slug && (
-              <Link
-                to={'/store/' + user.store_slug}
+          <div className={cn("p-3 border-t space-y-2", isDarkMode ? "border-gray-700" : "border-black/5")}>
+            {role === 'merchant' && publicStorePath && (
+              <Link 
+                to={publicStorePath} 
                 target="_blank"
                 onClick={() => setSidebarOpen(false)}
-                className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-normal', isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-indigo-600 text-white hover:bg-indigo-700')}
+                className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-normal", isDarkMode ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-indigo-600 text-white hover:bg-indigo-700")}
               >
                 <ExternalLink size={18} className="flex-shrink-0" />
-                <span className="truncate">{'عرض المتجر'}</span>
+                <span className="truncate">عرض المتجر</span>
               </Link>
             )}
             <button
               onClick={handleLogout}
-              className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm', isDarkMode ? 'text-red-400 hover:bg-red-900/30' : 'text-red-600 hover:bg-red-50')}
+              className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm", isDarkMode ? "text-red-400 hover:bg-red-900/30" : "text-red-600 hover:bg-red-50")}
             >
               <LogOut size={18} />
-              <span className="truncate">{'تسجيل الخروج'}</span>
+              <span className="truncate">تسجيل الخروج</span>
             </button>
           </div>
         </div>
 
+        {/* Mobile Content */}
         <div className="flex-1 overflow-y-auto">
-          <div className={cn('px-4 py-4 pb-28', isDarkMode ? 'bg-gray-900' : 'bg-[#F5F5F5]')}>
+          <div className={cn("px-4 py-4 pb-28", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
             {children}
           </div>
         </div>
 
+        {/* Mobile Footer Navigation */}
         <MobileFooterNav />
       </div>
     );
   }
 
+  // Desktop Layout
   return (
-    <div className={cn('h-screen w-screen overflow-hidden flex-row', isDarkMode ? 'bg-gray-900' : 'bg-[#F5F5F5]')}
+    <div className={cn("h-screen w-screen overflow-hidden flex-row", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} 
       data-dashboard-layout="desktop"
       dir="rtl"
     >
+      {/* Sidebar */}
       <aside className={cn(
-        'relative w-64 h-screen border-r flex-col overflow-hidden flex',
-        isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-black/5'
+        "relative w-64 h-screen border-r flex-col overflow-hidden flex",
+        isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5"
       )}>
-        <div className={cn('p-6 text-center border-b flex-shrink-0', isDarkMode ? 'border-gray-700' : 'border-black/5')}>
-          <div className="flex flex-col items-center gap-3">
-            {settings.logo_url ? (
-              <div className={cn('w-20 h-20 rounded-full overflow-hidden ring-4 shadow-lg flex items-center justify-center flex-shrink-0', isDarkMode ? 'ring-gray-700 bg-gray-700' : 'ring-indigo-50 bg-gray-50')}>
-                <img src={settings.logo_url} className="w-full h-full object-cover" alt="logo" />
-              </div>
-            ) : (
-              <div className="w-20 h-20 rounded-full bg-indigo-600 flex items-center justify-center text-white text-2xl font-normal shadow-lg ring-4 ring-indigo-50 flex-shrink-0">
-                {settings.app_name?.[0]}
-              </div>
-            )}
-            <div>
-              <h1 className={cn('text-lg font-normal tracking-tighter mb-0.5', isDarkMode ? 'text-blue-400' : 'text-indigo-600')}>{settings.app_name}</h1>
-              <p className={cn('text-[9px] uppercase tracking-[0.2em] font-normal italic', isDarkMode ? 'text-gray-500' : 'text-gray-400')}>
-                {'لوحة'} {role === 'admin' ? 'الإدارة' : 'التاجر'}
-              </p>
+        <div className={cn("p-6 text-center border-b flex-shrink-0", isDarkMode ? "border-gray-700" : "border-black/5")}>
+        <div className="flex flex-col items-center gap-3">
+          {settings.logo_url ? (
+            <div className={cn("w-20 h-20 rounded-full overflow-hidden ring-4 shadow-lg flex items-center justify-center flex-shrink-0", isDarkMode ? "ring-gray-700 bg-gray-700" : "ring-indigo-50 bg-gray-50")}>
+              <img src={settings.logo_url} className="w-full h-full object-cover" alt="logo" />
             </div>
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-indigo-600 flex items-center justify-center text-white text-2xl font-normal shadow-lg ring-4 ring-indigo-50 flex-shrink-0">
+              {settings.app_name?.[0]}
+            </div>
+          )}
+          <div>
+            <h1 className={cn("text-lg font-normal tracking-tighter mb-0.5", isDarkMode ? "text-blue-400" : "text-indigo-600")}>{settings.app_name}</h1>
+            <p className={cn("text-[9px] uppercase tracking-[0.2em] font-normal italic", isDarkMode ? "text-gray-500" : "text-gray-400")}>لوحة {role === 'admin' ? 'الإدارة' : 'التاجر'}</p>
           </div>
         </div>
-
-        <nav className="flex-1 px-3 space-y-1 overflow-y-auto pb-20">
-          {navItems.map((item) => (
-            <Link
-              key={item.label}
-              to={item.path}
-              onClick={() => {
-                setDashboardQuery('');
-                setSidebarOpen(false);
-              }}
-              className={cn(
-                'flex items-center justify-between px-4 py-3 rounded-xl transition-colors group',
-                isNavItemActive(item.path)
-                  ? (isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-indigo-50 text-indigo-600')
-                  : (isDarkMode ? 'text-gray-300 hover:bg-gray-700 hover:text-blue-400' : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-600')
-              )}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                {item.icon && <item.icon size={20} className="group-hover:scale-110 transition-transform flex-shrink-0" />}
-                <span className="font-medium text-sm truncate">{item.label}</span>
-              </div>
-              {item.count !== undefined && item.count > 0 && (
-                <span className={cn('text-[10px] font-normal px-2 py-0.5 rounded-full ring-2 shadow-sm group-hover:transition-all flex-shrink-0', isDarkMode ? 'bg-blue-900 text-blue-300 ring-gray-700 group-hover:bg-blue-600 group-hover:text-white' : 'bg-indigo-100 text-indigo-600 ring-white group-hover:bg-indigo-600 group-hover:text-white')}>
-                  {item.count}
-                </span>
-              )}
-            </Link>
-          ))}
-        </nav>
-
-        <div className={cn('p-3 border-t space-y-2 flex-shrink-0', isDarkMode ? 'border-gray-700' : 'border-black/5')}>
-          {role === 'merchant' && user?.store_slug && (
-            <Link
-              to={'/store/' + user.store_slug}
-              target="_blank"
-              className={cn('w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all shadow-lg group text-sm font-normal', isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-900' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100')}
-            >
-              <div className="flex items-center gap-3">
-                <ExternalLink size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform flex-shrink-0" />
-                <span className="truncate">{'عرض المتجر'}</span>
-              </div>
-            </Link>
-          )}
-
-          <button
-            onClick={handleLogout}
-            className={cn('w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm', isDarkMode ? 'text-red-400 hover:bg-red-900/30' : 'text-red-600 hover:bg-red-50')}
+      </div>
+      
+      <nav className="flex-1 px-3 space-y-1 overflow-y-auto pb-20">
+        {navItems.map((item, index) => (
+          <Link
+            key={item.label}
+            to={item.path}
+            onClick={() => {
+              setDashboardQuery('');
+              setSidebarOpen(false);
+            }}
+            className={cn(
+              "flex items-center justify-between px-4 py-3 rounded-xl transition-colors group",
+              isNavItemActive(item.path)
+                ? (isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-indigo-50 text-indigo-600")
+                : (isDarkMode ? "text-gray-300 hover:bg-gray-700 hover:text-blue-400" : "text-gray-600 hover:bg-indigo-50 hover:text-indigo-600")
+            )}
           >
-            <LogOut size={18} />
-            <span className="truncate">{'تسجيل الخروج'}</span>
-          </button>
+            <div className="flex items-center gap-3 min-w-0">
+              {item.icon && <item.icon size={20} className="group-hover:scale-110 transition-transform flex-shrink-0" />}
+              <span className="font-medium text-sm truncate">{item.label}</span>
+            </div>
+            {item.count !== undefined && item.count > 0 && (
+              <span className={cn("text-[10px] font-normal px-2 py-0.5 rounded-full ring-2 shadow-sm group-hover:transition-all flex-shrink-0", isDarkMode ? "bg-blue-900 text-blue-300 ring-gray-700 group-hover:bg-blue-600 group-hover:text-white" : "bg-indigo-100 text-indigo-600 ring-white group-hover:bg-indigo-600 group-hover:text-white")}>
+                {item.count}
+              </span>
+            )}
+          </Link>
+        ))}
+      </nav>
+
+      <div className={cn("p-3 border-t space-y-2 flex-shrink-0", isDarkMode ? "border-gray-700" : "border-black/5")}>
+        {role === 'merchant' && publicStorePath && (
+          <Link 
+            to={publicStorePath} 
+            target="_blank"
+            className={cn("w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all shadow-lg group text-sm font-normal", isDarkMode ? "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-900" : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100")}
+          >
+            <div className="flex items-center gap-3">
+              <ExternalLink size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform flex-shrink-0" />
+              <span className="truncate">عرض المتجر</span>
+            </div>
+          </Link>
+        )}
+
+        <button
+          onClick={handleLogout}
+          className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-normal text-sm", isDarkMode ? "text-red-400 hover:bg-red-900/30" : "text-red-600 hover:bg-red-50")}
+        >
+          <LogOut size={18} />
+          <span className="truncate">تسجيل الخروج</span>
+        </button>
         </div>
       </aside>
 
+      {/* Main Content */}
       <main className="flex-1 h-full overflow-hidden flex-col flex">
-        <header className={cn('px-8 py-6 border-b flex justify-between items-center flex-shrink-0', isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-black/5')}>
-          <h2 className={cn('text-3xl font-normal tracking-tight', isDarkMode ? 'text-gray-100' : 'text-gray-900')}>{title}</h2>
+        <header className={cn("px-8 py-6 border-b flex justify-between items-center flex-shrink-0", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5")}>
+          <h2 className={cn("text-3xl font-normal tracking-tight", isDarkMode ? "text-gray-100" : "text-gray-900")}>{title}</h2>
           <div className="flex gap-4 items-center">
-            <button
+            {/* Theme Toggle Button */}
+            <button 
               onClick={() => setIsDarkMode(!isDarkMode)}
               className={cn(
-                'p-2.5 rounded-lg border transition-all flex items-center justify-center',
-                isDarkMode
-                  ? 'bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800'
-                  : 'bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100'
+                "p-2.5 rounded-lg border transition-all flex items-center justify-center",
+                isDarkMode 
+                  ? "bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800" 
+                  : "bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100"
               )}
-              title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}
+              title={isDarkMode ? "الوضع الفاتح" : "الوضع الداكن"}
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-
+            
             <div className="relative hidden sm:block">
-              <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2', isDarkMode ? 'text-gray-500' : 'text-gray-400')} size={18} />
-              <input
-                type="text"
-                placeholder={'بحث...'}
+              <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2", isDarkMode ? "text-gray-500" : "text-gray-400")} size={18} />
+              <input 
+                type="text" 
+                placeholder="بحث..." 
                 value={dashboardQuery}
                 onChange={(e) => setDashboardQuery(e.target.value)}
-                className={cn('pl-10 pr-4 py-2 border rounded-xl focus:outline-none focus:ring-2 w-64 transition-colors', isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500' : 'bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400')}
+                className={cn("pl-10 pr-4 py-2 border rounded-xl focus:outline-none focus:ring-2 w-64 transition-colors", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500" : "bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400")}
               />
             </div>
           </div>
         </header>
-        <div className={cn('flex-1 overflow-y-auto px-8 py-8', isDarkMode ? 'bg-gray-900' : 'bg-[#F5F5F5]')}>
+        <div className={cn("flex-1 overflow-y-auto px-8 py-8", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
           {children}
         </div>
       </main>
@@ -969,8 +761,6 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               store_name: fullProduct.store_name || cartItem.store_name,
               company_name: fullProduct.company_name,
               category_name: fullProduct.category_name,
-              images: fullProduct.images || cartItem.images,
-              gallery: fullProduct.gallery || cartItem.gallery,
               image_url: fullProduct.image_url || cartItem.image_url,
               store_type: isTopupCart ? 'topup' : 'regular'
             };
@@ -1098,7 +888,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
       
       // For regular store: Leave phone empty (customer enters their own number)
       // Don't autofill from user.phone to avoid confusion with store owner phone
-      console.log('â„¹ï¸ڈ Regular store: Phone field left empty for customer to enter');
+      console.log('ℹ️ Regular store: Phone field left empty for customer to enter');
       return;
     }
     
@@ -1125,45 +915,8 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
     }
     
     // رابعاً: إذا لم يكن هناك user id، لا تفعل شيئاً
-    console.log('â„¹ï¸ڈ No user data available');
+    console.log('ℹ️ No user data available');
   }, [isTopupCart, user?.id, user?.name, user?.phone]);
-
-  const fetchCustomerByPhone = async (storeId: number | string, customerPhone: string) => {
-    const response = await fetch(`/api/customers?storeId=${storeId}&phone=${encodeURIComponent(customerPhone)}`);
-    return readJsonResponse(response, `Customer lookup failed with status ${response.status}`);
-  };
-
-  const readJsonResponse = async (response: Response, fallbackMessage: string) => {
-    const contentType = response.headers.get('content-type') || '';
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      if (contentType.includes('application/json')) {
-        try {
-          const errorData = responseText ? JSON.parse(responseText) : null;
-          throw new Error(errorData?.error || fallbackMessage);
-        } catch {
-          throw new Error(responseText || fallbackMessage);
-        }
-      }
-
-      throw new Error(responseText || fallbackMessage);
-    }
-
-    if (!responseText) {
-      return null;
-    }
-
-    if (!contentType.includes('application/json')) {
-      throw new Error(responseText || fallbackMessage);
-    }
-
-    try {
-      return JSON.parse(responseText);
-    } catch {
-      throw new Error(responseText || fallbackMessage);
-    }
-  };
 
   // التحقق من العميل في قاعدة البيانات عند تغيير رقم الهاتف
   useEffect(() => {
@@ -1182,7 +935,8 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
         const storeId = items[0]?.store_id;
         if (!storeId) return;
 
-        const data = await fetchCustomerByPhone(storeId, phone);
+        const res = await fetch(`/api/customers?storeId=${storeId}&phone=${encodeURIComponent(phone)}`);
+        const data = await res.json();
 
         if (!isMounted) return;
 
@@ -1303,13 +1057,8 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
       }
 
       // Request 1: Verify customer in database
-      let customerData = null;
-
-      try {
-        customerData = await fetchCustomerByPhone(storeId, phone);
-      } catch (verifyError) {
-        console.error('Customer verification request failed, continuing with guest checkout:', verifyError);
-      }
+      const verifyRes = await fetch(`/api/customers?storeId=${storeId}&phone=${encodeURIComponent(phone)}`);
+      const customerData = await verifyRes.json();
 
       let verifiedCustomer = customerData;
       
@@ -1345,56 +1094,62 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 
     setIsConfirmingOrder(true);
     try {
-      // Regular store checkout must not send customer_id.
-      // Production currently rejects regular orders when customer_id is present.
+      // First try to get customer_id from localStorage (topup customer data)
       let customerId = null;
-
-      if (isTopupCart) {
-        const savedCustomer = localStorage.getItem('topupCustomer');
-        if (savedCustomer) {
-          try {
-            const topupCustData = JSON.parse(savedCustomer);
-            customerId = topupCustData.id;
-          } catch (e) {
-            console.error('Error parsing topupCustomer:', e);
-          }
+      const savedCustomer = isTopupCart ? localStorage.getItem('topupCustomer') : null;
+      if (savedCustomer) {
+        try {
+          const topupCustData = JSON.parse(savedCustomer);
+          customerId = topupCustData.id;
+        } catch (e) {
+          console.error('Error parsing topupCustomer:', e);
         }
-
-        if (!customerId && user?.id) {
-          customerId = user.id;
+      }
+      
+      // Fallback to user.id or try to create guest customer
+      if (!customerId && user?.id) {
+        customerId = user.id;
+      }
+      
+      if (!customerId) {
+        try {
+          const guestRes = await fetch('/api/admin/add-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: name.trim() || phone.trim(),
+              phone: phone.trim(),
+              role: 'customer',
+              password: 'guest123'
+            })
+          });
+          
+          if (guestRes.ok) {
+            const guestUser = await guestRes.json();
+            customerId = guestUser.id;
+          }
+        } catch (err) {
+          console.error('Failed to create guest customer:', err);
         }
       }
       
       const itemsByStore = enrichedItems.reduce((acc: any, item) => {
         const storeId = item.store_id;
-        const storeType = isTopupCart ? 'topup' : 'regular';
         if (!acc[storeId]) {
           acc[storeId] = {
             items: [],
-            store_type: storeType
+            store_type: isTopupCart ? 'topup' : 'regular'
           };
         }
-
-        if (storeType === 'topup') {
-          acc[storeId].items.push({
-            product_id: item.id,
-            quantity: item.quantity,
-            price: item.price,
-            name: item.name,
-            product_name: (item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name,
-            company_name: (item.store_name && item.store_name !== 'undefined') ? item.store_name : 'بدون شركة',
-            images: Array.isArray(item.images) ? item.images : [],
-            gallery: Array.isArray(item.gallery) ? item.gallery : [],
-            topup_codes: item.topup_codes
-          });
-        } else {
-          acc[storeId].items.push({
-            product_id: item.id,
-            quantity: item.quantity,
-            price: item.price
-          });
-        }
-
+        acc[storeId].items.push({
+          product_id: item.id,
+          quantity: item.quantity,
+          price: item.price,
+          product_name: (item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name,
+          company_name: (item.store_name && item.store_name !== 'undefined') ? item.store_name : 'بدون شركة',
+          image_url: item.image_url,
+          topup_codes: item.topup_codes
+        });
         return acc;
       }, {});
 
@@ -1452,11 +1207,11 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                 phone: phone.trim(),
                 address: address.trim(),
                 total_amount: itemAmount - itemDiscount,
-                selected_images: (item.gallery && Array.isArray(item.gallery) ? item.gallery.map((img: any) => typeof img === 'string' ? img : img.url) : item.images) || []
+                selected_images: item.selectedImagesForPurchase || item.images || []
               })
             });
 
-            const data = await readJsonResponse(res, 'فشل إنشاء طلب الشحن');
+            const data = await res.json();
             if (!res.ok) {
               throw new Error(data.error || 'فشل إنشاء طلب الشحن');
             }
@@ -1465,48 +1220,44 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             let itemImages: any[] = data.images || [];
             let productImages: any[] = [];
             
-            // Always fetch fresh images from order-images endpoint (images API has product info)
-            try {
-              console.log('📦 Fetching fresh images from order-images endpoint...');
-              const imagesRes = await fetch(`/api/topup/order-images/${data.order_id}`);
-              const imagesData = await readJsonResponse(imagesRes, 'فشل جلب صور طلب الشحن');
-              
-              console.log('🖼️ Fetched images response:', {
+            // Fallback: Fetch images if not in response
+            if (itemImages.length === 0) {
+              try {
+                const imagesRes = await fetch(`/api/topup/order-images/${data.order_id}`);
+                const imagesData = await imagesRes.json();
+                
+                if (imagesData.images && Array.isArray(imagesData.images)) {
+                  itemImages = imagesData.images;
+                } else if (Array.isArray(imagesData)) {
+                  itemImages = imagesData;
+                }
+                
+                console.log('🖼️ Fetched images from API (fallback):', {
+                  orderId: data.order_id,
+                  imagesCount: itemImages.length,
+                  grouped: imagesData.grouped_by_product
+                });
+              } catch (err) {
+                console.error('Failed to fetch topup images:', err);
+              }
+            } else {
+              console.log('🖼️ Got images from purchase response:', {
                 orderId: data.order_id,
-                imagesCount: imagesData.images?.length || 0,
-                hasGrouped: !!imagesData.grouped_by_product
+                imagesCount: itemImages.length
               });
-              
-              // Use grouped images for this product
-              if (imagesData.grouped_by_product && imagesData.grouped_by_product[item.product_id]) {
-                productImages = imagesData.grouped_by_product[item.product_id];
-                console.log(`  ✓ Found ${productImages.length} images for product ${item.product_id}`);
-              } else if (imagesData.images && Array.isArray(imagesData.images)) {
-                // Fallback: filter by product_id from flat list
-                productImages = imagesData.images.filter((img: any) => img.product_id === item.product_id);
-                console.log(`  ✓ Filtered to ${productImages.length} images for product ${item.product_id}`);
-              }
-            } catch (err) {
-              console.error('❌ Error fetching images from order-images:', err);
-              // Last resort fallback: use purchase response images
-              if (itemImages.length > 0 && typeof itemImages[0] === 'string') {
-                console.log('  ⚠️ Using fallback images from purchase response');
-                productImages = itemImages.slice(0, item.quantity).map((url: string) => ({ image_url: url }));
-              }
             }
 
-            if (productImages.length === 0) {
-              const fallbackItemImages = getProductImageCandidates(item)
-                .slice(0, item.quantity)
-                .map((url: string) => ({ image_url: url, product_id: item.product_id }));
+            // Filter images for this product only
+            productImages = itemImages.filter((img: any) => {
+              const productId = typeof img === 'string' ? item.product_id : img.product_id;
+              return img.product_id === item.product_id || typeof img === 'string';
+            });
 
-              if (fallbackItemImages.length > 0) {
-                console.log(`  ⚠️ Using fallback product images from cart item for product ${item.product_id}`);
-                productImages = fallbackItemImages;
-              }
+            // If productImages is empty and itemImages contains strings, use item.images directly
+            if (productImages.length === 0 && Array.isArray(itemImages) && itemImages.length > 0 && typeof itemImages[0] === 'string') {
+              productImages = itemImages.slice(0, item.quantity).map((url: string) => ({ image_url: url }));
             }
 
-            console.log(`📱 Product ${item.product_id} images count: ${productImages.length}`);
             allCodes = [...allCodes, ...productImages];
             confirmationItems.push({
               ...item,
@@ -1518,8 +1269,6 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                 : 'غير محدد',
               product_images: productImages
             });
-            
-            console.log('✅ Confirmation item created with', productImages.length, 'images');
           }
 
           // Create single confirmation with all items
@@ -1555,7 +1304,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
             body: JSON.stringify(orderPayload),
           });
 
-          const data = await readJsonResponse(res, 'فشل في إتمام الطلب');
+          const data = await res.json();
           if (!res.ok) {
             throw new Error(data.error || 'فشل في إتمام الطلب');
           }
@@ -1564,6 +1313,8 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 
       setAppliedCoupon(null);
       setVerificationModal(null);
+
+      await refreshTopupCustomerDebtAfterCheckout(customerId);
       
       if (orderConfirmations.length > 0) {
         const confirmation = {
@@ -1587,6 +1338,183 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
     }
   };
 
+  const refreshTopupCustomerDebtAfterCheckout = async (customerId: number | null) => {
+    if (!isTopupCart || !customerId) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/customers/${customerId}/statement`, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
+      const transactions = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.transactions)
+          ? data.transactions
+          : [];
+
+      let refreshedDebt = 0;
+      if (data?.current_debt !== undefined) {
+        refreshedDebt = Number(data.current_debt) || 0;
+      } else if (transactions.length > 0) {
+        const latestTransaction = transactions[transactions.length - 1];
+        refreshedDebt = Number(latestTransaction?.balance) || 0;
+      }
+
+      const savedTopupCustomer = localStorage.getItem('topupCustomer');
+      if (!savedTopupCustomer) {
+        return;
+      }
+
+      const parsedCustomer = JSON.parse(savedTopupCustomer);
+      const updatedCustomer = {
+        ...parsedCustomer,
+        id: parsedCustomer.id || customerId,
+        customer_id: parsedCustomer.customer_id || customerId,
+        current_debt: refreshedDebt,
+      };
+
+      localStorage.setItem('topupCustomer', JSON.stringify(updatedCustomer));
+      console.log('✅ Refreshed topup customer debt after checkout:', refreshedDebt);
+    } catch (error) {
+      console.error('Failed to refresh topup customer debt after checkout:', error);
+    }
+  };
+
+  const getConfirmedItemImages = (item: any, fallbackCodes: any[] = []) => {
+    const productImages = Array.isArray(item?.product_images) ? item.product_images : [];
+    if (productImages.length > 0) {
+      return productImages;
+    }
+
+    const codes = Array.isArray(fallbackCodes) ? fallbackCodes : [];
+    return codes.slice(0, item?.quantity || 0);
+  };
+
+  const getDownloadExtension = (imageUrl: string) => {
+    if (imageUrl.startsWith('data:image/')) {
+      const dataMatch = imageUrl.match(/^data:image\/([^;]+)/i);
+      const dataExt = dataMatch?.[1]?.toLowerCase();
+      return dataExt === 'svg+xml' ? 'svg' : dataExt || 'jpg';
+    }
+
+    try {
+      const resolvedUrl = new URL(imageUrl, window.location.origin);
+      const fileName = resolvedUrl.pathname.split('/').pop() || '';
+      const fileExt = fileName.split('.').pop()?.toLowerCase();
+      return fileExt || 'jpg';
+    } catch {
+      return 'jpg';
+    }
+  };
+
+  const sanitizeDownloadName = (value: string) => {
+    const sanitized = value.replace(/[\\/:*?"<>|]+/g, '_').trim();
+    return sanitized || 'صورة';
+  };
+
+  const getDownloadTimestamp = () => {
+    const now = new Date();
+    const datePart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const timePart = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+    return `${datePart}_${timePart}`;
+  };
+
+  const handleDownloadPurchasedImages = async () => {
+    try {
+      let downloadCount = 0;
+      const downloadTimestamp = getDownloadTimestamp();
+      const JSZip = await loadJSZip();
+      const zip = new JSZip();
+      const addedZipEntries = new Set<string>();
+      const productFileCounters = new Map<string, number>();
+      let hasImages = false;
+
+      for (const conf of orderConfirmation.confirmations) {
+        for (const item of conf.items) {
+          const productImages = getConfirmedItemImages(item, conf.codes);
+          const companyName = sanitizeDownloadName(item.company_name || 'شركة_غير_محددة');
+          const companyFolderName = companyName;
+          const productName = sanitizeDownloadName(item.product_name || item.name || `منتج_${item.product_id || 'image'}`);
+          const productCounterKey = `${companyFolderName}/${productName}`;
+
+          for (let index = 0; index < productImages.length; index++) {
+            const imageObj = productImages[index];
+            const imageUrl = imageObj?.image_url || imageObj;
+
+            if (!imageUrl) {
+              continue;
+            }
+
+            try {
+              const response = await fetch(imageUrl, {
+                cache: 'no-store'
+              });
+
+              if (!response.ok) {
+                continue;
+              }
+
+              const blob = await response.blob();
+              const extension = getDownloadExtension(imageUrl);
+              const nextCounter = (productFileCounters.get(productCounterKey) || 0) + 1;
+              productFileCounters.set(productCounterKey, nextCounter);
+              const zipEntryPath = `${companyFolderName}/${productName}_${downloadTimestamp}_${nextCounter}.${extension}`;
+
+              if (addedZipEntries.has(zipEntryPath)) {
+                continue;
+              }
+
+              zip.file(zipEntryPath, blob, {
+                binary: true,
+                compression: 'STORE'
+              });
+              addedZipEntries.add(zipEntryPath);
+              hasImages = true;
+              downloadCount++;
+            } catch (error) {
+              console.warn('تعذر إضافة صورة إلى ملف التنزيل المنظم:', error);
+            }
+          }
+        }
+      }
+
+      if (!hasImages || downloadCount === 0) {
+        alert('❌ لا توجد صور متاحة للتنزيل');
+        return;
+      }
+
+      const zipBlob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'STORE'
+      });
+      const zipUrl = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = zipUrl;
+      link.download = `صور_الشركات_${downloadTimestamp}.zip`;
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(zipUrl);
+
+      alert(`✅ تم تنزيل ملف ZIP منظم يحتوي على ${downloadCount} صورة داخل فولدرات الشركات والمنتجات.`);
+    } catch (error) {
+      console.error('خطأ في تنزيل الصور:', error);
+      alert(`❌ خطأ: ${(error as any).message || 'فشل تنزيل الصور'}`);
+    }
+  };
+
   // عرض تأكيد الطلب مع الأكواد
   if (orderConfirmation) {
     return (
@@ -1603,25 +1531,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
           <div className="space-y-4 md:hidden">
             {orderConfirmation.confirmations.map((conf: any, idx: number) => 
               conf.items.map((item: any, itemIdx: number) => {
-                // Use product-specific images if available, otherwise fall back to codes
-                let availableCodes = parseImageCollection(item.product_images).map((imageUrl: string) => ({ image_url: imageUrl }));
-                
-                if (!Array.isArray(availableCodes) || availableCodes.length === 0) {
-                  const fallbackItemImages = getOrderItemImageCandidates(item).slice(0, item.quantity || 0);
-                  if (fallbackItemImages.length > 0) {
-                    availableCodes = fallbackItemImages.map((imageUrl: string) => ({ image_url: imageUrl }));
-                  }
-                }
-
-                if (!Array.isArray(availableCodes) || availableCodes.length === 0) {
-                  // Fallback to old logic
-                  let codes = conf.codes;
-                  if (!Array.isArray(codes)) {
-                    codes = [];
-                  }
-                  const displayQuantity = item.quantity || 0;
-                  availableCodes = codes.slice(0, displayQuantity);
-                }
+                const availableCodes = getConfirmedItemImages(item, conf.codes);
 
                 let displayName = '';
                 if (item.product_name && item.product_name !== 'undefined') {
@@ -1643,11 +1553,10 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                     {availableCodes.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {availableCodes.map((imageObj: any, cIdx: number) => {
-                          const imageCandidates = parseImageCollection(imageObj.image_url || imageObj);
-                          const imageUrl = imageCandidates[0] || PLACEHOLDER_IMAGE;
+                          const imageUrl = imageObj.image_url || imageObj;
                           return (
                             <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImage(imageUrl); setShowImageModal(true); }}>
-                              <img src={imageUrl} data-image-index="0" alt={`صورة ${cIdx + 1}`} className="w-16 h-16 object-cover rounded-lg border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(event) => handleImageFallback(event, imageCandidates)} />
+                              <img src={imageUrl} alt={`صورة ${cIdx + 1}`} className="w-16 h-16 object-cover rounded-lg border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(e: any) => e.target.style.display = 'none'} />
                             </div>
                           );
                         })}
@@ -1674,25 +1583,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               <tbody>
                 {orderConfirmation.confirmations.map((conf: any, idx: number) => 
                   conf.items.map((item: any, itemIdx: number) => {
-                    // Use product-specific images if available
-                    let availableCodes = parseImageCollection(item.product_images).map((imageUrl: string) => ({ image_url: imageUrl }));
-                    
-                    if (!Array.isArray(availableCodes) || availableCodes.length === 0) {
-                      const fallbackItemImages = getOrderItemImageCandidates(item).slice(0, item.quantity || 0);
-                      if (fallbackItemImages.length > 0) {
-                        availableCodes = fallbackItemImages.map((imageUrl: string) => ({ image_url: imageUrl }));
-                      }
-                    }
-
-                    if (!Array.isArray(availableCodes) || availableCodes.length === 0) {
-                      // Fallback to old logic
-                      let codes = conf.codes;
-                      if (!Array.isArray(codes)) {
-                        codes = [];
-                      }
-                      const displayQuantity = item.quantity || 0;
-                      availableCodes = codes.slice(0, displayQuantity);
-                    }
+                    const availableCodes = getConfirmedItemImages(item, conf.codes);
                     
                     // بناء اسم المنتج - تأكد من عدم معاملة undefined
                     let displayName = '';
@@ -1727,11 +1618,10 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                           {availableCodes.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                               {availableCodes.map((imageObj: any, cIdx: number) => {
-                                const imageCandidates = parseImageCollection(imageObj.image_url || imageObj);
-                                const imageUrl = imageCandidates[0] || PLACEHOLDER_IMAGE;
+                                const imageUrl = imageObj.image_url || imageObj;
                                 return (
                                   <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImage(imageUrl); setShowImageModal(true); }}>
-                                    <img src={imageUrl} data-image-index="0" alt={`صورة ${cIdx + 1}`} className="w-12 h-12 object-cover rounded border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(event) => handleImageFallback(event, imageCandidates)} />
+                                    <img src={imageUrl} alt={`صورة ${cIdx + 1}`} className="w-12 h-12 object-cover rounded border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(e: any) => e.target.style.display = 'none'} />
                                   </div>
                                 );
                               })}
@@ -1751,75 +1641,11 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
           {/* أزرار التحكم والعودة */}
           <div className={cn("mt-8 flex flex-col sm:flex-row gap-4 justify-center")}>
             <button
-              onClick={async () => {
-                // حفظ الصور في ملف ZIP
-                try {
-                  const zip = new JSZip();
-                  
-                  // collection صور حسب المنتج
-                  let imageIndex = 0;
-                  let hasImages = false;
-                  
-                  for (const conf of orderConfirmation.confirmations) {
-                    for (const item of conf.items) {
-                      const productImages = item.product_images || [];
-                      
-                      if (productImages.length > 0) {
-                        hasImages = true;
-                        
-                        // إنشاء فولدر للمنتج
-                        const productName = item.product_name || item.name || `منتج_${item.product_id}`;
-                        const productFolder = zip.folder(productName.replace(/[\/\\:*?"<>|]/g, '_'));
-                        
-                        // إضافة الصور للفولدر
-                        for (let i = 0; i < productImages.length; i++) {
-                          const imageUrl = productImages[i].image_url || productImages[i];
-                          if (imageUrl) {
-                            try {
-                              const response = await fetch(imageUrl, { mode: 'cors' });
-                              const blob = await response.blob();
-                              
-                              // الحصول على نوع الملف
-                              const contentType = blob.type;
-                              const ext = contentType.split('/')[1]?.split(';')[0] || 'jpg';
-                              
-                              productFolder?.file(`صورة_${i + 1}.${ext}`, blob);
-                              imageIndex++;
-                            } catch (err) {
-                              console.warn(`تحذير: لم يتم تحميل صورة من ${productName}`, err);
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                  
-                  if (!hasImages) {
-                    alert('❌ لا توجد صور للحفظ');
-                    return;
-                  }
-                  
-                  // إنشاء ملف ZIP وتحميله
-                  const zipBlob = await zip.generateAsync({ type: 'blob' });
-                  const zipUrl = URL.createObjectURL(zipBlob);
-                  const link = document.createElement('a');
-                  link.href = zipUrl;
-                  link.download = `صور_الطلب_${new Date().toISOString().slice(0, 10)}.zip`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  URL.revokeObjectURL(zipUrl);
-                  
-                  alert(`✅ تم حفظ ${imageIndex} صورة في ملف ZIP!`);
-                } catch (err) {
-                  console.error('خطأ في حفظ الصور:', err);
-                  alert(`❌ خطأ: ${(err as any).message || 'فشل حفظ الصور'}`);
-                }
-              }}
+              onClick={handleDownloadPurchasedImages}
               className="px-8 py-3 rounded-lg text-white font-normal transition-all"
               style={{ backgroundColor: primaryColor }}
             >
-              💾 حفظ الصور في فولدر
+              💾 تنزيل الصور في فولدر منظم
             </button>
 
             <button
@@ -1905,37 +1731,11 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {enrichedItems.map((item) => {
-                    const imageCandidates = getProductImageCandidates(item);
-                    const itemImage = imageCandidates[0];
-
-                    return (
+                  {enrichedItems.map((item) => (
                     <tr key={item.id} className={isDarkMode ? "border-gray-700" : "border-gray-200"}>
                       <td className={cn("px-6 py-4 border-t", isDarkMode ? "text-gray-300" : "text-gray-700")}>
-                        <div className="flex items-center gap-3">
-                          {itemImage ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedImage(itemImage);
-                                setShowImageModal(true);
-                              }}
-                              className={cn("h-14 w-14 overflow-hidden rounded-xl border flex-shrink-0", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50")}
-                              title="عرض الصورة"
-                            >
-                              <img
-                                src={itemImage}
-                                alt={item.name || 'صورة المنتج'}
-                                className="h-full w-full object-cover"
-                                data-image-index="0"
-                                onError={(event) => handleImageFallback(event, imageCandidates)}
-                              />
-                            </button>
-                          ) : null}
-                          <div className="min-w-0">
-                            {(item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name || `[بدون اسم - رقم: ${item.id}]`}
-                          </div>
-                        </div>
+                        {console.log('Enriched item:', { id: item.id, name: item.name, store_name: item.store_name })}
+                        {(item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name || `[بدون اسم - رقم: ${item.id}]`}
                       </td>
                       <td className={cn("px-6 py-4 border-t text-center", isDarkMode ? "text-gray-300" : "text-gray-700")}>
                         <div className="flex items-center justify-center gap-2">
@@ -1944,7 +1744,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                             className={cn("px-2 py-1 rounded border transition-all", isDarkMode ? "border-gray-700 hover:bg-gray-700" : "border-gray-200 hover:bg-gray-100")}
                             title="تقليل الكمية"
                           >
-                            âˆ’
+                            −
                           </button>
                           <span className="w-8 text-center text-lg font-bold">{item.quantity}</span>
                           <button
@@ -1975,47 +1775,22 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                         </button>
                       </td>
                     </tr>
-                  )})}
+                  ))}
                 </tbody>
               </table>
             </div>
 
             <div className="space-y-4 md:hidden">
-              {enrichedItems.map((item) => {
-                const imageCandidates = getProductImageCandidates(item);
-                const itemImage = imageCandidates[0];
-
-                return (
+              {enrichedItems.map((item) => (
                 <div key={item.id} className={cn("rounded-2xl border p-4", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50")}>
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex items-start gap-3">
-                      {itemImage ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedImage(itemImage);
-                            setShowImageModal(true);
-                          }}
-                          className={cn("h-16 w-16 overflow-hidden rounded-2xl border flex-shrink-0", isDarkMode ? "border-gray-700 bg-gray-900" : "border-gray-200 bg-white")}
-                          title="عرض الصورة"
-                        >
-                          <img
-                            src={itemImage}
-                            alt={item.name || 'صورة المنتج'}
-                            className="h-full w-full object-cover"
-                            data-image-index="0"
-                            onError={(event) => handleImageFallback(event, imageCandidates)}
-                          />
-                        </button>
-                      ) : null}
-                      <div className="min-w-0">
-                        <h3 className={cn("font-normal text-sm leading-6 break-words", isDarkMode ? "text-gray-100" : "text-gray-900")}>
-                          {(item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name || `[بدون اسم - رقم: ${item.id}]`}
-                        </h3>
-                        <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-                          سعر الوحدة: {formatCurrency(getItemPrice(item, customerType || user?.customer_type))}
-                        </p>
-                      </div>
+                    <div className="min-w-0">
+                      <h3 className={cn("font-normal text-sm leading-6 break-words", isDarkMode ? "text-gray-100" : "text-gray-900")}>
+                        {(item.store_name && item.store_name !== 'undefined') ? `${item.store_name} - ${item.name}` : item.name || `[بدون اسم - رقم: ${item.id}]`}
+                      </h3>
+                      <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-500")}>
+                        سعر الوحدة: {formatCurrency(getItemPrice(item, customerType || user?.customer_type))}
+                      </p>
                     </div>
                     <button 
                       onClick={() => removeItem(item.id)}
@@ -2032,7 +1807,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                         className={cn("px-3 py-1.5 rounded-xl border transition-all", isDarkMode ? "border-gray-700 hover:bg-gray-700" : "border-gray-200 hover:bg-gray-100")}
                         title="تقليل الكمية"
                       >
-                        âˆ’
+                        −
                       </button>
                       <span className="min-w-8 text-center text-base font-bold">{item.quantity}</span>
                       <button
@@ -2048,7 +1823,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                     </div>
                   </div>
                 </div>
-              )})}
+              ))}
             </div>
           </div>
 
@@ -2196,7 +1971,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                     onClick={() => setSelectedForQuantity(null)}
                     className={cn("text-xl font-bold transition-colors", isDarkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-400 hover:text-gray-600")}
                   >
-                    أ—
+                    ×
                   </button>
                 </div>
               </div>
@@ -2233,7 +2008,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                         onClick={() => setQuantityInput(Math.max(1, quantityInput - 1))}
                         className={cn("w-12 h-12 rounded-lg font-bold text-xl transition-all", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-gray-200" : "bg-gray-200 hover:bg-gray-300 text-gray-900")}
                       >
-                        âˆ’
+                        −
                       </button>
                       <input
                         type="number"
@@ -2433,18 +2208,8 @@ const LoginRequiredModal = ({ isOpen, onClose, onLogin }: { isOpen: boolean; onC
 };
 
 // Dashboard Menu Modal
-const DashboardMenuModal = ({ isOpen, onClose, onSelectSection }: { isOpen: boolean; onClose: () => void; onSelectSection: (section: string) => void }) => {
+const DashboardMenuModal = ({ isOpen, onClose, items, onSelectPath }: { isOpen: boolean; onClose: () => void; items: Array<{ icon: any; label: string; path: string }>; onSelectPath: (path: string) => void }) => {
   const { isDarkMode } = useTheme();
-  
-  const dashboardSections = [
-    { icon: BarChart3, label: 'الإحصائيات', section: 'stats' },
-    { icon: Package, label: 'المنتجات', section: 'products' },
-    { icon: ShoppingCart, label: 'الطلبات', section: 'orders' },
-    { icon: Users, label: 'العملاء', section: 'customers' },
-    { icon: Ticket, label: 'الكوبونات', section: 'coupons' },
-    { icon: Gift, label: 'المزادات', section: 'auctions' },
-    { icon: Settings, label: 'الإعدادات', section: 'settings' },
-  ];
 
   if (!isOpen) return null;
 
@@ -2480,11 +2245,11 @@ const DashboardMenuModal = ({ isOpen, onClose, onSelectSection }: { isOpen: bool
         </div>
         
         <div className="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto">
-          {dashboardSections.map((section) => (
+          {items.map((item) => (
             <button
-              key={section.section}
+              key={item.path}
               onClick={() => {
-                onSelectSection(section.section);
+                onSelectPath(item.path);
                 onClose();
               }}
               className={cn(
@@ -2494,8 +2259,8 @@ const DashboardMenuModal = ({ isOpen, onClose, onSelectSection }: { isOpen: bool
                   : "bg-gray-50 hover:bg-gray-100 text-gray-900"
               )}
             >
-              <section.icon size={24} />
-              <span className="text-xs font-medium text-center">{section.label}</span>
+              <item.icon size={24} />
+              <span className="text-xs font-medium text-center">{item.label}</span>
             </button>
           ))}
         </div>
@@ -2512,6 +2277,7 @@ const MobileFooterNav = () => {
   const location = useLocation();
   const [showDashboardMenu, setShowDashboardMenu] = useState(false);
   const [showLoginMessage, setShowLoginMessage] = useState(false);
+  const dashboardItems = getMobileDashboardMenuItems(user);
   
   const navItems = [
     { icon: Home, label: 'الرئيسية', path: '/' },
@@ -2519,6 +2285,7 @@ const MobileFooterNav = () => {
   ];
 
   const isActive = (path: string) => location.pathname === path;
+  const isDashboardActive = isDashboardRouteActive(location.pathname, user);
 
   const handleDashboardClick = () => {
     if (user) {
@@ -2528,10 +2295,9 @@ const MobileFooterNav = () => {
     }
   };
 
-  const handleDashboardSelect = (section: string) => {
+  const handleDashboardSelect = (path: string) => {
     if (user) {
-      const basePath = user.store_type === 'topup' ? '/topup-merchant' : '/merchant';
-      navigate(`${basePath}/${section}`);
+      navigate(path);
     } else {
       navigate('/login');
     }
@@ -2564,18 +2330,20 @@ const MobileFooterNav = () => {
             </Link>
           ))}
           
-          {/* Dashboard Button - Hidden */}
           <button
             onClick={handleDashboardClick}
             className={cn(
-              "relative min-w-[72px] flex-1 rounded-2xl px-2 py-2 text-center transition-colors hidden",
-              (isDarkMode ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100")
+              "relative min-w-[72px] flex-1 rounded-2xl px-2 py-2 text-center transition-colors",
+              isDashboardActive
+                ? (isDarkMode ? "bg-blue-900/40 text-blue-300" : "bg-indigo-50 text-indigo-600")
+                : (isDarkMode ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-100")
             )}
+            aria-label={user ? 'فتح الداشبورد' : 'تسجيل الدخول'}
           >
             <div className="flex flex-col items-center gap-1">
               <LayoutDashboard size={18} className="flex-shrink-0" />
               <span className="text-[10px] leading-tight line-clamp-2">
-                {user ? 'داشبورد' : 'تسجيل'}
+                {user ? 'الداشبورد' : 'الدخول'}
               </span>
             </div>
           </button>
@@ -2587,7 +2355,8 @@ const MobileFooterNav = () => {
         <DashboardMenuModal
           isOpen={showDashboardMenu}
           onClose={() => setShowDashboardMenu(false)}
-          onSelectSection={handleDashboardSelect}
+          items={dashboardItems}
+          onSelectPath={handleDashboardSelect}
         />
       )}
 
@@ -2681,445 +2450,37 @@ const StorePageMobileFooter = ({ storeSlug, cartCount, isTopup = false }: { stor
   );
 };
 
-const LoginPage = () => {
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const { setUser } = useAuthStore();
-  const { isDarkMode, setIsDarkMode } = useTheme();
-  const navigate = useNavigate();
+const LoginPage = () => (
+  <React.Suspense fallback={null}>
+    <LazyLoginPage />
+  </React.Suspense>
+);
 
-  // Load ADMIN settings only (not merchant settings)
-  const [adminAppName, setAdminAppName] = useState('\u0645\u0646\u0635\u062a\u064a');
-  const [adminLogoUrl, setAdminLogoUrl] = useState('');
+const RegisterMerchantPage = () => (
+  <React.Suspense fallback={null}>
+    <LazyRegisterMerchantPage />
+  </React.Suspense>
+);
 
-  useEffect(() => {
-    fetch('/api/settings?role=admin')
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.app_name) {
-          setAdminAppName(data.app_name);
-          setAdminLogoUrl(data.logo_url || '');
-          console.log('Loaded ADMIN settings for login page:', data);
-        }
-      })
-      .catch(err => console.error('Failed to load admin settings:', err));
-  }, []);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, password }),
-      });
-
-      if (res.ok) {
-        const user = await res.json();
-        setUser(user);
-
-        if (user.role === 'admin') {
-          navigate('/admin');
-        } else if (user.role === 'merchant') {
-          if (user.store_type === 'topup') {
-            navigate('/topup-merchant');
-          } else {
-            navigate('/merchant');
-          }
-        } else {
-          navigate('/');
-        }
-      } else {
-        setError('رقم الهاتف أو كلمة المرور غير صحيحة');
-      }
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('حدث خطأ ما');
-    }
-  };
-
-  return (
-    <div className={cn('min-h-screen flex flex-col', isDarkMode ? 'bg-gray-900' : 'bg-[#F5F5F5]')}>
-      <div className={cn('border-b py-4 px-6', isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-black/5')}>
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <Link to="/" className="text-indigo-600 font-normal text-sm hover:text-indigo-700 transition-colors">
-            {'العودة للمنصة'}
-          </Link>
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className={cn(
-              'p-2.5 rounded-lg border transition-all flex items-center justify-center',
-              isDarkMode
-                ? 'bg-blue-900 border-blue-700 text-blue-300 hover:bg-blue-800'
-                : 'bg-gray-50 border-black/5 text-gray-500 hover:bg-gray-100'
-            )}
-            title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}
-          >
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-        </div>
-      </div>
-      <div className="flex items-center justify-center flex-1 p-4 pb-28 md:pb-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md"
-        >
-          <Link to="/" className="inline-flex items-center gap-2 text-indigo-600 font-normal mb-6 hover:gap-3 transition-all">
-            <ChevronRight size={20} className="rotate-180" />
-            <span>{'العودة للمنصة العامة'}</span>
-          </Link>
-          <Card className="p-8">
-            <div className="text-center mb-8">
-              {adminLogoUrl ? (
-                <div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-indigo-50 shadow-lg bg-gray-50 flex items-center justify-center mx-auto mb-4">
-                  <img src={adminLogoUrl} className="w-full h-full object-cover" alt="admin-logo" />
-                </div>
-              ) : null}
-              <h1 className="text-4xl font-normal tracking-tighter text-indigo-600">{adminAppName}</h1>
-              <p className="text-gray-500 mt-2">{'أهلا بعودتك إلى المنصة'}</p>
-            </div>
-
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className={cn('block text-sm font-normal mb-1', isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-                  {'رقم الهاتف'}
-                </label>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className={cn('w-full px-4 py-3 rounded-xl border border-black/5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-normal', isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-gray-50 text-gray-900')}
-                  placeholder="077XXXXXXXX"
-                  required
-                />
-              </div>
-              <div>
-                <label className={cn('block text-sm font-normal mb-1', isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-                  {'كلمة المرور'}
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={cn('w-full px-4 py-3 rounded-xl border border-black/5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20', isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-gray-50 text-gray-900')}
-                  placeholder="أدخل كلمة المرور"
-                  required
-                />
-              </div>
-              {error && <p className={cn('text-sm font-medium', isDarkMode ? 'text-red-400' : 'text-red-500')}>{error}</p>}
-              <Button type="submit" className="w-full bg-indigo-600 text-white py-4 hover:bg-indigo-700 shadow-lg shadow-indigo-200">
-                {'تسجيل الدخول'}
-              </Button>
-            </form>
-
-            <div className="mt-6 space-y-3 text-center">
-              <Link to="/register-merchant" className="block text-sm font-normal text-indigo-600 hover:text-indigo-700">
-                {'هل تريد فتح متجرك الخاص سجل كتاجر الآن'}
-              </Link>
-              <Link to="/" className={cn('block text-sm font-normal', isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700')}>
-                {'تصفح المنصة كزائر'}
-              </Link>
-            </div>
-          </Card>
-        </motion.div>
-      </div>
-      <MobileFooterNav />
-    </div>
-  );
-};
-
-const RegisterMerchantPage = () => {
-  const { appName } = useSettingsStore();
-  const { logout } = useAuthStore();
-  const { isDarkMode } = useTheme();
-  const [showStoreTypeModal, setShowStoreTypeModal] = useState(true);
-  const [storeType, setStoreType] = useState<'regular' | 'topup' | null>(null);
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    phone: '',
-    storeName: '',
-    category: 'عام',
-    storeType: 'regular'
-  });
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSelectStoreType = (type: 'regular' | 'topup') => {
-    setStoreType(type);
-    setFormData({...formData, storeType: type});
-    setShowStoreTypeModal(false);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    
-    try {
-      const res = await fetch('/api/register-merchant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password,
-          store_name: formData.storeName,
-          category: formData.category,
-          storeType: formData.storeType
-        })
-      });
-      
-      if (res.ok) {
-        setSubmitted(true);
-      } else {
-        const data = await res.json();
-        setError(data.error || 'فشل تسجيل الطلب');
-      }
-    } catch (err) {
-      setError('حدث خطأ في الاتصال بالخادم');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Modal for store type selection
-  if (showStoreTypeModal) {
-    return (
-      <div className={cn("min-h-screen flex items-center justify-center p-4", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")} dir="rtl">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }} 
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-2xl"
-        >
-          <Card className={cn("p-10", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
-            <div className="text-center mb-12">
-              <h1 className={cn("text-3xl font-normal mb-4 tracking-tighter", isDarkMode ? "text-gray-100" : "text-gray-900")}>
-                اختر نوع متجرك
-              </h1>
-              <p className={cn("text-lg font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                ما نوع المنتجات التي تريد بيعها؟
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Regular Store Option */}
-              <motion.button
-                whileHover={{ y: -8, boxShadow: "0 12px 24px rgba(0,0,0,0.1)" }}
-                onClick={() => handleSelectStoreType('regular')}
-                className={cn(
-                  "p-8 rounded-2xl border-2 transition-all text-center group",
-                  isDarkMode 
-                    ? "bg-gradient-to-br from-blue-900/20 to-blue-800/10 border-blue-700 hover:border-blue-600" 
-                    : "bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200 hover:border-blue-400"
-                )}
-              >
-                <div className="w-16 h-16 rounded-2xl bg-blue-600 text-white flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                  <StoreIcon size={32} />
-                </div>
-                <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? "text-blue-300" : "text-blue-700")}>
-                  متجر عادي
-                </h3>
-                <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                  أزياء، إلكترونيات، منزليات، أو أي منتجات أخرى
-                </p>
-                <div className={cn("mt-4 pt-4 border-t text-xs font-normal", isDarkMode ? "border-blue-700 text-blue-400" : "border-blue-200 text-blue-600")}>
-                  ← اضغط للمتابعة
-                </div>
-              </motion.button>
-
-              {/* Top-Up Store Option */}
-              <motion.button
-                whileHover={{ y: -8, boxShadow: "0 12px 24px rgba(0,0,0,0.1)" }}
-                onClick={() => handleSelectStoreType('topup')}
-                className={cn(
-                  "p-8 rounded-2xl border-2 transition-all text-center group",
-                  isDarkMode 
-                    ? "bg-gradient-to-br from-green-900/20 to-green-800/10 border-green-700 hover:border-green-600" 
-                    : "bg-gradient-to-br from-green-50 to-green-100/50 border-green-200 hover:border-green-400"
-                )}
-              >
-                <div className="w-16 h-16 rounded-2xl bg-green-600 text-white flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                  <CreditCard size={32} />
-                </div>
-                <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? "text-green-300" : "text-green-700")}>
-                  متجر بطاقات شحن
-                </h3>
-                <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                  بطاقات شحن تعبئة الرصيد (Zain, Asiacell, Korek...)
-                </p>
-                <div className={cn("mt-4 pt-4 border-t text-xs font-normal", isDarkMode ? "border-green-700 text-green-400" : "border-green-200 text-green-600")}>
-                  ← اضغط للمتابعة
-                </div>
-              </motion.button>
-            </div>
-
-            <p className={cn("mt-8 text-center text-xs font-normal", isDarkMode ? "text-gray-500" : "text-gray-400")}>
-              يمكنك تغيير نوع المتجر لاحقاً من إعدادات حسابك
-            </p>
-          </Card>
-        </motion.div>
-      </div>
-    );
+const normalizeTopupCustomerData = (customer: any, fallbackStoreId?: number | string | null) => {
+  if (!customer || typeof customer !== 'object') {
+    return null;
   }
 
-  if (submitted) {
-    return (
-      <div className={cn("min-h-screen flex items-center justify-center p-4", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
-          <Card className="p-10 text-center">
-            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle size={40} />
-            </div>
-            <h1 className={cn("text-2xl font-normal mb-4", isDarkMode ? "text-gray-100" : "text-gray-900")}>تم استلام طلبك بنجاح!</h1>
-            <p className={cn("mb-8 font-medium", isDarkMode ? "text-gray-300" : "text-gray-600")}>
-              شكرًا لاهتمامك بالانضمام إلى {appName}. طلبك الآن قيد المراجعة من قبل الإدارة، وسنقوم بالتواصل معك عبر تليجرام فور تفعيل المتجر.
-            </p>
-            <Button 
-              onClick={() => {
-                logout();
-                window.location.href = '/login';
-              }} 
-              className="w-full bg-indigo-600 text-white py-4 font-normal rounded-xl"
-            >
-              العودة لتسجيل الدخول
-            </Button>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
+  const parsedCustomerId = Number(customer.customer_id ?? customer.id ?? 0);
+  const parsedStoreId = Number(customer.store_id ?? fallbackStoreId ?? 0);
 
-  return (
-    <div className={cn("min-h-screen py-12 px-4 pb-28 md:pb-12 flex flex-col items-center justify-center", isDarkMode ? "bg-gray-900" : "bg-[#F5F5F5]")}>
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-lg">
-        <Card className="p-8 md:p-10">
-          <div className="text-center mb-10">
-            <div className="inline-block px-4 py-2 rounded-full bg-indigo-100 text-indigo-600 text-xs font-normal mb-3">
-              {storeType === 'topup' ? '💳 متجر بطاقات شحن' : '🛍️ متجر عادي'}
-            </div>
-            <h1 className="text-3xl font-normal text-indigo-600 tracking-tighter mb-2">انضم كتاجر</h1>
-            <p className="text-gray-500 font-medium">ابدأ رحلتك التجارية معنا اليوم</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>الاسم الكامل</label>
-                <input 
-                  type="text" 
-                  required
-                  className={cn("w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500/20 outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5 text-gray-900")}
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  placeholder="محمد علي"
-                />
-              </div>
-              <div>
-                <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>اسم المتجر</label>
-                <input 
-                  type="text" 
-                  required
-                  className={cn("w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500/20 outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5 text-gray-900")}
-                  value={formData.storeName}
-                  onChange={e => setFormData({...formData, storeName: e.target.value})}
-                  placeholder={storeType === 'topup' ? 'متجر بطاقاتي' : 'متجر الأناقة'}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>رقم الهاتف</label>
-              <input 
-                type="tel" 
-                required
-                className={cn("w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500/20 outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5 text-gray-900")}
-                value={formData.phone}
-                onChange={e => setFormData({...formData, phone: e.target.value})}
-                placeholder="07XXXXXXXX"
-                dir="rtl"
-              />
-            </div>
-
-            <div>
-              <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>البريد الإلكتروني <span className={cn("text-xs font-normal", isDarkMode ? "text-gray-500" : "text-gray-400")}>(اختياري)</span></label>
-              <input 
-                type="email"
-                className={cn("w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500/20 outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5 text-gray-900")}
-                value={formData.email}
-                onChange={e => setFormData({...formData, email: e.target.value})}
-                placeholder="example@email.com (اختياري)"
-              />
-            </div>
-
-            <div>
-              <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>كلمة المرور</label>
-              <input 
-                type="password" 
-                required
-                className={cn("w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500/20 outline-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5 text-gray-900")}
-                value={formData.password}
-                onChange={e => setFormData({...formData, password: e.target.value})}
-                placeholder="أدخل كلمة المرور"
-              />
-            </div>
-
-            {storeType === 'regular' && (
-              <div>
-                <label className={cn("block text-sm font-normal mb-1.5", isDarkMode ? "text-gray-300" : "text-gray-700")}>تصنيف المتجر</label>
-                <select 
-                  className={cn("w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-indigo-500/20 outline-none appearance-none", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/5 text-gray-900")}
-                  value={formData.category}
-                  onChange={e => setFormData({...formData, category: e.target.value})}
-                >
-                  <option value="عام">عام</option>
-                  <option value="أزياء">أزياء</option>
-                  <option value="إلكترونيات">إلكترونيات</option>
-                  <option value="المنزل">المنزل</option>
-                </select>
-              </div>
-            )}
-
-            {error && <p className="text-red-500 text-sm font-normal text-center bg-red-50 py-3 rounded-xl">{error}</p>}
-
-            <Button 
-              type="submit" 
-              disabled={loading}
-              className="w-full bg-indigo-600 text-white py-4 text-lg font-normal shadow-xl shadow-indigo-100 mt-4 disabled:opacity-50 rounded-xl"
-            >
-              {loading ? 'جاري إرسال الطلب...' : 'إرسال طلب الانضمام'}
-            </Button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setShowStoreTypeModal(true);
-                setStoreType(null);
-              }}
-              className="w-full text-sm font-normal text-gray-400 hover:text-indigo-600 transition-colors py-2"
-            >
-              ← تغيير نوع المتجر
-            </button>
-
-            <div className="text-center mt-6">
-              <Link to="/login" className="text-sm font-normal text-gray-400 hover:text-indigo-600">
-                لديك حساب بالفعل؟ سجل دخولك
-              </Link>
-            </div>
-          </form>
-        </Card>
-      </motion.div>
-      <MobileFooterNav />
-    </div>
-  );
+  return {
+    ...customer,
+    id: parsedCustomerId > 0 ? parsedCustomerId : customer.id,
+    customer_id: parsedCustomerId > 0 ? parsedCustomerId : customer.customer_id,
+    store_id: parsedStoreId > 0 ? parsedStoreId : customer.store_id,
+    name: customer.name || '',
+    phone: customer.phone || '',
+    customer_type: customer.customer_type || 'cash',
+    credit_limit: Number(customer.credit_limit || 0),
+    current_debt: Number(customer.current_debt || 0),
+  };
 };
 
 const AdminDashboard = () => {
@@ -3150,9 +2511,8 @@ const AdminDashboard = () => {
     }
     return undefined;
   })();
-  
 
-  
+
   const { appName, logoUrl, setSettings } = useSettingsStore();
   const { dashboardQuery } = useSearchStore();
   const adminLogoUploadRef = useRef<HTMLInputElement>(null);
@@ -3775,12 +3135,12 @@ const AdminDashboard = () => {
                   </td>
                   <td className="px-6 py-4">
                     <a
-                      href={`/store/${(store as any).slug || store.id}`}
+                      href={`/store/${store.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-normal text-sm hover:underline"
                     >
-                      <span className="truncate">@{(store as any).slug || store.id}</span>
+                      <span className="truncate">ID: {store.id}</span>
                       <ExternalLink size={16} className="flex-shrink-0" />
                     </a>
                   </td>
@@ -4300,7 +3660,7 @@ const AdminDashboard = () => {
                       <span className={cn(isDarkMode ? "text-gray-600" : "text-gray-300")}>|</span>
                       <span>الهاتف: {store.owner_phone}</span>
                       <span className={cn(isDarkMode ? "text-gray-600" : "text-gray-300")}>|</span>
-                      <span>المعرف: @{store.slug}</span>
+                      <span>معرف المتجر: {store.id}</span>
                     </div>
                   </div>
                 </div>
@@ -4338,7 +3698,7 @@ const AdminDashboard = () => {
     const store = approveDialog.store;
     const storeName = store.store_name || store.name;
     const ownerName = store.owner_name || 'صاحب المتجر';
-    const storeLink = `${window.location.origin}/store/${store.slug || store.id}`;
+    const storeLink = `${window.location.origin}/store/${store.id}`;
 
     const messagePreview = `
   *تهانينا! تم تفعيل متجرك بنجاح*
@@ -5048,7 +4408,7 @@ const MerchantDashboard = () => {
         console.log('   auction_end_time:', formData.auction_end_time);
         console.log('   auction_price:', formData.auction_price);
       } else {
-        console.log('â„¹ï¸ڈ Not an auction product');
+        console.log('ℹ️ Not an auction product');
       }
       
       console.log('🔹 FINAL formData:', formData);
@@ -5563,28 +4923,92 @@ const MerchantDashboard = () => {
       console.log(`🗑️ Attempting to delete customer: ${customerId}`);
       
       // For topup stores, use the dedicated endpoint
-      const endpoint = user?.store_type === 'topup'
+      const endpoint = user?.store_type === 'topup' 
         ? `/api/topup/customers/${customerId}`
         : `/api/customers/${customerId}`;
-
+      
+      console.log(`📍 Using endpoint: ${endpoint}`);
+      
       const res = await fetch(endpoint, { method: 'DELETE' });
-
+      
+      console.log(`📬 Delete response status: ${res.status}`);
+      
       if (res.ok) {
-        alert('✅ تم حذف العميل بنجاح');
-        const updated = await fetch(`/api/merchant/customers?storeId=${user.store_id}`).then(r => r.json());
-        setCustomers(Array.isArray(updated) ? updated : []);
+        const data = await res.json();
+        console.log(`✅ Server response:`, data);
+        alert(`✅ ${data.message || 'تمت العملية بنجاح'}`);
+        
+        // Remove from local state immediately
+        setCustomers(customers.filter(c => c.id !== customerId));
+        console.log(`✅ Customer removed from local state`);
+        
+        // Then refresh from API to ensure is_active filter is applied
+        setTimeout(async () => {
+          if (user?.store_id) {
+            console.log("🔄 Refreshing customers list after delete...");
+            try {
+              const refreshRes = await fetch(`/api/merchant/customers?storeId=${user.store_id}`);
+              const refreshedData = await refreshRes.json();
+              console.log("✅ Customers refreshed:", refreshedData);
+              setCustomers(Array.isArray(refreshedData) ? refreshedData : []);
+            } catch (err) {
+              console.error("Error refreshing customers:", err);
+            }
+          }
+        }, 500);
       } else {
         const error = await res.json();
-        alert('❌ خطأ: ' + (error.error || 'فشل حذف العميل'));
+        console.error(`❌ Delete error:`, error);
+        alert("❌ خطأ: " + (error.error || "فشل الحذف"));
       }
     } catch (err) {
-      console.error(err);
-      alert('حدث خطأ في الاتصال بالسيرفر');
+      console.error(`❌ Delete exception:`, err);
+      alert("حدث خطأ في الاتصال بالسيرفر: " + (err instanceof Error ? err.message : String(err)));
     }
   };
 
+  if (user?.role === 'merchant' && (!user.store_active || (user.store_status && user.store_status !== 'approved' && user.store_status !== 'active'))) {
+    return (
+      <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center p-4">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
+          <Card className="p-10 text-center">
+            <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Pause size={40} />
+            </div>
+            <h1 className="text-2xl font-normal text-gray-900 mb-4">متجرك قيد المراجعة</h1>
+            <p className="text-gray-600 mb-8 font-medium italic">
+              عذراً، متجرك مسجل حالياً وحالته <b>{(user as any).store_status === 'pending' ? 'قيد الانتظار' : (user as any).store_status}</b>.
+              <br/><br/>
+              يرجى انتظار موافقة الإدارة قبل البدء في إدارة المنتجات. سنقوم بإبلاغك عبر تليجرام فور التفعيل.
+            </p>
+            <div className="space-y-3">
+              <Button 
+                onClick={() => window.location.href = '/'} 
+                className="w-full bg-indigo-600 text-white py-4 font-normal rounded-xl"
+              >
+                العودة للصفحة الرئيسية
+              </Button>
+              <button 
+                onClick={() => {
+                  localStorage.removeItem('user');
+                  window.location.href = '/login';
+                }}
+                className={cn("w-full text-sm font-normal", isDarkMode ? "text-gray-300 hover:text-gray-100" : "text-gray-400 hover:text-gray-600")}
+              >
+                تسجيل الخروج
+              </button>
+            </div>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Product modal with all form fields
   const renderProductModal = () => {
+    console.log('[MODAL] renderProductModal check:', showProductModal);
     if (!showProductModal) return null;
+    const isTopupStore = user?.store_type === 'topup';
 
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 font-sans" dir="rtl">
@@ -5904,7 +5328,7 @@ const MerchantDashboard = () => {
                           name="auction_start_time"
                           value={productForm.auction_start_time || ''}
                           onChange={(e) => {
-                            console.log('âڈ±ï¸ڈ Start time changed to:', e.target.value);
+                            console.log('⏱️ Start time changed to:', e.target.value);
                             updateProductForm({ auction_start_time: e.target.value });
                           }}
                           placeholder="09:00"
@@ -5920,7 +5344,7 @@ const MerchantDashboard = () => {
                           name="auction_end_time"
                           value={productForm.auction_end_time || ''}
                           onChange={(e) => {
-                            console.log('âڈ²ï¸ڈ End time changed to:', e.target.value);
+                            console.log('⏲️ End time changed to:', e.target.value);
                             updateProductForm({ auction_end_time: e.target.value });
                           }}
                           placeholder="18:00"
@@ -6080,7 +5504,7 @@ const MerchantDashboard = () => {
           <div>
             <h2 className={cn("text-xl font-normal", isDarkMode ? "text-gray-100" : "text-gray-800")}>إدارة العملاء</h2>
             <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>
-              {isTopupStore ? 'عملاء يدويون' : 'من الطلبات (تلقائي)'}
+              {isTopupStore ? 'عملاء مدخلة يدويا' : 'من الطلبات (تلقائي)'}
             </p>
           </div>
         </div>
@@ -6579,8 +6003,8 @@ const MerchantDashboard = () => {
     console.log('✅✅ handleCreateProduct function exists?', typeof handleCreateProduct === 'function');
     
     if (!categories) console.warn('WARNING: categories is', categories);
-    console.log('renderProducts CALLED!!!');
-    console.log('renderProducts called with:', {
+    console.log('�🔵🔵 renderProducts CALLED!!!');
+    console.log('�📦 renderProducts called with:', {
       categoriesCount: categories.length,
       categories: categories,
       filteredProductsCount: filteredProducts.length,
@@ -7747,7 +7171,7 @@ const MerchantDashboard = () => {
                             <img src={getSafeImageUrl(item.image_url)} className="w-10 h-10 rounded-lg object-cover bg-white shadow-sm ring-1 ring-black/5" />
                             <div>
                                <p className={cn("font-normal text-base", isDarkMode ? "text-white" : "text-gray-800")}>{item.product_name}</p>
-                               <span className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-400")}>{item.quantity} أ— {formatCurrency(item.price)}</span>
+                               <span className={cn("text-xs font-normal", isDarkMode ? "text-gray-400" : "text-gray-400")}>{item.quantity} × {formatCurrency(item.price)}</span>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -7867,7 +7291,7 @@ const MerchantDashboard = () => {
 
         {/* Customer Statement Modal - Topup Stores Only */}
         {showCustomerStatement && selectedCustomerStatement && user?.store_type === 'topup' && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-3 overflow-y-auto font-sans" dir="rtl">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-3 overflow-hidden font-sans" dir="rtl">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -7890,48 +7314,51 @@ const MerchantDashboard = () => {
               </div>
 
               {/* Customer Credit Info */}
-              <div className={cn("p-4 sm:p-6 grid grid-cols-3 gap-2 sm:gap-4 border-b", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
-                <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-blue-900/30" : "bg-blue-50")}>
-                  <p className={cn("text-[10px] sm:text-xs font-normal mb-1", isDarkMode ? "text-blue-300" : "text-blue-600")}>حد الائتمان</p>
-                  <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-blue-400" : "text-blue-700")}>
-                    {Math.round(Number(selectedCustomerStatement.credit_limit) || 0).toLocaleString('en-US')}
-                    <span className="block text-[0.9em]">د.ع</span>
+              <div className={cn("p-6 grid grid-cols-3 gap-4 border-b", isDarkMode ? "bg-gray-700/50 border-gray-600" : "bg-gray-50/50 border-black/5")}>
+                <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-blue-900/30" : "bg-blue-50")}>
+                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-blue-300" : "text-blue-600")}>حد الائتمان</p>
+                  <p className={cn("text-lg font-bold", isDarkMode ? "text-blue-400" : "text-blue-700")}>
+                    {formatCurrency(selectedCustomerStatement.credit_limit || 0)}
                   </p>
                 </div>
-                <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-red-900/30" : "bg-red-50")}>
-                  <p className={cn("text-[10px] sm:text-xs font-normal mb-1", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
-                  <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-red-400" : "text-red-700")}>
-                    {Math.round(Number(selectedCustomerStatement.current_debt) || 0).toLocaleString('en-US')}
-                    <span className="block text-[0.9em]">د.ع</span>
+                <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-red-900/30" : "bg-red-50")}>
+                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
+                  <p className={cn("text-lg font-bold", isDarkMode ? "text-red-400" : "text-red-700")}>
+                    {formatCurrency(selectedCustomerStatement.current_debt || 0)}
                   </p>
                 </div>
-                <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-green-900/30" : "bg-green-50")}>
-                  <p className={cn("text-[10px] sm:text-xs font-normal mb-1", isDarkMode ? "text-green-300" : "text-green-600")}>الرصيد المتاح</p>
-                  <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-green-400" : "text-green-700")}>
-                    {Math.round((Number(selectedCustomerStatement.credit_limit) || 0) - (Number(selectedCustomerStatement.current_debt) || 0)).toLocaleString('en-US')}
-                    <span className="block text-[0.9em]">د.ع</span>
+                <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-green-900/30" : "bg-green-50")}>
+                  <p className={cn("text-xs font-normal mb-1", isDarkMode ? "text-green-300" : "text-green-600")}>الرصيد المتاح</p>
+                  <p className={cn("text-lg font-bold", isDarkMode ? "text-green-400" : "text-green-700")}>
+                    {formatCurrency((selectedCustomerStatement.credit_limit || 0) - (selectedCustomerStatement.current_debt || 0))}
                   </p>
                 </div>
               </div>
 
               {/* Transactions Table */}
-              <div className="p-4 md:p-6 flex-1 overflow-y-auto min-h-0">
+              <div className="p-4 md:p-6 flex-1 overflow-hidden min-h-0">
                 {isLoadingCustomerTransactions ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: `${primaryColor}` }}></div>
                     <span className={cn("ml-3 font-normal", isDarkMode ? "text-gray-300" : "text-gray-600")}>جاري تحميل المعاملات...</span>
                   </div>
                 ) : (
-                  <div className="max-h-[18rem] overflow-auto">
-                    <table className="w-full text-right text-xs md:text-sm border-collapse">
+                  <div className="w-full overflow-x-auto overflow-y-auto max-h-[22rem] md:max-h-[24rem] rounded-xl border min-h-0 overscroll-x-contain" style={{ borderColor: isDarkMode ? '#4b5563' : '#d1d5db' }}>
+                    <table className="w-max min-w-[48rem] md:min-w-full text-right text-xs md:text-sm border-collapse table-auto">
                       <thead>
-                        <tr className={cn("border-b sticky top-0 z-10", isDarkMode ? "border-gray-600 bg-gray-700" : "border-gray-200 bg-gray-50")}>
-                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
-                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
-                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>مدين (Debit)</th>
-                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>دائن (Credit)</th>
-                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الديون الجالية</th>
-                          <th className={cn("px-2 md:px-4 py-2 font-bold text-xs text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>إجراءات</th>
+                        <tr className={cn("border-b sticky top-0", isDarkMode ? "border-gray-600 bg-gray-700" : "border-gray-200 bg-gray-50")}>
+                          <th className={cn("min-w-[6.5rem] px-2 md:px-4 py-2 font-bold text-xs border whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
+                          <th className={cn("min-w-[14rem] md:min-w-[10rem] px-2 md:px-4 py-2 font-bold text-xs border whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
+                          <th className={cn("min-w-[6.5rem] px-2 md:px-4 py-2 font-bold text-xs text-center border whitespace-nowrap", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>
+                            <span className="block">مدين</span>
+                            <span className="hidden md:block">(Debit)</span>
+                          </th>
+                          <th className={cn("min-w-[6.5rem] px-2 md:px-4 py-2 font-bold text-xs text-center border whitespace-nowrap", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>
+                            <span className="block">دائن</span>
+                            <span className="hidden md:block">(Credit)</span>
+                          </th>
+                          <th className={cn("min-w-[7rem] px-2 md:px-4 py-2 font-bold text-xs text-center border whitespace-nowrap", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الديون الجالية</th>
+                          <th className={cn("min-w-[7rem] px-2 md:px-4 py-2 font-bold text-xs text-center whitespace-nowrap", isDarkMode ? "text-gray-400" : "text-gray-600")}>إجراءات</th>
                         </tr>
                       </thead>
                       <tbody className={cn(isDarkMode ? "divide-gray-700" : "divide-gray-100")}>
@@ -7939,15 +7366,15 @@ const MerchantDashboard = () => {
                           // Format transaction type display
                           let displayType = 'معاملة';
                           if (transaction.type === 'opening') {
-                            displayType = 'ديون سابقة';
+                            displayType = transaction.description || 'ديون سابقة';
                           } else if (transaction.is_payment) {
                             displayType = '✓ دفعة';
                           } else if (transaction.type === 'debit') {
                             displayType = 'خصم';
                           } else if (transaction.type === 'topup') {
-                            displayType = sanitizeDisplayText(transaction.description, 'بطاقة شحن');
+                            displayType = transaction.description || 'بطاقة شحن';
                           } else {
-                            displayType = sanitizeDisplayText(transaction.description, sanitizeDisplayText(transaction.type, 'معاملة'));
+                            displayType = transaction.description || transaction.type || 'معاملة';
                           }
                           
                           // Ensure balance is a number
@@ -8020,28 +7447,28 @@ const MerchantDashboard = () => {
                           
                           return (
                           <tr key={`${transaction.id}-${transaction.type}-${idx}`} className={cn("border-b transition-colors", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-100 hover:bg-gray-50")}>
-                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-normal whitespace-nowrap border", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
+                            <td className={cn("min-w-[6.5rem] px-2 md:px-4 py-2 md:py-3 font-normal whitespace-nowrap border", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
                               {new Date(transaction.created_at || transaction.date).toLocaleDateString('ar-IQ')}
                             </td>
-                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-normal border", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
+                            <td className={cn("min-w-[14rem] md:min-w-[10rem] px-2 md:px-4 py-2 md:py-3 font-normal whitespace-nowrap border", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
                               {displayType}
                             </td>
-                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-bold text-center whitespace-nowrap border", 
+                            <td className={cn("min-w-[6.5rem] px-2 md:px-4 py-2 md:py-3 font-bold text-center whitespace-nowrap border", 
                               debitAmount > 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"), isDarkMode ? "border-gray-700" : "border-gray-200"
                             )}>
-                              {debitAmount > 0 ? formatCurrency(debitAmount) : 'â€”'}
+                              {debitAmount > 0 ? formatCurrency(debitAmount) : '—'}
                             </td>
-                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-bold text-center whitespace-nowrap border", 
+                            <td className={cn("min-w-[6.5rem] px-2 md:px-4 py-2 md:py-3 font-bold text-center whitespace-nowrap border", 
                               creditAmount > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"), isDarkMode ? "border-gray-700" : "border-gray-200"
                             )}>
-                              {creditAmount > 0 ? formatCurrency(creditAmount) : 'â€”'}
+                              {creditAmount > 0 ? formatCurrency(creditAmount) : '—'}
                             </td>
-                            <td className={cn("px-2 md:px-4 py-2 md:py-3 font-bold text-center whitespace-nowrap border", 
+                            <td className={cn("min-w-[7rem] px-2 md:px-4 py-2 md:py-3 font-bold text-center whitespace-nowrap border", 
                               balanceValue && balanceValue > 0 ? (isDarkMode ? "text-blue-400" : "text-blue-600") : (isDarkMode ? "text-gray-400" : "text-gray-600"), isDarkMode ? "border-gray-700" : "border-gray-200"
                             )}>
                               {formatCurrency(balanceValue)}
                             </td>
-                            <td className={cn("px-2 md:px-4 py-2 md:py-3 text-center")}>
+                            <td className={cn("min-w-[7rem] px-2 md:px-4 py-2 md:py-3 text-center whitespace-nowrap")}>
                               <div className="flex items-center justify-center gap-1">
                                 {/* Show edit/delete for all transactions - not just payments */}
                                 <>
@@ -8276,8 +7703,7 @@ const MerchantDashboard = () => {
 }
 
 const CustomerStorefront = () => {
-  const { slug } = useParams();
-  const storeId = slug; // Use slug as storeId
+  const { storeId } = useParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -8354,7 +7780,7 @@ const CustomerStorefront = () => {
 
     const loadStoreAndProducts = async () => {
       try {
-        console.log('🔄 Loading store and products for slug:', storeId);
+        console.log('🔄 Loading store and products for store reference:', storeId);
         const storeRes = await fetch(`/api/stores/slug/${storeId}`).then(r => r.json());
         
         if (storeRes && storeRes.error) {
@@ -8364,13 +7790,6 @@ const CustomerStorefront = () => {
         }
         
         console.log('✅ Store loaded:', { id: storeRes.id, name: storeRes.store_name, type: storeRes.store_type });
-
-        if (storeRes.slug && storeRes.slug !== storeId) {
-          const nextPath = storeRes.store_type === 'topup' ? `/topup/${storeRes.slug}` : `/store/${storeRes.slug}`;
-          console.log(`🔄 Redirecting customer to canonical store URL: ${nextPath}`);
-          navigate(nextPath, { replace: true });
-          return;
-        }
         
         // If this is a regular (non-topup) store, clear topup customer data
         if (storeRes.store_type !== 'topup') {
@@ -8423,8 +7842,8 @@ const CustomerStorefront = () => {
           
           // اذا كان المتجر topup، اعد التوجيه إلى TopupStorefront
           if (isTopup) {
-            console.log('🔄 Store is topup, redirecting to /topup/:slug');
-            navigate(`/topup/${storeRes.slug || slug}`, { replace: true });
+            console.log('🔄 Store is topup, redirecting to /topup/:storeId');
+            navigate(`/topup/${storeRes.id}`, { replace: true });
             return;
           }
         }
@@ -8512,7 +7931,7 @@ const CustomerStorefront = () => {
 
   useEffect(() => {
     if (selectedProduct) {
-      setMainImage(getPrimaryProductImage(selectedProduct));
+      setMainImage(selectedProduct.image_url);
       
       // Load auction details if this product is an auction
       if ((selectedProduct as any).is_auction && (selectedProduct as any).auction_id) {
@@ -8554,7 +7973,7 @@ const CustomerStorefront = () => {
     const category = (product as any).category_name || 'منتجات أخرى';
     if (!acc[category]) acc[category] = [];
     acc[category].push(product);
-    console.log('â‍• Adding to category:', { category, product_id: product.id, image_url: product.image_url });
+    console.log('➕ Adding to category:', { category, product_id: product.id, image_url: product.image_url });
     return acc;
   }, {});
 
@@ -8660,20 +8079,144 @@ const CustomerStorefront = () => {
       );
     }
     
+    // Regular product modal - existing code
+    const gallery = [selectedProduct.image_url, ...(selectedProduct.gallery || [])].filter(Boolean);
+    
     return (
-      <RegularProductModal
-        product={selectedProduct}
-        isDarkMode={isDarkMode}
-        primaryColor={primaryColor}
-        appLabel={displayAppName || appName}
-        quantities={quantities}
-        setQuantities={setQuantities}
-        onAddToCart={(product) => {
-          addItem(product);
-          playAddToCartSound();
-        }}
-        onClose={() => setSelectedProduct(null)}
-      />
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={cn("rounded-[2.5rem] w-full max-w-5xl max-h-[95vh] overflow-hidden shadow-2xl flex flex-col md:flex-row relative", isDarkMode ? "bg-gray-800" : "bg-white")}
+        >
+          <button onClick={() => setSelectedProduct(null)} className={cn("absolute top-4 right-4 z-20 p-3 backdrop-blur-xl border rounded-full transition-all", isDarkMode ? "bg-gray-700/40 border-gray-600/50 text-gray-300 hover:bg-gray-700" : "bg-white/20 border-white/30 text-gray-400 hover:bg-gray-100")}>
+            <X size={24} />
+          </button>
+
+          <div className={cn("md:w-1/2 p-4 md:p-8 flex flex-col gap-6 overflow-y-auto min-h-0", isDarkMode ? "bg-gray-700" : "bg-gray-50")}>
+            <motion.div 
+              key={mainImage}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="w-full aspect-square relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white"
+            >
+              <img src={getSafeImageUrl(mainImage)} className="w-full h-full object-cover" />
+              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/20 to-transparent"></div>
+            </motion.div>
+            
+            <div className={cn("grid grid-cols-4 gap-3 p-3 rounded-2xl border shadow-sm", isDarkMode ? "bg-gray-600 border-gray-500" : "bg-white border-black/5")}>
+              {gallery.map((img, idx) => (
+                <div 
+                  key={idx} 
+                  onClick={() => setMainImage(img)}
+                  className={`aspect-square rounded-xl overflow-hidden cursor-pointer transition-all ${mainImage === img ? 'ring-4 ring-indigo-500 ring-offset-2' : 'hover:scale-105 opacity-70 hover:opacity-100'}`}
+                >
+                  <img src={img} className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="md:w-1/2 p-6 md:p-12 flex flex-col overflow-y-auto">
+            <div className="mb-8">
+              <span className={cn("px-4 py-1.5 rounded-xl text-[10px] font-normal uppercase tracking-widest border", isDarkMode ? "bg-indigo-900/30 text-indigo-400 border-indigo-700" : "bg-indigo-50 text-indigo-600 border-indigo-100")}>{appName}</span>
+              <h2 className={cn("text-4xl font-normal mt-4 tracking-tight leading-tight", isDarkMode ? "text-gray-100" : "text-gray-900")}>{selectedProduct.name}</h2>
+            </div>
+            
+            <div className="flex-1 space-y-6">
+              <div className="space-y-4">
+                <h4 className={cn("text-xs font-normal uppercase tracking-widest border-b pb-2", isDarkMode ? "text-gray-500 border-gray-600" : "text-gray-400 border-black/5")}>وصف المنتج</h4>
+                <p className={cn("text-lg leading-relaxed font-medium", isDarkMode ? "text-gray-300" : "text-gray-600")}>{selectedProduct.description}</p>
+              </div>
+
+              {/* Auction Details */}
+              {(selectedProduct as any).is_auction && (
+                <div className={cn("p-4 rounded-2xl border", isDarkMode ? "bg-amber-900/30 border-amber-700" : "bg-amber-50/50 border-amber-200")}>
+                  {auctionLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+                      <span className={cn("mr-2 text-sm font-normal", isDarkMode ? "text-amber-400" : "text-amber-600")}>جاري تحميل تفاصيل المزاد...</span>
+                    </div>
+                  ) : auctionData ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-lg">🏆</span>
+                        <h4 className={cn("font-bold", isDarkMode ? "text-amber-300" : "text-amber-700")}>تفاصيل المزاد</h4>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className={cn("font-normal block text-[11px]", isDarkMode ? "text-amber-300" : "text-amber-600")}>📅 تاريخ المزاد</span>
+                          <span className={cn("font-bold", isDarkMode ? "text-amber-100" : "text-amber-900")} title={formatDateOnly(auctionData.auction_date)}>
+                            {formatDateOnly(auctionData.auction_date)}
+                          </span>
+                        </div>
+                        
+                        <div>
+                          <span className={cn("font-normal block text-[11px]", isDarkMode ? "text-amber-300" : "text-amber-600")}>⏱️ وقت البدء</span>
+                          <span className={cn("font-bold", isDarkMode ? "text-amber-100" : "text-amber-900")}>
+                            {auctionData.auction_start_time}
+                          </span>
+                        </div>
+                        
+                        <div>
+                          <span className={cn("font-normal block text-[11px]", isDarkMode ? "text-amber-300" : "text-amber-600")}>⏲️ وقت النهاية</span>
+                          <span className={cn("font-bold", isDarkMode ? "text-amber-100" : "text-amber-900")}>
+                            {auctionData.auction_end_time}
+                          </span>
+                        </div>
+                        
+                        <div>
+                          <span className={cn("font-normal block text-[11px]", isDarkMode ? "text-amber-300" : "text-amber-600")}>💰 السعر الأساسي</span>
+                          <span className={cn("font-bold", isDarkMode ? "text-amber-100" : "text-amber-900")}>
+                            {formatCurrency(auctionData.starting_price)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {auctionData.current_highest_price && (
+                        <div className={cn("mt-3 p-2 rounded border-l-4", isDarkMode ? "bg-purple-900/30 border-purple-500" : "bg-purple-50/50 border-purple-400")}>
+                          <span className={cn("text-[11px] font-normal block", isDarkMode ? "text-purple-300" : "text-purple-600")}>أعلى عرض حالياً</span>
+                          <span className={cn("font-bold text-lg", isDarkMode ? "text-purple-100" : "text-purple-900")}>
+                            {formatCurrency(auctionData.current_highest_price)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-8 space-y-4">
+              <div className="flex justify-between items-end pb-8 border-b border-black/5">
+                <div>
+                  <p className="text-[10px] text-gray-400 font-normal uppercase mb-1">السعر النهائي</p>
+                  <p className={cn("text-5xl font-normal tabular-nums", isDarkMode ? "text-white" : "text-gray-900")}>
+                    {formatCurrency(selectedProduct.price)}
+                  </p>
+                </div>
+
+              </div>
+
+              <button 
+                onClick={() => {
+                  addItem(selectedProduct);
+                  playAddToCartSound();
+                  setSelectedProduct(null);
+                }}
+                className="w-full py-6 rounded-3xl text-white font-normal text-2xl shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 group"
+                style={{ backgroundColor: primaryColor }}
+              >
+                <div className="bg-white/20 p-2 rounded-xl group-hover:rotate-12 transition-transform">
+                  <ShoppingCart size={28} />
+                </div>
+                إضافة لسلّة المشتريات
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
     );
   };
 
@@ -8831,19 +8374,16 @@ const CustomerStorefront = () => {
               <div className="w-full">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
                   {productsByCategory[category].map((product) => {
-                    const productImage = getPrimaryProductImage(product);
-                    const productImageCandidates = getProductImageCandidates(product);
-                    const hasImage = productImage !== PLACEHOLDER_IMAGE;
+                    const hasImage = !!product.image_url;
                     console.log('🎨 RENDERING CARD:', { 
                       id: product.id, 
                       name: product.name, 
                       image_url: product.image_url,
-                      resolved_image_url: productImage,
                       image_url_type: typeof product.image_url,
                       image_url_length: product.image_url ? String(product.image_url).length : 0,
                       hasImage: hasImage,
                       category: category,
-                      will_show_image: hasImage ? 'YES ✅' : 'NO - WILL SHOW PACKAGE ❌'
+                      will_show_image: !!product.image_url ? 'YES ✅' : 'NO - WILL SHOW PACKAGE ❌'
                     });
                     return (
                       <motion.div 
@@ -8858,11 +8398,9 @@ const CustomerStorefront = () => {
                         )}>
                           {/* Product Image */}
                           <div className={cn("aspect-square w-full overflow-hidden cursor-pointer", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
-                            {hasImage ? (
+                            {product.image_url ? (
                               <img 
-                                src={productImage} 
-                                data-image-index="0"
-                                onError={(event) => handleImageFallback(event, productImageCandidates)}
+                                src={getSafeImageUrl(product.image_url)} 
                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform" 
                                 alt={product.name}
                               />
@@ -8933,7 +8471,7 @@ const TopupCartPage = () => <CartPageContent cartMode="topup" />;
 
 const MarketplacePage = () => {
   const { isDarkMode, setIsDarkMode } = useTheme();
-  const { appName, primaryColor } = useSettingsStore();
+  const { appName, logoUrl, primaryColor } = useSettingsStore();
   const { items, addItem, updateQuantity } = useRegularCartStore();
   const { user } = useAuthStore();
   const navigate = useNavigate();
@@ -8950,6 +8488,20 @@ const MarketplacePage = () => {
   const [auctionBidForm, setAuctionBidForm] = useState({ bid_price: '', customer_name: '', customer_phone: '' });
   const [bidSubmitting, setBidSubmitting] = useState(false);
   const [bidMessage, setBidMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [platformName, setPlatformName] = useState(appName || 'منصة مير للتجارة الالكترونية');
+  const [platformLogoUrl, setPlatformLogoUrl] = useState(logoUrl || '');
+
+  useEffect(() => {
+    fetch('/api/settings?role=admin')
+      .then(res => res.json())
+      .then(data => {
+        if (data && !data.error) {
+          setPlatformName(data.app_name || 'منصة مير للتجارة الالكترونية');
+          setPlatformLogoUrl(data.logo_url || '');
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Function to fetch auctions
   const fetchAuctionsData = async () => {
@@ -9172,10 +8724,10 @@ const MarketplacePage = () => {
                 title="عرض المشتريات"
               >
                 {/* شعار الآدمن */}
-                {useSettingsStore.getState().logoUrl ? (
+                {platformLogoUrl ? (
                   <img
-                    src={useSettingsStore.getState().logoUrl}
-                    alt="شعار الآدمن"
+                    src={platformLogoUrl}
+                    alt={platformName}
                     className="h-14 w-14 md:h-24 md:w-24 object-contain rounded-full border-2 border-indigo-200 bg-white shadow"
                     style={{ maxHeight: 112, maxWidth: 112 }}
                   />
@@ -9193,7 +8745,7 @@ const MarketplacePage = () => {
 
             <div className="flex flex-col items-center flex-1 text-center min-w-0 px-1">
               <h1 className={cn('text-lg sm:text-2xl md:text-4xl font-normal leading-tight truncate', isDarkMode ? 'text-white' : 'text-gray-900')}>
-                {appName || 'منصة مير للتجارة الالكترونية'}
+                {platformName}
               </h1>
             </div>
 
@@ -9381,7 +8933,7 @@ const MarketplacePage = () => {
                   type="password" 
                   name="password"
                   className={cn("w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100" : "bg-gray-50 border-black/10 text-gray-900")}  
-                  placeholder="أدخل كلمة المرور"
+                  placeholder="••••••••"
                   required
                 />
               </div>
@@ -9559,19 +9111,14 @@ const MarketplacePage = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
             {filteredProducts.map((p) => (
               <motion.div key={p.id} whileHover={{ y: -4 }}>
-                {(() => {
-                  const productImage = getPrimaryProductImage(p);
-                  const productImageCandidates = getProductImageCandidates(p);
-                  const hasImage = productImage !== PLACEHOLDER_IMAGE;
-                  return (
                 <Card className={cn('h-full flex flex-col border-2 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group', isDarkMode ? 'bg-gray-800 border-green-700 hover:border-green-600' : 'bg-white border-green-500 hover:border-green-600')}>
                   {/* Image */}
                   <div
                     className={cn('aspect-square w-full overflow-hidden cursor-pointer', isDarkMode ? 'bg-gray-700' : 'bg-gray-100')}
                     onClick={() => setSelectedProduct(p)}
                   >
-                    {hasImage ? (
-                      <img src={productImage} data-image-index="0" onError={(event) => handleImageFallback(event, productImageCandidates)} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt={p.name} />
+                    {p.image_url ? (
+                      <img src={getSafeImageUrl(p.image_url)} className="w-full h-full object-cover group-hover:scale-110 transition-transform" alt={p.name} />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Package size={28} className={cn(isDarkMode ? 'text-gray-500' : 'text-gray-300')} />
@@ -9595,8 +9142,6 @@ const MarketplacePage = () => {
                     </div>
                   </div>
                 </Card>
-                  );
-                })()}
               </motion.div>
             ))}
           </div>
@@ -9606,16 +9151,155 @@ const MarketplacePage = () => {
 
       {/* Product modal */}
       {selectedProduct && (
-        <RegularProductModal
-          product={selectedProduct}
-          isDarkMode={isDarkMode}
-          primaryColor={primaryColor}
-          appLabel={selectedProduct.store_name || appName}
-          quantities={quantities}
-          setQuantities={setQuantities}
-          onAddToCart={handleAddToCart}
-          onClose={() => setSelectedProduct(null)}
-        />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={cn('rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl relative flex flex-col md:flex-row', isDarkMode ? 'bg-gray-800' : 'bg-white')}
+          >
+            <button
+              onClick={() => setSelectedProduct(null)}
+              className={cn('absolute top-4 right-4 z-20 p-2 rounded-full transition-all', isDarkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}
+            >
+              <X size={24} />
+            </button>
+
+            {/* Gallery Section */}
+            <div className={cn('w-full md:w-1/2 p-4 flex flex-col gap-4', isDarkMode ? 'bg-gray-700' : 'bg-gray-50')}>
+              {/* Main Image */}
+              <motion.div
+                key={selectedProduct.image_url}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className={cn('w-full aspect-square rounded-2xl overflow-hidden shadow-lg border-4 border-white', isDarkMode ? 'bg-gray-600' : 'bg-gray-100')}
+              >
+                {selectedProduct.image_url ? (
+                  <img src={getSafeImageUrl(selectedProduct.image_url)} className="w-full h-full object-cover" alt={selectedProduct.name} />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package size={48} className={cn(isDarkMode ? 'text-gray-500' : 'text-gray-300')} />
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Image Gallery Thumbnails */}
+              {selectedProduct.gallery && selectedProduct.gallery.length > 0 && (
+                <div className={cn('grid grid-cols-4 gap-2 p-3 rounded-xl border', isDarkMode ? 'bg-gray-600 border-gray-500' : 'bg-white border-gray-200')}>
+                  {/* Main image thumbnail */}
+                  <div 
+                    className="aspect-square rounded-lg overflow-hidden cursor-pointer ring-2 ring-indigo-500 ring-offset-1"
+                  >
+                    <img src={getSafeImageUrl(selectedProduct.image_url)} className="w-full h-full object-cover" alt="main" />
+                  </div>
+
+                  {/* Other images */}
+                  {selectedProduct.gallery.map((img: string, idx: number) => (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        // Note: This would require additional state to track main image if needed
+                        console.log('Switching to gallery image:', img);
+                      }}
+                      className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-indigo-500 hover:ring-offset-1 transition-all opacity-70 hover:opacity-100"
+                    >
+                      <img src={img} className="w-full h-full object-cover" alt={`gallery-${idx}`} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Product Details and Purchase Section */}
+            <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-between gap-6">
+              <div className="space-y-4">
+                <h2 className={cn('text-3xl font-normal', isDarkMode ? 'text-white' : 'text-gray-900')}>{selectedProduct.name}</h2>
+                <p className={cn('text-base leading-relaxed', isDarkMode ? 'text-gray-300' : 'text-gray-600')}>{selectedProduct.description}</p>
+
+                {/* Product Details */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
+                  <div className={cn('p-3 rounded-lg border', isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200')}>
+                    <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>المخزون المتاح</p>
+                    <p className={cn('font-bold text-lg', selectedProduct.stock === 0 ? 'text-red-600' : 'text-green-600')}>
+                      {selectedProduct.stock === 0 ? 'غير متوفر' : `${selectedProduct.stock} متاح`}
+                    </p>
+                  </div>
+                  <div className={cn('p-3 rounded-lg border', isDarkMode ? 'bg-green-900/30 border-green-700' : 'bg-green-50 border-green-200')}>
+                    <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-green-400' : 'text-green-600')}>الحالة</p>
+                    <p className={cn('font-bold', isDarkMode ? 'text-green-300' : 'text-green-700')}>منتج أصلي ✓</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Purchase Section */}
+              <div className="space-y-4 pt-6 border-t" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
+                <div>
+                  <label className={cn('block mb-2 text-xs font-normal uppercase', isDarkMode ? 'text-gray-400' : 'text-gray-500')}>اختر الكمية</label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setQuantities(prev => ({
+                        ...prev,
+                        [selectedProduct.id]: Math.max(1, (prev[selectedProduct.id] || 1) - 1)
+                      }))}
+                      className={cn('p-3 rounded-lg transition-all active:scale-95', isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700')}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      max={selectedProduct.stock || 999}
+                      value={quantities[selectedProduct.id] || 1}
+                      onChange={(e) => setQuantities(prev => ({
+                        ...prev,
+                        [selectedProduct.id]: Math.max(1, Math.min(selectedProduct.stock || 999, parseInt(e.target.value) || 1))
+                      }))}
+                      className={cn('flex-1 px-4 py-3 text-center text-lg font-normal rounded-lg border outline-none transition-all', isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900')}
+                    />
+                    <button
+                      onClick={() => setQuantities(prev => ({
+                        ...prev,
+                        [selectedProduct.id]: Math.min(selectedProduct.stock || 999, (prev[selectedProduct.id] || 1) + 1)
+                      }))}
+                      className={cn('p-3 rounded-lg transition-all active:scale-95', isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700')}
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Price and Buy Button */}
+                <div className="space-y-3">
+                  <div className={cn('p-4 rounded-lg border-2', isDarkMode ? 'bg-indigo-900/30 border-indigo-700' : 'bg-indigo-50 border-indigo-200')}>
+                    <p className={cn('text-xs font-normal mb-1', isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>السعر النهائي</p>
+                    <p className={cn('text-2xl sm:text-3xl font-bold', isDarkMode ? 'text-indigo-300' : 'text-indigo-900')}>
+                      {formatCurrency(selectedProduct.price * (quantities[selectedProduct.id] || 1))}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      handleAddToCart(selectedProduct);
+                      setSelectedProduct(null);
+                    }}
+                    disabled={selectedProduct.stock === 0}
+                    className={cn('w-full py-4 rounded-xl text-white font-normal text-lg transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100')}
+                    style={{ backgroundColor: selectedProduct.stock === 0 ? '#999' : primaryColor }}
+                  >
+                    <ShoppingCart size={20} />
+                    إضافة للسلة ({quantities[selectedProduct.id] || 1})
+                  </button>
+
+                  <button
+                    onClick={() => setSelectedProduct(null)}
+                    className={cn('w-full py-3 rounded-xl font-normal text-base transition-all border-2', isDarkMode ? 'border-gray-600 text-gray-200 hover:bg-gray-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50')}
+                  >
+                    إغلاق
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
       )}
 
       {/* Auction Details Modal */}
@@ -9805,7 +9489,7 @@ const MarketplacePage = () => {
       <footer className={cn("border-t py-12 mt-12 flex-1", isDarkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-black/5 text-gray-500")}> 
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h4 className={cn("text-xl font-normal tracking-tighter mb-4", isDarkMode ? "text-white" : "text-indigo-600")}>{appName}</h4>
+            <h4 className={cn("text-xl font-normal tracking-tighter mb-4", isDarkMode ? "text-white" : "text-indigo-600")}>{platformName}</h4>
             <p className={cn("text-sm", isDarkMode ? "text-gray-300" : "text-gray-500")}>منصة التجارة الإلكترونية متعددة المستأجرين النهائية للشركات الحديثة.</p>
           </div>
           <div>
@@ -9834,158 +9518,6 @@ const MarketplacePage = () => {
   );
 };
 
-// About Page - من نحن
-const AboutPage = () => {
-  const { isDarkMode } = useTheme();
-  return (
-    <div className={cn("min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-28 md:pb-0 flex flex-col", isDarkMode ? 'bg-gray-900' : '')}>
-      <div className="flex-1 max-w-4xl mx-auto px-6 py-16">
-        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>من نحن</h1>
-        <div className={cn("rounded-2xl shadow-lg p-8 space-y-6", isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white')}>
-          <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🌍 منصتنا</h2>
-            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              نحن منصة تجارة إلكترونية حديثة توفر حلولاً شاملة للتجار والمتاجر الإلكترونية. تأسست المنصة بهدف تمكين الشركات الصغيرة والمتوسطة من الانطلاق رقمياً بسهولة وفعالية.
-            </p>
-          </div>
-          <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🎯 رسالتنا</h2>
-            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              توفير أدوات وخدمات متقدمة تمكّن التجار من إدارة متاجرهم الإلكترونية بكفاءة وتوسيع أعمالهم في السوق الرقمي.
-            </p>
-          </div>
-          <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>✨ قيمنا</h2>
-            <ul className={cn("space-y-2", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              <li>✓ الشفافية والأمانة في جميع معاملاتنا</li>
-              <li>✓ الابتكار المستمر لتحسين الخدمات</li>
-              <li>✓ دعم العملاء على مدار الساعة</li>
-              <li>✓ أمن البيانات والخصوصية</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-      <MobileFooterNav />
-    </div>
-  );
-};
-
-// Help Center Page - مركز المساعدة
-const HelpCenterPage = () => {
-  const { isDarkMode } = useTheme();
-  return (
-    <div className={cn("min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-28 md:pb-0 flex flex-col", isDarkMode ? 'bg-gray-900' : '')}>
-      <div className="flex-1 max-w-4xl mx-auto px-6 py-16">
-        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>مركز المساعدة</h1>
-        <div className={cn("rounded-2xl shadow-lg p-8 space-y-6", isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white')}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className={cn("border-l-4 border-indigo-600 pl-4", isDarkMode ? 'bg-gray-700' : '')}>
-              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>❓ الأسئلة الشائعة</h3>
-              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>ستجد الإجابات على الأسئلة الأكثر شيوعاً حول استخدام المنصة وإدارة متجرك.</p>
-            </div>
-            <div className={cn("border-l-4 border-indigo-600 pl-4", isDarkMode ? 'bg-gray-700' : '')}>
-              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>📚 الدلائل والأدلة</h3>
-              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>خطوات مفصلة وأدلة شاملة تساعدك في البدء والقيام بمختلف العمليات.</p>
-            </div>
-            <div className={cn("border-l-4 border-indigo-600 pl-4", isDarkMode ? 'bg-gray-700' : '')}>
-              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>💬 دعم العملاء</h3>
-              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>فريق الدعم الخاص بنا متاح لمساعدتك على مدار الساعة يومياً.</p>
-            </div>
-            <div className={cn("border-l-4 border-indigo-600 pl-4", isDarkMode ? 'bg-gray-700' : '')}>
-              <h3 className={cn("text-xl font-normal mb-2", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🛠️ الصيانة والتحديثات</h3>
-              <p className={cn("text-sm", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>تابع آخر التحديثات والصيانة الدورية للمنصة.</p>
-            </div>
-          </div>
-          <div className={cn("p-6 rounded-xl mt-8", isDarkMode ? 'bg-gray-700' : 'bg-indigo-50')}>
-            <p className={isDarkMode ? 'text-gray-200' : 'text-gray-700'}>
-              <strong>📧 تواصل معنا:</strong> إذا لم تجد الإجابة، يمكنك التواصل مع فريقنا عبر البريد الإلكتروني أو خلال ساعات العمل.
-            </p>
-          </div>
-        </div>
-      </div>
-      <MobileFooterNav />
-    </div>
-  );
-};
-
-// Security Policy Page - سياسة الأمان
-const SecurityPolicyPage = () => {
-  const { isDarkMode } = useTheme();
-  return (
-    <div className={cn("min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-28 md:pb-0 flex flex-col", isDarkMode ? 'bg-gray-900' : '')}>
-      <div className="flex-1 max-w-4xl mx-auto px-6 py-16">
-        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>سياسة الأمان</h1>
-        <div className={cn("rounded-2xl shadow-lg p-8 space-y-6", isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white')}>
-          <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🔒 أمان البيانات</h2>
-            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              نستخدم تقنيات التشفير الحديثة لحماية معلومات عملائنا والحفاظ على سرية بيانات المتاجر والعملاء.
-            </p>
-          </div>
-          <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🛡️ حماية المعاملات</h2>
-            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              جميع المعاملات المالية محمية بمعايير أمان دولية. لا نقبل بطاقات ائتمان مباشرة - يتم التعامل من خلال بوابات دفع آمنة معتمدة.
-            </p>
-          </div>
-          <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🔐 كلمات المرور</h2>
-            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              استخدم كلمات مرور قوية ولا تشارك حسابك مع أحد. يمكنك تحديث كلمة المرور في أي وقت من إعدادات الحساب.
-            </p>
-          </div>
-          <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>الإبلاغ عن المشاكل الأمنية</h2>
-            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              إذا اكتشفت أي مشكلة أمنية، يرجى الإبلاغ عنها فوراً إلى فريق الأمان بخصوصية تامة.
-            </p>
-          </div>
-        </div>
-      </div>
-      <MobileFooterNav />
-    </div>
-  );
-};
-
-// Privacy Policy Page - سياسة الخصوصية
-const PrivacyPolicyPage = () => {
-  const { isDarkMode } = useTheme();
-  return (
-    <div className={cn("min-h-screen bg-gradient-to-b from-indigo-50 to-white pb-28 md:pb-0 flex flex-col", isDarkMode ? 'bg-gray-900' : '')}>
-      <div className="flex-1 max-w-4xl mx-auto px-6 py-16">
-        <h1 className={cn("text-4xl font-normal mb-8", isDarkMode ? 'text-white' : 'text-gray-900')}>سياسة الخصوصية</h1>
-        <div className={cn("rounded-2xl shadow-lg p-8 space-y-6", isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white')}>
-          <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>📋 جمع البيانات</h2>
-            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              نجمع المعلومات الضرورية لتقديم الخدمة فقط، مثل البيانات الشخصية والمعاملات التجارية.
-            </p>
-          </div>
-          <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🔒 استخدام البيانات</h2>
-            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              نستخدم بيانات العملاء فقط لتحسين الخدمة والتواصل حول الحسابات والعروض الخاصة. لا بيع البيانات لأطراف ثالثة.
-            </p>
-          </div>
-          <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🚀 ملفات تعريف الارتباط</h2>
-            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              نستخدم الملفات التعريفية لتحسين تجربة الاستخدام. يمكنك إدارة الملفات التعريفية من إعدادات المتصفح.
-            </p>
-          </div>
-          <div>
-            <h2 className={cn("text-2xl font-normal mb-4", isDarkMode ? 'text-indigo-400' : 'text-indigo-600')}>🗑️ حقوقك</h2>
-            <p className={cn("leading-relaxed", isDarkMode ? 'text-gray-300' : 'text-gray-700')}>
-              لديك الحق في طلب معلوماتك الشخصية، تصحيحها، أو حذفها في أي وقت.
-            </p>
-          </div>
-        </div>
-      </div>
-      <MobileFooterNav />
-    </div>
-  );
-};
-
 const StoresPage = () => {
   const [stores, setStores] = useState<any[]>([]);
   const [storesWithLogos, setStoresWithLogos] = useState<Map<number, any>>(new Map());
@@ -9993,13 +9525,11 @@ const StoresPage = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showTopupAuthModal, setShowTopupAuthModal] = useState(false);
   const [selectedTopupStore, setSelectedTopupStore] = useState<any>(null);
-  const [isolatedTopupAuthFlow, setIsolatedTopupAuthFlow] = useState(false);
   const [topupAuthName, setTopupAuthName] = useState('');
   const [topupAuthPhone, setTopupAuthPhone] = useState('');
   const [topupAuthError, setTopupAuthError] = useState('');
   const [topupAuthLoading, setTopupAuthLoading] = useState(false);
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { appName, primaryColor } = useSettingsStore();
   const { isDarkMode } = useTheme();
 
@@ -10051,33 +9581,6 @@ const StoresPage = () => {
     fetchStores();
   }, []);
 
-  useEffect(() => {
-    if (loading || stores.length === 0) return;
-
-    const shouldOpenTopup = searchParams.get('openTopup');
-    const targetSlug = searchParams.get('topupSlug');
-
-    if (!shouldOpenTopup) return;
-
-    const matchedTopupStore = stores.find((store: any) => {
-      if (store.store_type !== 'topup') return false;
-      if (!targetSlug) return true;
-
-      return String(store.slug) === targetSlug || String(store.id) === targetSlug;
-    });
-
-    if (matchedTopupStore) {
-      setIsolatedTopupAuthFlow(true);
-      setSelectedTopupStore(matchedTopupStore);
-      setTopupAuthName('');
-      setTopupAuthPhone('');
-      setTopupAuthError('');
-      setShowTopupAuthModal(true);
-    }
-
-    setSearchParams({}, { replace: true });
-  }, [loading, stores, searchParams, setSearchParams]);
-
       useEffect(() => {
         setStoresWithLogos(buildStoreLogosMap(stores));
       }, [stores]);
@@ -10101,14 +9604,13 @@ const StoresPage = () => {
     // If topup store, show auth modal instead of navigating directly
     if (store.store_type === 'topup') {
       console.log(`🏪 Store clicked: ID=${store.id}, Name=${store.name}, Slug=${store.slug}`);
-      setIsolatedTopupAuthFlow(false);
       setSelectedTopupStore(store);
       setTopupAuthName('');
       setTopupAuthPhone('');
       setTopupAuthError('');
       setShowTopupAuthModal(true);
     } else {
-      navigate(`/store/${store.slug}`);
+      navigate(`/store/${store.id}`);
     }
   };
 
@@ -10158,35 +9660,37 @@ const StoresPage = () => {
 
       console.log(`✅ Found ${registeredCustomers.length} matching customer(s)`);
       
-      if (registeredCustomers.length > 0) {
+      if (registeredCustomers.length > 0 && selectedTopupStore) {
         // Customer verified - save data to localStorage
         const customer = registeredCustomers[0];
-        const customerData = {
+        const verifiedStoreId = selectedTopupStore.id;
+        const customerData = normalizeTopupCustomerData({
           customer_id: customer.id,
           id: customer.id,
+          store_id: verifiedStoreId,
           name: customer.name,
           phone: customer.phone,
           customer_type: customer.customer_type,
           credit_limit: customer.credit_limit,
           current_debt: customer.current_debt
-        };
+        }, verifiedStoreId);
         console.log('✅ Customer verified, saving:', customerData);
         // Save to localStorage
         localStorage.setItem('topupCustomer', JSON.stringify(customerData));
+        sessionStorage.setItem('activeTopupStoreId', String(verifiedStoreId));
         
         // Close modal and navigate
         setShowTopupAuthModal(false);
         setSelectedTopupStore(null);
-        setIsolatedTopupAuthFlow(false);
         setTopupAuthName('');
         setTopupAuthPhone('');
         setTopupAuthError('');
         
         // Wait a bit to ensure localStorage is synced, then navigate
         setTimeout(() => {
-          const storeSlug = selectedTopupStore.slug || selectedTopupStore.id;
-          console.log('🚀 Navigating to topup store:', storeSlug);
-          navigate(`/topup/${storeSlug}`);
+          const topupStoreId = verifiedStoreId;
+          console.log('🚀 Navigating to topup store ID:', topupStoreId);
+          navigate(`/topup/${topupStoreId}`, { state: { verifiedCustomer: customerData, verifiedStoreId: topupStoreId } });
         }, 100);
       } else {
         setTopupAuthError('❌ لم يتم العثور على بيانات مطابقة. تأكد من اسم العميل ورقم الهاتف الصحيح');
@@ -10210,28 +9714,9 @@ const StoresPage = () => {
     );
   }
 
-  const closeTopupAuthModal = () => {
-    setShowTopupAuthModal(false);
-    setSelectedTopupStore(null);
-    setTopupAuthName('');
-    setTopupAuthPhone('');
-    setTopupAuthError('');
-
-    if (isolatedTopupAuthFlow) {
-      setIsolatedTopupAuthFlow(false);
-      navigate('/stores', { replace: true });
-      return;
-    }
-
-    setIsolatedTopupAuthFlow(false);
-  };
-
-  const showIsolatedTopupAuthScreen = isolatedTopupAuthFlow && showTopupAuthModal && selectedTopupStore;
-
   return (
-    <div className={cn("min-h-screen pb-28 md:pb-0 flex flex-col", showIsolatedTopupAuthScreen ? (isDarkMode ? "bg-gray-950 text-gray-100" : "bg-white text-gray-900") : (isDarkMode ? "bg-gray-900 text-gray-100" : "bg-gradient-to-b from-indigo-50 to-white text-gray-900"))} dir="rtl">
+    <div className={cn("min-h-screen pb-28 md:pb-0 flex flex-col", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-gradient-to-b from-indigo-50 to-white text-gray-900")} dir="rtl">
       {/* Header */}
-      {!showIsolatedTopupAuthScreen && (
       <div className={cn("border-b sticky top-0 z-40", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5")}>
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
           <Link
@@ -10245,18 +9730,23 @@ const StoresPage = () => {
           <div className="w-8 sm:w-16"></div>
         </div>
       </div>
-      )}
 
       {/* Stores Grid */}
       {/* Topup Store Auth Modal */}
       {showTopupAuthModal && selectedTopupStore && (
-        <div className={cn("fixed inset-0 flex items-center justify-center z-50 p-4", showIsolatedTopupAuthScreen ? (isDarkMode ? "bg-gray-950" : "bg-white") : "bg-black/50")} dir="rtl">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" dir="rtl">
           <Card className={cn("w-full max-w-md", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white")}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className={cn("text-xl font-normal", isDarkMode ? "text-white" : "text-gray-900")}>دخول متجر البطاقات</h2>
                 <button
-                  onClick={closeTopupAuthModal}
+                  onClick={() => {
+                    setShowTopupAuthModal(false);
+                    setSelectedTopupStore(null);
+                    setTopupAuthName('');
+                    setTopupAuthPhone('');
+                    setTopupAuthError('');
+                  }}
                   className={cn("p-1 rounded hover:bg-gray-100", isDarkMode ? "hover:bg-gray-700" : "")}
                 >
                   <X size={20} className={isDarkMode ? "text-gray-400" : "text-gray-600"} />
@@ -10304,7 +9794,13 @@ const StoresPage = () => {
 
               <div className="flex gap-3 mt-6">
                 <button
-                  onClick={closeTopupAuthModal}
+                  onClick={() => {
+                    setShowTopupAuthModal(false);
+                    setSelectedTopupStore(null);
+                    setTopupAuthName('');
+                    setTopupAuthPhone('');
+                    setTopupAuthError('');
+                  }}
                   className={cn("flex-1 px-4 py-2 rounded-lg font-normal text-sm transition-colors", isDarkMode ? "bg-gray-700 hover:bg-gray-600 text-gray-200" : "bg-gray-100 hover:bg-gray-200 text-gray-800")}
                 >
                   إلغاء
@@ -10329,7 +9825,6 @@ const StoresPage = () => {
         </div>
       )}
 
-      {!showIsolatedTopupAuthScreen && (
       <main className="flex-1 max-w-7xl mx-auto px-4 py-6 sm:py-12 w-full">
         {stores.length === 0 ? (
           <div className="text-center py-20">
@@ -10338,28 +9833,22 @@ const StoresPage = () => {
             <p className="text-gray-300">تحقق لاحقاً للتسوق من متاجر جديدة</p>
           </div>
         ) : (
-            <div className="max-w-full sm:max-w-[75%] mx-auto">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 auto-rows-max justify-items-center">
+          <div className="max-w-full md:max-w-[75%] mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 auto-rows-max">
             {stores.map((store) => (
               <motion.div
                 key={store.id}
                 whileHover={{ y: -4 }}
                 onClick={() => handleStoreClick(store)}
-                className="cursor-pointer h-full w-full flex justify-center"
+                className="cursor-pointer"
               >
-                <Card className={cn(
-                  "h-full w-full max-w-[150px] min-h-[300px] flex flex-col overflow-hidden group rounded-[1.5rem] border-2 shadow-sm hover:shadow-xl transition-all duration-300",
-                  isDarkMode ? "border-amber-400 bg-gray-800 ring-1 ring-amber-500/40" : "border-amber-500 bg-white ring-1 ring-amber-300/80"
-                )}>
+                <Card className="h-full flex flex-col border-none shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group w-full">
                   {/* Store Logo Badge - Always Visible */}
-                  <div className={cn(
-                    "p-0 flex items-center justify-center aspect-square w-full overflow-hidden border-b",
-                    isDarkMode ? "bg-white border-amber-500/40" : "bg-white border-amber-200"
-                  )}>
+                  <div className="p-0 flex items-center justify-center h-24 overflow-hidden rounded-t-lg bg-white">
                     {storesWithLogos.has(store.id) && storesWithLogos.get(store.id) ? (
                       <img 
                         src={storesWithLogos.get(store.id)} 
-                        className="w-auto h-auto max-w-[84%] max-h-[84%] object-contain" 
+                        className="w-auto h-auto max-w-[95%] max-h-[95%] object-contain" 
                         alt={store.store_name}
                         onError={(e) => console.error("Logo load error for", store.store_name)}
                       />
@@ -10379,27 +9868,27 @@ const StoresPage = () => {
                   </div>
 
                   {/* Store Info */}
-                  <div className="p-3.5 flex-1 flex flex-col justify-between gap-2.5">
+                  <div className="p-3 flex-1 flex flex-col justify-between gap-2">
                     <div>
-                      <h3 className={cn("font-normal text-base leading-tight line-clamp-2 min-h-[2.8rem] group-hover:text-indigo-300 transition-colors mb-1", isDarkMode ? "text-white" : "text-gray-900")}>
+                      <h3 className={cn("font-normal text-xs line-clamp-1 group-hover:text-indigo-300 transition-colors mb-1", isDarkMode ? "text-white" : "text-gray-900")}>
                         {store.store_name}
                       </h3>
-                      <p className={cn("text-[11px] font-normal line-clamp-2 min-h-[2.2rem]", isDarkMode ? "text-gray-300" : "text-gray-600")}>
+                      <p className={cn("text-[10px] font-normal line-clamp-2", isDarkMode ? "text-gray-300" : "text-gray-600")}>
                         {store.description || 'متجر متخصص'}
                       </p>
                     </div>
 
                     {/* Store Owner */}
                     {store.owner_name && (
-                      <div className="text-[10px] space-y-1">
+                      <div className="text-[9px]">
                         <p className={cn("font-normal", isDarkMode ? "text-gray-400" : "text-gray-500")}>صاحب المتجر</p>
-                        <p className={cn("font-normal line-clamp-2", isDarkMode ? "text-white" : "text-gray-900")}>{store.owner_name}</p>
+                        <p className={cn("font-normal", isDarkMode ? "text-white" : "text-gray-900")}>{store.owner_name}</p>
                       </div>
                     )}
 
                     {/* Visit Button */}
                     <button 
-                      className="mt-1 w-full py-2 px-3 rounded-xl font-normal text-white text-xs transition-all transform hover:scale-105 active:scale-95 shadow-sm"
+                      className="mt-1 w-full py-1.5 px-1 rounded-md font-normal text-white text-[9px] transition-all transform hover:scale-105 active:scale-95 shadow-sm"
                       style={{ backgroundColor: primaryColor }}
                     >
                       زيارة المتجر
@@ -10412,9 +9901,8 @@ const StoresPage = () => {
           </div>
         )}
       </main>
-      )}
 
-      {!showIsolatedTopupAuthScreen && <MobileFooterNav />}
+      <MobileFooterNav />
     </div>
   );
 };
@@ -10467,14 +9955,20 @@ function App() {
   const { user, logout } = useAuthStore();
   const { setSettings } = useSettingsStore();
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('isDarkMode');
-    return saved !== null ? JSON.parse(saved) : true; // الوضع الليلي افتراضيًا
+    const savedTheme = localStorage.getItem('themeMode');
+    const legacySavedTheme = localStorage.getItem('isDarkMode');
+    const nextTheme = savedTheme ?? legacySavedTheme;
+    return nextTheme !== null ? JSON.parse(nextTheme) : true; // الوضع الليلي افتراضيًا
   });
   console.log("App Render - User:", user);
 
   // Save dark mode to localStorage
   useEffect(() => {
-    localStorage.setItem('isDarkMode', JSON.stringify(isDarkMode));
+    const serializedTheme = JSON.stringify(isDarkMode);
+    localStorage.setItem('themeMode', serializedTheme);
+
+    // Keep the legacy key in sync until the old readers are fully removed.
+    localStorage.setItem('isDarkMode', serializedTheme);
   }, [isDarkMode]);
 
   // Validate user session on mount and when location changes
@@ -10521,80 +10015,81 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // Fetch global platform settings
-    fetch(`/api/settings?storeId=${user?.store_id}&role=${user?.role}`)
+    // Keep public platform branding sourced from admin settings.
+    fetch('/api/settings?role=admin')
       .then(res => res.json())
       .then(data => {
         if (data && !data.error && data.app_name) {
           setSettings(data);
-          // Update the global settings store so it's available everywhere
           useSettingsStore.getState().setSettings(data);
         }
       })
       .catch(() => {});
-  }, [setSettings]);
+  }, [user?.id, setSettings]);
 
   return (
     <ThemeProvider isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode}>
-      <BrowserRouter>
-        <Routes>
-          {/* Main page - All products (excluding topup store products) */}
-          <Route path="/" element={<MarketplacePage />} />
-          <Route path="/stores" element={<StoresPage />} />
-          <Route path="/store/:slug" element={<CustomerStorefront />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/topup-cart" element={<TopupCartPage />} />
-          <Route path="/login" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'merchant' ? (user.store_type === 'topup' ? '/topup-merchant' : '/merchant') : '/'} replace /> : <LoginPage />} />
-          <Route path="/register-merchant" element={<RegisterMerchantPage />} />
-          
-          {/* Info Pages */}
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/help" element={<HelpCenterPage />} />
-          <Route path="/security" element={<SecurityPolicyPage />} />
-          <Route path="/privacy" element={<PrivacyPolicyPage />} />
-          
-          {/* Admin Routes */}
-          <Route path="/admin/*" element={
-            (() => {
-              console.log('Admin Route - user:', user, 'role:', user?.role, 'isAdmin:', user?.role === 'admin');
-              if (user?.role === 'admin') {
-                return (
-                  <Routes>
-                    <Route index element={<AdminDashboard />} />
-                    <Route path=":section" element={<AdminDashboard />} />
-                  </Routes>
-                );
-              } else {
-                console.log('Not admin - redirecting to login');
-                return <Navigate to="/login" replace />;
-              }
-            })()
-          } />
+      <LazyMotion features={loadMotionFeatures}>
+        <BrowserRouter>
+          <Routes>
+            {/* Main page - All products (excluding topup store products) */}
+            <Route path="/" element={<MarketplacePage />} />
+            <Route path="/stores" element={<StoresPage />} />
+            <Route path="/store/:storeId" element={<CustomerStorefront />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/topup-cart" element={<TopupCartPage />} />
+            <Route path="/login" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'merchant' ? (user.store_type === 'topup' ? '/topup-merchant' : '/merchant') : '/'} replace /> : <LoginPage />} />
+            <Route path="/register-merchant" element={<RegisterMerchantPage />} />
+            
+            {/* Info Pages */}
+            <Route path="/about" element={<React.Suspense fallback={null}><AboutPage /></React.Suspense>} />
+            <Route path="/help" element={<React.Suspense fallback={null}><HelpCenterPage /></React.Suspense>} />
+            <Route path="/security" element={<React.Suspense fallback={null}><SecurityPolicyPage /></React.Suspense>} />
+            <Route path="/privacy" element={<React.Suspense fallback={null}><PrivacyPolicyPage /></React.Suspense>} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin/*" element={
+              (() => {
+                console.log('Admin Route - user:', user, 'role:', user?.role, 'isAdmin:', user?.role === 'admin');
+                if (user?.role === 'admin') {
+                  return (
+                    <Routes>
+                      <Route index element={<AdminDashboard />} />
+                      <Route path=":section" element={<AdminDashboard />} />
+                    </Routes>
+                  );
+                } else {
+                  console.log('Not admin - redirecting to login');
+                  return <Navigate to="/login" replace />;
+                }
+              })()
+            } />
 
-          {/* Merchant Routes */}
-          <Route path="/merchant/*" element={user?.role === 'merchant' ? (
-            <Routes>
-              <Route index element={<MerchantDashboard />} />
-              <Route path=":section" element={<MerchantDashboard />} />
-            </Routes>
-          ) : <Navigate to="/login" replace />} />
+            {/* Merchant Routes */}
+            <Route path="/merchant/*" element={user?.role === 'merchant' ? (
+              <Routes>
+                <Route index element={<MerchantDashboardRoute />} />
+                <Route path=":section" element={<MerchantDashboardRoute />} />
+              </Routes>
+            ) : <Navigate to="/login" replace />} />
 
-          {/* Top-Up Store Routes */}
-          <Route path="/topup/:slug" element={<TopupStorefront />} />
-          <Route path="/topup/:slug/order/:orderId" element={<TopupOrderDetails />} />
+            {/* Top-Up Store Routes */}
+            <Route path="/topup/:storeId" element={<TopupStorefront />} />
+            <Route path="/topup/:storeId/order/:orderId" element={<TopupOrderDetails />} />
 
-          {/* Top-Up Merchant Dashboard */}
-          <Route path="/topup-merchant/*" element={
-            <Routes>
-              <Route index element={<MerchantTopupDashboard />} />
-              <Route path=":section" element={<MerchantTopupDashboard />} />
-            </Routes>
-          } />
+            {/* Top-Up Merchant Dashboard */}
+            <Route path="/topup-merchant/*" element={
+              <Routes>
+                <Route index element={<MerchantTopupDashboard />} />
+                <Route path=":section" element={<MerchantTopupDashboard />} />
+              </Routes>
+            } />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </LazyMotion>
     </ThemeProvider>
   );
 }
@@ -10609,7 +10104,7 @@ const MerchantTopupDashboard = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showMobileDrawer, setShowMobileDrawer] = useState(false);
-  
+
   // Redirect to login if not authenticated
   if (!user || user.role !== 'merchant') {
     return <Navigate to="/login" replace />;
@@ -10662,30 +10157,10 @@ const MerchantTopupDashboard = () => {
 
   // Store ID - for topup system, use user's store_id if available, otherwise find first topup store
   const [topupStoreId, setTopupStoreId] = useState<number | null>(null);
-  const dashboardRequestRef = useRef(0);
-  const latestDashboardDataRef = useRef({
-    companies: [] as any[],
-    products: [] as any[],
-    customers: [] as any[],
-    orders: [] as any[],
-  });
 
-  const getProductImageCount = (product: any) => {
-    const actualImageCount = getProductImageCandidates(product).length;
-    if (actualImageCount > 0) {
-      return actualImageCount;
-    }
-
-    const numericImagesCount = Number(product?.images_count);
-    if (Number.isFinite(numericImagesCount) && numericImagesCount >= 0) {
-      return numericImagesCount;
-    }
-
-    return 0;
-  };
-  
   // Clean up old localStorage entries on mount
   useEffect(() => {
+    // Remove old hardcoded store 13 references
     const keysToRemove = ['storeInfo_13', 'storeSettings_13', 'topupStorefront_lastBuild'];
     keysToRemove.forEach(key => {
       if (localStorage.getItem(key)) {
@@ -10694,11 +10169,11 @@ const MerchantTopupDashboard = () => {
       }
     });
   }, []);
-  
+
   useEffect(() => {
     const resolveTopupStoreId = async () => {
       try {
-        const response = await fetch('/api/stores?limit=100&includeInactive=true');
+        const response = await fetch('/api/stores?page=1&pageSize=100');
         const data = await response.json();
 
         if (!Array.isArray(data) || data.length === 0) {
@@ -10707,19 +10182,24 @@ const MerchantTopupDashboard = () => {
           return;
         }
 
-        const topupStores = data.filter((store: any) => store?.store_type === 'topup');
-        const userTopupStore = topupStores.find((store: any) => Number(store.id) === Number(user?.store_id));
-        const resolvedStore = userTopupStore || topupStores[0] || null;
+        const userStore = user?.store_id
+          ? data.find((store: any) => Number(store.id) === Number(user.store_id))
+          : null;
+        const topupStore = data.find((store: any) => store.store_type === 'topup');
+        const resolvedStore = userStore || topupStore || data[0];
         const resolvedStoreId = Number(resolvedStore?.id) || null;
 
         console.log('🔍 Resolved topup store:', {
           userStoreId: user?.store_id,
-          topupStoreIds: topupStores.map((store: any) => store.id),
           resolvedStoreId,
           resolvedStoreType: resolvedStore?.store_type,
         });
 
-        setTopupStoreId(prevStoreId => prevStoreId === resolvedStoreId ? prevStoreId : resolvedStoreId);
+        setTopupStoreId(resolvedStoreId);
+
+        if (resolvedStoreId && user && Number(user.store_id) !== resolvedStoreId) {
+          setUser({ ...user, store_id: resolvedStoreId });
+        }
       } catch (err) {
         console.error('Failed to resolve topup store:', err);
         setTopupStoreId(null);
@@ -10727,34 +10207,30 @@ const MerchantTopupDashboard = () => {
     };
 
     resolveTopupStoreId();
-  }, [user?.id, user?.store_id]);
+  }, [user?.store_id]);
 
-  useEffect(() => {
-    latestDashboardDataRef.current = {
-      companies,
-      products,
-      customers,
-      orders,
-    };
-  }, [companies, products, customers, orders]);
-
-  const refreshDashboardData = async (targetStoreId: number | null = topupStoreId) => {
+  // Function to refresh dashboard data
+  const refreshDashboardData = async () => {
     try {
-      if (!targetStoreId || targetStoreId === null || targetStoreId === undefined) {
-        console.warn('â›” ABORT: Invalid topupStoreId:', targetStoreId);
+      // ⛔ CRITICAL: Validate topupStoreId before making ANY API calls
+      if (!topupStoreId || topupStoreId === null || topupStoreId === undefined) {
+        console.warn('⛔ ABORT: Invalid topupStoreId:', topupStoreId);
         return;
       }
 
-      const requestId = ++dashboardRequestRef.current;
-      const timeout = new Promise((_, reject) => 
+      console.log('🔄 Refreshing dashboard data for store:', topupStoreId);
+
+      // Add timeout to prevent hanging
+      const timeout = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('API request timeout')), 10000)
       );
 
-      const fetchWithTimeout = (url: string) => 
+      const fetchWithTimeout = (url: string) =>
         Promise.race([
           fetch(url)
             .then(r => {
               if (!r.ok) {
+                console.error(`❌ API returned ${r.status}:`, r.statusText);
                 throw new Error(`HTTP ${r.status}`);
               }
               return r.json();
@@ -10762,57 +10238,55 @@ const MerchantTopupDashboard = () => {
           timeout
         ]);
 
-      const [comp, prod, ordersData] = await Promise.all([
-        fetchWithTimeout(`/api/topup/companies/${targetStoreId}`).catch(() => null),
-        fetchWithTimeout(`/api/topup/products/${targetStoreId}?compact=true`).catch(() => null),
-        fetchWithTimeout(`/api/topup/orders?storeId=${targetStoreId}`).catch(() => null),
+      const [comp, prod, cust, ordersData] = await Promise.all([
+        fetchWithTimeout(`/api/topup/companies/${topupStoreId}`).catch((err) => {
+          console.error('❌ Companies fetch failed:', err.message);
+          return [];
+        }),
+        fetchWithTimeout(`/api/topup/products/${topupStoreId}`).catch((err) => {
+          console.error('❌ Products fetch failed:', err.message);
+          return [];
+        }),
+        fetchWithTimeout(`/api/topup/customers/${topupStoreId}`).catch((err) => {
+          console.error('❌ Customers fetch failed:', err.message);
+          return [];
+        }),
+        fetchWithTimeout(`/api/topup/orders?storeId=${topupStoreId}`).catch((err) => {
+          console.error('❌ Orders fetch failed:', err.message);
+          return [];
+        }),
       ]);
 
-      if (requestId !== dashboardRequestRef.current) {
-        return;
-      }
+      console.log('📊 Dashboard Data Loaded:', {
+        companies: comp,
+        products: prod,
+        customers: cust,
+        orders: ordersData
+      });
 
-      const currentDashboardData = latestDashboardDataRef.current;
-      const nextCompanies = Array.isArray(comp) ? comp : currentDashboardData.companies;
-      const nextProducts = Array.isArray(prod) ? prod : currentDashboardData.products;
-      const nextCustomers = currentDashboardData.customers;
-      const nextOrders = Array.isArray(ordersData) ? ordersData : currentDashboardData.orders;
+      setCompanies(Array.isArray(comp) ? comp : []);
+      setProducts(Array.isArray(prod) ? prod : []);
+      setCustomers(Array.isArray(cust) ? cust : []);
+      setOrders(Array.isArray(ordersData) ? ordersData : []);
 
-      latestDashboardDataRef.current = {
-        companies: nextCompanies,
-        products: nextProducts,
-        customers: nextCustomers,
-        orders: nextOrders,
-      };
+      // Calculate stats with both products and orders
+      const calculatedStats = calculateStats(
+        Array.isArray(prod) ? prod : [],
+        Array.isArray(ordersData) ? ordersData : []
+      );
 
-      setCompanies(nextCompanies);
-      setProducts(nextProducts);
-      setCustomers(nextCustomers);
-      setOrders(nextOrders);
+      console.log('📈 Calculated Stats:', calculatedStats);
 
-      const calculatedStats = calculateStats(nextProducts, nextOrders);
       setStats({
-        totalOrders: nextOrders.length,
+        totalOrders: Array.isArray(ordersData) ? ordersData.length : 0,
         totalRevenue: calculatedStats.totalRevenue,
         totalCodes: calculatedStats.totalCodes,
         activeCodes: calculatedStats.totalCodes - calculatedStats.usedCodes
       });
+
       setIsLoading(false);
-
-      fetchWithTimeout(`/api/topup/customers/${targetStoreId}`)
-        .then((customerData: any) => {
-          if (requestId !== dashboardRequestRef.current || !Array.isArray(customerData)) {
-            return;
-          }
-
-          latestDashboardDataRef.current = {
-            ...latestDashboardDataRef.current,
-            customers: customerData,
-          };
-          setCustomers(customerData);
-        })
-        .catch(() => {});
     } catch (error) {
+      console.error('❌ Error refreshing dashboard data:', error);
       setIsLoading(false);
     }
   };
@@ -10904,9 +10378,9 @@ const MerchantTopupDashboard = () => {
   };
 
   useEffect(() => {
-    // â›” CRITICAL: Never allow store ID 13 (doesn't exist in database)
+    // ⛔ CRITICAL: Never allow store ID 13 (doesn't exist in database)
     if (!topupStoreId || !user) {
-      console.log('âڈ­ï¸ڈ Skipping refresh: topupStoreId=', topupStoreId, 'user=', user?.id);
+      console.log('⏭️ Skipping refresh: topupStoreId=', topupStoreId, 'user=', user?.id);
       return;
     }
 
@@ -10926,9 +10400,9 @@ const MerchantTopupDashboard = () => {
 
   // Fetch store settings on mount
   useEffect(() => {
-    // â›” CRITICAL: Validate topupStoreId before any fetch
+    // ⛔ CRITICAL: Validate topupStoreId before any fetch
     if (!topupStoreId || topupStoreId === null || topupStoreId === undefined) {
-      console.log('âڈ­ï¸ڈ topupStoreId not ready yet or invalid, skipping fetch:', topupStoreId);
+      console.log('⏭️ topupStoreId not ready yet or invalid, skipping fetch:', topupStoreId);
       return;
     }
     
@@ -11050,9 +10524,9 @@ const MerchantTopupDashboard = () => {
 
   // Fetch store info for sidebar branding
   useEffect(() => {
-    // â›” CRITICAL: Reject invalid store IDs before any fetch
+    // ⛔ CRITICAL: Reject invalid store IDs before any fetch
     if (!topupStoreId || topupStoreId === null || topupStoreId === undefined) {
-      console.log('âڈ­ï¸ڈ topupStoreId not ready yet or invalid:', topupStoreId);
+      console.log('⏭️ topupStoreId not ready yet or invalid:', topupStoreId);
       return;
     }
     
@@ -11446,7 +10920,7 @@ const MerchantTopupDashboard = () => {
           console.log(`  Original: ${(originalSize / 1024).toFixed(2)} KB`);
           console.log(`  Compressed: ${(compressedSize / 1024).toFixed(2)} KB`);
           console.log(`  Ratio: ${((1 - compressedSize / originalSize) * 100).toFixed(1)}% reduction`);
-          console.log(`  Dimensions: ${img.width}x${img.height} â†’ ${width}x${height}`);
+          console.log(`  Dimensions: ${img.width}x${img.height} → ${width}x${height}`);
           
           resolve(compressedDataUrl);
         };
@@ -11852,7 +11326,7 @@ const MerchantTopupDashboard = () => {
                       ? currentSection === item.id ? "bg-purple-400/30 text-purple-200" : isDarkMode ? "bg-purple-900/40 text-purple-300" : "bg-purple-100 text-purple-800"
                       : currentSection === item.id ? "bg-white/20" : isDarkMode ? "bg-gray-700 text-indigo-400" : "bg-indigo-100 text-indigo-700"
                   )}>
-                    {item.badge === 0 && item.id === 'codes' ? '0' : item.badge}
+                    {item.badge === 0 && item.id === 'codes' ? '0️⃣' : item.badge}
                   </span>
                 )}
               </Link>
@@ -11978,7 +11452,7 @@ const MerchantTopupDashboard = () => {
                           .map((c, i) => (
                             <div key={c.id} className="flex justify-between items-center pb-3 border-b last:border-b-0" style={{ borderColor: isDarkMode ? '#374151' : '#e5e7eb' }}>
                               <div>
-                                <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{i + 1}. {sanitizeDisplayText(c.name, 'شركة')}</p>
+                                <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{i + 1}. {c.name}</p>
                                 <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>الإيرادات: {Number(c.totalRevenue || 0).toLocaleString('en-US')} د.ع</p>
                               </div>
                               <span className={cn("text-xs px-2 py-1 rounded", isDarkMode ? "bg-green-900 text-green-300" : "bg-green-100 text-green-700")}>نشطة</span>
@@ -12105,8 +11579,38 @@ const MerchantTopupDashboard = () => {
                   {/* Products Grid - Modern Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {group.products.map((product: any) => {
-                      const productImages = getProductImageCandidates(product);
-                      const primaryProductImage = productImages[0] || '';
+                      // Parse product images - handle both object and string formats
+                      let productImages: string[] = [];
+                      if (product.images) {
+                        if (Array.isArray(product.images)) {
+                          productImages = product.images
+                            .map((img: any) => {
+                              // If it's an object with url property, extract the URL
+                              if (typeof img === 'object' && img !== null && img.url) {
+                                return img.url;
+                              }
+                              // If it's a string, use it directly
+                              return typeof img === 'string' ? img : null;
+                            })
+                            .filter((img: any) => img && String(img).length > 0);
+                        } else if (typeof product.images === 'string') {
+                          try {
+                            const parsed = JSON.parse(product.images);
+                            if (Array.isArray(parsed)) {
+                              productImages = parsed
+                                .map((img: any) => {
+                                  if (typeof img === 'object' && img !== null && img.url) {
+                                    return img.url;
+                                  }
+                                  return typeof img === 'string' ? img : null;
+                                })
+                                .filter((img: any) => img && String(img).length > 0);
+                            }
+                          } catch (e) {
+                            productImages = [];
+                          }
+                        }
+                      }
 
                       return (
                         <motion.div
@@ -12120,22 +11624,6 @@ const MerchantTopupDashboard = () => {
                               : "bg-white border-gray-200 hover:shadow-xl hover:shadow-indigo-500/20"
                           )}
                         >
-                          {productImages.length > 0 && (
-                            <div className={cn("relative aspect-[4/3] overflow-hidden border-b", isDarkMode ? "border-gray-700 bg-gray-900" : "border-gray-200 bg-gray-50")}>
-                              <img
-                                src={getSafeImageUrl(primaryProductImage)}
-                                alt={`${sanitizeDisplayText(product.company_name, 'شركة')} ${formatNumber(product.amount)}`}
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                data-image-index="0"
-                                onError={(event) => handleImageFallback(event, productImages)}
-                              />
-                              <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent"></div>
-                              <div className="absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-semibold bg-black/70 text-white">
-                                {productImages.length} صورة
-                              </div>
-                            </div>
-                          )}
-
                           {/* Content Section */}
                           <div className="p-4 space-y-3">
                             {/* Amount - Main Value */}
@@ -12251,7 +11739,7 @@ const MerchantTopupDashboard = () => {
                           >
                             <option value="">اختر شركة</option>
                             {companies && companies.length > 0 ? (
-                              companies.map(c => <option key={c.id} value={c.id}>{sanitizeDisplayText(c.name, 'شركة')}</option>)
+                              companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
                             ) : (
                               <option disabled>جاري التحميل...</option>
                             )}
@@ -12430,11 +11918,11 @@ const MerchantTopupDashboard = () => {
                     </thead>
                   <tbody>
                     {products.filter(p => {
-                      const imagesCount = getProductImageCount(p);
+                      const imagesCount = (p.images && Array.isArray(p.images)) ? p.images.filter((img: any) => img && String(img).length > 0).length : 0;
                       return imagesCount > 0;
                     }).length > 0 ? (
                       products.map(product => {
-                        const imagesCount = getProductImageCount(product);
+                        const imagesCount = (product.images && Array.isArray(product.images)) ? product.images.filter((img: any) => img && String(img).length > 0).length : 0;
                         return imagesCount > 0 && (
                           <tr key={product.id} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{product.company_name}</td>
@@ -12442,12 +11930,13 @@ const MerchantTopupDashboard = () => {
                             <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-green-400" : "text-green-600")}>{imagesCount}</td>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-gray-300" : "text-gray-700")}>
                               <div className="flex flex-wrap gap-2">
-                                {productImages
+                                {product.images && Array.isArray(product.images) && product.images
+                                  .filter((img: any) => img && String(img).length > 0)
                                   .slice(0, 5)
                                   .map((imageUrl: any, idx: number) => (
                                     <a 
                                       key={idx} 
-                                      href={getSafeImageUrl(imageUrl)}
+                                      href={imageUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className={cn("inline-block px-2 py-1 text-xs rounded hover:opacity-80 transition-opacity cursor-pointer", isDarkMode ? "bg-blue-900 text-blue-300" : "bg-blue-50 text-blue-700")}
@@ -12455,9 +11944,9 @@ const MerchantTopupDashboard = () => {
                                       📷 صورة {idx + 1}
                                     </a>
                                   ))}
-                                {productImages.length > 5 && (
+                                {product.images && Array.isArray(product.images) && product.images.filter((img: any) => img && String(img).length > 0).length > 5 && (
                                   <span className={cn("px-2 py-1 text-xs rounded", isDarkMode ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-600")}>
-                                    +{productImages.length - 5} صور أخرى
+                                    +{product.images.filter((img: any) => img && String(img).length > 0).length - 5} صور أخرى
                                   </span>
                                 )}
                               </div>
@@ -12538,7 +12027,7 @@ const MerchantTopupDashboard = () => {
                                       const data = await res.json();
                                       console.log('✅ Statement loaded for customer:', data.customer?.id, 'Transactions:', data.transactions?.length);
                                       
-                                      // â­گ CRITICAL: Validate data belongs to correct customer
+                                      // ⭐ CRITICAL: Validate data belongs to correct customer
                                       if (data.customer?.id !== customer.id) {
                                         console.error('❌ SECURITY: Data mismatch! Requested:', customer.id, 'Received:', data.customer?.id);
                                         alert('⚠️ خطأ في البيانات: تمت طلب بيانات عميل مختلف');
@@ -13101,7 +12590,7 @@ const MerchantTopupDashboard = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className={cn("rounded-2xl w-full max-w-4xl shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
+            className={cn("rounded-2xl w-full max-w-4xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col", isDarkMode ? "bg-gray-800" : "bg-white")}
           >
             <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
               <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>كشف حساب - {selectedCustomerStatement?.name}</h3>
@@ -13143,32 +12632,23 @@ const MerchantTopupDashboard = () => {
               const availableBalance = Math.max(0, creditLimit - currentDebt);
 
               return (
-                <div className={cn("p-4 sm:p-6 border-b grid grid-cols-3 gap-2 sm:gap-4", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
+                <div className={cn("p-6 border-b grid grid-cols-3 gap-4", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
                   {/* Credit Limit */}
-                  <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-blue-900/30 border border-blue-700/50" : "bg-blue-50 border border-blue-200")}>
-                    <p className={cn("text-[10px] sm:text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-blue-300" : "text-blue-600")}>حد الائتمان</p>
-                    <p className={cn("text-[clamp(0.95rem,4vw,1.5rem)] font-semibold leading-tight break-words", isDarkMode ? "text-blue-300" : "text-blue-700")}>
-                      {formatNumber(creditLimit)}
-                      <span className="block text-[0.9em]">د.ع</span>
-                    </p>
+                  <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-blue-900/30 border border-blue-700/50" : "bg-blue-50 border border-blue-200")}>
+                    <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-blue-300" : "text-blue-600")}>حد الائتمان</p>
+                    <p className={cn("text-2xl font-semibold", isDarkMode ? "text-blue-300" : "text-blue-700")}>{ formatNumber(creditLimit) } د.ع</p>
                   </div>
                   
                   {/* Current Debt */}
-                  <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-red-900/30 border border-red-700/50" : "bg-red-50 border border-red-200")}>
-                    <p className={cn("text-[10px] sm:text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
-                    <p className={cn("text-[clamp(0.95rem,4vw,1.5rem)] font-semibold leading-tight break-words", isDarkMode ? "text-red-300" : "text-red-700")}>
-                      {formatNumber(currentDebt)}
-                      <span className="block text-[0.9em]">د.ع</span>
-                    </p>
+                  <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-red-900/30 border border-red-700/50" : "bg-red-50 border border-red-200")}>
+                    <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-red-300" : "text-red-600")}>الديون الحالية</p>
+                    <p className={cn("text-2xl font-semibold", isDarkMode ? "text-red-300" : "text-red-700")}>{formatNumber(currentDebt)} د.ع</p>
                   </div>
 
                   {/* Available Balance */}
-                  <div className={cn("min-w-0 p-2 sm:p-4 rounded-lg", isDarkMode ? "bg-green-900/30 border border-green-700/50" : "bg-green-50 border border-green-200")}>
-                    <p className={cn("text-[10px] sm:text-xs font-normal mb-1 sm:mb-2", isDarkMode ? "text-green-300" : "text-green-600")}>الرصيد الحالي</p>
-                    <p className={cn("text-[clamp(0.95rem,4vw,1.5rem)] font-semibold leading-tight break-words", isDarkMode ? "text-green-300" : "text-green-700")}>
-                      {formatNumber(availableBalance)}
-                      <span className="block text-[0.9em]">د.ع</span>
-                    </p>
+                  <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-green-900/30 border border-green-700/50" : "bg-green-50 border border-green-200")}>
+                    <p className={cn("text-xs font-normal mb-2", isDarkMode ? "text-green-300" : "text-green-600")}>الرصيد الحالي</p>
+                    <p className={cn("text-2xl font-semibold", isDarkMode ? "text-green-300" : "text-green-700")}>{formatNumber(availableBalance)} د.ع</p>
                   </div>
                 </div>
               );
@@ -13267,7 +12747,7 @@ const MerchantTopupDashboard = () => {
               </div>
             )}
 
-            <div className="p-6">
+            <div className="p-6 flex-1 overflow-hidden min-h-0">
               {isLoadingCustomerTransactions ? (
                 <div className="text-center py-8">
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2" style={{borderColor: primaryColor}}></div>
@@ -13278,67 +12758,50 @@ const MerchantTopupDashboard = () => {
                   <p className="text-sm">لا توجد معاملات</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-                  <table className="w-full text-sm border-collapse">
+                <div className="w-full overflow-x-auto overflow-y-auto max-h-[22rem] md:max-h-[24rem] rounded-xl border min-h-0 overscroll-x-contain" style={{ borderColor: isDarkMode ? '#4b5563' : '#d1d5db' }}>
+                  <table className="w-max min-w-[50rem] md:min-w-full text-sm border-collapse table-auto">
                     <thead>
                       <tr className={cn("sticky top-0", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
-                        <th className={cn("px-4 py-3 text-right font-normal border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
-                        <th className={cn("px-4 py-3 text-right font-normal border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
-                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>مدين</th>
-                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>دائن</th>
-                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الرصيد</th>
-                        <th className={cn("px-4 py-3 text-center font-normal border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>الإجراءات</th>
+                        <th className={cn("min-w-[6.5rem] px-4 py-3 text-right font-normal border whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
+                        <th className={cn("min-w-[14rem] md:min-w-[10rem] px-4 py-3 text-right font-normal border whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
+                        <th className={cn("min-w-[6.5rem] px-4 py-3 text-center font-normal border whitespace-nowrap", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>مدين</th>
+                        <th className={cn("min-w-[6.5rem] px-4 py-3 text-center font-normal border whitespace-nowrap", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>دائن</th>
+                        <th className={cn("min-w-[7rem] px-4 py-3 text-center font-normal border whitespace-nowrap", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الرصيد</th>
+                        <th className={cn("min-w-[8rem] px-4 py-3 text-center font-normal border whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>الإجراءات</th>
                       </tr>
                     </thead>
                     <tbody>
                       {customerTransactions.map((tx, idx) => {
-                        const txType = tx.type || tx.transaction_type || 'unknown';
-                        let txDescription = sanitizeDisplayText(
-                          tx.description,
-                          sanitizeDisplayText(tx.notes, sanitizeDisplayText(tx.detail, `معاملة #${idx + 1}`))
-                        );
-
-                        if (txType === 'opening') {
-                          txDescription = 'ديون سابقة';
-                        } else if (txType === 'debit') {
-                          txDescription = 'خصم';
-                        } else if (txType === 'topup') {
-                          txDescription = sanitizeDisplayText(tx.description, 'بطاقة شحن');
-                        } else if (tx.is_payment === true || txType === 'payment' || txType === 'payment_received') {
-                          txDescription = '✓ دفعة';
-                        }
-
-                        const txAmount = Math.abs(Number(tx.amount || tx.value || 0));
-                        const isPayment = tx.is_payment === true || txType === 'payment' || txType === 'payment_received';
-                        const debit = isPayment ? 0 : txAmount;
-                        const credit = isPayment ? txAmount : 0;
-                        console.log(`📊 Statement Row ${idx}:`, {
-                          description: tx.description,
-                          displayDescription: txDescription,
-                          type: txType,
-                          is_payment: tx.is_payment,
-                          debit,
+                        const isPayment = tx.is_payment === true;
+                        const debit = isPayment ? 0 : Math.abs(tx.amount || 0);
+                        const credit = isPayment ? Math.abs(tx.amount || 0) : 0;
+                        console.log(`📊 Statement Row ${idx}:`, { 
+                          description: tx.description, 
+                          description_bytes: Array.from(tx.description || '').map(c => c.charCodeAt(0)),
+                          type: tx.type, 
+                          is_payment: tx.is_payment, 
+                          debit, 
                           credit,
                           source: tx.source
                         });
                         return (
                           <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
-                            <td className={cn("px-4 py-3 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
-                              {tx.created_at ? new Date(tx.created_at).toLocaleDateString('ar-IQ') : '-'}
+                            <td className={cn("min-w-[6.5rem] px-4 py-3 border text-right whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
+                              {tx.created_at ? new Date(tx.created_at).toLocaleDateString('ar-IQ') : '—'}
                             </td>
-                            <td className={cn("px-4 py-3 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
-                              {txDescription}
+                            <td className={cn("min-w-[14rem] md:min-w-[10rem] px-4 py-3 border text-right whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
+                              {tx.description || 'معاملة'}
                             </td>
-                            <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-red-400 border-gray-700" : "text-red-600 border-gray-200")}>
-                              {debit > 0 ? formatNumber(debit) : '-'}
+                            <td className={cn("min-w-[6.5rem] px-4 py-3 border text-center font-semibold whitespace-nowrap", isDarkMode ? "text-red-400 border-gray-700" : "text-red-600 border-gray-200")}>
+                              {debit > 0 ? formatNumber(debit) : '—'}
                             </td>
-                            <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-green-400 border-gray-700" : "text-green-600 border-gray-200")}>
-                              {credit > 0 ? formatNumber(credit) : '-'}
+                            <td className={cn("min-w-[6.5rem] px-4 py-3 border text-center font-semibold whitespace-nowrap", isDarkMode ? "text-green-400 border-gray-700" : "text-green-600 border-gray-200")}>
+                              {credit > 0 ? formatNumber(credit) : '—'}
                             </td>
-                            <td className={cn("px-4 py-3 border text-center font-semibold", isDarkMode ? "text-blue-400 border-gray-700" : "text-blue-600 border-gray-200")}>
+                            <td className={cn("min-w-[7rem] px-4 py-3 border text-center font-semibold whitespace-nowrap", isDarkMode ? "text-blue-400 border-gray-700" : "text-blue-600 border-gray-200")}>
                               {(tx.balance || 0).toLocaleString('en-US')}
                             </td>
-                            <td className={cn("px-4 py-3 border text-center", isDarkMode ? "border-gray-700" : "border-gray-200")}>
+                            <td className={cn("min-w-[8rem] px-4 py-3 border text-center whitespace-nowrap", isDarkMode ? "border-gray-700" : "border-gray-200")}>
                               <div className="flex gap-2 justify-center">
                                 {isPayment && (
                                   <>
@@ -13484,7 +12947,9 @@ const MerchantTopupDashboard = () => {
                   { id: 'products', label: 'المنتجات', icon: CreditCard, badge: products.length },
                   { id: 'codes', label: 'الأكواد', icon: Ticket, badge: products.reduce((sum: number, p: any) => {
                     // Count uploaded images from each product
-                    const count = getProductImageCount(p);
+                    const count = (p.images && Array.isArray(p.images)) 
+                      ? p.images.filter((img: any) => img && String(img).length > 0).length 
+                      : 0;
                     return sum + count;
                   }, 0) },
                   { id: 'customers', label: 'العملاء', icon: Users, badge: customers.length },
@@ -13522,7 +12987,7 @@ const MerchantTopupDashboard = () => {
                           ? currentSection === item.id ? "bg-purple-400/30 text-purple-200" : isDarkMode ? "bg-purple-900/40 text-purple-300" : "bg-purple-100 text-purple-800"
                           : currentSection === item.id ? "bg-white/20" : isDarkMode ? "bg-gray-700 text-indigo-400" : "bg-indigo-100 text-indigo-700"
                       )}>
-                        {item.badge === 0 && item.id === 'codes' ? '0' : item.badge}
+                        {item.badge === 0 && item.id === 'codes' ? '0️⃣' : item.badge}
                       </span>
                     )}
                   </button>
@@ -13555,9 +13020,11 @@ const MerchantTopupDashboard = () => {
 // ========== TOP-UP SYSTEM COMPONENTS ==========
 
 const TopupStorefront = () => {
-  const { slug: rawStoreId } = useParams();
+  const { storeId: rawStoreId } = useParams();
   const [topupStoreId, setTopupStoreId] = useState<string | null>(null);
   const [isLoadingStore, setIsLoadingStore] = useState(true);
+  const location = useLocation();
+  const verifiedTopupState = location.state as { verifiedCustomer?: any; verifiedStoreId?: number | string } | null;
 
   useEffect(() => {
     const determineStoreId = async () => {
@@ -13567,27 +13034,9 @@ const TopupStorefront = () => {
 
       console.log(`🔍 Determining store ID from rawStoreId: "${rawStoreId}" (parsed: ${storeNum})`);
 
-      // If it's a numeric ID that equals 21 or 1, find the first available topup store
-      if (!isNaN(storeNum) && (storeNum === 21 || storeNum === 1)) {
-        try {
-          console.log('🔍 Finding available topup store...');
-          const res = await fetch('/api/stores?page=1&pageSize=100');
-          const stores = await res.json();
-          const topupStore = Array.isArray(stores) ? stores.find((s: any) => s.store_type === 'topup') : null;
-          if (topupStore) {
-            storeId = String(topupStore.id);
-            console.log(`✅ Using available topup store: ${storeId}`);
-          } else if (Array.isArray(stores) && stores.length > 0) {
-            storeId = String(stores[0].id);
-            console.log(`⚠️ No topup store found, using first available store: ${storeId}`);
-          } else {
-            storeId = '1';
-            console.log(`⚠️ No stores found, defaulting to store 1`);
-          }
-        } catch (err) {
-          console.error('Error fetching stores:', err);
-          storeId = '1';
-        }
+      if (!isNaN(storeNum) && storeNum > 0) {
+        storeId = String(storeNum);
+        console.log(`✅ Using explicit numeric topup store ID: ${storeId}`);
       } else if (isNaN(storeNum)) {
         // It's a text slug, search for store by name
         try {
@@ -13678,9 +13127,6 @@ const TopupStorefront = () => {
   const [showAccountStatement, setShowAccountStatement] = useState(false);
   const [statementTransactions, setStatementTransactions] = useState<any[]>([]);
   const [isLoadingStatement, setIsLoadingStatement] = useState(false);
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   
   // Purchase form state
   const [showPurchaseForm, setShowPurchaseForm] = useState(false);
@@ -13698,471 +13144,167 @@ const TopupStorefront = () => {
   const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
   const [isLoadingCustomerTransactions, setIsLoadingCustomerTransactions] = useState(false);
 
-  // Load customer data from localStorage on component mount - HIGH PRIORITY
+  const applyTopupCustomer = (rawCustomer: any, fallbackStoreId?: number | string | null) => {
+    const normalizedCustomer = normalizeTopupCustomerData(rawCustomer, fallbackStoreId ?? storeId);
+    if (!normalizedCustomer) {
+      return null;
+    }
+
+    setCustomer(normalizedCustomer);
+    setPurchaseForm(prev => ({
+      ...prev,
+      name: normalizedCustomer.name || '',
+      phone: normalizedCustomer.phone || '',
+      customer_type: normalizedCustomer.customer_type || 'cash'
+    }));
+    setPhone(normalizedCustomer.phone || '');
+
+    return normalizedCustomer;
+  };
+
   useEffect(() => {
-    console.log('🔍 TopupStorefront: Loading customer from localStorage on mount');
-    const loadCustomerFromLocalStorage = () => {
-      const topupData = localStorage.getItem('topupCustomer');
-      console.log('📦 topupCustomer in localStorage:', !!topupData);
-      if (topupData) {
-        try {
-          const customerData = JSON.parse(topupData);
-          console.log('✅ TopupStorefront: Loaded customer from localStorage:', customerData);
-          setCustomer(customerData);
-          setPurchaseForm({
-            name: customerData.name || '',
-            phone: customerData.phone || '',
-            customer_type: customerData.customer_type || 'cash'
-          });
-        } catch (err) {
-          console.error('⚠️ TopupStorefront: Error parsing topupCustomer:', err);
-        }
-      } else {
-        console.log('❌ No topupCustomer in localStorage');
-        // Fallback to customerData
-        const fallbackData = localStorage.getItem('customerData');
-        if (fallbackData) {
-          try {
-            const data = JSON.parse(fallbackData);
-            console.log('✅ TopupStorefront: Fallback to customerData:', data);
-            setPurchaseForm({
-              name: data.name || '',
-              phone: data.phone || '',
-              customer_type: data.customer_type || 'cash'
-            });
-          } catch (err) {
-            console.error('⚠️ Error parsing customerData:', err);
-          }
-        }
-      }
-    };
+    if (!verifiedTopupState?.verifiedCustomer) {
+      return;
+    }
 
-    // Load immediately
-    loadCustomerFromLocalStorage();
+    const normalizedVerifiedCustomer = applyTopupCustomer(
+      verifiedTopupState.verifiedCustomer,
+      verifiedTopupState.verifiedStoreId ?? actualStoreId ?? storeId
+    );
 
-    // Also listen for storage changes
-    window.addEventListener('storage', () => {
-      console.log('🔄 Storage changed externally');
-      loadCustomerFromLocalStorage();
-    });
-
-    return () => {
-      window.removeEventListener('storage', loadCustomerFromLocalStorage);
-    };
-  }, []);
-
-  // Load and sync store logo from localStorage
-  useEffect(() => {
-    if (!actualStoreId) return;
-
-    const loadStoreLogo = () => {
-      console.log('🔍 TopupStorefront - Loading logo for actualStoreId:', actualStoreId);
-      const storeSettings = localStorage.getItem(`storeSettings_${actualStoreId}`);
-      console.log('🔍 localStorage key:', `storeSettings_${actualStoreId}`);
-      console.log('🔍 Found in localStorage:', !!storeSettings);
-      
-      if (storeSettings) {
-        try {
-          const parsed = JSON.parse(storeSettings);
-          console.log('🔍 Parsed settings:', {
-            has_logo: !!parsed.logo_url,
-            logo_length: parsed.logo_url?.length,
-            ends_with: parsed.logo_url?.substring(parsed.logo_url.length - 30)
-          });
-          if (parsed.logo_url && parsed.logo_url.length > 100) {
-            console.log('✅ Setting store logo. Length:', parsed.logo_url.length);
-            setStoreLogo(parsed.logo_url);
-          } else {
-            // Check if there's a logo from store info
-            console.log('⚠️ Logo too short or missing, checking storeInfo');
-            setStoreLogo('');
-          }
-        } catch (err) {
-          console.error('❌ Error parsing store settings:', err);
-          setStoreLogo('');
-        }
-      } else {
-        console.log('⚠️ No store settings found in localStorage');
-        // Try to get logo from store info if available
-        if (storeInfo?.logo_url && storeInfo.logo_url.length > 100) {
-          console.log('✅ Loading logo from storeInfo');
-          setStoreLogo(storeInfo.logo_url);
-        } else {
-          setStoreLogo('');
-        }
-      }
-    };
-
-    // Load on mount with a small delay to ensure actualStoreId is set
-    const loadTimer = setTimeout(() => {
-      loadStoreLogo();
-    }, 100);
-
-    // Listen for custom event from settings panel
-    const handleSettingsUpdate = (e: any) => {
-      console.log('🔔 TopupStorefront received storeSettingsUpdated event, loading logo');
-      loadStoreLogo();
-    };
-
-    window.addEventListener('storeSettingsUpdated', handleSettingsUpdate);
-
-    return () => {
-      clearTimeout(loadTimer);
-      window.removeEventListener('storeSettingsUpdated', handleSettingsUpdate);
-    };
-  }, [actualStoreId, storeInfo]);
+    if (normalizedVerifiedCustomer) {
+      localStorage.setItem('topupCustomer', JSON.stringify(normalizedVerifiedCustomer));
+      console.log('✅ Applied verified topup customer from navigation state');
+    }
+  }, [verifiedTopupState, actualStoreId, storeId]);
 
   useEffect(() => {
     if (isLoadingStore) {
-      console.log('âڈ³ Still loading store ID, skipping data fetch');
+      console.log('⏳ Still loading store ID, skipping data fetch');
       return;
     }
-    
+
     if (!storeId) {
-      console.log(`⚠️ No storeId resolved, using default store 1 (علي_الهادي)`);
-      setActualStoreId(1); // Set default store 1 when no storeId
+      console.log('⚠️ No storeId resolved, using default store 1');
+      setActualStoreId(1);
       return;
     }
-    
-    console.log(`🚀 TopupStorefront mount with storeId: ${storeId}`);
-    console.log(`📡 API_BASE_URL: "${API_BASE_URL}"`);
-    
-    let isMounted = true; // Track if component is still mounted
-    
+
+    let isMounted = true;
+
     const fetchData = async () => {
-      console.log('📋 fetchData: Starting fetch operation');
-      
+      console.log('📋 fetchData: Starting fetch operation for store:', storeId);
+
       if (!isMounted) {
-        console.log('❌ Component unmounted, aborting fetch');
         return;
       }
-      
-      try {
-        // First, resolve the store slug to numeric ID
-        console.log(`🔍 Resolving store slug: "${storeId}"`);
-        console.log(`📍 Full API URL: /api/stores/slug/${storeId}`);
-        
-        // If slug is just "store" or numeric, handle differently
-        let actualStoreId: number | null = null;
-        
-        // Try to parse as numeric ID first
-        const numericAttempt = parseInt(storeId);
-        if (!isNaN(numericAttempt) && numericAttempt > 0) {
-          actualStoreId = numericAttempt;
-          console.log(`✅ Parsed storeId as numeric directly: ${actualStoreId}`);
-        } else if (storeId === 'store' || storeId === 'topup') {
-          // For generic slugs, use store 1 (عل_الهادي - topup store)
-          console.log(`⚠️ Generic slug detected (${storeId}), using store 1...`);
-          actualStoreId = 1;
-        } else {
-          // Try to resolve via API
-          const storeRes = await fetch(`/api/stores/slug/${storeId}`);
-          console.log(`📊 Store response status: ${storeRes.status}`);
-          
-          if (!storeRes.ok) {
-            console.warn(`⚠️ Store slug not found (${storeRes.status}), searching for store with topup products...`);
-            try {
-              const storesRes = await fetch('/api/topup/products?limit=1');
-              if (storesRes.ok) {
-                const firstProduct = await storesRes.json();
-                if (Array.isArray(firstProduct) && firstProduct.length > 0) {
-                  actualStoreId = firstProduct[0].store_id;
-                  console.log(`✅ Found store from first product: ${actualStoreId}`);
-                } else {
-                  actualStoreId = 1;
-                  console.log(`⚠️ No products found, using default store: 1`);
-                }
-              }
-            } catch (e) {
-              actualStoreId = 1;
-              console.log(`⚠️ Error in fallback search: ${e}, using default: 1`);
-            }
-          } else {
-            const storeData = await storeRes.json();
-            console.log(`📦 Store data received:`, storeData);
-            console.log(`📦 Store name field:`, storeData.store_name, `Other name fields: name=${storeData.name}, title=${storeData.title}`);
 
-            if (storeData.slug && storeData.slug !== rawStoreId) {
-              console.log(`🔄 Redirecting topup customer to canonical slug: /topup/${storeData.slug}`);
-              navigate(`/topup/${storeData.slug}`, { replace: true });
-              return;
-            }
-            
-            actualStoreId = storeData.id;
-            if (!actualStoreId || actualStoreId === undefined) {
-              console.error(`❌ No ID in store data! Using default: 1`);
-              actualStoreId = 1;
-            }
-            
-            // Store the info for later use - ensure store_name is available
-            const enrichedStoreData = {
-              ...storeData,
-              store_name: storeData.store_name || storeData.name || storeData.title || 'متجر البطاقات'
-            };
-            console.log(`✅ Enriched store data:`, enrichedStoreData);
-            setStoreInfo(enrichedStoreData);
-          }
-        }
-        
-        // Ensure it's numeric
-        actualStoreId = Number(actualStoreId);
-        if (isNaN(actualStoreId) || actualStoreId <= 0) {
-          console.error(`❌ Could not resolve store ID, using default: 1`);
-          actualStoreId = 1;
-        }
-        
-        console.log(`✅ Using store ID: ${actualStoreId}`);
-        if (isMounted) setActualStoreId(actualStoreId);
-        
-        // 🔥 CRITICAL: Fetch store info even if not using slug resolution
-        if (!storeInfo || !storeInfo.store_name) {
-          console.log(`📦 Fetching store info for store ID ${actualStoreId}`);
+      setLoading(true);
+
+      try {
+        let resolvedStoreId = Number.parseInt(storeId, 10);
+
+        if (Number.isNaN(resolvedStoreId) || resolvedStoreId <= 0) {
           try {
-            const storeInfoRes = await fetch(`/api/stores/${actualStoreId}`);
-            if (storeInfoRes.ok) {
-              const storeInfoData = await storeInfoRes.json();
-              console.log(`📦 Store info fetched:`, storeInfoData);
-              const enrichedStoreData = {
-                ...storeInfoData,
-                store_name: storeInfoData.store_name || storeInfoData.name || storeInfoData.title || 'متجر البطاقات'
-              };
+            const storeRes = await fetch(`/api/stores/slug/${storeId}`);
+            if (storeRes.ok) {
+              const storeData = await storeRes.json();
+              resolvedStoreId = Number(storeData?.id) || 1;
               if (isMounted) {
-                setStoreInfo(enrichedStoreData);
-                // Save to localStorage for later retrieval
-                localStorage.setItem(`storeInfo_${actualStoreId}`, JSON.stringify(enrichedStoreData));
-                console.log(`✅ Saved store info to localStorage:`, enrichedStoreData.store_name);
-              }
-            } else if (storeInfoRes.status === 404) {
-              // Store not found - fallback to store 1
-              console.warn(`⚠️ Store ${actualStoreId} returned 404, trying store 1...`);
-              const fallbackRes = await fetch(`/api/stores/1`);
-              if (fallbackRes.ok) {
-                const fallbackData = await fallbackRes.json();
-                const enrichedStoreData = {
-                  ...fallbackData,
-                  store_name: fallbackData.store_name || fallbackData.name || fallbackData.title || 'متجر البطاقات'
-                };
-                if (isMounted) {
-                  setStoreInfo(enrichedStoreData);
-                  setActualStoreId(1); // Update to store 1
-                  localStorage.setItem(`storeInfo_1`, JSON.stringify(enrichedStoreData));
-                  console.log(`✅ Fallback to store 1 successful`);
-                }
-              } else {
-                throw new Error('Store 1 also not found');
-              }
-            } else {
-              console.warn(`⚠️ Could not fetch store info (status: ${storeInfoRes.status})`);
-              // Try to load from localStorage as fallback
-              const cachedInfo = localStorage.getItem(`storeInfo_${actualStoreId}`);
-              if (cachedInfo) {
-                const cached = JSON.parse(cachedInfo);
-                if (isMounted) setStoreInfo(cached);
-                console.log(`✅ Loaded cached store info from localStorage`);
-              } else {
-                // Set default store info
-                if (isMounted) setStoreInfo({ 
-                  store_name: 'متجر البطاقات',
-                  name: 'متجر البطاقات',
-                  description: 'اختر شركتك المفضلة وقيمة الشحن'
+                setStoreInfo({
+                  ...storeData,
+                  store_name: storeData?.store_name || storeData?.name || storeData?.title || 'متجر البطاقات'
                 });
               }
-            }
-          } catch (err) {
-            console.warn(`⚠️ Error fetching store info:`, err);
-            // Try to load from localStorage as fallback
-            const cachedInfo = localStorage.getItem(`storeInfo_${actualStoreId}`);
-            if (cachedInfo) {
-              const cached = JSON.parse(cachedInfo);
-              if (isMounted) setStoreInfo(cached);
-              console.log(`✅ Loaded cached store info from localStorage (on error)`);
             } else {
-              if (isMounted) setStoreInfo({ 
-                store_name: 'متجر البطاقات',
-                name: 'متجر البطاقات',
-                description: 'اختر شركتك المفضلة وقيمة الشحن'
-              });
+              resolvedStoreId = 1;
             }
+          } catch (error) {
+            console.warn('⚠️ Could not resolve store by slug, using store 1:', error);
+            resolvedStoreId = 1;
           }
         }
-        
-        // إضافة timestamp لفرض جلب البيانات الجديدة من قاعدة البيانات
-        const timestamp = Date.now();
-        console.log('🔍 Fetching products with timestamp:', timestamp);
-        
-        // Create AbortController with 60-second timeout (increased from 30)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-          console.warn('âڈ±ï¸ڈ Fetch timeout after 60 seconds - aborting');
-          controller.abort();
-        }, 60000);
-        
-        // Fetch companies, categories, products with timeout in PARALLEL (no waiting for store)
-        console.log(`📡 Fetching companies, categories, and products in parallel for store ID: ${actualStoreId}...`);
-        
-        const [companiesRes, categoriesRes, productsRes] = await Promise.all([
-          // Fetch companies
-          fetch(`/api/topup/companies/${actualStoreId}?_t=${timestamp}`, { 
-            cache: 'no-store',
-            signal: controller.signal 
-          }).then(async r => {
-            console.log('   Companies response status:', r.status);
-            if (!r.ok) {
-              console.warn('⚠️ Companies fetch for store returned status:', r.status);
-              console.log('   Trying fallback: GET /api/topup/companies');
-              // Fallback to get all companies
-              const fallback = await fetch('/api/topup/companies', { cache: 'no-store', signal: controller.signal });
-              if (!fallback.ok) {
-                console.warn('⚠️ Fallback companies fetch also failed:', fallback.status);
-                return [];
-              }
-              const data = await fallback.json();
-              console.log('✅ Companies fetched (fallback):', Array.isArray(data) ? data.length : 0);
-              return Array.isArray(data) ? data : [];
-            }
-            const data = await r.json();
-            console.log('✅ Companies fetched:', Array.isArray(data) ? data.length : 0);
-            if (!Array.isArray(data) || data.length === 0) {
-              console.log('   No data from store endpoint, trying fallback');
-              const fallback = await fetch('/api/topup/companies', { cache: 'no-store', signal: controller.signal });
-              if (!fallback.ok) return [];
-              const fallbackData = await fallback.json();
-              console.log('✅ Companies fetched (fallback):', Array.isArray(fallbackData) ? fallbackData.length : 0);
-              return Array.isArray(fallbackData) ? fallbackData : [];
-            }
-            return Array.isArray(data) ? data : [];
-          }).catch(e => {
-            console.warn('⚠️ Companies fetch error:', e.message);
-            return [];
-          }),
-          
-          // Fetch categories
-          fetch(`/api/topup/categories/${actualStoreId}?_t=${timestamp}`, { 
-            cache: 'no-store',
-            signal: controller.signal 
-          }).then(async r => {
-            console.log('   Categories response status:', r.status);
-            if (!r.ok) {
-              console.warn('⚠️ Categories fetch returned status:', r.status);
-              return [];
-            }
-            const data = await r.json();
-            console.log('✅ Categories fetched:', Array.isArray(data) ? data.length : 0);
-            return Array.isArray(data) ? data : [];
-          }).catch(e => {
-            console.warn('⚠️ Categories fetch error:', e.message);
-            return [];
-          }),
-          
-          // Fetch products
-          fetch(`/api/topup/products/${actualStoreId}?_t=${timestamp}`, { 
-            cache: 'no-store',
-            signal: controller.signal 
-          }).then(async r => {
-            console.log('   Categories response status:', r.status);
-            if (!r.ok) {
-              console.warn('⚠️ Categories fetch returned status:', r.status);
-              return [];
-            }
-            const data = await r.json();
-            console.log('✅ Categories fetched:', Array.isArray(data) ? data.length : 0);
-            return Array.isArray(data) ? data : [];
-          }).catch(e => {
-            console.warn('⚠️ Categories fetch error:', e.message);
-            return [];
-          }),
-          
-          fetch(`/api/topup/products/${actualStoreId}?_t=${timestamp}`, { 
-            cache: 'no-store',
-            signal: controller.signal 
-          }).then(async r => {
-            console.log('   Products response status:', r.status);
-            if (!r.ok) {
-              console.warn('⚠️ Products fetch returned status:', r.status);
-              // Log more details about the failed request
-              console.log('   Trying fallback: GET /api/topup/products');
-              const fallback = await fetch('/api/topup/products', { cache: 'no-store', signal: controller.signal });
-              if (!fallback.ok) {
-                console.warn('⚠️ Fallback products fetch also failed:', fallback.status);
-                return [];
-              }
-              const fallbackData = await fallback.json();
-              console.log('✅ Products fetched (fallback):', Array.isArray(fallbackData) ? fallbackData.length : 0);
-              return Array.isArray(fallbackData) ? fallbackData : [];
-            }
-            const data = await r.json();
-            console.log('✅ Products fetched:', Array.isArray(data) ? data.length : 0);
-            if (Array.isArray(data) && data.length > 0) {
-              console.log('   Sample product:', { 
-                id: data[0].id, 
-                company_name: data[0].company_name,
-                hasImages: !!data[0].images,
-                imagesCount: Array.isArray(data[0].images) ? data[0].images.filter((img: any) => img && String(img).length > 0).length : 0
-              });
-            }
-            return Array.isArray(data) ? data : [];
-          }).catch(e => {
-            console.warn('⚠️ Products fetch error:', e.message);
-            return [];
-          })
-        ]);
-        
-        clearTimeout(timeoutId);
-        
+
         if (!isMounted) {
-          console.log('⚠️ Component unmounted before state update');
           return;
         }
-        
-        console.log('📊 Data Summary:', {
-          companies: companiesRes.length,
-          categories: categoriesRes.length,
-          products: productsRes.length
-        });
-        
-        if (companiesRes.length === 0) {
-          console.warn('⚠️ NO COMPANIES FETCHED! Checking data...');
-          console.log('   Companies response:', companiesRes);
+
+        setActualStoreId(resolvedStoreId);
+
+        try {
+          const storeInfoRes = await fetch(`/api/stores/${resolvedStoreId}`);
+          if (storeInfoRes.ok) {
+            const storeInfoData = await storeInfoRes.json();
+            const enrichedStoreData = {
+              ...storeInfoData,
+              store_name: storeInfoData?.store_name || storeInfoData?.name || storeInfoData?.title || 'متجر البطاقات'
+            };
+
+            if (isMounted) {
+              setStoreInfo(enrichedStoreData);
+              localStorage.setItem(`storeInfo_${resolvedStoreId}`, JSON.stringify(enrichedStoreData));
+            }
+          }
+        } catch (error) {
+          console.warn('⚠️ Error fetching store info:', error);
         }
-        
-        if (productsRes.length === 0) {
-          console.warn('⚠️ NO PRODUCTS FETCHED! Checking data...');
-          console.log('   Products response:', productsRes);
+
+        const timestamp = Date.now();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          console.warn('⏱️ Fetch timeout after 60 seconds - aborting');
+          controller.abort();
+        }, 60000);
+
+        try {
+          const [companiesData, categoriesData, productsData] = await Promise.all([
+            fetch(`/api/topup/companies/${resolvedStoreId}?_t=${timestamp}`, {
+              cache: 'no-store',
+              signal: controller.signal
+            }).then(async res => res.ok ? res.json() : []),
+            fetch(`/api/topup/categories/${resolvedStoreId}?_t=${timestamp}`, {
+              cache: 'no-store',
+              signal: controller.signal
+            }).then(async res => res.ok ? res.json() : []),
+            fetch(`/api/topup/products/${resolvedStoreId}?_t=${timestamp}`, {
+              cache: 'no-store',
+              signal: controller.signal
+            }).then(async res => res.ok ? res.json() : [])
+          ]);
+
+          if (!isMounted) {
+            return;
+          }
+
+          setCompanies(Array.isArray(companiesData) ? companiesData : []);
+          setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+          setProducts(Array.isArray(productsData) ? productsData : []);
+        } finally {
+          clearTimeout(timeoutId);
         }
-        
-        console.log('🔄 Setting state (all at once)...');
-        setCompanies(companiesRes);
-        setCategories(categoriesRes);
-        setProducts(productsRes);
-        
-        console.log('✅ Setting loading to false');
-        setLoading(false);
-        console.log('✅ Data load complete');
       } catch (error) {
-        console.error('❌ Error loading data - Caught in main try/catch:', error);
-        console.error('   Error type:', error instanceof Error ? error.constructor.name : typeof error);
-        console.error('   Error message:', error instanceof Error ? error.message : String(error));
+        console.error('❌ Error loading TopupStorefront data:', error);
         if (isMounted) {
-          alert(`خطأ في تحميل البيانات: ${(error as Error).message}`);
+          setCompanies([]);
+          setCategories([]);
+          setProducts([]);
+        }
+      } finally {
+        if (isMounted) {
           setLoading(false);
         }
       }
     };
-    
-    // Fetch immediately on mount
-    console.log('📍 Calling fetchData on component mount');
+
     fetchData();
-    
-    // تحديث البيانات كل 30 ثانية للتحقق من تحديثات جديدة (بدلاً من كل 3 ثواني)
+
     const refreshInterval = setInterval(() => {
       if (isMounted) {
-        console.log('🔄 Auto-refreshing products data...');
         fetchData();
       }
     }, 30000);
-    
+
     return () => {
-      console.log('🧹 Cleaning up TopupStorefront product fetch effect');
       isMounted = false;
       clearInterval(refreshInterval);
     };
@@ -14173,14 +13315,8 @@ const TopupStorefront = () => {
     const savedCustomer = localStorage.getItem('topupCustomer');
     if (savedCustomer) {
       try {
-        const customerData = JSON.parse(savedCustomer);
-        setCustomer(customerData);
-        // Also auto-fill purchase form from localStorage customer data
-        setPurchaseForm({
-          name: customerData.name || '',
-          phone: customerData.phone || '',
-          customer_type: customerData.customer_type || 'cash'
-        });
+        const customerData = normalizeTopupCustomerData(JSON.parse(savedCustomer), storeId);
+        applyTopupCustomer(customerData, storeId);
         console.log('✅ Loaded customer from topupCustomer:', customerData);
       } catch (err) {
         console.error('⚠️ Error parsing topupCustomer:', err);
@@ -14190,12 +13326,8 @@ const TopupStorefront = () => {
       const fallbackData = localStorage.getItem('customerData');
       if (fallbackData) {
         try {
-          const data = JSON.parse(fallbackData);
-          setPurchaseForm({
-            name: data.name || '',
-            phone: data.phone || '',
-            customer_type: data.customer_type || 'cash'
-          });
+          const data = normalizeTopupCustomerData(JSON.parse(fallbackData), storeId);
+          applyTopupCustomer(data, storeId);
           console.log('✅ Loaded purchase form from customerData:', data);
         } catch (err) {
           console.error('⚠️ Error parsing customerData:', err);
@@ -14283,14 +13415,9 @@ const TopupStorefront = () => {
       const topupData = localStorage.getItem('topupCustomer');
       if (topupData) {
         try {
-          const customerData = JSON.parse(topupData);
+          const customerData = normalizeTopupCustomerData(JSON.parse(topupData), storeId);
           console.log('✅ TopupStorefront: Updated customer from topupCustomer:', customerData);
-          setCustomer(customerData);
-          setPurchaseForm({
-            name: customerData.name || '',
-            phone: customerData.phone || '',
-            customer_type: customerData.customer_type || 'cash'
-          });
+          applyTopupCustomer(customerData, storeId);
         } catch (err) {
           console.error('⚠️ TopupStorefront: Error parsing topupCustomer:', err);
         }
@@ -14339,10 +13466,10 @@ const TopupStorefront = () => {
       const topupData = localStorage.getItem('topupCustomer');
       if (topupData) {
         try {
-          const customerData = JSON.parse(topupData);
+          const customerData = normalizeTopupCustomerData(JSON.parse(topupData), storeId);
           console.log('✅ Found customer data in localStorage:', customerData);
           // تحديث customer بغض النظر عن الحالة السابقة
-          setCustomer(customerData);
+          applyTopupCustomer(customerData, storeId);
         } catch (err) {
           console.error('⚠️ Error loading from localStorage:', err);
         }
@@ -14413,24 +13540,27 @@ const TopupStorefront = () => {
       console.log('🔐 Auth response:', { status: response.status, ok: response.ok, data });
       
       if (response.ok) {
-        const customerData = {
+        const customerData = normalizeTopupCustomerData({
           customer_id: data.customer_id,
+          id: data.customer_id,
+          store_id: actualStoreId,
           phone: data.phone,
           name: data.name,
           email: data.email,
           customer_type: data.customer_type,
           credit_limit: data.credit_limit,
           current_debt: data.current_debt
-        };
+        }, actualStoreId);
         console.log('🔐 handleAuth - customerData prepared:', customerData);
         // حذف البيانات القديمة أولاً
         localStorage.removeItem('customerData');
         localStorage.removeItem('topupCustomer');
         // حفظ البيانات الجديدة
         localStorage.setItem('topupCustomer', JSON.stringify(customerData));
+        sessionStorage.setItem('activeTopupStoreId', String(actualStoreId || storeId));
         console.log('💾 handleAuth - saved to localStorage');
         console.log('✅ handleAuth - calling setCustomer:', customerData);
-        setCustomer(customerData);
+        applyTopupCustomer(customerData, actualStoreId || storeId);
         setPhone(data.phone); // Auto-fill phone in purchase form
         setAuthPassword(''); // Clear password from memory
         
@@ -14440,7 +13570,7 @@ const TopupStorefront = () => {
         
         // تأخير صغير للتأكد من تحديث state قبل إغلاق النموذج
         setTimeout(() => {
-          console.log('âڈ±ï¸ڈ handleAuth - closing auth form');
+          console.log('⏱️ handleAuth - closing auth form');
           setShowAuthForm(false);
         }, 100);
         alert('تم تسجيل دخولك بنجاح! ✓');
@@ -14452,94 +13582,6 @@ const TopupStorefront = () => {
       alert('حدث خطأ في تسجيل الدخول');
     } finally {
       setIsAuthenticating(false);
-    }
-  };
-
-  const handlePayment = async () => {
-    if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
-      alert('يرجى إدخال مبلغ صحيح');
-      return;
-    }
-
-    const amount = parseFloat(paymentAmount);
-    if (amount > Number(customer?.current_debt || 0)) {
-      alert(`المبلغ المدخل أكبر من الديون الحالية (${Math.round(Number(customer?.current_debt || 0))?.toLocaleString('en-US')} د.ع)`);
-      return;
-    }
-
-    setIsPaymentProcessing(true);
-    try {
-      const response = await fetch('/api/topup/payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer_id: customer.customer_id,
-          store_id: actualStoreId,
-          amount: amount
-        })
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        alert('✅ تم تسديد المبلغ بنجاح!');
-        
-        // 🔄 IMMEDIATE Update: Add payment transaction to statement INSTANTLY
-        console.log('⚡ IMMEDIATE UPDATE: Adding payment transaction to statement');
-        
-        // 🎯 Get ACCURATE current debt from statement (not from DB)
-        let currentActualDebt = Number(customer.current_debt || 0);
-        if (statementTransactions && statementTransactions.length > 0) {
-          // Use the latest balance from statement transactions
-          currentActualDebt = Number(statementTransactions[0]?.balance || customer.current_debt || 0);
-        }
-        
-        console.log('💰 Payment calculation:', { 
-          dbDebt: customer.current_debt, 
-          statementDebt: statementTransactions[0]?.balance,
-          actualDebt: currentActualDebt,
-          payment: amount,
-          newDebt: Math.max(0, currentActualDebt - amount)
-        });
-        
-        const newPaymentTransaction = {
-          id: Math.random(),
-          type: 'payment',
-          description: 'دفعة',
-          amount: amount,
-          is_payment: true,
-          balance: Math.max(0, currentActualDebt - amount),
-          created_at: new Date().toISOString(),
-          source: 'payment'
-        };
-        
-        // Update statement transactions IMMEDIATELY
-        setStatementTransactions(prev => [newPaymentTransaction, ...prev].slice(0, 50));
-        
-        // Update customer debt IMMEDIATELY with ACCURATE value
-        const newDebt = Math.max(0, currentActualDebt - amount);
-        setCustomer(prevCustomer => ({
-          ...prevCustomer,
-          current_debt: newDebt
-        }));
-        
-        console.log('✅ Payment transaction added to statement immediately');
-        
-        setPaymentAmount('');
-        // Don't close payment form here, user's existing payment form
-        
-        // Then refresh from server in background (async)
-        setTimeout(async () => {
-          console.log('🔄 Refreshing full statement from server');
-          await handleLoadStatement();
-        }, 300);
-      } else {
-        alert(data.error || 'فشل تسديد المبلغ');
-      }
-    } catch (error) {
-      console.error('Payment error:', error);
-      alert('حدث خطأ في عملية الدفع');
-    } finally {
-      setIsPaymentProcessing(false);
     }
   };
 
@@ -14666,8 +13708,6 @@ const TopupStorefront = () => {
     setPhone('');
     setShowAuthForm(false);
     alert('تم تسجيل خروجك');
-    const targetSlug = rawStoreId || storeId || 'store';
-    navigate(`/stores?openTopup=1&topupSlug=${encodeURIComponent(targetSlug)}`, { replace: true });
   };
 
   // Check credit before making purchase
@@ -14786,13 +13826,28 @@ const TopupStorefront = () => {
         }
         
         console.log('📊 Updated customer debt from statement:', finalBalance);
-        
-        // Update customer with new debt
-        const updatedCustomer = {
-          ...customer,
+
+        const persistedCustomer = (() => {
+          const savedTopupCustomer = localStorage.getItem('topupCustomer');
+          if (!savedTopupCustomer) {
+            return customer || {};
+          }
+
+          try {
+            return JSON.parse(savedTopupCustomer);
+          } catch (error) {
+            console.error('Error parsing persisted topup customer during debt refresh:', error);
+            return customer || {};
+          }
+        })();
+
+        // Update customer with new debt while preserving existing identity fields.
+        const updatedCustomer = normalizeTopupCustomerData({
+          ...persistedCustomer,
+          ...(customer || {}),
           current_debt: finalBalance
-        };
-        setCustomer(updatedCustomer);
+        }, actualStoreId || storeId);
+        applyTopupCustomer(updatedCustomer, actualStoreId || storeId);
         
         // Save updated data to localStorage
         localStorage.setItem('topupCustomer', JSON.stringify(updatedCustomer));
@@ -14901,11 +13956,14 @@ const TopupStorefront = () => {
       const data = await response.json();
       if (response.ok) {
         // حفظ بيانات العميل في localStorage
-        localStorage.setItem('topupCustomer', JSON.stringify({
+        const persistedTopupCustomer = normalizeTopupCustomerData({
+          ...(customer || {}),
           name: finalName,
           phone: finalPhone,
-          customer_type: finalCustomerType
-        }));
+          customer_type: finalCustomerType,
+          store_id: actualStoreId || storeId
+        }, actualStoreId || storeId);
+        localStorage.setItem('topupCustomer', JSON.stringify(persistedTopupCustomer));
         // احذف customerData لتجنب التضارب
         localStorage.removeItem('customerData');
         playAddToCartSound();
@@ -14994,11 +14052,6 @@ const TopupStorefront = () => {
     </div>
   );
 
-  if (!customer?.customer_id) {
-    const targetSlug = rawStoreId || storeId || 'store';
-    return <Navigate to={`/stores?openTopup=1&topupSlug=${encodeURIComponent(targetSlug)}`} replace />;
-  }
-
   return (
     <div className={cn("h-screen flex flex-col overflow-hidden", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900")} dir="rtl">
       {/* Main scrollable container for header and content */}
@@ -15024,7 +14077,7 @@ const TopupStorefront = () => {
                 <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2", isDarkMode ? "text-gray-500" : "text-gray-400")} size={16} />
                 <input 
                   type="text" 
-                  placeholder="بحث حسب الشركة أو المنتج" 
+                  placeholder="بحث حسب الشركة أو المتج..." 
                   value={selectedCompany}
                   onChange={(e) => setSelectedCompany(e.target.value)}
                   className={cn("w-full pl-9 pr-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition-colors text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-100 focus:ring-blue-500/30 placeholder-gray-500" : "bg-gray-50 border-black/5 focus:ring-indigo-500/20 placeholder-gray-400")}
@@ -15054,15 +14107,14 @@ const TopupStorefront = () => {
                     if (customer) {
                       // إذا كان هناك customer مسجل، اخزن بياناته
                       console.log('✅ Saving customer to topupCustomer:', customer);
-                      localStorage.setItem('topupCustomer', JSON.stringify(customer));
+                      localStorage.setItem('topupCustomer', JSON.stringify(normalizeTopupCustomerData(customer, actualStoreId || storeId)));
                     } else if (purchaseForm.name || purchaseForm.phone) {
                       // وإلا، احفظ purchaseForm
                       console.log('✅ Saving purchaseForm to topupCustomer:', purchaseForm);
-                      localStorage.setItem('topupCustomer', JSON.stringify(purchaseForm));
+                      localStorage.setItem('topupCustomer', JSON.stringify(normalizeTopupCustomerData(purchaseForm, actualStoreId || storeId)));
                     }
                     // Store the topup store slug for navigation back after checkout
-                    // Always use store 1 (علي_الهادي) - the main topup store
-                    const safeStoreId = (parseInt(storeId || '0') === 21 || parseInt(storeId || '0') === 13) ? '1' : storeId;
+                    const safeStoreId = String(actualStoreId || parseInt(storeId || '0') || '1');
                     localStorage.setItem('topupStoreSlug', safeStoreId);
                     console.log('✅ Saved topupStoreSlug:', safeStoreId);
                     navigate('/topup-cart');
@@ -15094,7 +14146,7 @@ const TopupStorefront = () => {
                   {companiesWithProducts.length === 0 ? (
                     <option disabled>❌ لا توجد شركات متاحة</option>
                   ) : (
-                    companiesWithProducts.map(c => <option key={c.id} value={c.id}>{sanitizeDisplayText(c.name, 'شركة')}</option>)
+                    companiesWithProducts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
                   )}
                 </select>
                 {companiesWithProducts.length === 0 && (
@@ -15130,11 +14182,11 @@ const TopupStorefront = () => {
               )}
               <div className="flex-1 text-center">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-normal leading-tight">
-                  {sanitizeDisplayText(storeInfo?.store_name, 'متجر بطاقات الشحن')}
+                  {storeInfo?.store_name ? storeInfo.store_name : 'متجر بطاقات الشحن'}
                   {console.log('🔍 Store Name Debug:', { store_name: storeInfo?.store_name, storeInfo })}
                 </h1>
                 <p className={cn("mt-1 text-xs sm:text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                  {sanitizeDisplayText(storeInfo?.description, 'اختر شركتك المفضلة وقيمة الشحن')}
+                  {storeInfo?.description || 'اختر شركتك المفضلة وقيمة الشحن'}
                 </p>
               </div>
             </div>
@@ -15194,69 +14246,14 @@ const TopupStorefront = () => {
                   </div>
                 )}
 
-                  {/* Payment Form */}
-                  {showPaymentForm && (
-                    <div className={cn("mt-4 p-4 rounded-lg border-2", isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300")}>
-                      <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-green-400" : "text-green-700")}>أدخل المبلغ (د.ع)</label>
-                      <div className="flex gap-2">
-                        <input
-                          type="number"
-                          value={paymentAmount}
-                          onChange={(e) => setPaymentAmount(e.target.value)}
-                          placeholder="0"
-                          max={Number(customer?.current_debt || 0)}
-                          className={cn("flex-1 px-3 py-2 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}
-                        />
-                        <button
-                          onClick={handlePayment}
-                          disabled={isPaymentProcessing}
-                          className={cn("px-4 py-2 rounded-lg text-white font-normal text-sm transition-colors", isPaymentProcessing ? "opacity-50" : "", isDarkMode ? "bg-green-600 hover:bg-green-700" : "bg-green-600 hover:bg-green-700")}
-                        >
-                          {isPaymentProcessing ? 'جاري...' : 'تأكيد'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowPaymentForm(false);
-                            setPaymentAmount('');
-                          }}
-                          className={cn("px-4 py-2 rounded-lg text-white font-normal text-sm transition-colors", isDarkMode ? "bg-gray-600 hover:bg-gray-700" : "bg-gray-400 hover:bg-gray-500")}
-                        >
-                          إلغاء
-                        </button>
-                      </div>
-                    </div>
-                  )}
               </>
-            ) : (
-              <div className="space-y-3">
-                <button 
-                  onClick={() => navigate(`/stores?openTopup=1&topupSlug=${encodeURIComponent(rawStoreId || storeId || 'store')}`, { replace: true })}
-                  className={cn("w-full py-2 px-3 rounded text-sm font-normal text-white", isDarkMode ? "bg-red-900 hover:bg-red-800" : "bg-red-600 hover:bg-red-700")}
-                >
-                  🔓 دخول
-                </button>
-                <div className={cn("p-3 rounded-lg border", isDarkMode ? "bg-amber-900/20 border-amber-600/30" : "bg-amber-50 border-amber-200")}>
-                  <p className={cn("text-xs font-bold mb-2", isDarkMode ? "text-amber-300" : "text-amber-700")}>📋 ملخص كشف الحساب</p>
-                  <p className={cn("text-[11px] mb-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                    <span className={cn("px-2 py-0.5 rounded inline-block text-[10px] font-bold", isDarkMode ? "bg-red-900 text-red-200" : "bg-red-100 text-red-700")}>
-                      🔒 غير مسجل
-                    </span>
-                  </p>
-                  <ul className={cn("text-[11px] space-y-1", isDarkMode ? "text-gray-300" : "text-gray-600")}>
-                    <li>💡 بعد الدخول ستظهر:</li>
-                    <li>✓ حد ائتمانك</li>
-                    <li>✓ ديونك الحالية</li>
-                    <li>✓ رصيدك المتاح</li>
-                  </ul>
-                </div>
-              </div>
-            )}
+            ) : null}
           </div>
 
           {/* Account Statement Modal */}
           {showAccountStatement && customer && (
-            <div className={cn("fixed inset-0 flex items-center justify-center z-50 p-4", isDarkMode ? "bg-black/50" : "bg-black/30")}>
-              <Card className={cn("w-full max-w-5xl max-h-auto", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
+            <div className={cn("fixed inset-0 flex items-center justify-center z-50 p-4 overflow-hidden", isDarkMode ? "bg-black/50" : "bg-black/30")}>
+              <Card className={cn("w-[calc(100vw-1rem)] md:w-fit md:max-w-[calc(100vw-4rem)] max-h-[90vh] overflow-hidden flex flex-col", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
                 <div className={cn("p-6 border-b sticky top-0 z-10", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white")}>
                   <div className="flex justify-between items-center">
                     <h3 className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>
@@ -15271,8 +14268,7 @@ const TopupStorefront = () => {
                   </div>
                 </div>
                 
-                <div className="p-6 space-y-6">
-                  {/* Customer Info */}
+                <div className="p-6 space-y-6 flex-1 overflow-hidden min-h-0">
                   <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-gray-700/30" : "bg-gray-50")}>
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -15283,77 +14279,77 @@ const TopupStorefront = () => {
                     </div>
                   </div>
 
-                  {/* Quick Stats Row */}
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                    <div className={cn("min-w-0 p-2 sm:p-3 rounded-lg border-2", isDarkMode ? "bg-blue-900/20 border-blue-600" : "bg-blue-50 border-blue-300")}>
-                      <p className={cn("text-[10px] sm:text-[11px] font-normal mb-1", isDarkMode ? "text-blue-400" : "text-blue-600")}>حد الائتمان</p>
-                      <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-blue-300" : "text-blue-600")}>
-                        {Math.round(Number(customer.credit_limit) || 0)?.toLocaleString('en-US')}
-                        <span className="block text-[0.9em]">د.ع</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-blue-900/20 border-blue-600" : "bg-blue-50 border-blue-300")}>
+                      <p className={cn("text-[11px] font-normal mb-1", isDarkMode ? "text-blue-400" : "text-blue-600")}>حد الائتمان</p>
+                      <p className={cn("text-sm md:text-base font-bold", isDarkMode ? "text-blue-300" : "text-blue-600")}>
+                        {Math.round(Number(customer.credit_limit) || 0).toLocaleString('en-US')} د.ع
                       </p>
                     </div>
-                    <div className={cn("p-3 rounded-lg border-2 hidden", isDarkMode ? "bg-purple-900/20 border-purple-600" : "bg-purple-50 border-purple-300")}>
-                      <p className={cn("text-[11px] font-normal mb-1", isDarkMode ? "text-purple-400" : "text-purple-600")}>الرصيد الأولي</p>
-                      <p className={cn("text-lg font-bold", isDarkMode ? "text-purple-300" : "text-purple-600")}>
-                        {Math.round(Number(customer.current_debt) || 0)?.toLocaleString('en-US')} د.ع
-                      </p>
-                    </div>
-                    <div className={cn("min-w-0 p-2 sm:p-3 rounded-lg border-2", isDarkMode ? "bg-yellow-900/20 border-yellow-600" : "bg-yellow-50 border-yellow-300")}>
-                      <p className={cn("text-[10px] sm:text-[11px] font-normal mb-1", isDarkMode ? "text-yellow-400" : "text-yellow-600")}>الديون الحالية</p>
-                      <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", isDarkMode ? "text-yellow-300" : "text-yellow-600")}>
+
+                    <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-yellow-900/20 border-yellow-600" : "bg-yellow-50 border-yellow-300")}>
+                      <p className={cn("text-[11px] font-normal mb-1", isDarkMode ? "text-yellow-400" : "text-yellow-600")}>الديون الحالية</p>
+                      <p className={cn("text-sm md:text-base font-bold", (() => {
+                        let currentDebt = Number(customer.current_debt || 0);
+                        if (statementTransactions && statementTransactions.length > 0) {
+                          currentDebt = Number(statementTransactions[0]?.balance || customer.current_debt || 0);
+                        }
+                        return currentDebt > Number(customer.credit_limit || 0)
+                          ? (isDarkMode ? "text-red-400" : "text-red-600")
+                          : (isDarkMode ? "text-yellow-300" : "text-yellow-700");
+                      })())}>
                         {(() => {
-                          // حساب آخر رصيد من المعاملات
                           if (statementTransactions && statementTransactions.length > 0) {
-                            const lastTransaction = statementTransactions[0]; // الأحدث في الأعلى
+                            const lastTransaction = statementTransactions[0];
                             const finalDebt = Math.round(Number(lastTransaction.balance) || 0);
                             return finalDebt.toLocaleString('en-US');
                           }
+
                           return Math.round(Number(customer.current_debt) || 0).toLocaleString('en-US');
-                        })()}
-                        <span className="block text-[0.9em]">د.ع</span>
+                        })()} د.ع
                       </p>
                     </div>
-                    <div className={cn("min-w-0 p-2 sm:p-3 rounded-lg border-2", (() => {
-                      const currentDebt = statementTransactions && statementTransactions.length > 0 
+
+                    <div className={cn("p-3 rounded-lg border-2", (() => {
+                      const currentDebt = statementTransactions && statementTransactions.length > 0
                         ? Number(statementTransactions[0]?.balance || 0)
                         : Number(customer.current_debt || 0);
-                      return (Number(customer.credit_limit || 0) - currentDebt) <= 0 ? (isDarkMode ? "bg-red-900/20 border-red-600" : "bg-red-50 border-red-300") : (isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300");
+                      return (Number(customer.credit_limit || 0) - currentDebt) <= 0
+                        ? (isDarkMode ? "bg-red-900/20 border-red-600" : "bg-red-50 border-red-300")
+                        : (isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300");
                     })())}>
-                      <p className={cn("text-[10px] sm:text-[11px] font-normal mb-1", (() => {
-                        const currentDebt = statementTransactions && statementTransactions.length > 0 
+                      <p className={cn("text-[11px] font-normal mb-1", (() => {
+                        const currentDebt = statementTransactions && statementTransactions.length > 0
                           ? Number(statementTransactions[0]?.balance || 0)
                           : Number(customer.current_debt || 0);
-                        return (Number(customer.credit_limit || 0) - currentDebt) <= 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-green-400" : "text-green-600");
+                        return (Number(customer.credit_limit || 0) - currentDebt) <= 0
+                          ? (isDarkMode ? "text-red-400" : "text-red-600")
+                          : (isDarkMode ? "text-green-400" : "text-green-600");
                       })())}>الرصيد المتاح</p>
-                      <p className={cn("text-[clamp(0.95rem,4vw,1.35rem)] font-bold leading-tight break-words", (() => {
-                        const currentDebt = statementTransactions && statementTransactions.length > 0 
+                      <p className={cn("text-sm md:text-base font-bold", (() => {
+                        const currentDebt = statementTransactions && statementTransactions.length > 0
                           ? Number(statementTransactions[0]?.balance || 0)
                           : Number(customer.current_debt || 0);
-                        return (Number(customer.credit_limit || 0) - currentDebt) <= 0 ? (isDarkMode ? "text-red-300" : "text-red-600") : (isDarkMode ? "text-green-300" : "text-green-600");
+                        return (Number(customer.credit_limit || 0) - currentDebt) <= 0
+                          ? (isDarkMode ? "text-red-300" : "text-red-600")
+                          : (isDarkMode ? "text-green-300" : "text-green-600");
                       })())}>
                         {(() => {
-                          const currentDebt = statementTransactions && statementTransactions.length > 0 
+                          const currentDebt = statementTransactions && statementTransactions.length > 0
                             ? Number(statementTransactions[0]?.balance || 0)
                             : Number(customer.current_debt || 0);
                           return Math.round(Math.max(0, Number(customer.credit_limit || 0) - currentDebt)).toLocaleString('en-US');
-                        })()}
-                        <span className="block text-[0.9em]">د.ع</span>
+                        })()} د.ع
                       </p>
                     </div>
                   </div>
 
                   {/* Transactions Table */}
-                  <div>
+                  <div className="min-h-0 flex flex-col">
                     <h4 className={cn("text-sm font-bold mb-3", isDarkMode ? "text-white" : "text-gray-900")}>
                       📊 المعاملات {isLoadingStatement && <span className="text-xs font-normal">(جاري التحميل...)</span>}
                     </h4>
-                    <div className={cn("border rounded-lg overflow-hidden", isDarkMode ? "border-gray-700 bg-gray-900/30" : "border-gray-200 bg-gray-50")}>
-                      {console.log('📋 Statement Modal Debug:', { 
-                        showAccountStatement, 
-                        isLoadingStatement, 
-                        transactionCount: statementTransactions?.length,
-                        transactions: statementTransactions
-                      })}
+                    <div className={cn("border rounded-lg overflow-hidden min-h-0", isDarkMode ? "border-gray-700 bg-gray-900/30" : "border-gray-200 bg-gray-50")}>
                       {isLoadingStatement ? (
                         <div className="p-8 text-center">
                           <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2" style={{borderColor: primaryColor}}></div>
@@ -15365,15 +14361,21 @@ const TopupStorefront = () => {
                           <p className="text-xs">قد لم يتم تحميل البيانات بعد. حاول مرة أخرى.</p>
                         </div>
                       ) : (
-                        <div className="max-h-[18rem] overflow-auto">
-                        <table className="w-full text-xs border-collapse">
-                          <thead className={cn("sticky top-0 z-10", isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
+                        <div className="w-full overflow-x-auto overflow-y-auto max-h-[18rem] md:max-h-[18.5rem] overscroll-x-contain">
+                        <table className="min-w-max w-max text-xs border-collapse table-auto">
+                          <thead className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
                             <tr>
-                              <th className={cn("px-3 py-2 text-right font-bold border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
-                              <th className={cn("px-3 py-2 text-right font-bold border", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
-                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>مدين<br/>(Debit)</th>
-                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>دائن<br/>(Credit)</th>
-                              <th className={cn("px-3 py-2 text-center font-bold border", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الرصيد</th>
+                              <th className={cn("min-w-[6.5rem] px-3 py-2 text-right font-bold border whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
+                              <th className={cn("min-w-[14rem] md:min-w-[9rem] px-3 py-2 text-right font-bold border whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
+                              <th className={cn("min-w-[6rem] px-3 py-2 text-center font-bold border whitespace-nowrap", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>
+                                <span className="block">مدين</span>
+                                <span className="hidden md:block">(Debit)</span>
+                              </th>
+                              <th className={cn("min-w-[6rem] px-3 py-2 text-center font-bold border whitespace-nowrap", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>
+                                <span className="block">دائن</span>
+                                <span className="hidden md:block">(Credit)</span>
+                              </th>
+                              <th className={cn("min-w-[6rem] px-3 py-2 text-center font-bold border whitespace-nowrap", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الرصيد</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -15384,11 +14386,11 @@ const TopupStorefront = () => {
                               
                               // Translate transaction types to Arabic
                               if (txType === 'opening') {
-                                txDescription = 'ديون سابقة';
+                                txDescription = transaction.description || 'ديون سابقة';
                               } else if (txType === 'debit') {
                                 txDescription = 'خصم';
                               } else if (txType === 'topup') {
-                                txDescription = sanitizeDisplayText(transaction.description, 'بطاقة شحن');
+                                txDescription = transaction.description || 'بطاقة شحن';
                               } else if (txType === 'payment') {
                                 txDescription = '✓ دفعة';
                               }
@@ -15432,19 +14434,19 @@ const TopupStorefront = () => {
                               
                               return (
                                 <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-100")}>
-                                  <td className={cn("px-3 py-2 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
-                                    {txDate ? new Date(txDate).toLocaleDateString('ar-IQ') : '-'}
+                                  <td className={cn("min-w-[6.5rem] px-3 py-2 border text-right whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
+                                    {txDate ? new Date(txDate).toLocaleDateString('ar-IQ') : '—'}
                                   </td>
-                                  <td className={cn("px-3 py-2 border text-right", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
+                                  <td className={cn("min-w-[14rem] md:min-w-[9rem] px-3 py-2 border text-right whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
                                     {txDescription}
                                   </td>
-                                  <td className={cn("px-3 py-2 border text-center font-bold", debitAmount > 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"))}>
-                                    {debitAmount > 0 ? debitAmount.toLocaleString('en-US') : '-'}
+                                  <td className={cn("min-w-[6rem] px-3 py-2 border text-center font-bold whitespace-nowrap", debitAmount > 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"))}>
+                                    {debitAmount > 0 ? debitAmount.toLocaleString('en-US') : '—'}
                                   </td>
-                                  <td className={cn("px-3 py-2 border text-center font-bold", creditAmount > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"))}>
-                                    {creditAmount > 0 ? creditAmount.toLocaleString('en-US') : '-'}
+                                  <td className={cn("min-w-[6rem] px-3 py-2 border text-center font-bold whitespace-nowrap", creditAmount > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"))}>
+                                    {creditAmount > 0 ? creditAmount.toLocaleString('en-US') : '—'}
                                   </td>
-                                  <td className={cn("px-3 py-2 border text-center font-bold", isDarkMode ? "text-blue-300" : "text-blue-700")}>
+                                  <td className={cn("min-w-[6rem] px-3 py-2 border text-center font-bold whitespace-nowrap", isDarkMode ? "text-blue-300" : "text-blue-700")}>
                                     {txBalance.toLocaleString('en-US')}
                                   </td>
                                 </tr>
@@ -15550,14 +14552,7 @@ const TopupStorefront = () => {
 
           {/* Product Images Gallery - 100% Width */}
           <div className="w-full mx-auto">
-            {console.log('🔍 DEBUG TopupStorefront:', {
-              productsCount: products.length,
-              filteredProductsCount: filteredProducts.length,
-              selectedCompany,
-              loading,
-              hasImages: filteredProducts.some(p => Array.isArray(p.images) && p.images.length > 0)
-            })}
-            <h2 className={cn("text-2xl font-normal mb-6", isDarkMode ? "text-white" : "text-gray-900")}>المنتجات المتاحة للشراء</h2>
+            <h2 className={cn("text-2xl font-normal mb-6", isDarkMode ? "text-white" : "text-gray-900")}>� المنتجات المتاحة للشراء</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4" key={`products-list-${products.length}-${Date.now()}`}>
               {filteredProducts
                 .map((product: any) => {
@@ -15721,11 +14716,11 @@ const TopupOrderDetails = () => {
   const navigate = useNavigate();
   
   const [codes, setCodes] = useState<string[]>([]);
-  const [images, setImages] = useState<string[]>([]);
+  const [orderImages, setOrderImages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [showImageModal, setShowImageModal] = useState(false);
+  const [isDownloadingImages, setIsDownloadingImages] = useState(false);
 
   // Refresh customer debt when page loads
   const refreshCustomerDebt = async () => {
@@ -15767,67 +14762,160 @@ const TopupOrderDetails = () => {
   };
 
   useEffect(() => {
-    // Refresh customer debt when page loads
-    refreshCustomerDebt();
+    let isMounted = true;
 
-    const loadOrderData = async () => {
+    const loadOrderDetails = async () => {
+      setLoading(true);
       try {
-        let loadedImages: string[] = [];
-        let loadedCodes: string[] = [];
+        await refreshCustomerDebt();
 
-        try {
-          const imagesRes = await fetch(`/api/topup/order-images/${orderId}`);
-          if (imagesRes.ok) {
-            const imagesData = await imagesRes.json();
-            loadedImages = parseImageCollection(imagesData.images).map(getSafeImageUrl);
-          }
-        } catch (error) {
-          console.error('[TopupOrderDetails] Error loading order-images:', error);
+        const [codesRes, imagesRes] = await Promise.all([
+          fetch(`/api/topup/order-codes/${orderId}`),
+          fetch(`/api/topup/order-images/${orderId}`),
+        ]);
+
+        const codesData = await codesRes.json().catch(() => ({ codes: [] }));
+        const imagesData = await imagesRes.json().catch(() => ({ images: [] }));
+
+        if (!isMounted) {
+          return;
         }
 
-        try {
-          const codesRes = await fetch(`/api/topup/order-codes/${orderId}`);
-          const codesData = await codesRes.json();
-          loadedCodes = Array.isArray(codesData.codes) ? codesData.codes : [];
-
-          if (loadedImages.length === 0) {
-            loadedImages = parseImageCollection(codesData.images || codesData.codes).map(getSafeImageUrl);
-          }
-
-          if (loadedImages.length === 0 && codesData.store_id) {
-            const productsRes = await fetch(`/api/topup/products/${codesData.store_id}`);
-            if (productsRes.ok) {
-              const productsData = await productsRes.json();
-              if (Array.isArray(productsData)) {
-                const matchingProduct = productsData.find((product: any) => {
-                  const amountValue = Number(product?.amount ?? product?.price ?? 0);
-                  return loadedCodes.some((code: string) => String(code).includes(String(amountValue)));
-                });
-
-                if (matchingProduct) {
-                  loadedImages = getProductImageCandidates(matchingProduct);
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error loading codes:', error);
+        setCodes(Array.isArray(codesData?.codes) ? codesData.codes : []);
+        setOrderImages(Array.isArray(imagesData?.images) ? imagesData.images : []);
+      } catch (error) {
+        console.error('Error loading mobile topup order details:', error);
+        if (isMounted) {
+          setCodes([]);
+          setOrderImages([]);
         }
-
-        setCodes(loadedCodes);
-        setImages(Array.from(new Set(loadedImages.filter(Boolean))).slice(0, Math.max(loadedCodes.length, loadedImages.length, 1)));
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    loadOrderData();
+    loadOrderDetails();
+
+    return () => {
+      isMounted = false;
+    };
   }, [orderId]);
 
   const copyAllCodes = () => {
     navigator.clipboard.writeText(codes.join('\n'));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const sanitizeDownloadName = (value: string) => {
+    const sanitized = value.replace(/[\\/:*?"<>|]+/g, '_').trim();
+    return sanitized || 'صورة';
+  };
+
+  const getDownloadTimestamp = () => {
+    const now = new Date();
+    const datePart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const timePart = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+    return `${datePart}_${timePart}`;
+  };
+
+  const getDownloadExtension = (imageUrl: string) => {
+    if (imageUrl.startsWith('data:image/')) {
+      const dataMatch = imageUrl.match(/^data:image\/([^;]+)/i);
+      const dataExt = dataMatch?.[1]?.toLowerCase();
+      return dataExt === 'svg+xml' ? 'svg' : dataExt || 'jpg';
+    }
+
+    try {
+      const resolvedUrl = new URL(imageUrl, window.location.origin);
+      const fileName = resolvedUrl.pathname.split('/').pop() || '';
+      const fileExt = fileName.split('.').pop()?.toLowerCase();
+      return fileExt || 'jpg';
+    } catch {
+      return 'jpg';
+    }
+  };
+
+  const handleDownloadPurchasedImages = async () => {
+    if (!orderImages.length) {
+      alert('❌ لا توجد صور متاحة للتنزيل');
+      return;
+    }
+
+    setIsDownloadingImages(true);
+    try {
+      const JSZip = await loadJSZip();
+      const zip = new JSZip();
+      const timestamp = getDownloadTimestamp();
+      const addedZipEntries = new Set<string>();
+      const productFileCounters = new Map<string, number>();
+      let downloadCount = 0;
+
+      for (const image of orderImages) {
+        const imageUrl = image?.image_url || image;
+        if (!imageUrl) {
+          continue;
+        }
+
+        const companyFolderName = sanitizeDownloadName(image.company_name || 'شركة_غير_محددة');
+        const productName = sanitizeDownloadName(image.product_name || String(image.amount || 'منتج'));
+        const productCounterKey = `${companyFolderName}/${productName}`;
+
+        try {
+          const response = await fetch(imageUrl, { cache: 'no-store' });
+          if (!response.ok) {
+            continue;
+          }
+
+          const blob = await response.blob();
+          const extension = getDownloadExtension(imageUrl);
+          const nextCounter = (productFileCounters.get(productCounterKey) || 0) + 1;
+          productFileCounters.set(productCounterKey, nextCounter);
+          const zipEntryPath = `${companyFolderName}/${productName}_${timestamp}_${nextCounter}.${extension}`;
+
+          if (addedZipEntries.has(zipEntryPath)) {
+            continue;
+          }
+
+          zip.file(zipEntryPath, blob, {
+            binary: true,
+            compression: 'STORE'
+          });
+          addedZipEntries.add(zipEntryPath);
+          downloadCount++;
+        } catch (error) {
+          console.warn('تعذر إضافة صورة إلى تنزيل الموبايل المنظم:', error);
+        }
+      }
+
+      if (downloadCount === 0) {
+        alert('❌ لا توجد صور صالحة للتنزيل');
+        return;
+      }
+
+      const zipBlob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'STORE'
+      });
+      const zipUrl = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = zipUrl;
+      link.download = `صور_الشركات_${timestamp}.zip`;
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(zipUrl);
+
+      alert(`✅ تم تنزيل ملف ZIP منظم يحتوي على ${downloadCount} صورة.`);
+    } catch (error) {
+      console.error('خطأ في تنزيل صور الطلب من شاشة الموبايل:', error);
+      alert(`❌ خطأ: ${(error as any).message || 'فشل تنزيل الصور'}`);
+    } finally {
+      setIsDownloadingImages(false);
+    }
   };
 
   if (loading) return <div className="p-4 sm:p-8 text-center">جاري تحميل أكوادك...</div>;
@@ -15849,52 +14937,12 @@ const TopupOrderDetails = () => {
             <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>احفظ هذه الأكواد في مكان آمن</p>
           </div>
 
-          <div className="p-6 border-b border-gray-200 space-y-3">
-            <h3 className={cn("font-normal text-base", isDarkMode ? "text-gray-200" : "text-gray-800")}>الصور</h3>
-            {images.length > 0 ? (
-              <div className="flex flex-wrap gap-3">
-                {images.map((imageUrl, idx) => {
-                  const imageCandidates = parseImageCollection(imageUrl);
-                  const primaryImage = imageCandidates[0] || PLACEHOLDER_IMAGE;
-
-                  return (
-                    <button
-                      key={`${primaryImage}-${idx}`}
-                      type="button"
-                      className="cursor-pointer"
-                      onClick={() => {
-                        setSelectedImage(primaryImage);
-                        setShowImageModal(true);
-                      }}
-                    >
-                      <img
-                        src={primaryImage}
-                        data-image-index="0"
-                        alt={`صورة ${idx + 1}`}
-                        className="w-20 h-20 object-cover rounded-lg border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all"
-                        onError={(event) => handleImageFallback(event, imageCandidates)}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">لا توجد صور متاحة</p>
-            )}
-          </div>
-
           <div className="p-6 space-y-3">
-            {codes.length > 0 ? (
-              codes.map((code, idx) => (
-                <div key={idx} className={cn("p-4 rounded-lg border-2 font-mono text-lg font-normal", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}>
-                  {code}
-                </div>
-              ))
-            ) : (
-              <div className={cn("p-4 rounded-lg border text-sm", isDarkMode ? "bg-gray-700 border-gray-600 text-gray-300" : "bg-white border-gray-200 text-gray-500")}>
-                لا توجد أكواد متاحة لهذا الطلب
+            {codes.map((code, idx) => (
+              <div key={idx} className={cn("p-4 rounded-lg border-2 font-mono text-lg font-normal", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200")}>
+                {code}
               </div>
-            )}
+            ))}
           </div>
 
           <div className={cn("p-4 border-t", isDarkMode ? "border-gray-700" : "border-gray-200")}>
@@ -15904,6 +14952,60 @@ const TopupOrderDetails = () => {
               style={{ backgroundColor: copied ? '#22c55e' : '#3b82f6', color: 'white' }}
             >
               {copied ? '✓ تم النسخ!' : 'نسخ جميع الأكواد'}
+            </button>
+          </div>
+        </Card>
+
+        <Card className={cn("mt-6", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50")}> 
+          <div className={cn("p-6 border-b", isDarkMode ? "border-gray-700" : "border-gray-200")}> 
+            <h2 className="font-normal text-lg text-blue-600">الصور المشتراة</h2>
+            <p className={cn("text-xs mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>تنزيل منظم حسب الشركة، واسم المنتج داخل اسم الصورة.</p>
+          </div>
+
+          <div className="p-6">
+            {orderImages.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {orderImages.map((image, idx) => {
+                  const imageUrl = image.image_url || image;
+                  const imageTitle = image.product_name || image.amount || `صورة ${idx + 1}`;
+                  return (
+                    <button
+                      key={`${imageUrl}-${idx}`}
+                      type="button"
+                      onClick={() => setSelectedImage(imageUrl)}
+                      className={cn("rounded-lg border overflow-hidden text-right transition-all", isDarkMode ? "bg-gray-700 border-gray-600 hover:border-blue-500" : "bg-white border-gray-200 hover:border-blue-400")}
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={imageTitle}
+                        className="w-full h-28 object-cover"
+                        onError={(e: any) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      <div className="p-2 space-y-1">
+                        <p className={cn("text-xs font-normal", isDarkMode ? "text-gray-200" : "text-gray-800")}>{image.company_name || 'شركة غير محددة'}</p>
+                        <p className={cn("text-[11px]", isDarkMode ? "text-gray-400" : "text-gray-600")}>{imageTitle}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className={cn("text-sm text-center py-4", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                لا توجد صور مرتبطة بهذا الطلب.
+              </div>
+            )}
+          </div>
+
+          <div className={cn("p-4 border-t", isDarkMode ? "border-gray-700" : "border-gray-200")}> 
+            <button
+              onClick={handleDownloadPurchasedImages}
+              disabled={isDownloadingImages || orderImages.length === 0}
+              className="w-full py-3 rounded-lg font-normal transition-all"
+              style={{ backgroundColor: isDownloadingImages || orderImages.length === 0 ? '#6b7280' : '#2563eb', color: 'white' }}
+            >
+              {isDownloadingImages ? 'جاري تجهيز التنزيل...' : '💾 تنزيل الصور في فولدرات الشركات'}
             </button>
           </div>
         </Card>
@@ -15919,16 +15021,16 @@ const TopupOrderDetails = () => {
           ← العودة للمتجر
         </button>
 
-        {showImageModal && selectedImage && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setShowImageModal(false)}>
-            <div className="relative max-w-2xl max-h-screen" onClick={(e) => e.stopPropagation()}>
+        {selectedImage && (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setSelectedImage(null)}>
+            <div className="max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+              <img src={selectedImage} alt="الصورة المحددة" className="w-full max-h-[85vh] object-contain rounded-xl" />
               <button
-                onClick={() => setShowImageModal(false)}
-                className="absolute -top-10 right-0 text-white text-2xl font-bold hover:text-gray-300"
+                onClick={() => setSelectedImage(null)}
+                className="w-full mt-4 py-3 rounded-lg font-normal bg-white text-gray-900"
               >
-                ✕
+                إغلاق الصورة
               </button>
-              <img src={selectedImage} alt="صورة كاملة" className="w-full h-full object-contain rounded-lg" onError={(e: any) => e.target.style.display = 'none'} />
             </div>
           </div>
         )}
@@ -15938,7 +15040,5 @@ const TopupOrderDetails = () => {
 };
 
 export default App;
-
-
 
 

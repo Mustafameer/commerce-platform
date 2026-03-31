@@ -5,6 +5,7 @@ import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
+  const apiTarget = env.VITE_API_URL || 'https://commerce-platform-production.up.railway.app';
   return {
     plugins: [react(), tailwindcss()],
     define: {
@@ -22,7 +23,7 @@ export default defineConfig(({ mode }) => {
       strictPort: false,
       proxy: {
         '/api': {
-          target: 'http://localhost:3000',
+          target: apiTarget,
           changeOrigin: true,
           rewrite: (path) => path
         }
@@ -35,6 +36,7 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             'vendor': ['react', 'react-dom', 'react-router-dom'],
             'ui': ['lucide-react'],
+            'motion': ['motion/react', 'motion/react-m'],
           },
         },
       },

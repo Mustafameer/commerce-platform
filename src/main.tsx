@@ -1,5 +1,9 @@
 import React, { StrictMode, Component, ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
+import '@fontsource/el-messiri/400.css';
+import '@fontsource/el-messiri/500.css';
+import '@fontsource/el-messiri/600.css';
+import '@fontsource/el-messiri/700.css';
 import App from './App.tsx';
 import './index.css';
 
