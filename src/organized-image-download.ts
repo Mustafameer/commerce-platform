@@ -29,6 +29,8 @@ type DirectoryPickerWindow = Window & {
   }) => Promise<any>;
 };
 
+const renderableImageUrlCache = new Map<string, string>();
+
 const sanitizeDownloadName = (value: string) => {
   const sanitized = value.replace(/[\\/:*?"<>|]+/g, '_').trim();
   return sanitized || 'صورة';
@@ -99,6 +101,26 @@ const dataUrlToBytes = (dataUrl: string) => {
     bytes: new TextEncoder().encode(decoded),
     mimeType,
   };
+};
+
+export const resolveRenderableImageUrl = async (imageUrl: string) => {
+  if (!imageUrl) {
+    return imageUrl;
+  }
+
+  if (!imageUrl.startsWith('data:')) {
+    return imageUrl;
+  }
+
+  const cachedUrl = renderableImageUrlCache.get(imageUrl);
+  if (cachedUrl) {
+    return cachedUrl;
+  }
+
+  const { bytes, mimeType } = dataUrlToBytes(imageUrl);
+  const objectUrl = URL.createObjectURL(new Blob([bytes], { type: mimeType || 'application/octet-stream' }));
+  renderableImageUrlCache.set(imageUrl, objectUrl);
+  return objectUrl;
 };
 
 const loadImageBytes = async (imageUrl: string) => {

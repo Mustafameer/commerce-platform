@@ -3,7 +3,7 @@ import { CheckCircle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { downloadOrganizedImages } from './organized-image-download';
+import { downloadOrganizedImages, resolveRenderableImageUrl } from './organized-image-download';
 import { useTheme } from './theme';
 
 function cn(...inputs: ClassValue[]) {
@@ -36,6 +36,25 @@ export const TopupOrderDetails = () => {
   const [copied, setCopied] = React.useState(false);
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
   const [isDownloadingImages, setIsDownloadingImages] = React.useState(false);
+
+  const hydrateOrderImagesForDisplay = React.useCallback(async (images: any[]) => {
+    const normalizedImages = Array.isArray(images) ? images : [];
+
+    return Promise.all(
+      normalizedImages.map(async (image) => {
+        const imageUrl = image?.image_url || image?.url || image;
+        if (!imageUrl) {
+          return image;
+        }
+
+        return {
+          ...image,
+          image_url: image?.image_url || imageUrl,
+          display_url: await resolveRenderableImageUrl(imageUrl),
+        };
+      })
+    );
+  }, []);
 
   const refreshCustomerDebt = async () => {
     try {
@@ -96,7 +115,7 @@ export const TopupOrderDetails = () => {
         }
 
         setCodes(Array.isArray(codesData?.codes) ? codesData.codes : []);
-        setOrderImages(Array.isArray(imagesData?.images) ? imagesData.images : []);
+        setOrderImages(await hydrateOrderImagesForDisplay(Array.isArray(imagesData?.images) ? imagesData.images : []));
       } catch (error) {
         console.error('Error loading mobile topup order details:', error);
         if (isMounted) {
@@ -115,7 +134,7 @@ export const TopupOrderDetails = () => {
     return () => {
       isMounted = false;
     };
-  }, [orderId]);
+  }, [hydrateOrderImagesForDisplay, orderId]);
 
   const copyAllCodes = () => {
     navigator.clipboard.writeText(codes.join('\n'));
@@ -211,7 +230,7 @@ export const TopupOrderDetails = () => {
             {orderImages.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {orderImages.map((image, idx) => {
-                  const imageUrl = image.image_url || image;
+                  const imageUrl = image.display_url || image.image_url || image;
                   const imageTitle = image.product_name || image.amount || `صورة ${idx + 1}`;
                   return (
                     <button

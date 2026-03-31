@@ -53,7 +53,7 @@ import * as motion from 'motion/react-m';
 import { useAuthStore, useRegularCartStore, useSettingsStore, useSearchStore, useRefreshStore, useTopupCartStore } from './store';
 import type { User, Store, Product, Order } from './types';
 import { resolveApiBaseUrl } from './api';
-import { downloadOrganizedImages } from './organized-image-download';
+import { downloadOrganizedImages, resolveRenderableImageUrl } from './organized-image-download';
 import { ThemeProvider, useTheme } from './theme';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -690,16 +690,33 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 
   // حفظ واسترجاع الأكواد من localStorage
   useEffect(() => {
-    const savedOrderConfirmation = localStorage.getItem('orderConfirmation');
-    if (savedOrderConfirmation) {
+    let isMounted = true;
+
+    const loadSavedOrderConfirmation = async () => {
+      const savedOrderConfirmation = localStorage.getItem('orderConfirmation');
+      if (!savedOrderConfirmation) {
+        return;
+      }
+
       try {
         const confirmation = JSON.parse(savedOrderConfirmation);
-        setOrderConfirmation(confirmation);
-        console.log('📦 Loaded order confirmation from localStorage:', confirmation);
+        const hydratedConfirmation = await hydrateOrderConfirmationImages(confirmation);
+        if (!isMounted) {
+          return;
+        }
+
+        setOrderConfirmation(hydratedConfirmation);
+        console.log('📦 Loaded order confirmation from localStorage:', hydratedConfirmation);
       } catch (err) {
         console.error('Error loading order confirmation from localStorage:', err);
       }
-    }
+    };
+
+    loadSavedOrderConfirmation();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Debug: Log cart items to console
@@ -1288,11 +1305,11 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
       await refreshTopupCustomerDebtAfterCheckout(customerId);
       
       if (orderConfirmations.length > 0) {
-        const confirmation = {
+        const confirmation = await hydrateOrderConfirmationImages({
           type: 'topup',
           confirmations: orderConfirmations,
           totalAmount: subtotal - discount
-        };
+        });
         setOrderConfirmation(confirmation);
         // حفظ في localStorage حتى يتمكن العميل من الوصول للأكواد لاحقاً
         localStorage.setItem('orderConfirmation', JSON.stringify(confirmation));
@@ -1390,17 +1407,58 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
       .filter((image: any) => Boolean(image?.image_url));
   };
 
+  const hydrateConfirmedImagesForDisplay = async (images: any[], fallbackProductId?: number) => {
+    const normalizedImages = normalizeConfirmedImages(images, fallbackProductId);
+
+    return Promise.all(
+      normalizedImages.map(async (image: any) => ({
+        ...image,
+        display_url: await resolveRenderableImageUrl(image.image_url),
+      }))
+    );
+  };
+
+  const hydrateOrderConfirmationImages = async (confirmation: any) => {
+    if (!confirmation?.confirmations || !Array.isArray(confirmation.confirmations)) {
+      return confirmation;
+    }
+
+    const hydratedConfirmations = await Promise.all(
+      confirmation.confirmations.map(async (conf: any) => {
+        const items = Array.isArray(conf?.items) ? conf.items : [];
+        const hydratedItems = await Promise.all(
+          items.map(async (item: any) => ({
+            ...item,
+            product_images: await hydrateConfirmedImagesForDisplay(item?.product_images || [], item?.product_id),
+          }))
+        );
+
+        return {
+          ...conf,
+          items: hydratedItems,
+          codes: await hydrateConfirmedImagesForDisplay(conf?.codes || []),
+          images: await hydrateConfirmedImagesForDisplay(conf?.images || []),
+        };
+      })
+    );
+
+    return {
+      ...confirmation,
+      confirmations: hydratedConfirmations,
+    };
+  };
+
   const loadConfirmedOrderImages = async (orderId: number, fallbackProductId?: number, fallbackImages: any[] = []) => {
-    const normalizedFallbackImages = normalizeConfirmedImages(fallbackImages, fallbackProductId);
+    const normalizedFallbackImages = await hydrateConfirmedImagesForDisplay(fallbackImages, fallbackProductId);
 
     try {
       const imagesRes = await fetch(`/api/topup/order-images/${orderId}`);
       const imagesData = await imagesRes.json();
 
       const apiImages = Array.isArray(imagesData?.images)
-        ? normalizeConfirmedImages(imagesData.images, fallbackProductId)
+        ? await hydrateConfirmedImagesForDisplay(imagesData.images, fallbackProductId)
         : Array.isArray(imagesData)
-          ? normalizeConfirmedImages(imagesData, fallbackProductId)
+          ? await hydrateConfirmedImagesForDisplay(imagesData, fallbackProductId)
           : [];
 
       if (apiImages.length > 0) {
@@ -1515,7 +1573,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                     {availableCodes.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {availableCodes.map((imageObj: any, cIdx: number) => {
-                          const imageUrl = imageObj.image_url || imageObj;
+                          const imageUrl = imageObj.display_url || imageObj.image_url || imageObj;
                           return (
                             <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImage(imageUrl); setShowImageModal(true); }}>
                               <img src={imageUrl} alt={`صورة ${cIdx + 1}`} className="w-16 h-16 object-cover rounded-lg border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(e: any) => e.target.style.display = 'none'} />
@@ -1580,7 +1638,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                           {availableCodes.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                               {availableCodes.map((imageObj: any, cIdx: number) => {
-                                const imageUrl = imageObj.image_url || imageObj;
+                                const imageUrl = imageObj.display_url || imageObj.image_url || imageObj;
                                 return (
                                   <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImage(imageUrl); setShowImageModal(true); }}>
                                     <img src={imageUrl} alt={`صورة ${cIdx + 1}`} className="w-12 h-12 object-cover rounded border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(e: any) => e.target.style.display = 'none'} />
