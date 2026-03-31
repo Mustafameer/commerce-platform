@@ -5620,7 +5620,7 @@ async function startServer() {
             id: o.id,
             created_at: o.created_at instanceof Date ? o.created_at.toISOString() : String(o.created_at),
             type: 'topup',
-            description: 'ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½',
+            description: 'شراء بطاقة شحن',
             amount: Number(o.total_amount || 0),
             is_payment: false,
             source: 'topup_order'
@@ -5629,7 +5629,7 @@ async function startServer() {
             id: p.id,
             created_at: p.created_at instanceof Date ? p.created_at.toISOString() : String(p.created_at),
             type: 'payment',
-            description: 'ï؟½ï؟½ï؟½ï؟½',
+            description: 'دفعة',
             amount: Number(p.amount || 0),
             is_payment: true,
             source: 'payment'
@@ -5643,7 +5643,7 @@ async function startServer() {
           id: 0,
           created_at: customer.created_at instanceof Date ? customer.created_at.toISOString() : String(customer.created_at),
           type: 'opening',
-          description: 'ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½',
+          description: 'ديون سابقة',
           amount: openingBalance,
           is_payment: false,
           source: 'opening',
@@ -5678,15 +5678,15 @@ async function startServer() {
         
         // Ensure correct descriptions regardless of source data
         const transactionsWithCorrectDescriptions = transactions.map(tx => {
-          let description = tx.description;
+          let description = normalizeKnownArabicText(tx.description);
           
           // Override description based on source (to fix any corrupted data)
           if (tx.source === 'opening') {
-            description = 'ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½';
+            description = 'ديون سابقة';
           } else if (tx.source === 'payment') {
-            description = 'ï؟½ï؟½ï؟½ï؟½';
+            description = 'دفعة';
           } else if (tx.source === 'topup_order') {
-            description = 'ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½';
+            description = 'شراء بطاقة شحن';
           }
           
           return { ...tx, description };

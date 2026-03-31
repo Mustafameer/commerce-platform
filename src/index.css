@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@theme {
+  --breakpoint-md: 43.75rem;
+}
+
 :root {
   --app-font-family: 'El Messiri', 'Segoe UI', Tahoma, Arial, sans-serif;
   --font-sans: var(--app-font-family);
@@ -85,13 +89,13 @@ samp {
   display: none;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 700px) {
   [data-dashboard-layout="desktop"] {
     display: flex !important;
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 699px) {
   [data-dashboard-layout="mobile"] {
     display: flex !important;
   }
@@ -107,7 +111,7 @@ samp {
 }
 
 [data-dashboard-layout="mobile"]::before {
-  content: '📱 MOBILE LAYOUT (<768px)';
+  content: '📱 MOBILE LAYOUT (<700px)';
   position: fixed;
   top: 10px;
   right: 10px;

@@ -440,10 +440,10 @@ export const DashboardLayout = ({
   const [settings, setSettings] = useState({ app_name: appName, logo_url: logoUrl });
   const { isDarkMode, setIsDarkMode } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 700 : false);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 700);
 
     handleResize();
     window.addEventListener('resize', handleResize);

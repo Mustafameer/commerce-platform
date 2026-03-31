@@ -139,6 +139,21 @@ export const formatDateOnly = (dateStr: string | Date) => {
   }
 };
 
+const normalizeStatementDescriptionText = (value: unknown) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value
+    .replaceAll('ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½', 'ديون سابقة')
+    .replaceAll('ï؟½ï؟½ï؟½ï؟½', 'دفعة')
+    .replaceAll('ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½', 'شراء بطاقة شحن')
+    .replaceAll('طظپطط', 'دفعة')
+    .replaceAll('طططط', 'شراء')
+    .replaceAll('طظٹظظ طططظط', 'ديون سابقة')
+    .trim();
+};
+
 // --- Sound Notification ---
 const playAddToCartSound = () => {
   try {
@@ -337,11 +352,11 @@ export const DashboardLayout = ({ children, title, role, counts }: { children: R
   const [settings, setSettings] = useState({ app_name: appName, logo_url: logoUrl });
   const { isDarkMode, setIsDarkMode } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 700);
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth < 700);
     };
 
     handleResize();
@@ -14403,15 +14418,18 @@ const TopupStorefront = () => {
                             {statementTransactions && statementTransactions.map((transaction, idx) => {
                               const txDate = transaction.created_at || transaction.date || transaction.transaction_date;
                               const txType = transaction.type || transaction.transaction_type || 'unknown';
-                              let txDescription = transaction.description || transaction.notes || transaction.detail || `معاملة #${idx + 1}`;
+                              let txDescription = normalizeStatementDescriptionText(transaction.description)
+                                || normalizeStatementDescriptionText(transaction.notes)
+                                || normalizeStatementDescriptionText(transaction.detail)
+                                || `معاملة #${idx + 1}`;
                               
                               // Translate transaction types to Arabic
                               if (txType === 'opening') {
-                                txDescription = transaction.description || 'ديون سابقة';
+                                txDescription = normalizeStatementDescriptionText(transaction.description) || 'ديون سابقة';
                               } else if (txType === 'debit') {
                                 txDescription = 'خصم';
                               } else if (txType === 'topup') {
-                                txDescription = transaction.description || 'بطاقة شحن';
+                                txDescription = normalizeStatementDescriptionText(transaction.description) || 'بطاقة شحن';
                               } else if (txType === 'payment') {
                                 txDescription = '✓ دفعة';
                               }
