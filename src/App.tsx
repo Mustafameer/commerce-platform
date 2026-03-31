@@ -564,7 +564,7 @@ export const DashboardLayout = ({ children, title, role, counts }: { children: R
           </div>
         </div>
       </div>
-      
+
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto pb-20">
         {navItems.map((item, index) => (
           <Link
@@ -1217,46 +1217,15 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               throw new Error(data.error || 'فشل إنشاء طلب الشحن');
             }
 
-            // Get images directly from response or fetch if needed
-            let itemImages: any[] = data.images || [];
-            let productImages: any[] = [];
-            
-            // Fallback: Fetch images if not in response
-            if (itemImages.length === 0) {
-              try {
-                const imagesRes = await fetch(`/api/topup/order-images/${data.order_id}`);
-                const imagesData = await imagesRes.json();
-                
-                if (imagesData.images && Array.isArray(imagesData.images)) {
-                  itemImages = imagesData.images;
-                } else if (Array.isArray(imagesData)) {
-                  itemImages = imagesData;
-                }
-                
-                console.log('🖼️ Fetched images from API (fallback):', {
-                  orderId: data.order_id,
-                  imagesCount: itemImages.length,
-                  grouped: imagesData.grouped_by_product
-                });
-              } catch (err) {
-                console.error('Failed to fetch topup images:', err);
-              }
-            } else {
-              console.log('🖼️ Got images from purchase response:', {
-                orderId: data.order_id,
-                imagesCount: itemImages.length
-              });
-            }
-
-            // Filter images for this product only
-            productImages = itemImages.filter((img: any) => {
-              const productId = typeof img === 'string' ? item.product_id : img.product_id;
-              return img.product_id === item.product_id || typeof img === 'string';
+            const itemImages = await loadConfirmedOrderImages(data.order_id, item.product_id, data.images || []);
+            let productImages = itemImages.filter((img: any) => {
+              const imageProductId = Number(img?.product_id ?? item.product_id ?? 0);
+              const currentProductId = Number(item.product_id ?? 0);
+              return imageProductId === currentProductId;
             });
 
-            // If productImages is empty and itemImages contains strings, use item.images directly
-            if (productImages.length === 0 && Array.isArray(itemImages) && itemImages.length > 0 && typeof itemImages[0] === 'string') {
-              productImages = itemImages.slice(0, item.quantity).map((url: string) => ({ image_url: url }));
+            if (productImages.length === 0) {
+              productImages = itemImages.slice(0, item.quantity);
             }
 
             allCodes = [...allCodes, ...productImages];
@@ -1268,6 +1237,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               company_name: (item.company_name && item.company_name !== 'undefined') 
                 ? item.company_name 
                 : 'غير محدد',
+              source_order_id: data.order_id,
               product_images: productImages
             });
           }
@@ -1390,6 +1360,62 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
     } catch (error) {
       console.error('Failed to refresh topup customer debt after checkout:', error);
     }
+  };
+
+  const normalizeConfirmedImages = (images: any[], fallbackProductId?: number) => {
+    if (!Array.isArray(images)) {
+      return [];
+    }
+
+    return images
+      .map((image: any) => {
+        if (typeof image === 'string') {
+          return {
+            image_url: image,
+            product_id: fallbackProductId,
+          };
+        }
+
+        const imageUrl = image?.image_url || image?.url || '';
+        if (!imageUrl) {
+          return null;
+        }
+
+        return {
+          ...image,
+          image_url: imageUrl,
+          product_id: Number(image?.product_id ?? fallbackProductId ?? 0) || fallbackProductId,
+        };
+      })
+      .filter((image: any) => Boolean(image?.image_url));
+  };
+
+  const loadConfirmedOrderImages = async (orderId: number, fallbackProductId?: number, fallbackImages: any[] = []) => {
+    const normalizedFallbackImages = normalizeConfirmedImages(fallbackImages, fallbackProductId);
+
+    try {
+      const imagesRes = await fetch(`/api/topup/order-images/${orderId}`);
+      const imagesData = await imagesRes.json();
+
+      const apiImages = Array.isArray(imagesData?.images)
+        ? normalizeConfirmedImages(imagesData.images, fallbackProductId)
+        : Array.isArray(imagesData)
+          ? normalizeConfirmedImages(imagesData, fallbackProductId)
+          : [];
+
+      if (apiImages.length > 0) {
+        console.log('🖼️ Loaded images from order-images endpoint:', {
+          orderId,
+          imagesCount: apiImages.length,
+          grouped: imagesData?.grouped_by_product,
+        });
+        return apiImages;
+      }
+    } catch (err) {
+      console.error('Failed to fetch confirmed topup images:', err);
+    }
+
+    return normalizedFallbackImages;
   };
 
   const getConfirmedItemImages = (item: any, fallbackCodes: any[] = []) => {
