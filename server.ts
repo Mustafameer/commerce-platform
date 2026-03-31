@@ -7751,7 +7751,7 @@ async function startServer() {
 
         console.log(`âœ… Order item added for topup product ${topup_product_id}`);
 
-        // Get current product codes/images and remove used ones
+        // Get current product codes and available purchase images.
         const productResult = await pool.query(
           `SELECT codes, images FROM topup_products WHERE id = $1`,
           [topup_product_id]
@@ -7760,7 +7760,24 @@ async function startServer() {
         if (productResult.rows.length > 0) {
           const product = productResult.rows[0];
           let codesArray = product.codes;
-          let imagesArray = product.images || [];
+          let legacyImagesArray = product.images || [];
+          const productImagesResult = await pool.query(
+            `SELECT id, image_url, image_data, image_type
+             FROM topup_product_images
+             WHERE topup_product_id = $1
+             ORDER BY id ASC`,
+            [topup_product_id]
+          );
+
+          let imagesArray = productImagesResult.rows
+            .map((row: any) => ({
+              id: row.id,
+              raw_url: row.image_url,
+              image_url: buildTopupImageUrl(row.image_url, row.image_data, row.image_type),
+              image_data: row.image_data,
+              image_type: row.image_type,
+            }))
+            .filter((image: any) => Boolean(image.image_url));
           
           // PostgreSQL TEXT[] returns as array, but handle edge cases
           if (typeof codesArray === 'string') {
@@ -7771,11 +7788,11 @@ async function startServer() {
             }
           }
           
-          if (typeof imagesArray === 'string') {
+          if (typeof legacyImagesArray === 'string') {
             try {
-              imagesArray = JSON.parse(imagesArray);
+              legacyImagesArray = JSON.parse(legacyImagesArray);
             } catch (e) {
-              imagesArray = [];
+              legacyImagesArray = [];
             }
           }
           
@@ -7783,8 +7800,32 @@ async function startServer() {
           if (!Array.isArray(codesArray)) {
             codesArray = [];
           }
-          if (!Array.isArray(imagesArray)) {
-            imagesArray = [];
+          if (!Array.isArray(legacyImagesArray)) {
+            legacyImagesArray = [];
+          }
+
+          if (imagesArray.length === 0 && legacyImagesArray.length > 0) {
+            imagesArray = legacyImagesArray
+              .map((image: any, index: number) => {
+                const builtUrl = buildTopupImageUrl(
+                  typeof image === 'string' ? image : image?.image_url || image?.url,
+                  typeof image === 'string' ? null : image?.image_data,
+                  typeof image === 'string' ? null : image?.image_type || image?.type
+                );
+
+                if (!builtUrl) {
+                  return null;
+                }
+
+                return {
+                  id: typeof image === 'string' ? `legacy-${index}` : image?.id || `legacy-${index}`,
+                  raw_url: typeof image === 'string' ? image : image?.image_url || image?.url || null,
+                  image_url: builtUrl,
+                  image_data: typeof image === 'string' ? null : image?.image_data || null,
+                  image_type: typeof image === 'string' ? null : image?.image_type || image?.type || null,
+                };
+              })
+              .filter(Boolean);
           }
           
           console.log(`ًں”‘ Current codes available: ${codesArray.length}`);
@@ -7816,8 +7857,9 @@ async function startServer() {
 
             if (normalizedSelectedImages.length > 0) {
               usedImages = imagesArray.filter((img: any) =>
-                normalizedSelectedImages.includes(String(img.url)) ||
-                normalizedSelectedImages.includes(String(img.id))
+                normalizedSelectedImages.includes(String(img.id)) ||
+                normalizedSelectedImages.includes(String(img.image_url)) ||
+                normalizedSelectedImages.includes(String(img.raw_url || ''))
               );
 
               if (usedImages.length === 0) {
@@ -7832,7 +7874,7 @@ async function startServer() {
             }
 
             for (const imageObj of usedImages) {
-              const imageUrl = imageObj?.url || imageObj?.image_url || imageObj;
+              const imageUrl = imageObj?.image_url || imageObj?.url || imageObj;
               if (!imageUrl) {
                 continue;
               }

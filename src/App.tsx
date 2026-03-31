@@ -53,6 +53,7 @@ import * as motion from 'motion/react-m';
 import { useAuthStore, useRegularCartStore, useSettingsStore, useSearchStore, useRefreshStore, useTopupCartStore } from './store';
 import type { User, Store, Product, Order } from './types';
 import { resolveApiBaseUrl } from './api';
+import { downloadOrganizedImages } from './organized-image-download';
 import { ThemeProvider, useTheme } from './theme';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -60,7 +61,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const loadJSZip = async () => (await import('jszip')).default;
 const loadMotionFeatures = () => import('./motion-features').then((module) => module.default);
 const AboutPage = React.lazy(() => import('./info-pages').then((module) => ({ default: module.AboutPage })));
 const HelpCenterPage = React.lazy(() => import('./info-pages').then((module) => ({ default: module.HelpCenterPage })));
@@ -684,6 +684,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
   const [quantityInput, setQuantityInput] = useState(1);
   const [verificationModal, setVerificationModal] = useState<any>(null);
   const [isConfirmingOrder, setIsConfirmingOrder] = useState(false);
+  const [isDownloadingImages, setIsDownloadingImages] = useState(false);
   const navigate = useNavigate();
   const isTopupProduct = (item: any) => item?.store_type === 'topup' || !!item?.retail_price || !!item?.wholesale_price || !!item?.topup_codes;
 
@@ -1401,117 +1402,52 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
     return codes.slice(0, item?.quantity || 0);
   };
 
-  const getDownloadExtension = (imageUrl: string) => {
-    if (imageUrl.startsWith('data:image/')) {
-      const dataMatch = imageUrl.match(/^data:image\/([^;]+)/i);
-      const dataExt = dataMatch?.[1]?.toLowerCase();
-      return dataExt === 'svg+xml' ? 'svg' : dataExt || 'jpg';
-    }
-
-    try {
-      const resolvedUrl = new URL(imageUrl, window.location.origin);
-      const fileName = resolvedUrl.pathname.split('/').pop() || '';
-      const fileExt = fileName.split('.').pop()?.toLowerCase();
-      return fileExt || 'jpg';
-    } catch {
-      return 'jpg';
-    }
-  };
-
-  const sanitizeDownloadName = (value: string) => {
-    const sanitized = value.replace(/[\\/:*?"<>|]+/g, '_').trim();
-    return sanitized || 'صورة';
-  };
-
-  const getDownloadTimestamp = () => {
-    const now = new Date();
-    const datePart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const timePart = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
-    return `${datePart}_${timePart}`;
-  };
-
   const handleDownloadPurchasedImages = async () => {
-    try {
-      let downloadCount = 0;
-      const downloadTimestamp = getDownloadTimestamp();
-      const JSZip = await loadJSZip();
-      const zip = new JSZip();
-      const addedZipEntries = new Set<string>();
-      const productFileCounters = new Map<string, number>();
-      let hasImages = false;
+    if (!orderConfirmation?.confirmations?.length) {
+      alert('❌ لا توجد صور متاحة للتنزيل');
+      return;
+    }
 
+    setIsDownloadingImages(true);
+    try {
+      const downloadItems: Array<{ imageUrl: string; companyName?: string; productName?: string; fallbackName?: string }> = [];
       for (const conf of orderConfirmation.confirmations) {
         for (const item of conf.items) {
           const productImages = getConfirmedItemImages(item, conf.codes);
-          const companyName = sanitizeDownloadName(item.company_name || 'شركة_غير_محددة');
-          const companyFolderName = companyName;
-          const productName = sanitizeDownloadName(item.product_name || item.name || `منتج_${item.product_id || 'image'}`);
-          const productCounterKey = `${companyFolderName}/${productName}`;
 
-          for (let index = 0; index < productImages.length; index++) {
-            const imageObj = productImages[index];
+          for (const imageObj of productImages) {
             const imageUrl = imageObj?.image_url || imageObj;
-
-            if (!imageUrl) {
-              continue;
-            }
-
-            try {
-              const response = await fetch(imageUrl, {
-                cache: 'no-store'
-              });
-
-              if (!response.ok) {
-                continue;
-              }
-
-              const blob = await response.blob();
-              const extension = getDownloadExtension(imageUrl);
-              const nextCounter = (productFileCounters.get(productCounterKey) || 0) + 1;
-              productFileCounters.set(productCounterKey, nextCounter);
-              const zipEntryPath = `${companyFolderName}/${productName}_${downloadTimestamp}_${nextCounter}.${extension}`;
-
-              if (addedZipEntries.has(zipEntryPath)) {
-                continue;
-              }
-
-              zip.file(zipEntryPath, blob, {
-                binary: true,
-                compression: 'STORE'
-              });
-              addedZipEntries.add(zipEntryPath);
-              hasImages = true;
-              downloadCount++;
-            } catch (error) {
-              console.warn('تعذر إضافة صورة إلى ملف التنزيل المنظم:', error);
-            }
+            downloadItems.push({
+              imageUrl,
+              companyName: item.company_name || 'شركة_غير_محددة',
+              productName: item.product_name || item.name,
+              fallbackName: `منتج_${item.product_id || 'image'}`,
+            });
           }
         }
       }
 
-      if (!hasImages || downloadCount === 0) {
+      const result = await downloadOrganizedImages(downloadItems);
+
+      if (result.mode === 'cancelled') {
+        return;
+      }
+
+      if (result.count === 0) {
         alert('❌ لا توجد صور متاحة للتنزيل');
         return;
       }
 
-      const zipBlob = await zip.generateAsync({
-        type: 'blob',
-        compression: 'STORE'
-      });
-      const zipUrl = URL.createObjectURL(zipBlob);
-      const link = document.createElement('a');
-      link.href = zipUrl;
-      link.download = `صور_الشركات_${downloadTimestamp}.zip`;
-      link.rel = 'noopener';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(zipUrl);
-
-      alert(`✅ تم تنزيل ملف ZIP منظم يحتوي على ${downloadCount} صورة داخل فولدرات الشركات والمنتجات.`);
+      if (result.mode === 'folder') {
+        alert(`✅ تم تنزيل ${result.count} صورة داخل المجلد ${result.containerName || 'المنظم'} مع ترتيبها حسب الشركة.`);
+      } else {
+        alert(`✅ هذا المتصفح لا يدعم الحفظ المباشر داخل المجلدات، لذلك تم تنزيل ملف ZIP منظم يحتوي على ${result.count} صورة.`);
+      }
     } catch (error) {
       console.error('خطأ في تنزيل الصور:', error);
       alert(`❌ خطأ: ${(error as any).message || 'فشل تنزيل الصور'}`);
+    } finally {
+      setIsDownloadingImages(false);
     }
   };
 
@@ -1642,10 +1578,11 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
           <div className={cn("mt-8 flex flex-col sm:flex-row gap-4 justify-center")}>
             <button
               onClick={handleDownloadPurchasedImages}
+              disabled={isDownloadingImages}
               className="px-8 py-3 rounded-lg text-white font-normal transition-all"
-              style={{ backgroundColor: primaryColor }}
+              style={{ backgroundColor: isDownloadingImages ? '#6b7280' : primaryColor }}
             >
-              💾 تنزيل الصور في فولدر منظم
+              {isDownloadingImages ? 'جاري تجهيز الصور...' : '💾 تنزيل الصور في فولدر منظم'}
             </button>
 
             <button
@@ -14809,35 +14746,6 @@ const TopupOrderDetails = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const sanitizeDownloadName = (value: string) => {
-    const sanitized = value.replace(/[\\/:*?"<>|]+/g, '_').trim();
-    return sanitized || 'صورة';
-  };
-
-  const getDownloadTimestamp = () => {
-    const now = new Date();
-    const datePart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const timePart = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
-    return `${datePart}_${timePart}`;
-  };
-
-  const getDownloadExtension = (imageUrl: string) => {
-    if (imageUrl.startsWith('data:image/')) {
-      const dataMatch = imageUrl.match(/^data:image\/([^;]+)/i);
-      const dataExt = dataMatch?.[1]?.toLowerCase();
-      return dataExt === 'svg+xml' ? 'svg' : dataExt || 'jpg';
-    }
-
-    try {
-      const resolvedUrl = new URL(imageUrl, window.location.origin);
-      const fileName = resolvedUrl.pathname.split('/').pop() || '';
-      const fileExt = fileName.split('.').pop()?.toLowerCase();
-      return fileExt || 'jpg';
-    } catch {
-      return 'jpg';
-    }
-  };
-
   const handleDownloadPurchasedImages = async () => {
     if (!orderImages.length) {
       alert('❌ لا توجد صور متاحة للتنزيل');
@@ -14846,70 +14754,28 @@ const TopupOrderDetails = () => {
 
     setIsDownloadingImages(true);
     try {
-      const JSZip = await loadJSZip();
-      const zip = new JSZip();
-      const timestamp = getDownloadTimestamp();
-      const addedZipEntries = new Set<string>();
-      const productFileCounters = new Map<string, number>();
-      let downloadCount = 0;
+      const result = await downloadOrganizedImages(
+        orderImages.map((image) => ({
+          imageUrl: image?.image_url || image,
+          companyName: image?.company_name || 'شركة_غير_محددة',
+          productName: image?.product_name || String(image?.amount || 'منتج'),
+        }))
+      );
 
-      for (const image of orderImages) {
-        const imageUrl = image?.image_url || image;
-        if (!imageUrl) {
-          continue;
-        }
-
-        const companyFolderName = sanitizeDownloadName(image.company_name || 'شركة_غير_محددة');
-        const productName = sanitizeDownloadName(image.product_name || String(image.amount || 'منتج'));
-        const productCounterKey = `${companyFolderName}/${productName}`;
-
-        try {
-          const response = await fetch(imageUrl, { cache: 'no-store' });
-          if (!response.ok) {
-            continue;
-          }
-
-          const blob = await response.blob();
-          const extension = getDownloadExtension(imageUrl);
-          const nextCounter = (productFileCounters.get(productCounterKey) || 0) + 1;
-          productFileCounters.set(productCounterKey, nextCounter);
-          const zipEntryPath = `${companyFolderName}/${productName}_${timestamp}_${nextCounter}.${extension}`;
-
-          if (addedZipEntries.has(zipEntryPath)) {
-            continue;
-          }
-
-          zip.file(zipEntryPath, blob, {
-            binary: true,
-            compression: 'STORE'
-          });
-          addedZipEntries.add(zipEntryPath);
-          downloadCount++;
-        } catch (error) {
-          console.warn('تعذر إضافة صورة إلى تنزيل الموبايل المنظم:', error);
-        }
+      if (result.mode === 'cancelled') {
+        return;
       }
 
-      if (downloadCount === 0) {
+      if (result.count === 0) {
         alert('❌ لا توجد صور صالحة للتنزيل');
         return;
       }
 
-      const zipBlob = await zip.generateAsync({
-        type: 'blob',
-        compression: 'STORE'
-      });
-      const zipUrl = URL.createObjectURL(zipBlob);
-      const link = document.createElement('a');
-      link.href = zipUrl;
-      link.download = `صور_الشركات_${timestamp}.zip`;
-      link.rel = 'noopener';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(zipUrl);
-
-      alert(`✅ تم تنزيل ملف ZIP منظم يحتوي على ${downloadCount} صورة.`);
+      if (result.mode === 'folder') {
+        alert(`✅ تم تنزيل ${result.count} صورة داخل المجلد ${result.containerName || 'المنظم'}.`);
+      } else {
+        alert(`✅ هذا المتصفح لا يدعم الحفظ المباشر داخل المجلدات، لذلك تم تنزيل ملف ZIP منظم يحتوي على ${result.count} صورة.`);
+      }
     } catch (error) {
       console.error('خطأ في تنزيل صور الطلب من شاشة الموبايل:', error);
       alert(`❌ خطأ: ${(error as any).message || 'فشل تنزيل الصور'}`);
