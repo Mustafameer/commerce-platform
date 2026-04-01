@@ -178,6 +178,30 @@ const MerchantDashboard = () => {
     auction_price: '',
     is_auction: false
   });
+  const getEmptyProductForm = () => ({
+    name: '',
+    description: '',
+    price: '',
+    retail_price: '',
+    wholesale_price: '',
+    stock: '',
+    image_url: '',
+    category_id: categories.length > 0 ? categories[0].id.toString() : '',
+    gallery: [] as string[],
+    topup_codes_text: '',
+    auction_date: '',
+    auction_start_time: '',
+    auction_end_time: '',
+    auction_price: '',
+    is_auction: false
+  });
+  const resetProductModalState = () => {
+    setProductForm(getEmptyProductForm());
+    setIsEditingProduct(null);
+    setTopupCodesFile(null);
+    setTopupCodesPreview([]);
+    setTopupCodesMessage(null);
+  };
   const updateProductForm = (patch: Partial<typeof productForm>) => {
     setProductForm(prev => ({ ...prev, ...patch }));
   };
@@ -551,24 +575,7 @@ const MerchantDashboard = () => {
       return;
     }
     console.log('🎯 handleCreateProduct triggered');
-    setProductForm({
-      name: '',
-      description: '',
-      price: '',
-      retail_price: '',
-      wholesale_price: '',
-      stock: '',
-      image_url: '',
-      category_id: categories.length > 0 ? categories[0].id.toString() : '',
-      gallery: [],
-      topup_codes_text: '',
-      auction_date: '',
-      auction_start_time: '',
-      auction_end_time: '',
-      auction_price: '',
-      is_auction: false
-    });
-    setIsEditingProduct(null);
+    resetProductModalState();
     console.log('🎯 About to setShowProductModal(true)');
     setShowProductModal(true);
     console.log('🎯 setShowProductModal called');
@@ -676,7 +683,7 @@ const MerchantDashboard = () => {
 
   const closeProductModal = () => {
     setShowProductModal(false);
-    setIsEditingProduct(null);
+    resetProductModalState();
   };
 
   const normalizeAuctionDate = (value: string) => {
@@ -695,6 +702,7 @@ const MerchantDashboard = () => {
     console.log('🚀 SAVE PRODUCT CLICKED');
     console.log('productForm:', JSON.stringify(productForm, null, 2));
     const isTopupStore = user?.store_type === 'topup';
+    const wasEditingProduct = !!isEditingProduct;
     
     // Check if it's auction
     console.log('✅ is_auction:', productForm.is_auction);
@@ -844,6 +852,19 @@ const MerchantDashboard = () => {
         const savedProduct = responseData?.product || responseData;
         const savedProductId = savedProduct?.id;
         console.log('✅ PRODUCT SAVED:', { id: savedProductId, name: savedProduct?.name || productForm.name });
+
+        if (savedProduct) {
+          setProducts(prev => {
+            if (wasEditingProduct) {
+              return prev.map(product => product.id === savedProduct.id ? { ...product, ...savedProduct } : product);
+            }
+
+            return [savedProduct, ...prev.filter(product => product.id !== savedProduct.id)];
+          });
+        }
+
+        setShowProductModal(false);
+        resetProductModalState();
         
         // ✅ Reload products from API to ensure data is synced
         try {
@@ -922,40 +943,17 @@ const MerchantDashboard = () => {
             console.error('⚠️ Error syncing auctions after save:', e);
           }
         }
-        
-        setIsEditingProduct(null);
-        setShowProductModal(false);
-        setTopupCodesFile(null);
-        setTopupCodesPreview([]);
-        setProductForm({
-          name: '',
-          description: '',
-          price: '',
-          retail_price: '',
-          wholesale_price: '',
-          stock: '',
-          image_url: '',
-          category_id: '',
-          gallery: [],
-          topup_codes_text: '',
-          auction_date: '',
-          auction_start_time: '',
-          auction_end_time: '',
-          auction_price: '',
-          is_auction: false
-        });
-        
-        // Reload products
-        const updated = await fetch(`/api/products?storeId=${user.store_id}`).then(r => r.json());
-        setProducts(Array.isArray(updated) ? updated : []);
-        
-        // ✨ Trigger refresh for CustomerStorefront to see new products
-        const { triggerProductsRefresh } = useRefreshStore.getState();
-        triggerProductsRefresh();
-        console.log('✅ Products refresh triggered for CustomerStorefront');
-        
+
+        try {
+          const { triggerProductsRefresh } = useRefreshStore.getState();
+          triggerProductsRefresh();
+          console.log('✅ Products refresh triggered for CustomerStorefront');
+        } catch (refreshError) {
+          console.error('⚠️ Error triggering storefront refresh:', refreshError);
+        }
+
         // Show success message
-        alert(isEditingProduct ? '✅ تم التعديل بنجاح' : '✅ تمت الإضافة بنجاح');
+        alert(wasEditingProduct ? '✅ تم التعديل بنجاح' : '✅ تمت الإضافة بنجاح');
       } else {
         console.error('❌ SAVE FAILED - Response status:', res.status);
         const errText = await res.text();
@@ -2284,13 +2282,7 @@ const MerchantDashboard = () => {
         </div>
         <button 
           type="button"
-          onClick={(e) => {
-            console.log('🎯 BUTTON CLICKED - Event:', e);
-            console.log('🎯 Target:', e.target);
-            console.log('🎯 showProductModal before:', showProductModal);
-            setShowProductModal(true);
-            console.log('🎯 showProductModal after setState call');
-          }}
+          onClick={handleCreateProduct}
           style={{ 
             zIndex: 50, 
             pointerEvents: 'auto !important', 
