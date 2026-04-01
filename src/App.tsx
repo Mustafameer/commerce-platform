@@ -62,6 +62,37 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const AnimatedLogoFrame = ({
+  children,
+  className,
+  shimmerClassName,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  shimmerClassName?: string;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.92, y: 6 }}
+    animate={{ opacity: 1, scale: 1, y: 0 }}
+    transition={{ duration: 0.45, ease: 'easeOut' }}
+    whileHover={{ scale: 1.05, y: -2, rotate: 1 }}
+    className={cn('relative isolate overflow-hidden', className)}
+  >
+    <motion.div
+      className={cn('absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/0 via-white/20 to-white/0 mix-blend-screen', shimmerClassName)}
+      animate={{ x: ['-140%', '140%'] }}
+      transition={{ duration: 2.6, repeat: Infinity, repeatDelay: 4.2, ease: 'easeInOut' }}
+    />
+    <motion.div
+      animate={{ scale: [1, 1.025, 1], rotate: [0, -0.8, 0.8, 0] }}
+      transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+      className="h-full w-full"
+    >
+      {children}
+    </motion.div>
+  </motion.div>
+);
+
 const loadMotionFeatures = () => import('./motion-features').then((module) => module.default);
 const AboutPage = React.lazy(() => import('./info-pages').then((module) => ({ default: module.AboutPage })));
 const HelpCenterPage = React.lazy(() => import('./info-pages').then((module) => ({ default: module.HelpCenterPage })));
@@ -479,13 +510,13 @@ export const DashboardLayout = ({ children, title, role, counts }: { children: R
                 <p className={cn("text-xs", isDarkMode ? "text-gray-400" : "text-gray-500")}>لوحة {role === 'admin' ? 'الإدارة' : 'التاجر'}</p>
               </div>
               {settings.logo_url ? (
-                <div className={cn("w-14 h-14 rounded-full overflow-hidden ring-2 flex-shrink-0", isDarkMode ? "ring-gray-600 bg-gray-700" : "ring-indigo-100 bg-gray-50")}>
+                <AnimatedLogoFrame className={cn("w-14 h-14 rounded-full ring-2 flex-shrink-0", isDarkMode ? "ring-gray-600 bg-gray-700" : "ring-indigo-100 bg-gray-50")}> 
                   <img src={settings.logo_url} className="w-full h-full object-cover" alt="logo" />
-                </div>
+                </AnimatedLogoFrame>
               ) : (
-                <div className="w-14 h-14 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg font-normal flex-shrink-0">
+                <AnimatedLogoFrame className="w-14 h-14 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg font-normal flex-shrink-0">
                   {settings.app_name?.[0]}
-                </div>
+                </AnimatedLogoFrame>
               )}
             </div>
           </div>
@@ -566,13 +597,13 @@ export const DashboardLayout = ({ children, title, role, counts }: { children: R
         <div className={cn("p-6 text-center border-b flex-shrink-0", isDarkMode ? "border-gray-700" : "border-black/5")}>
         <div className="flex flex-col items-center gap-3">
           {settings.logo_url ? (
-            <div className={cn("w-20 h-20 rounded-full overflow-hidden ring-4 shadow-lg flex items-center justify-center flex-shrink-0", isDarkMode ? "ring-gray-700 bg-gray-700" : "ring-indigo-50 bg-gray-50")}>
+            <AnimatedLogoFrame className={cn("w-20 h-20 rounded-full ring-4 shadow-lg flex items-center justify-center flex-shrink-0", isDarkMode ? "ring-gray-700 bg-gray-700" : "ring-indigo-50 bg-gray-50")}>
               <img src={settings.logo_url} className="w-full h-full object-cover" alt="logo" />
-            </div>
+            </AnimatedLogoFrame>
           ) : (
-            <div className="w-20 h-20 rounded-full bg-indigo-600 flex items-center justify-center text-white text-2xl font-normal shadow-lg ring-4 ring-indigo-50 flex-shrink-0">
+            <AnimatedLogoFrame className="w-20 h-20 rounded-full bg-indigo-600 flex items-center justify-center text-white text-2xl font-normal shadow-lg ring-4 ring-indigo-50 flex-shrink-0">
               {settings.app_name?.[0]}
-            </div>
+            </AnimatedLogoFrame>
           )}
           <div>
             <h1 className={cn("text-lg font-normal tracking-tighter mb-0.5", isDarkMode ? "text-blue-400" : "text-indigo-600")}>{settings.app_name}</h1>
@@ -3559,7 +3590,9 @@ const AdminDashboard = () => {
             className={cn("w-full h-24 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-all hover:opacity-80", isDarkMode ? "bg-gray-700 border-gray-600 hover:bg-gray-600" : "bg-gray-50 border-gray-300 hover:bg-gray-100")}
           >
             {adminConfig.logo_url ? (
-              <img src={adminConfig.logo_url} alt="Logo" className="h-full w-full object-contain p-1" />
+              <AnimatedLogoFrame className="h-full w-full rounded-lg">
+                <img src={adminConfig.logo_url} alt="Logo" className="h-full w-full object-contain p-1" />
+              </AnimatedLogoFrame>
             ) : (
               <div className="text-center">
                 <Upload size={24} className={isDarkMode ? "text-gray-400 mx-auto" : "text-gray-500 mx-auto"} />
@@ -9943,24 +9976,26 @@ const StoresPage = () => {
                   {/* Store Logo Badge - Always Visible */}
                   <div className="p-0 flex items-center justify-center h-24 overflow-hidden rounded-t-lg bg-white">
                     {storesWithLogos.has(store.id) && storesWithLogos.get(store.id) ? (
-                      <img 
-                        src={storesWithLogos.get(store.id)} 
-                        className="w-auto h-auto max-w-[95%] max-h-[95%] object-contain" 
-                        alt={store.store_name}
-                        onError={(e) => console.error("Logo load error for", store.store_name)}
-                      />
+                      <AnimatedLogoFrame className="w-full h-full flex items-center justify-center">
+                        <img 
+                          src={storesWithLogos.get(store.id)} 
+                          className="w-auto h-auto max-w-[95%] max-h-[95%] object-contain" 
+                          alt={store.store_name}
+                          onError={(e) => console.error("Logo load error for", store.store_name)}
+                        />
+                      </AnimatedLogoFrame>
                     ) : store.store_type === 'topup' ? (
                       // Default logo for topup stores
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
+                      <AnimatedLogoFrame className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
                         <div className="text-center">
                           <div className="text-4xl font-bold text-red-600 mb-1">💳</div>
                           <p className="text-xs font-normal text-red-600">بطاقات شحن</p>
                         </div>
-                      </div>
+                      </AnimatedLogoFrame>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-white text-gray-300">
+                      <AnimatedLogoFrame className="w-full h-full flex items-center justify-center bg-white text-gray-300">
                         <StoreIcon size={40} />
-                      </div>
+                      </AnimatedLogoFrame>
                     )}
                   </div>
 
@@ -11542,23 +11577,25 @@ const MerchantTopupDashboard = () => {
         <div className="p-6" key={`sidebar-logo-${logoRefreshKey}-${dashboardLogo.substring(dashboardLogo.length - 30) || 'empty'}`}>
           <div className="flex items-center gap-3 mb-8">
             {dashboardLogo && dashboardLogo.length > 100 ? (
-              <img 
-                key={`img-${logoRefreshKey}`}
-                src={dashboardLogo}
-                alt="Store Logo"
-                className="w-12 h-12 rounded-xl object-contain bg-white"
-                onError={(e) => {
-                  console.error('Error loading sidebar logo');
-                  setDashboardLogo('');
-                }}
-                onLoad={() => {
-                  console.log('✅ Sidebar image loaded successfully! Key:', logoRefreshKey, 'Src ends with:', dashboardLogo.substring(dashboardLogo.length - 30));
-                }}
-              />
+              <AnimatedLogoFrame className="w-12 h-12 rounded-xl bg-white">
+                <img 
+                  key={`img-${logoRefreshKey}`}
+                  src={dashboardLogo}
+                  alt="Store Logo"
+                  className="w-12 h-12 rounded-xl object-contain bg-white"
+                  onError={(e) => {
+                    console.error('Error loading sidebar logo');
+                    setDashboardLogo('');
+                  }}
+                  onLoad={() => {
+                    console.log('✅ Sidebar image loaded successfully! Key:', logoRefreshKey, 'Src ends with:', dashboardLogo.substring(dashboardLogo.length - 30));
+                  }}
+                />
+              </AnimatedLogoFrame>
             ) : (
-              <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white">
+              <AnimatedLogoFrame className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white">
                 <CreditCard size={24} />
-              </div>
+              </AnimatedLogoFrame>
             )}
             <div>
               <h2 className={cn("font-normal", isDarkMode ? "text-gray-100" : "text-gray-900")}>{storeInfo?.store_name || 'الإدارة'}</h2>
