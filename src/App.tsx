@@ -12033,18 +12033,26 @@ const MerchantTopupDashboard = () => {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className={cn("rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto", isDarkMode ? "bg-gray-800" : "bg-white")}
+                    className={cn("rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col", isDarkMode ? "bg-gray-800" : "bg-white")}
                   >
-                    <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
+                    <div className={cn("p-4 sm:p-6 border-b flex justify-between items-center sticky top-0 z-10", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
                       <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>{isEditingProduct ? 'تعديل المنتج' : 'إضافة منتج جديد'}</h3>
-                      <button onClick={() => {
-                        clearSelectedProductImages();
-                        setShowProductModal(false);
-                      }}>
-                        <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
-                      </button>
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <button
+                          onClick={saveProduct}
+                          className="px-4 sm:px-5 py-2.5 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700 transition-colors"
+                        >
+                          {isEditingProduct ? 'تحديث' : 'إضافة'}
+                        </button>
+                        <button onClick={() => {
+                          clearSelectedProductImages();
+                          setShowProductModal(false);
+                        }}>
+                          <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="p-6 space-y-4">
+                    <div className="p-6 space-y-4 overflow-y-auto">
                       {/* Row 1: Company & Amount */}
                       <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -12228,10 +12236,6 @@ const MerchantTopupDashboard = () => {
                         </div>
                       )}
 
-                      {/* Row 5: Submit Button */}
-                      <button onClick={saveProduct} className="w-full py-3 bg-indigo-600 text-white font-normal rounded-lg hover:bg-indigo-700">
-                        {isEditingProduct ? 'تحديث' : 'إضافة'}
-                      </button>
                     </div>
                   </motion.div>
                 </div>
