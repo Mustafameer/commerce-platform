@@ -10608,14 +10608,16 @@ const MerchantTopupDashboard = () => {
   }, [section, effectiveTopupStoreId, user, user?.id]);
 
   useEffect(() => {
+    const activeSection = section || 'overview';
+
     if (!effectiveTopupStoreId) {
       return;
     }
 
-    if (currentSection === 'companies' || currentSection === 'products' || currentSection === 'overview') {
+    if (activeSection === 'companies' || activeSection === 'products' || activeSection === 'overview') {
       refreshMerchantCatalogData();
     }
-  }, [currentSection, effectiveTopupStoreId]);
+  }, [section, effectiveTopupStoreId]);
 
   // Fetch store settings on mount
   useEffect(() => {
