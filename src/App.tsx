@@ -11879,10 +11879,17 @@ const MerchantTopupDashboard = () => {
                                   setShowProductModal(true);
 
                                   try {
-                                    const productResponse = await fetch(`/api/topup/products/${topupStoreId}/${product.id}`, { cache: 'no-store' });
-                                    const productData = await productResponse.json();
-                                    const nextImages = Array.isArray(productData?.images)
-                                      ? productData.images.filter((img: any) => img && String(img).length > 0)
+                                    const imagesResponse = await fetch(`/api/topup/product-images/${topupStoreId}/${product.id}`, { cache: 'no-store' });
+                                    const imagesData = await imagesResponse.json();
+                                    const nextImages = Array.isArray(imagesData?.images)
+                                      ? imagesData.images
+                                          .map((img: any) => {
+                                            if (img?.image_data) {
+                                              return `data:${img.image_type || 'image/jpeg'};base64,${img.image_data}`;
+                                            }
+                                            return img?.image_url || null;
+                                          })
+                                          .filter((img: any) => img && String(img).length > 0)
                                       : [];
                                     setExistingProductImages(nextImages);
                                   } catch (error) {

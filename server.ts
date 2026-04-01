@@ -7241,12 +7241,29 @@ async function startServer() {
           }
         }
 
+        const columnsResult = await pool.query(`
+          SELECT column_name
+          FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'topup_product_images'
+        `);
+        const availableColumns = new Set(columnsResult.rows.map((row: any) => row.column_name));
+        const hasTopupProductId = availableColumns.has('topup_product_id');
+        const hasStoreId = availableColumns.has('store_id');
+        const hasProductId = availableColumns.has('product_id');
+
         // Delete from topup_product_images table
         try {
-          await pool.query(
-            `DELETE FROM topup_product_images WHERE topup_product_id = $1 AND image_url = $2`,
-            [productId, image_url]
-          );
+          if (hasTopupProductId) {
+            await pool.query(
+              `DELETE FROM topup_product_images WHERE topup_product_id = $1 AND image_url = $2`,
+              [productId, image_url]
+            );
+          } else if (hasStoreId && hasProductId) {
+            await pool.query(
+              `DELETE FROM topup_product_images WHERE store_id = $1 AND product_id = $2 AND image_url = $3`,
+              [store_id, productId, image_url]
+            );
+          }
           console.log(`âœ… Deleted from topup_product_images: ${image_url}`);
         } catch (dbErr) {
           console.warn(`âڑ ï¸ڈ Could not delete from database: ${image_url}`, dbErr);
@@ -7479,6 +7496,16 @@ async function startServer() {
           (Array.isArray(existingResult.rows[0].images) ? existingResult.rows[0].images : 
            (typeof existingResult.rows[0].images === 'string' ? JSON.parse(existingResult.rows[0].images) : [])) 
           : [];
+
+        const columnsResult = await pool.query(`
+          SELECT column_name
+          FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'topup_product_images'
+        `);
+        const availableColumns = new Set(columnsResult.rows.map((row: any) => row.column_name));
+        const hasTopupProductId = availableColumns.has('topup_product_id');
+        const hasStoreId = availableColumns.has('store_id');
+        const hasProductId = availableColumns.has('product_id');
         
         const uploadedUrls: string[] = [];
         const duplicateUrls: string[] = [];
@@ -7532,11 +7559,21 @@ async function startServer() {
             const imageUrl = `/uploads/topup/${store_id}/${topup_product_id}/${fileName}`;
             const imageBase64 = buffer.toString('base64');
             
-            await pool.query(
-              `INSERT INTO topup_product_images (topup_product_id, image_data, image_url, image_hash, image_type)
-               VALUES ($1, $2, $3, $4, $5)`,
-              [topup_product_id, imageBase64, imageUrl, imageHash, file.mimetype]
-            );
+            if (hasTopupProductId) {
+              await pool.query(
+                `INSERT INTO topup_product_images (topup_product_id, image_data, image_url, image_hash, image_type)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [topup_product_id, imageBase64, imageUrl, imageHash, file.mimetype]
+              );
+            } else if (hasStoreId && hasProductId) {
+              await pool.query(
+                `INSERT INTO topup_product_images (store_id, product_id, image_data, image_url, image_hash, image_type)
+                 VALUES ($1, $2, $3, $4, $5, $6)`,
+                [store_id, topup_product_id, imageBase64, imageUrl, imageHash, file.mimetype]
+              );
+            } else {
+              throw new Error('topup_product_images schema is missing product reference columns');
+            }
 
             uploadedUrls.push(imageUrl);
 
