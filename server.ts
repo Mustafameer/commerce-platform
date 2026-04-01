@@ -2046,7 +2046,7 @@ async function startServer() {
           }
           
           // Get store info if user is a merchant
-          let store_type = null;
+          let store_type = 'regular';
           let store_active = true;
           let store_status = 'active';
           let store_slug = null;
@@ -2056,9 +2056,9 @@ async function startServer() {
               [user.store_id]
             );
             if (storeResult.rows.length > 0) {
-              store_type = storeResult.rows[0].store_type;
-              store_active = storeResult.rows[0].is_active;
-              store_status = storeResult.rows[0].status;
+              store_type = storeResult.rows[0].store_type || 'regular';
+              store_active = storeResult.rows[0].is_active !== false;
+              store_status = storeResult.rows[0].status || (storeResult.rows[0].is_active === false ? 'suspended' : 'active');
               store_slug = getPublicStoreSlug(storeResult.rows[0]);
             }
           }

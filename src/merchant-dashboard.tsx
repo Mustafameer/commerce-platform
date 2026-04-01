@@ -288,7 +288,13 @@ const MerchantDashboard = () => {
           const myStore = stores.find((s: any) => s.owner_id === user.id);
           if (myStore) {
             console.log("Found missing store_id:", myStore.id);
-            const newUser = { ...user, store_id: myStore.id, store_active: myStore.is_active, store_status: myStore.status };
+            const newUser = {
+              ...user,
+              store_id: myStore.id,
+              store_type: myStore.store_type || user.store_type || 'regular',
+              store_active: myStore.is_active !== false,
+              store_status: myStore.status || (myStore.is_active === false ? 'suspended' : 'active'),
+            };
             setUser(newUser);
           }
         } catch (err) {
@@ -1199,7 +1205,12 @@ const MerchantDashboard = () => {
     }
   };
 
-  if (user?.role === 'merchant' && (!user.store_active || (user.store_status && user.store_status !== 'approved' && user.store_status !== 'active'))) {
+  const isMerchantStoreBlocked = user?.role === 'merchant' && (
+    user.store_active === false ||
+    (typeof user.store_status === 'string' && user.store_status.length > 0 && user.store_status !== 'approved' && user.store_status !== 'active')
+  );
+
+  if (isMerchantStoreBlocked) {
     return (
       <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center p-4">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
