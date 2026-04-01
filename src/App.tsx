@@ -10249,6 +10249,8 @@ const MerchantTopupDashboard = () => {
   const [productImagePreviews, setProductImagePreviews] = useState<string[]>([]);
   const [existingProductImages, setExistingProductImages] = useState<Array<{ id: number | null; src: string; imageUrl: string | null }>>([]);
   const [isLoadingExistingProductImages, setIsLoadingExistingProductImages] = useState(false);
+  const [productCodeImages, setProductCodeImages] = useState<Record<number, Array<{ id: number | null; src: string }>>>({});
+  const [isLoadingCodesTableImages, setIsLoadingCodesTableImages] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [customerForm, setCustomerForm] = useState({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
@@ -10626,6 +10628,71 @@ const MerchantTopupDashboard = () => {
       refreshMerchantCatalogData();
     }
   }, [section, effectiveTopupStoreId]);
+
+  useEffect(() => {
+    const activeSection = section || 'overview';
+
+    if (activeSection !== 'codes' || !effectiveTopupStoreId) {
+      return;
+    }
+
+    const productsWithCodes = products.filter((product) => getTopupProductCodeCount(product) > 0);
+
+    if (productsWithCodes.length === 0) {
+      setProductCodeImages({});
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingCodesTableImages(true);
+
+    Promise.all(
+      productsWithCodes.map(async (product) => {
+        try {
+          const response = await fetch(`/api/topup/product-images/${effectiveTopupStoreId}/${product.id}`, { cache: 'no-store' });
+          const data = await response.json();
+
+          const images = Array.isArray(data?.images)
+            ? data.images
+                .map((img: any) => {
+                  const src = img?.image_data
+                    ? `data:${img.image_type || 'image/jpeg'};base64,${img.image_data}`
+                    : (img?.image_url || img?.image_url_original || null);
+
+                  if (!src) {
+                    return null;
+                  }
+
+                  return {
+                    id: Number.isFinite(Number(img?.id)) ? Number(img.id) : null,
+                    src,
+                  };
+                })
+                .filter((img: any) => img && String(img.src).length > 0)
+            : [];
+
+          return [product.id, images] as const;
+        } catch (error) {
+          console.error('❌ Error loading code images for product:', product.id, error);
+          return [product.id, []] as const;
+        }
+      })
+    ).then((entries) => {
+      if (cancelled) {
+        return;
+      }
+
+      setProductCodeImages(Object.fromEntries(entries));
+    }).finally(() => {
+      if (!cancelled) {
+        setIsLoadingCodesTableImages(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [section, effectiveTopupStoreId, products]);
 
   // Fetch store settings on mount
   useEffect(() => {
@@ -12191,12 +12258,10 @@ const MerchantTopupDashboard = () => {
                       </tr>
                     </thead>
                   <tbody>
-                    {products.filter(p => {
-                      const imagesCount = (p.images && Array.isArray(p.images)) ? p.images.filter((img: any) => img && String(img).length > 0).length : 0;
-                      return imagesCount > 0;
-                    }).length > 0 ? (
+                    {products.filter((p) => getTopupProductCodeCount(p) > 0).length > 0 ? (
                       products.map(product => {
-                        const imagesCount = (product.images && Array.isArray(product.images)) ? product.images.filter((img: any) => img && String(img).length > 0).length : 0;
+                        const imagesCount = getTopupProductCodeCount(product);
+                        const productImages = productCodeImages[product.id] || [];
                         return imagesCount > 0 && (
                           <tr key={product.id} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-white" : "text-gray-900")}>{product.company_name}</td>
@@ -12204,13 +12269,12 @@ const MerchantTopupDashboard = () => {
                             <td className={cn("px-6 py-4 font-semibold", isDarkMode ? "text-green-400" : "text-green-600")}>{imagesCount}</td>
                             <td className={cn("px-6 py-4", isDarkMode ? "text-gray-300" : "text-gray-700")}>
                               <div className="flex flex-wrap gap-2">
-                                {product.images && Array.isArray(product.images) && product.images
-                                  .filter((img: any) => img && String(img).length > 0)
+                                {productImages
                                   .slice(0, 5)
-                                  .map((imageUrl: any, idx: number) => (
+                                  .map((image: any, idx: number) => (
                                     <a 
-                                      key={idx} 
-                                      href={imageUrl}
+                                      key={image.id ?? idx} 
+                                      href={image.src}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className={cn("inline-block px-2 py-1 text-xs rounded hover:opacity-80 transition-opacity cursor-pointer", isDarkMode ? "bg-blue-900 text-blue-300" : "bg-blue-50 text-blue-700")}
@@ -12218,9 +12282,14 @@ const MerchantTopupDashboard = () => {
                                       📷 صورة {idx + 1}
                                     </a>
                                   ))}
-                                {product.images && Array.isArray(product.images) && product.images.filter((img: any) => img && String(img).length > 0).length > 5 && (
+                                {productImages.length > 5 && (
                                   <span className={cn("px-2 py-1 text-xs rounded", isDarkMode ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-600")}>
-                                    +{product.images.filter((img: any) => img && String(img).length > 0).length - 5} صور أخرى
+                                    +{productImages.length - 5} صور أخرى
+                                  </span>
+                                )}
+                                {productImages.length === 0 && isLoadingCodesTableImages && (
+                                  <span className={cn("px-2 py-1 text-xs rounded", isDarkMode ? "bg-gray-700 text-gray-400" : "bg-gray-100 text-gray-600")}>
+                                    جاري تحميل الصور...
                                   </span>
                                 )}
                               </div>
