@@ -10274,13 +10274,21 @@ const MerchantTopupDashboard = () => {
 
   useEffect(() => {
     const resolveTopupStoreId = async () => {
+      if (user?.role === 'merchant' && user?.store_type === 'topup' && Number(user?.store_id) > 0) {
+        const assignedStoreId = Number(user.store_id);
+        console.log('✅ Using merchant assigned topup store directly:', assignedStoreId);
+        setTopupStoreId(assignedStoreId);
+        return;
+      }
+
       try {
-        const response = await fetch('/api/stores?page=1&pageSize=100');
+        const response = await fetch('/api/stores?page=1&pageSize=100', { cache: 'no-store' });
         const data = await response.json();
 
         if (!Array.isArray(data) || data.length === 0) {
           console.warn('⚠️ No stores found while resolving topup store');
           setTopupStoreId(null);
+          setIsLoading(false);
           return;
         }
 
@@ -10305,11 +10313,12 @@ const MerchantTopupDashboard = () => {
       } catch (err) {
         console.error('Failed to resolve topup store:', err);
         setTopupStoreId(null);
+        setIsLoading(false);
       }
     };
 
     resolveTopupStoreId();
-  }, [user?.store_id]);
+  }, [user?.role, user?.store_id, user?.store_type]);
 
   // Function to refresh dashboard data
   const refreshDashboardData = async () => {
@@ -10509,6 +10518,9 @@ const MerchantTopupDashboard = () => {
     // ⛔ CRITICAL: Never allow store ID 13 (doesn't exist in database)
     if (!topupStoreId || !user) {
       console.log('⏭️ Skipping refresh: topupStoreId=', topupStoreId, 'user=', user?.id);
+      if (user && !topupStoreId) {
+        setIsLoading(false);
+      }
       return;
     }
 
