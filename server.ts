@@ -171,6 +171,59 @@ function buildTopupImageUrl(imageUrl: string | null | undefined, imageData?: str
   return imageUrl || null;
 }
 
+function extractTopupDataUrlPayload(imageUrl: string | null | undefined): { imageData: string | null; imageType: string | null } {
+  if (typeof imageUrl !== 'string' || !imageUrl.startsWith('data:')) {
+    return { imageData: null, imageType: null };
+  }
+
+  const match = imageUrl.match(/^data:([^;,]+)?(?:;charset=[^;,]+)?;base64,(.*)$/i);
+  if (!match) {
+    return { imageData: null, imageType: null };
+  }
+
+  return {
+    imageType: match[1] || 'image/jpeg',
+    imageData: match[2] || null,
+  };
+}
+
+function normalizeStoredTopupOrderImage(imageObj: any): { imageUrl: string | null; imageData: string | null; imageType: string | null } {
+  const directImageUrl = typeof imageObj?.image_url === 'string' ? imageObj.image_url : null;
+  const directRawUrl = typeof imageObj?.raw_url === 'string' ? imageObj.raw_url : null;
+  const directUrl = typeof imageObj?.url === 'string' ? imageObj.url : null;
+  const stringValue = typeof imageObj === 'string' ? imageObj : null;
+
+  const rawImageUrl = [directRawUrl, directImageUrl, directUrl, stringValue].find(
+    (value): value is string => typeof value === 'string' && value.length > 0 && !value.startsWith('data:'),
+  ) || null;
+
+  let imageData = typeof imageObj?.image_data === 'string' && imageObj.image_data.length > 0
+    ? imageObj.image_data
+    : null;
+  let imageType = typeof imageObj?.image_type === 'string' && imageObj.image_type.length > 0
+    ? imageObj.image_type
+    : (typeof imageObj?.type === 'string' && imageObj.type.length > 0 ? imageObj.type : null);
+
+  if (!imageData) {
+    const dataPayload = [directImageUrl, directUrl, stringValue]
+      .map((value) => extractTopupDataUrlPayload(value))
+      .find((payload) => payload.imageData);
+
+    if (dataPayload?.imageData) {
+      imageData = dataPayload.imageData;
+      imageType = imageType || dataPayload.imageType;
+    }
+  }
+
+  const imageUrl = rawImageUrl || (imageData ? `inline:${crypto.createHash('md5').update(imageData).digest('hex')}` : null);
+
+  return {
+    imageUrl,
+    imageData,
+    imageType,
+  };
+}
+
 
 // âœ… LOCAL IMAGE COMPRESSION & STORAGE (NO FIREBASE)
 async function uploadAndCompressImageLocally(base64Data: string, filename: string): Promise<string> {
@@ -7874,16 +7927,16 @@ async function startServer() {
             }
 
             for (const imageObj of usedImages) {
-              const imageUrl = imageObj?.image_url || imageObj?.url || imageObj;
+              const { imageUrl, imageData } = normalizeStoredTopupOrderImage(imageObj);
               if (!imageUrl) {
                 continue;
               }
 
               await pool.query(
-                `INSERT INTO order_images (order_id, topup_product_id, image_url)
-                 VALUES ($1, $2, $3)
+                `INSERT INTO order_images (order_id, topup_product_id, image_url, image_data)
+                 VALUES ($1, $2, $3, $4)
                  ON CONFLICT (order_id, topup_product_id, image_url) DO NOTHING`,
-                [orderId, topup_product_id, imageUrl]
+                [orderId, topup_product_id, imageUrl, imageData]
               );
             }
 
