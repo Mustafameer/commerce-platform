@@ -20,6 +20,33 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const AnimatedLogoFrame = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.92, y: 6 }}
+    animate={{ opacity: [1, 0.35, 1], scale: [1, 1.06, 1], y: 0 }}
+    transition={{
+      y: { duration: 0.45, ease: 'easeOut' },
+      scale: { duration: 2.8, repeat: Infinity, ease: 'easeInOut' },
+      opacity: { duration: 2.8, repeat: Infinity, ease: 'easeInOut' },
+    }}
+    whileHover={{ scale: 1.1, y: -2 }}
+    className={cn('relative isolate overflow-hidden', className)}
+  >
+    <motion.div
+      className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-white/0 via-white/20 to-white/0 mix-blend-screen"
+      animate={{ x: ['-140%', '140%'] }}
+      transition={{ duration: 2.6, repeat: Infinity, repeatDelay: 4.2, ease: 'easeInOut' }}
+    />
+    <motion.div
+      animate={{ scale: [1, 0.985, 1] }}
+      transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+      className="h-full w-full"
+    >
+      {children}
+    </motion.div>
+  </motion.div>
+);
+
 const AuthButton = ({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
   <button
     className={cn(
@@ -148,9 +175,9 @@ export const LoginPage = () => {
           <AuthCard className="p-8">
             <div className="text-center mb-8">
               {adminLogoUrl ? (
-                <div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-indigo-50 shadow-lg bg-gray-50 flex items-center justify-center mx-auto mb-4">
+                <AnimatedLogoFrame className="w-24 h-24 rounded-full ring-4 ring-indigo-50 shadow-lg bg-gray-50 flex items-center justify-center mx-auto mb-4">
                   <img src={adminLogoUrl} className="w-full h-full object-cover" alt="admin-logo" />
-                </div>
+                </AnimatedLogoFrame>
               ) : null}
               <h1 className="text-4xl font-normal tracking-tighter text-indigo-600">{adminAppName}</h1>
               <p className="text-gray-500 mt-2">أهلا بعودتك للمنصة</p>

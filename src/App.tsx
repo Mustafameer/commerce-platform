@@ -8857,14 +8857,18 @@ const MarketplacePage = () => {
               >
                 {/* شعار الآدمن */}
                 {platformLogoUrl ? (
-                  <img
-                    src={platformLogoUrl}
-                    alt={platformName}
-                    className="h-14 w-14 md:h-24 md:w-24 object-contain rounded-full border-2 border-indigo-200 bg-white shadow"
-                    style={{ maxHeight: 112, maxWidth: 112 }}
-                  />
+                  <AnimatedLogoFrame className="h-14 w-14 md:h-24 md:w-24 rounded-full border-2 border-indigo-200 bg-white shadow">
+                    <img
+                      src={platformLogoUrl}
+                      alt={platformName}
+                      className="h-14 w-14 md:h-24 md:w-24 object-contain rounded-full border-2 border-indigo-200 bg-white shadow"
+                      style={{ maxHeight: 112, maxWidth: 112 }}
+                    />
+                  </AnimatedLogoFrame>
                 ) : (
-                  <UserIcon size={40} className={isDarkMode ? 'text-indigo-400' : 'text-indigo-700'} />
+                  <AnimatedLogoFrame className="rounded-full">
+                    <UserIcon size={40} className={isDarkMode ? 'text-indigo-400' : 'text-indigo-700'} />
+                  </AnimatedLogoFrame>
                 )}
                 {/* رقم السلة */}
                 {items.length > 0 && (
