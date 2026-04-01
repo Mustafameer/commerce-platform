@@ -3683,18 +3683,6 @@ async function startServer() {
       }
     });
 
-    async function productImagesTableExists() {
-      const result = await pool.query(`
-        SELECT EXISTS (
-          SELECT 1
-          FROM information_schema.tables
-          WHERE table_schema = 'public' AND table_name = 'product_images'
-        ) AS exists
-      `);
-
-      return result.rows[0]?.exists === true;
-    }
-
     // Get products
     app.get("/api/products", async (req, res) => {
       try {
@@ -3702,16 +3690,23 @@ async function startServer() {
         // No cache for product data
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         res.set('Pragma', 'no-cache');
-
-        const hasProductImagesTable = await productImagesTableExists();
-        const resolvedImageUrlSql = hasProductImagesTable
-          ? `COALESCE(NULLIF(products.image_url, ''), first_product_image.image_url) as image_url,
-          COALESCE(product_image_gallery.images, '[]'::json) as images,`
-          : `COALESCE(NULLIF(products.image_url, ''), '') as image_url,
-          '[]'::json as images,`;
-
-        const productImagesJoinSql = hasProductImagesTable
-          ? `LEFT JOIN LATERAL (
+        
+        // âœ… CRITICAL: Convert dates to text format to avoid JavaScript Date object conversion
+        let query = `SELECT products.*, 
+          COALESCE(NULLIF(products.image_url, ''), first_product_image.image_url) as image_url,
+          COALESCE(product_image_gallery.images, '[]'::json) as images,
+          wholesale_price AS bulk_price, 
+          stores.store_name, 
+          stores.primary_color, 
+          stores.store_type, 
+          categories.name as category_name,
+          TO_CHAR(products.auction_date, 'YYYY-MM-DD') as auction_date,
+          TO_CHAR(products.auction_start_time, 'HH24:MI') as auction_start_time,
+          TO_CHAR(products.auction_end_time, 'HH24:MI') as auction_end_time
+        FROM products 
+        LEFT JOIN stores ON products.store_id = stores.id 
+        LEFT JOIN categories ON products.category_id = categories.id 
+        LEFT JOIN LATERAL (
           SELECT pi.image_url
           FROM product_images pi
           WHERE pi.product_id = products.id
@@ -3724,31 +3719,15 @@ async function startServer() {
           FROM product_images pi
           WHERE pi.product_id = products.id
             AND COALESCE(NULLIF(pi.image_url, ''), '') <> ''
-        ) product_image_gallery ON true`
-          : '';
-        
-        // âœ… CRITICAL: Convert dates to text format to avoid JavaScript Date object conversion
-        let query = `SELECT products.*, 
-          ${resolvedImageUrlSql}
-          wholesale_price AS bulk_price, 
-          stores.store_name, 
-          stores.primary_color, 
-          stores.store_type, 
-          categories.name as category_name,
-          TO_CHAR(products.auction_date, 'YYYY-MM-DD') as auction_date,
-          TO_CHAR(products.auction_start_time, 'HH24:MI') as auction_start_time,
-          TO_CHAR(products.auction_end_time, 'HH24:MI') as auction_end_time
-        FROM products 
-        LEFT JOIN stores ON products.store_id = stores.id 
-        LEFT JOIN categories ON products.category_id = categories.id 
-        ${productImagesJoinSql}
+        ) product_image_gallery ON true
         WHERE products.is_active = true AND (stores.store_type IS NULL OR stores.store_type != 'topup') 
         ORDER BY products.created_at DESC`;
         let params: any[] = [];
         
         if (storeId) {
           query = `SELECT products.*, 
-            ${resolvedImageUrlSql}
+            COALESCE(NULLIF(products.image_url, ''), first_product_image.image_url) as image_url,
+            COALESCE(product_image_gallery.images, '[]'::json) as images,
             wholesale_price AS bulk_price, 
             stores.store_name, 
             stores.primary_color, 
@@ -3760,7 +3739,20 @@ async function startServer() {
           FROM products 
           LEFT JOIN stores ON products.store_id = stores.id 
           LEFT JOIN categories ON products.category_id = categories.id 
-          ${productImagesJoinSql}
+          LEFT JOIN LATERAL (
+            SELECT pi.image_url
+            FROM product_images pi
+            WHERE pi.product_id = products.id
+              AND COALESCE(NULLIF(pi.image_url, ''), '') <> ''
+            ORDER BY pi.id DESC
+            LIMIT 1
+          ) first_product_image ON true
+          LEFT JOIN LATERAL (
+            SELECT json_agg(pi.image_url ORDER BY pi.id DESC) as images
+            FROM product_images pi
+            WHERE pi.product_id = products.id
+              AND COALESCE(NULLIF(pi.image_url, ''), '') <> ''
+          ) product_image_gallery ON true
           WHERE products.store_id = $1 AND products.is_active = true AND (stores.store_type IS NULL OR stores.store_type != 'topup') 
           ORDER BY products.created_at DESC`;
           params = [parseInt(storeId)];
@@ -9335,25 +9327,6 @@ async function startServer() {
       if (e.code !== 'EEXIST') {
         console.warn('âڑ ï¸ڈ Warning: Could not create uploads directory:', e.message);
       }
-    }
-
-    try {
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS product_images (
-          id SERIAL PRIMARY KEY,
-          product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-          store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
-          image_url TEXT NOT NULL,
-          image_type VARCHAR(50) DEFAULT 'jpeg',
-          file_size INTEGER DEFAULT 0,
-          uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-      await pool.query(`CREATE INDEX IF NOT EXISTS idx_product_images_product_id ON product_images(product_id)`);
-      await pool.query(`CREATE INDEX IF NOT EXISTS idx_product_images_store_id ON product_images(store_id)`);
-      console.log('âœ… product_images table ensured successfully');
-    } catch (error) {
-      console.error('â‌Œ Failed to ensure product_images table:', error);
     }
     
     // POST /api/products/:productId/images - Upload image for product
