@@ -716,7 +716,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 
       try {
         const confirmation = JSON.parse(savedOrderConfirmation);
-        const hydratedConfirmation = await hydrateOrderConfirmationImages(confirmation);
+        const hydratedConfirmation = await refreshStoredOrderConfirmationImages(confirmation);
         if (!isMounted) {
           return;
         }
@@ -1491,6 +1491,61 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
     }
 
     return normalizedFallbackImages;
+  };
+
+  const refreshStoredOrderConfirmationImages = async (confirmation: any) => {
+    if (!confirmation?.confirmations || !Array.isArray(confirmation.confirmations)) {
+      return confirmation;
+    }
+
+    const refreshedConfirmations = await Promise.all(
+      confirmation.confirmations.map(async (conf: any) => {
+        const items = Array.isArray(conf?.items) ? conf.items : [];
+        const refreshedItems = await Promise.all(
+          items.map(async (item: any) => {
+            if (!item?.source_order_id) {
+              return {
+                ...item,
+                product_images: await hydrateConfirmedImagesForDisplay(item?.product_images || [], item?.product_id),
+              };
+            }
+
+            const refreshedImages = await loadConfirmedOrderImages(item.source_order_id, item.product_id, item?.product_images || []);
+            let productImages = refreshedImages.filter((img: any) => {
+              const imageProductId = Number(img?.product_id ?? item?.product_id ?? 0);
+              const currentProductId = Number(item?.product_id ?? 0);
+              return imageProductId === currentProductId;
+            });
+
+            if (productImages.length === 0) {
+              productImages = refreshedImages.slice(0, item?.quantity || 0);
+            }
+
+            return {
+              ...item,
+              product_images: productImages,
+            };
+          })
+        );
+
+        const refreshedCodes = refreshedItems.flatMap((item: any) => Array.isArray(item?.product_images) ? item.product_images : []);
+        const fallbackCodes = refreshedCodes.length > 0
+          ? refreshedCodes
+          : await hydrateConfirmedImagesForDisplay(conf?.codes || []);
+
+        return {
+          ...conf,
+          items: refreshedItems,
+          codes: fallbackCodes,
+          images: fallbackCodes,
+        };
+      })
+    );
+
+    return {
+      ...confirmation,
+      confirmations: refreshedConfirmations,
+    };
   };
 
   const getConfirmedItemImages = (item: any, fallbackCodes: any[] = []) => {
