@@ -13254,32 +13254,29 @@ const TopupStorefront = () => {
         storeId = String(storeNum);
         console.log(`✅ Using explicit numeric topup store ID: ${storeId}`);
       } else if (isNaN(storeNum)) {
-        // It's a text slug, search for store by name
+        // Resolve slug directly instead of loading the full stores list.
         try {
           console.log(`🔍 Looking up store by slug/name: "${rawStoreId}"`);
-          const res = await fetch('/api/stores?page=1&pageSize=100');
-          const stores = await res.json();
-          
-          // Try to find by store_name or slug
-          const foundStore = Array.isArray(stores) ? stores.find((s: any) => 
-            s.store_name === rawStoreId || 
-            s.slug === rawStoreId || 
-            s.name === rawStoreId ||
-            (s.store_name && s.store_name.toLowerCase().includes(rawStoreId.toLowerCase()))
-          ) : null;
-          
-          if (foundStore) {
-            storeId = String(foundStore.id);
-            console.log(`✅ Found store by name: ${storeId}`);
-          } else {
-            // If no exact match, just use the first topup store
-            const topupStore = Array.isArray(stores) ? stores.find((s: any) => s.store_type === 'topup') : null;
-            if (topupStore) {
-              storeId = String(topupStore.id);
-              console.log(`⚠️ No exact match, using first topup store: ${storeId}`);
+          const slugResponse = await fetch(`/api/stores/slug/${encodeURIComponent(rawStoreId || '')}`, { cache: 'no-store' });
+
+          if (slugResponse.ok) {
+            const foundStore = await slugResponse.json();
+            if (foundStore?.id) {
+              storeId = String(foundStore.id);
+              console.log(`✅ Found store by slug: ${storeId}`);
+            }
+          }
+
+          if (!storeId || storeId === rawStoreId) {
+            const bootstrapResponse = await fetch('/api/topup/bootstrap-store', { cache: 'no-store' });
+            const bootstrapStore = bootstrapResponse.ok ? await bootstrapResponse.json() : null;
+
+            if (bootstrapStore?.id) {
+              storeId = String(bootstrapStore.id);
+              console.log(`⚠️ Slug not resolved, using bootstrap topup store: ${storeId}`);
             } else {
               storeId = '1';
-              console.log(`⚠️ No topup store found, defaulting to store 1`);
+              console.log(`⚠️ No bootstrap topup store found, defaulting to store 1`);
             }
           }
         } catch (err) {
