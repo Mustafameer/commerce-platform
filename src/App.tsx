@@ -13444,50 +13444,33 @@ const TopupStorefront = () => {
 
         setActualStoreId(resolvedStoreId);
 
-        const storefrontCacheKey = `topupStorefrontData_${resolvedStoreId}`;
-        const cachedStorefrontData = sessionStorage.getItem(storefrontCacheKey);
-        if (cachedStorefrontData) {
-          try {
-            const parsedCache = JSON.parse(cachedStorefrontData);
+        try {
+          const storeInfoRes = await fetch(`/api/stores/${resolvedStoreId}`);
+          if (storeInfoRes.ok) {
+            const storeInfoData = await storeInfoRes.json();
+            const enrichedStoreData = {
+              ...storeInfoData,
+              store_name: storeInfoData?.store_name || storeInfoData?.name || storeInfoData?.title || 'متجر البطاقات'
+            };
+
             if (isMounted) {
-              if (Array.isArray(parsedCache?.companies)) {
-                setCompanies(parsedCache.companies);
-              }
-              if (Array.isArray(parsedCache?.categories)) {
-                setCategories(parsedCache.categories);
-              }
-              if (Array.isArray(parsedCache?.products)) {
-                setProducts(parsedCache.products);
-              }
-              if (parsedCache?.storeInfo) {
-                setStoreInfo(parsedCache.storeInfo);
-              }
-              setLoading(false);
+              setStoreInfo(enrichedStoreData);
+              localStorage.setItem(`storeInfo_${resolvedStoreId}`, JSON.stringify(enrichedStoreData));
             }
-          } catch (cacheError) {
-            console.warn('⚠️ Failed to parse storefront cache:', cacheError);
           }
+        } catch (error) {
+          console.warn('⚠️ Error fetching store info:', error);
         }
 
         const timestamp = Date.now();
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
-          console.warn('⏱️ Fetch timeout after 15 seconds - aborting');
+          console.warn('⏱️ Fetch timeout after 60 seconds - aborting');
           controller.abort();
-        }, 15000);
+        }, 60000);
 
         try {
-          const storeInfoPromise = fetch(`/api/stores/${resolvedStoreId}`, {
-            cache: 'no-store',
-            signal: controller.signal
-          })
-            .then(async (res) => res.ok ? res.json() : null)
-            .catch((error) => {
-              console.warn('⚠️ Error fetching store info:', error);
-              return null;
-            });
-
-          const [companiesResult, categoriesResult, productsResult, storeInfoResult] = await Promise.allSettled([
+          const [companiesData, categoriesData, productsData] = await Promise.all([
             fetch(`/api/topup/companies/${resolvedStoreId}?_t=${timestamp}`, {
               cache: 'no-store',
               signal: controller.signal
@@ -13499,52 +13482,16 @@ const TopupStorefront = () => {
             fetch(`/api/topup/products/${resolvedStoreId}?_t=${timestamp}`, {
               cache: 'no-store',
               signal: controller.signal
-            }).then(async res => res.ok ? res.json() : []),
-            storeInfoPromise
+            }).then(async res => res.ok ? res.json() : [])
           ]);
 
           if (!isMounted) {
             return;
           }
 
-          const companiesData = companiesResult.status === 'fulfilled' && Array.isArray(companiesResult.value)
-            ? companiesResult.value
-            : [];
-          const categoriesData = categoriesResult.status === 'fulfilled' && Array.isArray(categoriesResult.value)
-            ? categoriesResult.value
-            : [];
-          const productsData = productsResult.status === 'fulfilled' && Array.isArray(productsResult.value)
-            ? productsResult.value
-            : [];
-
           setCompanies(Array.isArray(companiesData) ? companiesData : []);
           setCategories(Array.isArray(categoriesData) ? categoriesData : []);
           setProducts(Array.isArray(productsData) ? productsData : []);
-
-          if (storeInfoResult.status === 'fulfilled' && storeInfoResult.value) {
-            const storeInfoData = storeInfoResult.value;
-            const enrichedStoreData = {
-              ...storeInfoData,
-              store_name: storeInfoData?.store_name || storeInfoData?.name || storeInfoData?.title || 'متجر البطاقات'
-            };
-
-            setStoreInfo(enrichedStoreData);
-            localStorage.setItem(`storeInfo_${resolvedStoreId}`, JSON.stringify(enrichedStoreData));
-            sessionStorage.setItem(storefrontCacheKey, JSON.stringify({
-              storeInfo: enrichedStoreData,
-              companies: Array.isArray(companiesData) ? companiesData : [],
-              categories: Array.isArray(categoriesData) ? categoriesData : [],
-              products: Array.isArray(productsData) ? productsData : []
-            }));
-          } else {
-            sessionStorage.setItem(storefrontCacheKey, JSON.stringify({
-              companies: Array.isArray(companiesData) ? companiesData : [],
-              categories: Array.isArray(categoriesData) ? categoriesData : [],
-              products: Array.isArray(productsData) ? productsData : []
-            }));
-          }
-
-          setLoading(false);
         } finally {
           clearTimeout(timeoutId);
         }
