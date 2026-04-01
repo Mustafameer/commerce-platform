@@ -306,6 +306,23 @@ async function uploadAndCompressImageLocally(base64Data: string, filename: strin
   }
 }
 
+async function compressTopupProductImage(buffer: Buffer): Promise<{ buffer: Buffer; mimeType: string; extension: string }> {
+  const compressedBuffer = await sharp(buffer)
+    .rotate()
+    .resize(1400, 1400, {
+      fit: 'inside',
+      withoutEnlargement: true,
+    })
+    .webp({ quality: 82 })
+    .toBuffer();
+
+  return {
+    buffer: compressedBuffer,
+    mimeType: 'image/webp',
+    extension: '.webp',
+  };
+}
+
 // Firebase Image Upload Helper Function (DEPRECATED - kept for backward compatibility)
 async function uploadImageToFirebase(base64Data: string, filename: string): Promise<string> {
   // ًںڑ« NO FIREBASE - redirect to local compression
@@ -7519,18 +7536,20 @@ async function startServer() {
         
         for (const file of files) {
           try {
-            const buffer = file.buffer;
+            const originalBuffer = file.buffer;
+            const compressedImage = await compressTopupProductImage(originalBuffer);
+            const buffer = compressedImage.buffer;
 
             // Generate unique filename based on original name
             const timestamp = Date.now();
             const randomStr = Math.random().toString(36).substring(7);
-            const ext = path.extname(file.originalname) || '.jpg';
-            const baseName = path.basename(file.originalname, ext);
-            const fileName = `${baseName}-${timestamp}-${randomStr}${ext}`;
+            const originalExt = path.extname(file.originalname) || '.jpg';
+            const baseName = path.basename(file.originalname, originalExt);
+            const fileName = `${baseName}-${timestamp}-${randomStr}${compressedImage.extension}`;
             const filePath = path.join(uploadsDir, fileName);
 
             // Create MD5 hash of image for duplicate detection
-            const imageHash = crypto.createHash('md5').update(buffer).digest('hex');
+            const imageHash = crypto.createHash('md5').update(originalBuffer).digest('hex');
 
             // Check if this hash already exists in database
             const hashCheckResult = await pool.query(
@@ -7553,7 +7572,11 @@ async function startServer() {
                 else resolve(true);
               });
             });
-            console.log('âœ… File saved locally:', filePath);
+            console.log('Compressed topup image saved locally:', {
+              filePath,
+              originalKB: Number((originalBuffer.length / 1024).toFixed(2)),
+              compressedKB: Number((buffer.length / 1024).toFixed(2)),
+            });
 
             // Store reference in database with local path
             const imageUrl = `/uploads/topup/${store_id}/${topup_product_id}/${fileName}`;
@@ -7563,13 +7586,13 @@ async function startServer() {
               await pool.query(
                 `INSERT INTO topup_product_images (topup_product_id, image_data, image_url, image_hash, image_type)
                  VALUES ($1, $2, $3, $4, $5)`,
-                [topup_product_id, imageBase64, imageUrl, imageHash, file.mimetype]
+                [topup_product_id, imageBase64, imageUrl, imageHash, compressedImage.mimeType]
               );
             } else if (hasStoreId && hasProductId) {
               await pool.query(
                 `INSERT INTO topup_product_images (store_id, product_id, image_data, image_url, image_hash, image_type)
                  VALUES ($1, $2, $3, $4, $5, $6)`,
-                [store_id, topup_product_id, imageBase64, imageUrl, imageHash, file.mimetype]
+                [store_id, topup_product_id, imageBase64, imageUrl, imageHash, compressedImage.mimeType]
               );
             } else {
               throw new Error('topup_product_images schema is missing product reference columns');
