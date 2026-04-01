@@ -349,9 +349,10 @@ const MobileFooterNav = () => {
     { icon: StoreIcon, label: 'المتاجر', path: '/stores' },
   ];
 
+  const normalizedPathname = location.pathname.replace(/\/+$/, '') || '/';
   const isActive = (path: string) => location.pathname === path;
   const isDashboardActive = isDashboardRouteActive(location.pathname, user);
-  const hideDashboardShortcut = location.pathname === '/';
+  const hideDashboardShortcut = normalizedPathname === '/' || normalizedPathname === '/stores';
 
   return (
     <>
