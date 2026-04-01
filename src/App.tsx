@@ -10246,6 +10246,7 @@ const MerchantTopupDashboard = () => {
   const [companyForm, setCompanyForm] = useState({ name: '', logo_url: '' });
   const [productForm, setProductForm] = useState({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
   const [productImages, setProductImages] = useState<File[]>([]);
+  const [productImagePreviews, setProductImagePreviews] = useState<string[]>([]);
   const [existingProductImages, setExistingProductImages] = useState<string[]>([]);
   const [isLoadingExistingProductImages, setIsLoadingExistingProductImages] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -11097,7 +11098,7 @@ const MerchantTopupDashboard = () => {
       quantity_type: 'unit',
       category_id: ''
     });
-    setProductImages([]);
+    clearSelectedProductImages();
     setExistingProductImages([]);
     setIsLoadingExistingProductImages(false);
     setIsEditingProduct(null);
@@ -11157,6 +11158,22 @@ const MerchantTopupDashboard = () => {
     });
   };
 
+  const replaceSelectedProductImages = (files: File[]) => {
+    setProductImagePreviews((prev) => {
+      prev.forEach((url) => URL.revokeObjectURL(url));
+      return files.map((file) => URL.createObjectURL(file));
+    });
+    setProductImages(files);
+  };
+
+  const clearSelectedProductImages = () => {
+    setProductImagePreviews((prev) => {
+      prev.forEach((url) => URL.revokeObjectURL(url));
+      return [];
+    });
+    setProductImages([]);
+  };
+
   const saveProduct = async () => {
     if (!productForm.company_id || !productForm.amount || !productForm.price) {
       alert('يرجى ملء جميع الحقول المطلوبة');
@@ -11203,62 +11220,32 @@ const MerchantTopupDashboard = () => {
         console.log('✅ Product saved with ID:', productId);
         
         // Upload NEW images first if any are selected
-        const uploadedImageUrls: string[] = [];
         if (productImages.length > 0 && productId) {
-          console.log('📸 Uploading', productImages.length, 'new images to Firebase...');
-          
-          const uploadPromises = productImages.map(imageFile => {
-            return new Promise<void>((resolve, reject) => {
-              try {
-                // Create FormData for multipart/form-data upload (binary, not base64)
-                const formData = new FormData();
-                formData.append('store_id', topupStoreId.toString());
-                formData.append('topup_product_id', productId.toString());
-                formData.append('images', imageFile); // Append File object directly
-                
-                // Send as multipart/form-data (NOT JSON with base64)
-                fetch('/api/topup/upload-images-firebase', {
-                  method: 'POST',
-                  body: formData // FormData handles the multipart encoding
-                  // Don't set Content-Type header - browser will set it with boundary automatically
-                })
-                  .then(async (imageResponse) => {
-                    if (!imageResponse.ok) {
-                      const imgError = await imageResponse.json();
-                      console.warn('⚠️ Error uploading image to Firebase:', imgError);
-                    } else {
-                      const uploadResult = await imageResponse.json();
-                      console.log('✅ Image uploaded successfully');
-                      console.log('📊 File:', imageFile.name, `(${(imageFile.size / 1024).toFixed(2)} KB)`);
-                      console.log('📥 Server response:', JSON.stringify(uploadResult, null, 2));
-                      
-                      // Track uploaded image URLs if API returns them
-                      if (uploadResult.image_urls && Array.isArray(uploadResult.image_urls)) {
-                        console.log('🔗 URLs received from server:', uploadResult.image_urls);
-                        uploadedImageUrls.push(...uploadResult.image_urls);
-                      } else {
-                        console.warn('⚠️ No image_urls in response. Response keys:', Object.keys(uploadResult));
-                      }
-                    }
-                    resolve();
-                  })
-                  .catch((err) => {
-                    console.error('❌ Error uploading image:', err);
-                    reject(err);
-                  });
-              } catch (err) {
-                console.error('❌ Error creating FormData:', err);
-                reject(err);
-              }
-            });
+          console.log('📸 Uploading', productImages.length, 'new images to topup product...');
+
+          const formData = new FormData();
+          formData.append('store_id', topupStoreId.toString());
+          formData.append('topup_product_id', productId.toString());
+          productImages.forEach((imageFile) => {
+            formData.append('images', imageFile);
           });
-          
-          try {
-            await Promise.all(uploadPromises);
-            console.log('✅ All new images uploaded successfully');
-          } catch (err) {
-            console.error('❌ Error uploading images:', err);
+
+          const imageResponse = await fetch('/api/topup/upload-images-firebase', {
+            method: 'POST',
+            body: formData
+          });
+
+          const uploadResult = await imageResponse.json();
+
+          if (!imageResponse.ok) {
+            throw new Error(uploadResult.error || 'فشل تحميل الصور');
           }
+
+          console.log('✅ Product images uploaded successfully:', {
+            count: productImages.length,
+            uploaded: uploadResult.image_urls?.length || 0,
+            duplicates: uploadResult.duplicate_urls?.length || 0
+          });
         }
         
         // After uploading new images, update product metadata (without images)
@@ -11294,7 +11281,7 @@ const MerchantTopupDashboard = () => {
         alert(isEditingProduct ? 'تم التحديث بنجاح' : 'تمت الإضافة بنجاح');
         setShowProductModal(false);
         setProductForm({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
-        setProductImages([]);
+        clearSelectedProductImages();
         setExistingProductImages([]);
         setIsLoadingExistingProductImages(false);
         
@@ -11885,7 +11872,7 @@ const MerchantTopupDashboard = () => {
                                     category_id: '', 
                                     quantity_type: product.quantity_type || 'unit' 
                                   });
-                                  setProductImages([]);
+                                  clearSelectedProductImages();
                                   setExistingProductImages([]);
                                   setIsLoadingExistingProductImages(true);
                                   setIsEditingProduct(product.id);
@@ -11966,7 +11953,10 @@ const MerchantTopupDashboard = () => {
                   >
                     <div className={cn("p-6 border-b flex justify-between items-center", isDarkMode ? "bg-gray-700 border-gray-600" : "bg-gray-50 border-gray-200")}>
                       <h3 className={cn("font-normal text-lg", isDarkMode ? "text-white" : "text-gray-900")}>{isEditingProduct ? 'تعديل المنتج' : 'إضافة منتج جديد'}</h3>
-                      <button onClick={() => setShowProductModal(false)}>
+                      <button onClick={() => {
+                        clearSelectedProductImages();
+                        setShowProductModal(false);
+                      }}>
                         <X size={24} className={isDarkMode ? "text-white" : "text-gray-900"} />
                       </button>
                     </div>
@@ -12033,7 +12023,7 @@ const MerchantTopupDashboard = () => {
                             multiple
                             onChange={(e) => {
                               const files = Array.from(e.target.files || []);
-                              setProductImages(files);
+                              replaceSelectedProductImages(files);
                             }}
                             className="hidden"
                             accept="image/*"
@@ -12047,7 +12037,7 @@ const MerchantTopupDashboard = () => {
                                 type="button"
                                 onClick={(e) => {
                                   e.preventDefault();
-                                  setProductImages([]);
+                                  clearSelectedProductImages();
                                 }}
                                 className={cn("mt-2 text-xs px-3 py-1 rounded", isDarkMode ? "bg-red-900 text-red-200 hover:bg-red-800" : "bg-red-100 text-red-600 hover:bg-red-200")}
                               >
@@ -12061,6 +12051,20 @@ const MerchantTopupDashboard = () => {
                             </div>
                           )}
                         </label>
+
+                        {productImagePreviews.length > 0 && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-3">
+                            {productImagePreviews.map((previewUrl, index) => (
+                              <div key={`preview-${index}`} className="relative rounded-lg overflow-hidden">
+                                <img
+                                  src={previewUrl}
+                                  alt={`Selected ${index + 1}`}
+                                  className={cn("w-full h-24 object-cover rounded-lg border", isDarkMode ? "border-blue-700" : "border-blue-200")}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Row 4: Existing Images Display */}

@@ -224,6 +224,37 @@ function normalizeStoredTopupOrderImage(imageObj: any): { imageUrl: string | nul
   };
 }
 
+function extractTopupImageUrls(imagesValue: unknown): string[] {
+  let imagesArray: any[] = [];
+
+  if (Array.isArray(imagesValue)) {
+    imagesArray = imagesValue;
+  } else if (typeof imagesValue === 'string') {
+    try {
+      const parsed = JSON.parse(imagesValue);
+      if (Array.isArray(parsed)) {
+        imagesArray = parsed;
+      }
+    } catch {
+      imagesArray = [];
+    }
+  }
+
+  return imagesArray
+    .map((image) => {
+      if (typeof image === 'string') {
+        return buildTopupImageUrl(image, null, null);
+      }
+
+      return buildTopupImageUrl(
+        image?.image_url || image?.url || image?.raw_url || null,
+        image?.image_data || image?.data || null,
+        image?.image_type || image?.type || null,
+      );
+    })
+    .filter((imageUrl): imageUrl is string => typeof imageUrl === 'string' && imageUrl.length > 0);
+}
+
 
 // âœ… LOCAL IMAGE COMPRESSION & STORAGE (NO FIREBASE)
 async function uploadAndCompressImageLocally(base64Data: string, filename: string): Promise<string> {
@@ -7507,6 +7538,8 @@ async function startServer() {
               [topup_product_id, imageBase64, imageUrl, imageHash, file.mimetype]
             );
 
+            uploadedUrls.push(imageUrl);
+
           } catch (uploadErr) {
             console.error('â‌Œ Error saving image locally:', uploadErr);
           }
@@ -7549,7 +7582,8 @@ async function startServer() {
         res.json({ 
           success: true, 
           message, 
-          image_urls: uploadedUrls
+          image_urls: uploadedUrls,
+          duplicate_urls: duplicateUrls
         });
       } catch (error) {
         console.error('â‌Œ Error uploading images:', error);
