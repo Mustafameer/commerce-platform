@@ -7926,6 +7926,22 @@ async function startServer() {
               console.log(`Using available product images: ${usedImages.length}`);
             }
 
+            const consumedImageIds = usedImages
+              .map((imageObj: any) => Number(imageObj?.id))
+              .filter((imageId: number) => Number.isInteger(imageId) && imageId > 0);
+            const consumedImageUrls = Array.from(
+              new Set(
+                usedImages
+                  .flatMap((imageObj: any) => [
+                    typeof imageObj?.raw_url === 'string' ? imageObj.raw_url : null,
+                    typeof imageObj?.image_url === 'string' && !imageObj.image_url.startsWith('data:') ? imageObj.image_url : null,
+                    typeof imageObj?.url === 'string' && !imageObj.url.startsWith('data:') ? imageObj.url : null,
+                    typeof imageObj === 'string' && !imageObj.startsWith('data:') ? imageObj : null,
+                  ])
+                  .filter((value): value is string => typeof value === 'string' && value.length > 0)
+              )
+            );
+
             for (const imageObj of usedImages) {
               const { imageUrl, imageData } = normalizeStoredTopupOrderImage(imageObj);
               if (!imageUrl) {
@@ -7938,6 +7954,42 @@ async function startServer() {
                  ON CONFLICT (order_id, topup_product_id, image_url) DO NOTHING`,
                 [orderId, topup_product_id, imageUrl, imageData]
               );
+            }
+
+            if (consumedImageIds.length > 0) {
+              await pool.query(
+                `DELETE FROM topup_product_images
+                 WHERE topup_product_id = $1
+                   AND id = ANY($2::int[])`,
+                [topup_product_id, consumedImageIds]
+              );
+              console.log(`Removed ${consumedImageIds.length} purchased images from topup_product_images by id`);
+            } else if (consumedImageUrls.length > 0) {
+              await pool.query(
+                `DELETE FROM topup_product_images
+                 WHERE topup_product_id = $1
+                   AND image_url = ANY($2::text[])`,
+                [topup_product_id, consumedImageUrls]
+              );
+              console.log(`Removed ${consumedImageUrls.length} purchased images from topup_product_images by url`);
+            }
+
+            if (legacyImagesArray.length > 0 && consumedImageUrls.length > 0) {
+              const updatedLegacyImages = legacyImagesArray.filter((image: any) => {
+                const legacyImageUrl = typeof image === 'string'
+                  ? image
+                  : (image?.raw_url || image?.image_url || image?.url || '');
+
+                return !consumedImageUrls.includes(legacyImageUrl);
+              });
+
+              if (updatedLegacyImages.length !== legacyImagesArray.length) {
+                await pool.query(
+                  `UPDATE topup_products SET images = $1 WHERE id = $2`,
+                  [updatedLegacyImages, topup_product_id]
+                );
+                console.log(`Updated legacy topup_products.images after purchase. Remaining legacy images: ${updatedLegacyImages.length}`);
+              }
             }
 
             console.log(`Stored ${usedImages.length} order images for topup product ${topup_product_id}`);
