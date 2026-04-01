@@ -10395,13 +10395,13 @@ const MerchantTopupDashboard = () => {
       }
 
       const nextCompanies = Array.isArray(comp)
-        ? (comp.length > 0 || lastCompaniesRef.current.length === 0 ? comp : lastCompaniesRef.current)
+        ? comp
         : lastCompaniesRef.current;
       const nextProducts = Array.isArray(prod)
-        ? (prod.length > 0 || lastProductsRef.current.length === 0 ? prod : lastProductsRef.current)
+        ? prod
         : lastProductsRef.current;
       const nextOrders = Array.isArray(ordersData)
-        ? (ordersData.length > 0 || lastOrdersRef.current.length === 0 ? ordersData : lastOrdersRef.current)
+        ? ordersData
         : lastOrdersRef.current;
 
       lastCompaniesRef.current = nextCompanies;
@@ -10441,7 +10441,7 @@ const MerchantTopupDashboard = () => {
           }
 
           const nextCustomers = Array.isArray(cust)
-            ? (cust.length > 0 || lastCustomersRef.current.length === 0 ? cust : lastCustomersRef.current)
+            ? cust
             : lastCustomersRef.current;
 
           lastCustomersRef.current = nextCustomers;
@@ -10507,6 +10507,12 @@ const MerchantTopupDashboard = () => {
     navigate('/login');
   };
 
+  const getTopupProductCodeCount = (product: any) => Number(
+    product?.images_count ?? ((product?.images && Array.isArray(product.images))
+      ? product.images.filter((img: any) => img && String(img).length > 0).length
+      : 0)
+  );
+
   const calculateStats = (prod: any[], ordersData: any[] = []) => {
     let totalCodes = 0;
     let usedCodes = 0;
@@ -10514,11 +10520,7 @@ const MerchantTopupDashboard = () => {
 
     // Calculate image count from products (matching sidebar logic)
     prod.forEach(p => {
-      const count = Number(
-        p.images_count ?? ((p.images && Array.isArray(p.images))
-          ? p.images.filter((img: any) => img && String(img).length > 0).length
-          : 0)
-      );
+      const count = getTopupProductCodeCount(p);
       totalCodes += count;
     });
 
@@ -11502,13 +11504,7 @@ const MerchantTopupDashboard = () => {
               { id: 'overview', label: 'ملخص المبيعات', icon: BarChart3, badge: null },
               { id: 'companies', label: 'الشركات', icon: StoreIcon, badge: companies.length },
               { id: 'products', label: 'المنتجات', icon: CreditCard, badge: products.length },
-              { id: 'codes', label: 'الأكواد', icon: Ticket, badge: products.reduce((sum: number, p: any) => {
-                // Count uploaded images from each product
-                const count = (p.images && Array.isArray(p.images)) 
-                  ? p.images.filter((img: any) => img && String(img).length > 0).length 
-                  : 0;
-                return sum + count;
-              }, 0) },
+              { id: 'codes', label: 'الأكواد', icon: Ticket, badge: products.reduce((sum: number, p: any) => sum + getTopupProductCodeCount(p), 0) },
               { id: 'customers', label: 'العملاء', icon: Users, badge: customers.length },
               { id: 'orders', label: 'الطلبات', icon: ShoppingCart, badge: orders.filter((o: any) => o.status !== 'returned').length },
               { id: 'settings', label: 'الإعدادات', icon: Settings, badge: null },
@@ -11918,7 +11914,7 @@ const MerchantTopupDashboard = () => {
                                 }}
                                 className={cn("flex-1 p-2 rounded-lg transition-all flex items-center justify-center gap-1 text-sm font-medium", isDarkMode ? "bg-green-900/40 text-green-400 hover:bg-green-900/60" : "bg-green-50 text-green-600 hover:bg-green-100")}
                               >
-                                <Upload size={14} /> أكواد ({Number(product.images_count ?? (product.images?.filter((img: any) => img && String(img).length > 0).length || 0))})
+                                <Upload size={14} /> أكواد ({getTopupProductCodeCount(product)})
                               </button>
                               <button 
                                 onClick={async () => {
@@ -11927,9 +11923,15 @@ const MerchantTopupDashboard = () => {
                                     const res = await fetch(`/api/topup/products/${product.id}`, { method: 'DELETE' });
                                     if (res.ok) {
                                       alert('تم الحذف بنجاح');
+                                      refreshRequestIdRef.current += 1;
+                                      catalogRequestIdRef.current += 1;
+                                      lastProductsRef.current = lastProductsRef.current.filter((p: any) => p.id !== product.id);
+                                      setProducts(prev => prev.filter((p: any) => p.id !== product.id));
                                       const updatedRes = await fetch(`/api/topup/products/${topupStoreId}?compact=true`);
                                       const data = await updatedRes.json();
-                                      setProducts(Array.isArray(data) ? data : []);
+                                      const nextProducts = Array.isArray(data) ? data : [];
+                                      lastProductsRef.current = nextProducts;
+                                      setProducts(nextProducts);
                                     }
                                   } catch (error) {
                                     console.error('Error deleting product:', error);
@@ -13217,13 +13219,7 @@ const MerchantTopupDashboard = () => {
                   { id: 'overview', label: 'ملخص المبيعات', icon: BarChart3, badge: null },
                   { id: 'companies', label: 'الشركات', icon: StoreIcon, badge: companies.length },
                   { id: 'products', label: 'المنتجات', icon: CreditCard, badge: products.length },
-                  { id: 'codes', label: 'الأكواد', icon: Ticket, badge: products.reduce((sum: number, p: any) => {
-                    // Count uploaded images from each product
-                    const count = (p.images && Array.isArray(p.images)) 
-                      ? p.images.filter((img: any) => img && String(img).length > 0).length 
-                      : 0;
-                    return sum + count;
-                  }, 0) },
+                  { id: 'codes', label: 'الأكواد', icon: Ticket, badge: products.reduce((sum: number, p: any) => sum + getTopupProductCodeCount(p), 0) },
                   { id: 'customers', label: 'العملاء', icon: Users, badge: customers.length },
                   { id: 'orders', label: 'الطلبات', icon: ShoppingCart, badge: orders.filter((o: any) => o.status !== 'returned').length },
                   { id: 'settings', label: 'الإعدادات', icon: Settings, badge: null },
