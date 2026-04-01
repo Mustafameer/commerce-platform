@@ -3594,9 +3594,7 @@ const AdminDashboard = () => {
             className={cn("w-full h-24 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-all hover:opacity-80", isDarkMode ? "bg-gray-700 border-gray-600 hover:bg-gray-600" : "bg-gray-50 border-gray-300 hover:bg-gray-100")}
           >
             {adminConfig.logo_url ? (
-              <AnimatedLogoFrame className="h-full w-full rounded-lg">
-                <img src={adminConfig.logo_url} alt="Logo" className="h-full w-full object-contain p-1" />
-              </AnimatedLogoFrame>
+              <img src={adminConfig.logo_url} alt="Logo" className="h-full w-full object-contain p-1" />
             ) : (
               <div className="text-center">
                 <Upload size={24} className={isDarkMode ? "text-gray-400 mx-auto" : "text-gray-500 mx-auto"} />
@@ -9980,26 +9978,24 @@ const StoresPage = () => {
                   {/* Store Logo Badge - Always Visible */}
                   <div className="p-0 flex items-center justify-center h-24 overflow-hidden rounded-t-lg bg-white">
                     {storesWithLogos.has(store.id) && storesWithLogos.get(store.id) ? (
-                      <AnimatedLogoFrame className="w-full h-full flex items-center justify-center">
-                        <img 
-                          src={storesWithLogos.get(store.id)} 
-                          className="w-auto h-auto max-w-[95%] max-h-[95%] object-contain" 
-                          alt={store.store_name}
-                          onError={(e) => console.error("Logo load error for", store.store_name)}
-                        />
-                      </AnimatedLogoFrame>
+                      <img 
+                        src={storesWithLogos.get(store.id)} 
+                        className="w-auto h-auto max-w-[95%] max-h-[95%] object-contain" 
+                        alt={store.store_name}
+                        onError={(e) => console.error("Logo load error for", store.store_name)}
+                      />
                     ) : store.store_type === 'topup' ? (
                       // Default logo for topup stores
-                      <AnimatedLogoFrame className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
                         <div className="text-center">
                           <div className="text-4xl font-bold text-red-600 mb-1">💳</div>
                           <p className="text-xs font-normal text-red-600">بطاقات شحن</p>
                         </div>
-                      </AnimatedLogoFrame>
+                      </div>
                     ) : (
-                      <AnimatedLogoFrame className="w-full h-full flex items-center justify-center bg-white text-gray-300">
+                      <div className="w-full h-full flex items-center justify-center bg-white text-gray-300">
                         <StoreIcon size={40} />
-                      </AnimatedLogoFrame>
+                      </div>
                     )}
                   </div>
 
