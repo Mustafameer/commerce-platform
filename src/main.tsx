@@ -56,6 +56,44 @@ class ErrorBoundary extends Component<Props, State> {
   }
 }
 
+const isTabletLikeDevice = () => {
+  if (typeof navigator === 'undefined') {
+    return false;
+  }
+
+  const userAgent = navigator.userAgent || '';
+  const maxTouchPoints = navigator.maxTouchPoints || 0;
+  const isIPadOs = /Macintosh/i.test(userAgent) && maxTouchPoints > 1;
+
+  if (isIPadOs) {
+    return true;
+  }
+
+  return /iPad|Tablet|PlayBook|Silk/i.test(userAgent) || (/Android/i.test(userAgent) && !/Mobile/i.test(userAgent));
+};
+
+const applyTabletDesktopViewport = () => {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  const viewportMeta = document.querySelector('meta[name="viewport"]');
+  if (!viewportMeta) {
+    return;
+  }
+
+  if (isTabletLikeDevice()) {
+    viewportMeta.setAttribute('content', 'width=1024, initial-scale=1.0');
+    document.documentElement.dataset.deviceLayout = 'tablet-desktop';
+    return;
+  }
+
+  viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0');
+  document.documentElement.dataset.deviceLayout = 'default';
+};
+
+applyTabletDesktopViewport();
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
