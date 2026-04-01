@@ -10262,6 +10262,7 @@ const MerchantTopupDashboard = () => {
     const assignedStoreId = Number(user?.store_id);
     return assignedStoreId > 0 ? assignedStoreId : null;
   });
+  const effectiveTopupStoreId = Number(user?.store_id) > 0 ? Number(user.store_id) : topupStoreId;
 
   // Clean up old localStorage entries on mount
   useEffect(() => {
@@ -10274,6 +10275,13 @@ const MerchantTopupDashboard = () => {
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (effectiveTopupStoreId && effectiveTopupStoreId !== topupStoreId) {
+      console.log('🔁 Syncing effective topup store id:', effectiveTopupStoreId);
+      setTopupStoreId(effectiveTopupStoreId);
+    }
+  }, [effectiveTopupStoreId, topupStoreId]);
 
   useEffect(() => {
     const resolveTopupStoreId = async () => {
@@ -10340,15 +10348,16 @@ const MerchantTopupDashboard = () => {
   const refreshDashboardData = async () => {
     const requestId = refreshRequestIdRef.current + 1;
     refreshRequestIdRef.current = requestId;
+    const targetStoreId = effectiveTopupStoreId;
 
     try {
       // ⛔ CRITICAL: Validate topupStoreId before making ANY API calls
-      if (!topupStoreId || topupStoreId === null || topupStoreId === undefined) {
-        console.warn('⛔ ABORT: Invalid topupStoreId:', topupStoreId);
+      if (!targetStoreId || targetStoreId === null || targetStoreId === undefined) {
+        console.warn('⛔ ABORT: Invalid topupStoreId:', targetStoreId);
         return;
       }
 
-      console.log('🔄 Refreshing dashboard data for store:', topupStoreId);
+      console.log('🔄 Refreshing dashboard data for store:', targetStoreId);
 
       const timestamp = Date.now();
       const fetchWithTimeout = async (url: string) => {
@@ -10368,26 +10377,26 @@ const MerchantTopupDashboard = () => {
       };
 
       const [comp, prod, cust, ordersData] = await Promise.all([
-        fetchWithTimeout(`/api/topup/companies/${topupStoreId}`).catch((err) => {
+        fetchWithTimeout(`/api/topup/companies/${targetStoreId}`).catch((err) => {
           console.error('❌ Companies fetch failed:', err.message);
           return null;
         }),
-        fetchWithTimeout(`/api/topup/products/${topupStoreId}`).catch((err) => {
+        fetchWithTimeout(`/api/topup/products/${targetStoreId}`).catch((err) => {
           console.error('❌ Products fetch failed:', err.message);
           return null;
         }),
-        fetchWithTimeout(`/api/topup/customers/${topupStoreId}`).catch((err) => {
+        fetchWithTimeout(`/api/topup/customers/${targetStoreId}`).catch((err) => {
           console.error('❌ Customers fetch failed:', err.message);
           return null;
         }),
-        fetchWithTimeout(`/api/topup/orders?storeId=${topupStoreId}`).catch((err) => {
+        fetchWithTimeout(`/api/topup/orders?storeId=${targetStoreId}`).catch((err) => {
           console.error('❌ Orders fetch failed:', err.message);
           return null;
         }),
       ]);
 
       if (refreshRequestIdRef.current !== requestId) {
-        console.log('⏭️ Ignoring stale dashboard response for store:', topupStoreId, 'request:', requestId);
+        console.log('⏭️ Ignoring stale dashboard response for store:', targetStoreId, 'request:', requestId);
         return;
       }
 
@@ -10532,15 +10541,15 @@ const MerchantTopupDashboard = () => {
 
   useEffect(() => {
     // ⛔ CRITICAL: Never allow store ID 13 (doesn't exist in database)
-    if (!topupStoreId || !user) {
-      console.log('⏭️ Skipping refresh: topupStoreId=', topupStoreId, 'user=', user?.id);
-      if (user && !topupStoreId) {
+    if (!effectiveTopupStoreId || !user) {
+      console.log('⏭️ Skipping refresh: topupStoreId=', effectiveTopupStoreId, 'user=', user?.id);
+      if (user && !effectiveTopupStoreId) {
         setIsLoading(false);
       }
       return;
     }
 
-    console.log('✅ Starting data refresh for store:', topupStoreId, 'user:', user?.id);
+    console.log('✅ Starting data refresh for store:', effectiveTopupStoreId, 'user:', user?.id);
     
     // Load data immediately
     refreshDashboardData();
@@ -10552,19 +10561,19 @@ const MerchantTopupDashboard = () => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [section, topupStoreId, user, user?.id]);
+  }, [section, effectiveTopupStoreId, user, user?.id]);
 
   // Fetch store settings on mount
   useEffect(() => {
     // ⛔ CRITICAL: Validate topupStoreId before any fetch
-    if (!topupStoreId || topupStoreId === null || topupStoreId === undefined) {
-      console.log('⏭️ topupStoreId not ready yet or invalid, skipping fetch:', topupStoreId);
+    if (!effectiveTopupStoreId || effectiveTopupStoreId === null || effectiveTopupStoreId === undefined) {
+      console.log('⏭️ topupStoreId not ready yet or invalid, skipping fetch:', effectiveTopupStoreId);
       return;
     }
     
     const fetchStoreSettings = async () => {
       // First try to load from localStorage
-      const savedSettings = localStorage.getItem(`storeSettings_${topupStoreId}`);
+      const savedSettings = localStorage.getItem(`storeSettings_${effectiveTopupStoreId}`);
       if (savedSettings) {
         try {
           const parsed = JSON.parse(savedSettings);
@@ -10580,7 +10589,7 @@ const MerchantTopupDashboard = () => {
 
       // Then try to fetch from API
       try {
-        const res = await fetch(`/api/stores/${topupStoreId}`);
+        const res = await fetch(`/api/stores/${effectiveTopupStoreId}`);
         if (!res.ok) {
           if (res.status === 404) {
             console.log('Store settings not found in API, using defaults or localStorage');
@@ -10601,12 +10610,12 @@ const MerchantTopupDashboard = () => {
     };
 
     fetchStoreSettings();
-  }, [topupStoreId]);
+  }, [effectiveTopupStoreId]);
 
   // Load and sync dashboard logo with events
   useEffect(() => {
-    console.log('📍 Dashboard useEffect triggered, loading logo from localStorage for storeId:', topupStoreId);
-    const storeSettings = localStorage.getItem(`storeSettings_${topupStoreId}`);
+    console.log('📍 Dashboard useEffect triggered, loading logo from localStorage for storeId:', effectiveTopupStoreId);
+    const storeSettings = localStorage.getItem(`storeSettings_${effectiveTopupStoreId}`);
     if (storeSettings) {
       try {
         const parsed = JSON.parse(storeSettings);
@@ -10628,9 +10637,9 @@ const MerchantTopupDashboard = () => {
         console.error('❌ Error parsing store settings:', err);
       }
     } else {
-      console.log('📍 No store settings in localStorage for key:', `storeSettings_${topupStoreId}`);
+      console.log('📍 No store settings in localStorage for key:', `storeSettings_${effectiveTopupStoreId}`);
     }
-  }, [topupStoreId]);
+  }, [effectiveTopupStoreId]);
 
   // Trigger refresh when dashboardLogo changes
   useEffect(() => {
@@ -10641,9 +10650,9 @@ const MerchantTopupDashboard = () => {
   // Listen for custom event from settings panel
   useEffect(() => {
     const handleSettingsUpdate = (e: any) => {
-      console.log('🔔 Event received on Dashboard, topupStoreId:', topupStoreId);
-      const storeSettings = localStorage.getItem(`storeSettings_${topupStoreId}`);
-      console.log('🔔 Reading from key:', `storeSettings_${topupStoreId}`);
+      console.log('🔔 Event received on Dashboard, topupStoreId:', effectiveTopupStoreId);
+      const storeSettings = localStorage.getItem(`storeSettings_${effectiveTopupStoreId}`);
+      console.log('🔔 Reading from key:', `storeSettings_${effectiveTopupStoreId}`);
       if (storeSettings) {
         try {
           const parsed = JSON.parse(storeSettings);
@@ -10676,20 +10685,20 @@ const MerchantTopupDashboard = () => {
     return () => {
       window.removeEventListener('storeSettingsUpdated', handleSettingsUpdate);
     };
-  }, [topupStoreId]);
+  }, [effectiveTopupStoreId]);
 
   // Fetch store info for sidebar branding
   useEffect(() => {
     // ⛔ CRITICAL: Reject invalid store IDs before any fetch
-    if (!topupStoreId || topupStoreId === null || topupStoreId === undefined) {
-      console.log('⏭️ topupStoreId not ready yet or invalid:', topupStoreId);
+    if (!effectiveTopupStoreId || effectiveTopupStoreId === null || effectiveTopupStoreId === undefined) {
+      console.log('⏭️ topupStoreId not ready yet or invalid:', effectiveTopupStoreId);
       return;
     }
     
-    console.log('📦 MerchantTopupDashboard - Fetching store info for store:', topupStoreId);
+    console.log('📦 MerchantTopupDashboard - Fetching store info for store:', effectiveTopupStoreId);
     
     // Try to load from localStorage first
-    const cachedInfo = localStorage.getItem(`storeInfo_${topupStoreId}`);
+    const cachedInfo = localStorage.getItem(`storeInfo_${effectiveTopupStoreId}`);
     if (cachedInfo) {
       try {
         const cached = JSON.parse(cachedInfo);
@@ -10705,13 +10714,13 @@ const MerchantTopupDashboard = () => {
     }
     
     // Always fetch fresh from API
-    fetch(`/api/stores/${topupStoreId}`)
+    fetch(`/api/stores/${effectiveTopupStoreId}`)
         .then(r => {
           if (!r.ok) {
             // If store doesn't exist (404), just use default fallback data
             if (r.status === 404) {
-              console.warn(`⚠️ Store ${topupStoreId} not found, using defaults`);
-              throw new Error(`Store ${topupStoreId} not found`);
+              console.warn(`⚠️ Store ${effectiveTopupStoreId} not found, using defaults`);
+              throw new Error(`Store ${effectiveTopupStoreId} not found`);
             }
             throw new Error(`Store fetch failed with status ${r.status}`);
           }
@@ -10731,7 +10740,7 @@ const MerchantTopupDashboard = () => {
               setDashboardLogo(enrichedData.logo_url);
               setLogoRefreshKey(prev => prev + 1); // Force refresh the img tag
             }
-            localStorage.setItem(`storeInfo_${topupStoreId}`, JSON.stringify(enrichedData));
+            localStorage.setItem(`storeInfo_${effectiveTopupStoreId}`, JSON.stringify(enrichedData));
             console.log('✅ Updated store info for sidebar:', enrichedData.store_name, 'with logo:', !!enrichedData.logo_url);
           }
         })
@@ -10744,7 +10753,7 @@ const MerchantTopupDashboard = () => {
             description: 'متجر البطاقات'
           });
         });
-  }, [topupStoreId]);
+  }, [effectiveTopupStoreId]);
 
   const handleStoreLogoUpload = async (file: File) => {
     if (!file) return;
