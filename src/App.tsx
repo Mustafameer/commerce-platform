@@ -11701,7 +11701,7 @@ const MerchantTopupDashboard = () => {
                                 <p className={cn("text-sm font-normal", isDarkMode ? "text-gray-300" : "text-gray-900")}>{i + 1}. {p.company_name}</p>
                                 <p className={cn("text-xs", isDarkMode ? "text-gray-500" : "text-gray-500")}>المبلغ: {formatNumber(p.amount || 0)} د.ع</p>
                               </div>
-                              <span className={cn("text-sm font-normal font-mono", isDarkMode ? "text-green-400" : "text-green-600")}>{(p.images && Array.isArray(p.images)) ? p.images.filter((img: any) => img && String(img).length > 0).length : 0} صورة</span>
+                              <span className={cn("text-sm font-normal font-mono", isDarkMode ? "text-green-400" : "text-green-600")}>{getTopupProductCodeCount(p)} صورة</span>
                             </div>
                           ))}
                       </div>
