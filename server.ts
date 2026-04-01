@@ -240,7 +240,7 @@ async function uploadAndCompressImageLocally(base64Data: string, filename: strin
         fit: 'inside',
         withoutEnlargement: true
       })
-      .jpeg({ quality: 80, progressive: false })
+      .jpeg({ quality: 80, progressive: true })
       .toBuffer();
 
     if (!isPersistentFileStorageAvailable()) {
