@@ -10294,27 +10294,22 @@ const MerchantTopupDashboard = () => {
       }
 
       try {
-        const response = await fetch('/api/stores?page=1&pageSize=100', { cache: 'no-store' });
+        const response = await fetch('/api/topup/bootstrap-store', { cache: 'no-store' });
         const data = await response.json();
 
-        if (!Array.isArray(data) || data.length === 0) {
-          console.warn('⚠️ No stores found while resolving topup store');
+        if (!response.ok || !data?.id) {
+          console.warn('⚠️ No topup bootstrap store found');
           setTopupStoreId(null);
           setIsLoading(false);
           return;
         }
 
-        const userStore = user?.store_id
-          ? data.find((store: any) => Number(store.id) === Number(user.store_id))
-          : null;
-        const topupStore = data.find((store: any) => store.store_type === 'topup');
-        const resolvedStore = userStore || topupStore || data[0];
-        const resolvedStoreId = Number(resolvedStore?.id) || null;
+        const resolvedStoreId = Number(data.id) || null;
 
         console.log('🔍 Resolved topup store:', {
           userStoreId: user?.store_id,
           resolvedStoreId,
-          resolvedStoreType: resolvedStore?.store_type,
+          resolvedStoreType: data?.store_type,
         });
 
         setTopupStoreId(resolvedStoreId);

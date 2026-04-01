@@ -1773,6 +1773,30 @@ async function startServer() {
       }
     });
 
+    app.get("/api/topup/bootstrap-store", async (req, res) => {
+      try {
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+
+        const result = await pool.query(`
+          SELECT id, store_name, slug, store_type
+          FROM stores
+          WHERE store_type = 'topup' AND (is_active = true OR is_active IS NULL)
+          ORDER BY id ASC
+          LIMIT 1
+        `);
+
+        if (result.rows.length === 0) {
+          return res.status(404).json({ error: 'No active topup store found' });
+        }
+
+        const store = await withPublicStoreSlug(result.rows[0]);
+        res.json(store);
+      } catch (error) {
+        console.error('❌ Error fetching bootstrap topup store:', error);
+        res.status(500).json({ error: (error as any).message || 'Failed to fetch bootstrap topup store' });
+      }
+    });
+
     // Get ALL stores for admin dashboard (including inactive/suspended)
     app.get("/api/admin/stores", async (req, res) => {
       try {
