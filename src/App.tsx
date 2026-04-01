@@ -10247,6 +10247,7 @@ const MerchantTopupDashboard = () => {
   const [productForm, setProductForm] = useState({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
   const [productImages, setProductImages] = useState<File[]>([]);
   const [existingProductImages, setExistingProductImages] = useState<string[]>([]);
+  const [isLoadingExistingProductImages, setIsLoadingExistingProductImages] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [customerForm, setCustomerForm] = useState({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
@@ -10372,17 +10373,13 @@ const MerchantTopupDashboard = () => {
         return response.json();
       };
 
-      const [comp, prod, cust, ordersData] = await Promise.all([
+      const [comp, prod, ordersData] = await Promise.all([
         fetchWithTimeout(`/api/topup/companies/${targetStoreId}`).catch((err) => {
           console.error('❌ Companies fetch failed:', err.message);
           return null;
         }),
-        fetchWithTimeout(`/api/topup/products/${targetStoreId}`).catch((err) => {
+        fetchWithTimeout(`/api/topup/products/${targetStoreId}?compact=true`).catch((err) => {
           console.error('❌ Products fetch failed:', err.message);
-          return null;
-        }),
-        fetchWithTimeout(`/api/topup/customers/${targetStoreId}`).catch((err) => {
-          console.error('❌ Customers fetch failed:', err.message);
           return null;
         }),
         fetchWithTimeout(`/api/topup/orders?storeId=${targetStoreId}`).catch((err) => {
@@ -10402,29 +10399,23 @@ const MerchantTopupDashboard = () => {
       const nextProducts = Array.isArray(prod)
         ? (prod.length > 0 || lastProductsRef.current.length === 0 ? prod : lastProductsRef.current)
         : lastProductsRef.current;
-      const nextCustomers = Array.isArray(cust)
-        ? (cust.length > 0 || lastCustomersRef.current.length === 0 ? cust : lastCustomersRef.current)
-        : lastCustomersRef.current;
       const nextOrders = Array.isArray(ordersData)
         ? (ordersData.length > 0 || lastOrdersRef.current.length === 0 ? ordersData : lastOrdersRef.current)
         : lastOrdersRef.current;
 
       lastCompaniesRef.current = nextCompanies;
       lastProductsRef.current = nextProducts;
-      lastCustomersRef.current = nextCustomers;
       lastOrdersRef.current = nextOrders;
 
       console.log('📊 Dashboard Data Loaded:', {
         companies: nextCompanies,
         products: nextProducts,
-        customers: nextCustomers,
         orders: nextOrders,
         requestId,
       });
 
       setCompanies(nextCompanies);
       setProducts(nextProducts);
-      setCustomers(nextCustomers);
       setOrders(nextOrders);
 
       // Calculate stats with both products and orders
@@ -10441,6 +10432,23 @@ const MerchantTopupDashboard = () => {
         totalCodes: calculatedStats.totalCodes,
         activeCodes: calculatedStats.totalCodes - calculatedStats.usedCodes
       });
+
+      fetchWithTimeout(`/api/topup/customers/${targetStoreId}`)
+        .then((cust) => {
+          if (refreshRequestIdRef.current !== requestId) {
+            return;
+          }
+
+          const nextCustomers = Array.isArray(cust)
+            ? (cust.length > 0 || lastCustomersRef.current.length === 0 ? cust : lastCustomersRef.current)
+            : lastCustomersRef.current;
+
+          lastCustomersRef.current = nextCustomers;
+          setCustomers(nextCustomers);
+        })
+        .catch((err) => {
+          console.error('❌ Customers fetch failed:', err.message);
+        });
 
       setIsLoading(false);
     } catch (error) {
@@ -10462,7 +10470,7 @@ const MerchantTopupDashboard = () => {
       const timestamp = Date.now();
       const [companiesResponse, productsResponse] = await Promise.all([
         fetch(`/api/topup/companies/${targetStoreId}?_t=${timestamp}`, { cache: 'no-store' }),
-        fetch(`/api/topup/products/${targetStoreId}?_t=${timestamp}`, { cache: 'no-store' }),
+        fetch(`/api/topup/products/${targetStoreId}?compact=true&_t=${timestamp}`, { cache: 'no-store' }),
       ]);
 
       const [companiesData, productsData] = await Promise.all([
@@ -10505,9 +10513,11 @@ const MerchantTopupDashboard = () => {
 
     // Calculate image count from products (matching sidebar logic)
     prod.forEach(p => {
-      const count = (p.images && Array.isArray(p.images)) 
-        ? p.images.filter((img: any) => img && String(img).length > 0).length 
-        : 0;
+      const count = Number(
+        p.images_count ?? ((p.images && Array.isArray(p.images))
+          ? p.images.filter((img: any) => img && String(img).length > 0).length
+          : 0)
+      );
       totalCodes += count;
     });
 
@@ -11089,6 +11099,7 @@ const MerchantTopupDashboard = () => {
     });
     setProductImages([]);
     setExistingProductImages([]);
+    setIsLoadingExistingProductImages(false);
     setIsEditingProduct(null);
     console.log('🎯 About to setShowProductModal(true)');
     setShowProductModal(true);
@@ -11285,10 +11296,11 @@ const MerchantTopupDashboard = () => {
         setProductForm({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
         setProductImages([]);
         setExistingProductImages([]);
+        setIsLoadingExistingProductImages(false);
         
         // Reload products AFTER all images are uploaded
         setTimeout(async () => {
-          const res = await fetch(`/api/topup/products/${topupStoreId}`);
+          const res = await fetch(`/api/topup/products/${topupStoreId}?compact=true`);
           const data = await res.json();
           setProducts(Array.isArray(data) ? data : []);
           
@@ -11421,7 +11433,7 @@ const MerchantTopupDashboard = () => {
         
         // Refresh products with timeout
         try {
-          const updatedRes = await fetchWithTimeout(`/api/topup/products/${topupStoreId}`, {});
+          const updatedRes = await fetchWithTimeout(`/api/topup/products/${topupStoreId}?compact=true`, {});
           const data = await updatedRes.json();
           setProducts(Array.isArray(data) ? data : []);
           console.log('✅ Products refreshed after upload');
@@ -11864,7 +11876,7 @@ const MerchantTopupDashboard = () => {
                             {/* Action Buttons */}
                             <div className="flex gap-2 pt-2">
                               <button 
-                                onClick={() => {
+                                onClick={async () => {
                                   setProductForm({ 
                                     company_id: product.company_id.toString(), 
                                     amount: product.amount.toString(), 
@@ -11874,9 +11886,24 @@ const MerchantTopupDashboard = () => {
                                     quantity_type: product.quantity_type || 'unit' 
                                   });
                                   setProductImages([]);
-                                  setExistingProductImages(productImages);
+                                  setExistingProductImages([]);
+                                  setIsLoadingExistingProductImages(true);
                                   setIsEditingProduct(product.id);
                                   setShowProductModal(true);
+
+                                  try {
+                                    const productResponse = await fetch(`/api/topup/products/${topupStoreId}/${product.id}`, { cache: 'no-store' });
+                                    const productData = await productResponse.json();
+                                    const nextImages = Array.isArray(productData?.images)
+                                      ? productData.images.filter((img: any) => img && String(img).length > 0)
+                                      : [];
+                                    setExistingProductImages(nextImages);
+                                  } catch (error) {
+                                    console.error('❌ Error loading existing product images:', error);
+                                    setExistingProductImages([]);
+                                  } finally {
+                                    setIsLoadingExistingProductImages(false);
+                                  }
                                 }}
                                 className={cn("flex-1 p-2 rounded-lg transition-all flex items-center justify-center gap-1 text-sm font-medium", isDarkMode ? "bg-blue-900/40 text-blue-400 hover:bg-blue-900/60" : "bg-blue-50 text-blue-600 hover:bg-blue-100")}
                               >
@@ -11889,7 +11916,7 @@ const MerchantTopupDashboard = () => {
                                 }}
                                 className={cn("flex-1 p-2 rounded-lg transition-all flex items-center justify-center gap-1 text-sm font-medium", isDarkMode ? "bg-green-900/40 text-green-400 hover:bg-green-900/60" : "bg-green-50 text-green-600 hover:bg-green-100")}
                               >
-                                <Upload size={14} /> أكواد ({product.images?.filter((img: any) => img && String(img).length > 0).length || 0})
+                                <Upload size={14} /> أكواد ({Number(product.images_count ?? (product.images?.filter((img: any) => img && String(img).length > 0).length || 0))})
                               </button>
                               <button 
                                 onClick={async () => {
@@ -11898,7 +11925,7 @@ const MerchantTopupDashboard = () => {
                                     const res = await fetch(`/api/topup/products/${product.id}`, { method: 'DELETE' });
                                     if (res.ok) {
                                       alert('تم الحذف بنجاح');
-                                      const updatedRes = await fetch(`/api/topup/products/${topupStoreId}`);
+                                      const updatedRes = await fetch(`/api/topup/products/${topupStoreId}?compact=true`);
                                       const data = await updatedRes.json();
                                       setProducts(Array.isArray(data) ? data : []);
                                     }
@@ -12037,6 +12064,15 @@ const MerchantTopupDashboard = () => {
                       </div>
 
                       {/* Row 4: Existing Images Display */}
+                      {isLoadingExistingProductImages && (
+                        <div>
+                          <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>📸 الصور الموجودة</label>
+                          <div className={cn("rounded-lg border border-dashed p-6 text-center", isDarkMode ? "border-gray-600 text-gray-400" : "border-gray-300 text-gray-500")}>
+                            جاري تحميل الصور...
+                          </div>
+                        </div>
+                      )}
+
                       {existingProductImages.length > 0 && (
                         <div>
                           <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>📸 الصور الموجودة</label>
