@@ -73,11 +73,25 @@ const MerchantDashboard = () => {
     fulfillmentStats: { total: 0, pending: 0, completed: 0 },
     topProducts: []
   });
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 700 : false);
   const { section } = useParams();
   const navigate = useNavigate();
   
   console.log('🔧 MerchantDashboard - section:', section, 'orders length:', orders.length);
   const logoUploadRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 700);
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
 
   const filteredProducts = Array.isArray(products) ? products.filter(p => 
     (p.name && p.name.toLowerCase().includes(dashboardQuery.toLowerCase())) ||
