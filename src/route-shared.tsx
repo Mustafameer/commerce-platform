@@ -351,6 +351,7 @@ const MobileFooterNav = () => {
 
   const isActive = (path: string) => location.pathname === path;
   const isDashboardActive = isDashboardRouteActive(location.pathname, user);
+  const hideDashboardShortcut = location.pathname === '/';
 
   return (
     <>
@@ -373,27 +374,29 @@ const MobileFooterNav = () => {
               </div>
             </Link>
           ))}
-          <button
-            onClick={() => {
-              if (user) {
-                setShowDashboardMenu(true);
-                return;
-              }
-              setShowLoginMessage(true);
-            }}
-            className={cn(
-              'relative min-w-[72px] flex-1 rounded-2xl px-2 py-2 text-center transition-colors',
-              isDashboardActive
-                ? (isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-indigo-50 text-indigo-600')
-                : (isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'),
-            )}
-            aria-label={user ? 'فتح الداشبورد' : 'تسجيل الدخول'}
-          >
-            <div className="flex flex-col items-center gap-1">
-              <LayoutDashboard size={18} className="flex-shrink-0" />
-              <span className="text-[10px] leading-tight line-clamp-2">{user ? 'الداشبورد' : 'الدخول'}</span>
-            </div>
-          </button>
+          {!hideDashboardShortcut && (
+            <button
+              onClick={() => {
+                if (user) {
+                  setShowDashboardMenu(true);
+                  return;
+                }
+                setShowLoginMessage(true);
+              }}
+              className={cn(
+                'relative min-w-[72px] flex-1 rounded-2xl px-2 py-2 text-center transition-colors',
+                isDashboardActive
+                  ? (isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-indigo-50 text-indigo-600')
+                  : (isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'),
+              )}
+              aria-label={user ? 'فتح الداشبورد' : 'تسجيل الدخول'}
+            >
+              <div className="flex flex-col items-center gap-1">
+                <LayoutDashboard size={18} className="flex-shrink-0" />
+                <span className="text-[10px] leading-tight line-clamp-2">{user ? 'الداشبورد' : 'الدخول'}</span>
+              </div>
+            </button>
+          )}
         </div>
       </div>
       {user && (
