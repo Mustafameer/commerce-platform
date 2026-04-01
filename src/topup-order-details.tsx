@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { downloadOrganizedImages, resolveRenderableImageUrl } from './organized-image-download';
+import { RenderableImage, buildRenderableImageSources } from './renderable-image';
 import { useTheme } from './theme';
 
 function cn(...inputs: ClassValue[]) {
@@ -34,7 +35,7 @@ export const TopupOrderDetails = () => {
   const [orderImages, setOrderImages] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [copied, setCopied] = React.useState(false);
-  const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
+  const [selectedImageSources, setSelectedImageSources] = React.useState<string[]>([]);
   const [isDownloadingImages, setIsDownloadingImages] = React.useState(false);
 
   const hydrateOrderImagesForDisplay = React.useCallback(async (images: any[]) => {
@@ -230,23 +231,16 @@ export const TopupOrderDetails = () => {
             {orderImages.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {orderImages.map((image, idx) => {
-                  const imageUrl = image.image_url || image.display_url || image;
+                  const imageSources = buildRenderableImageSources(image.display_url, image.image_url, image.url, image);
                   const imageTitle = image.product_name || image.amount || `صورة ${idx + 1}`;
                   return (
                     <button
-                      key={`${imageUrl}-${idx}`}
+                      key={`${imageSources[0] || idx}-${idx}`}
                       type="button"
-                      onClick={() => setSelectedImage(imageUrl)}
+                      onClick={() => setSelectedImageSources(imageSources)}
                       className={cn('rounded-lg border overflow-hidden text-right transition-all', isDarkMode ? 'bg-gray-700 border-gray-600 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-400')}
                     >
-                      <img
-                        src={imageUrl}
-                        alt={imageTitle}
-                        className="w-full h-28 object-cover"
-                        onError={(e: any) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
+                      <RenderableImage sources={imageSources} alt={imageTitle} className="w-full h-28 object-cover" />
                       <div className="p-2 space-y-1">
                         <p className={cn('text-xs font-normal', isDarkMode ? 'text-gray-200' : 'text-gray-800')}>{image.company_name || 'شركة غير محددة'}</p>
                         <p className={cn('text-[11px]', isDarkMode ? 'text-gray-400' : 'text-gray-600')}>{imageTitle}</p>
@@ -285,11 +279,11 @@ export const TopupOrderDetails = () => {
           ← العودة للمتجر
         </button>
 
-        {selectedImage && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setSelectedImage(null)}>
+        {selectedImageSources.length > 0 && (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setSelectedImageSources([])}>
             <div className="max-w-3xl w-full" onClick={e => e.stopPropagation()}>
-              <img src={selectedImage} alt="الصورة المحددة" className="w-full max-h-[85vh] object-contain rounded-xl" />
-              <button onClick={() => setSelectedImage(null)} className="w-full mt-4 py-3 rounded-lg font-normal bg-white text-gray-900">
+              <RenderableImage sources={selectedImageSources} alt="الصورة المحددة" className="w-full max-h-[85vh] object-contain rounded-xl" />
+              <button onClick={() => setSelectedImageSources([])} className="w-full mt-4 py-3 rounded-lg font-normal bg-white text-gray-900">
                 إغلاق الصورة
               </button>
             </div>

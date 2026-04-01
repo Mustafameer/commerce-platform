@@ -54,6 +54,7 @@ import { useAuthStore, useRegularCartStore, useSettingsStore, useSearchStore, us
 import type { User, Store, Product, Order } from './types';
 import { resolveApiBaseUrl } from './api';
 import { downloadOrganizedImages, resolveRenderableImageUrl } from './organized-image-download';
+import { RenderableImage, buildRenderableImageSources } from './renderable-image';
 import { ThemeProvider, useTheme } from './theme';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -691,7 +692,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [orderConfirmation, setOrderConfirmation] = useState<any>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImageSources, setSelectedImageSources] = useState<string[]>([]);
   const [showImageModal, setShowImageModal] = useState(false);
   const [customerType, setCustomerType] = useState<'cash' | 'reseller' | null>(null);
   const [isVerifyingCustomer, setIsVerifyingCustomer] = useState(false);
@@ -1320,14 +1321,15 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
       await refreshTopupCustomerDebtAfterCheckout(customerId);
       
       if (orderConfirmations.length > 0) {
-        const confirmation = await hydrateOrderConfirmationImages({
+        const rawConfirmation = {
           type: 'topup',
           confirmations: orderConfirmations,
           totalAmount: subtotal - discount
-        });
+        };
+        const confirmation = await hydrateOrderConfirmationImages(rawConfirmation);
         setOrderConfirmation(confirmation);
         // حفظ في localStorage حتى يتمكن العميل من الوصول للأكواد لاحقاً
-        localStorage.setItem('orderConfirmation', JSON.stringify(confirmation));
+        localStorage.setItem('orderConfirmation', JSON.stringify(rawConfirmation));
         console.log('💾 Saved order confirmation to localStorage');
       } else {
         clearCart();
@@ -1588,10 +1590,10 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                     {availableCodes.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {availableCodes.map((imageObj: any, cIdx: number) => {
-                          const imageUrl = imageObj.image_url || imageObj.display_url || imageObj;
+                          const imageSources = buildRenderableImageSources(imageObj.display_url, imageObj.image_url, imageObj.url, imageObj);
                           return (
-                            <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImage(imageUrl); setShowImageModal(true); }}>
-                              <img src={imageUrl} alt={`صورة ${cIdx + 1}`} className="w-16 h-16 object-cover rounded-lg border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(e: any) => e.target.style.display = 'none'} />
+                            <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImageSources(imageSources); setShowImageModal(true); }}>
+                              <RenderableImage sources={imageSources} alt={`صورة ${cIdx + 1}`} className="w-16 h-16 object-cover rounded-lg border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" />
                             </div>
                           );
                         })}
@@ -1653,10 +1655,10 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                           {availableCodes.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                               {availableCodes.map((imageObj: any, cIdx: number) => {
-                                const imageUrl = imageObj.image_url || imageObj.display_url || imageObj;
+                                const imageSources = buildRenderableImageSources(imageObj.display_url, imageObj.image_url, imageObj.url, imageObj);
                                 return (
-                                  <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImage(imageUrl); setShowImageModal(true); }}>
-                                    <img src={imageUrl} alt={`صورة ${cIdx + 1}`} className="w-12 h-12 object-cover rounded border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(e: any) => e.target.style.display = 'none'} />
+                                  <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImageSources(imageSources); setShowImageModal(true); }}>
+                                    <RenderableImage sources={imageSources} alt={`صورة ${cIdx + 1}`} className="w-12 h-12 object-cover rounded border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" />
                                   </div>
                                 );
                               })}
@@ -1704,16 +1706,16 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
           </div>
 
           {/* Image Lightbox Modal */}
-          {showImageModal && selectedImage && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setShowImageModal(false)}>
+          {showImageModal && selectedImageSources.length > 0 && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => { setShowImageModal(false); setSelectedImageSources([]); }}>
               <div className="relative max-w-2xl max-h-screen" onClick={(e) => e.stopPropagation()}>
                 <button
-                  onClick={() => setShowImageModal(false)}
+                  onClick={() => { setShowImageModal(false); setSelectedImageSources([]); }}
                   className="absolute -top-10 right-0 text-white text-2xl font-bold hover:text-gray-300"
                 >
                   ✕
                 </button>
-                <img src={selectedImage} alt="صورة كاملة" className="w-full h-full object-contain rounded-lg" onError={(e: any) => e.target.style.display = 'none'} />
+                <RenderableImage sources={selectedImageSources} alt="صورة كاملة" className="w-full h-full object-contain rounded-lg" />
               </div>
             </div>
           )}
