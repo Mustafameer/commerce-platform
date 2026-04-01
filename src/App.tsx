@@ -10258,7 +10258,10 @@ const MerchantTopupDashboard = () => {
   const [storeInfo, setStoreInfo] = useState<any>(null);
 
   // Store ID - for topup system, use user's store_id if available, otherwise find first topup store
-  const [topupStoreId, setTopupStoreId] = useState<number | null>(null);
+  const [topupStoreId, setTopupStoreId] = useState<number | null>(() => {
+    const assignedStoreId = Number(user?.store_id);
+    return assignedStoreId > 0 ? assignedStoreId : null;
+  });
 
   // Clean up old localStorage entries on mount
   useEffect(() => {
@@ -10274,7 +10277,7 @@ const MerchantTopupDashboard = () => {
 
   useEffect(() => {
     const resolveTopupStoreId = async () => {
-      if (user?.role === 'merchant' && user?.store_type === 'topup' && Number(user?.store_id) > 0) {
+      if (user?.role === 'merchant' && Number(user?.store_id) > 0) {
         const assignedStoreId = Number(user.store_id);
         console.log('✅ Using merchant assigned topup store directly:', assignedStoreId);
         setTopupStoreId(assignedStoreId);
@@ -10319,6 +10322,19 @@ const MerchantTopupDashboard = () => {
 
     resolveTopupStoreId();
   }, [user?.role, user?.store_id, user?.store_type]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      return;
+    }
+
+    const loadingTimeout = window.setTimeout(() => {
+      console.warn('⏱️ MerchantTopupDashboard loading timeout reached, forcing UI to render');
+      setIsLoading(false);
+    }, 4000);
+
+    return () => window.clearTimeout(loadingTimeout);
+  }, [isLoading]);
 
   // Function to refresh dashboard data
   const refreshDashboardData = async () => {
