@@ -10247,7 +10247,7 @@ const MerchantTopupDashboard = () => {
   const [productForm, setProductForm] = useState({ company_id: '', amount: '', price: '', bulk_price: '', quantity_type: 'unit', category_id: '' });
   const [productImages, setProductImages] = useState<File[]>([]);
   const [productImagePreviews, setProductImagePreviews] = useState<string[]>([]);
-  const [existingProductImages, setExistingProductImages] = useState<string[]>([]);
+  const [existingProductImages, setExistingProductImages] = useState<Array<{ id: number | null; src: string; imageUrl: string | null }>>([]);
   const [isLoadingExistingProductImages, setIsLoadingExistingProductImages] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -11884,12 +11884,20 @@ const MerchantTopupDashboard = () => {
                                     const nextImages = Array.isArray(imagesData?.images)
                                       ? imagesData.images
                                           .map((img: any) => {
-                                            if (img?.image_data) {
-                                              return `data:${img.image_type || 'image/jpeg'};base64,${img.image_data}`;
+                                            const src = img?.image_data
+                                              ? `data:${img.image_type || 'image/jpeg'};base64,${img.image_data}`
+                                              : (img?.image_url || img?.image_url_original || null);
+                                            if (!src) {
+                                              return null;
                                             }
-                                            return img?.image_url || null;
+
+                                            return {
+                                              id: Number.isFinite(Number(img?.id)) ? Number(img.id) : null,
+                                              src,
+                                              imageUrl: img?.image_url || null,
+                                            };
                                           })
-                                          .filter((img: any) => img && String(img).length > 0)
+                                          .filter((img: any) => img && String(img.src).length > 0)
                                       : [];
                                     setExistingProductImages(nextImages);
                                   } catch (error) {
@@ -12088,10 +12096,10 @@ const MerchantTopupDashboard = () => {
                         <div>
                           <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>📸 الصور الموجودة</label>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                            {existingProductImages.map((imageUrl, index) => (
-                              <div key={`existing-${index}`} className="relative group">
+                            {existingProductImages.map((image, index) => (
+                              <div key={`existing-${image.id ?? index}`} className="relative group">
                                 <img 
-                                  src={imageUrl} 
+                                  src={image.src} 
                                   alt={`Existing ${index + 1}`}
                                   className={cn("w-full h-24 object-cover rounded-lg border", isDarkMode ? "border-gray-600" : "border-gray-300")}
                                 />
@@ -12111,14 +12119,15 @@ const MerchantTopupDashboard = () => {
                                     }
 
                                     try {
-                                      console.log('🗑️ Deleting image:', imageUrl);
+                                      console.log('🗑️ Deleting image:', image);
                                       
                                       const deleteRes = await fetch(`/api/topup/products/${isEditingProduct}/remove-image`, {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({
                                           store_id: topupStoreId,
-                                          image_url: imageUrl
+                                          image_id: image.id,
+                                          image_url: image.imageUrl || image.src
                                         })
                                       });
 
@@ -12139,7 +12148,7 @@ const MerchantTopupDashboard = () => {
                                       alert('❌ خطأ في حذف الصورة');
                                     }
                                   }}
-                                  className={cn("absolute top-1 right-1 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity", isDarkMode ? "bg-red-900 text-red-200 hover:bg-red-800" : "bg-red-600 text-white hover:bg-red-700")}
+                                  className={cn("absolute top-1 right-1 p-1 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity", isDarkMode ? "bg-red-900 text-red-200 hover:bg-red-800" : "bg-red-600 text-white hover:bg-red-700")}
                                   title="حذف الصورة"
                                 >
                                   <X size={16} />

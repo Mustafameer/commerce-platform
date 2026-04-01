@@ -7160,22 +7160,36 @@ async function startServer() {
         const hasStoreId = availableColumns.has('store_id');
         const hasProductId = availableColumns.has('product_id');
 
-        let queryText = `SELECT id, image_data, image_url, image_url_original, image_type, created_at, uploaded_at FROM topup_product_images WHERE 1 = 0`;
+        const selectedColumns = ['id'];
+        if (availableColumns.has('image_data')) selectedColumns.push('image_data');
+        if (availableColumns.has('image_url')) selectedColumns.push('image_url');
+        if (availableColumns.has('image_url_original')) selectedColumns.push('image_url_original');
+        if (availableColumns.has('image_type')) selectedColumns.push('image_type');
+        if (availableColumns.has('created_at')) selectedColumns.push('created_at');
+        if (availableColumns.has('uploaded_at')) selectedColumns.push('uploaded_at');
+
+        const orderBy = availableColumns.has('uploaded_at')
+          ? `COALESCE(uploaded_at, ${availableColumns.has('created_at') ? 'created_at' : 'CURRENT_TIMESTAMP'}) ASC, id ASC`
+          : availableColumns.has('created_at')
+            ? 'created_at ASC, id ASC'
+            : 'id ASC';
+
+        let queryText = `SELECT ${selectedColumns.join(', ')} FROM topup_product_images WHERE 1 = 0`;
         let queryValues: any[] = [];
 
         if (hasTopupProductId) {
           queryText = `
-            SELECT id, image_data, image_url, image_url_original, image_type, created_at, uploaded_at
+            SELECT ${selectedColumns.join(', ')}
             FROM topup_product_images
             WHERE topup_product_id = $1
-            ORDER BY COALESCE(uploaded_at, created_at) ASC, id ASC`;
+            ORDER BY ${orderBy}`;
           queryValues = [parseInt(productId)];
         } else if (hasStoreId && hasProductId) {
           queryText = `
-            SELECT id, image_data, image_url, image_url_original, image_type, created_at, uploaded_at
+            SELECT ${selectedColumns.join(', ')}
             FROM topup_product_images
             WHERE store_id = $1 AND product_id = $2
-            ORDER BY COALESCE(uploaded_at, created_at) ASC, id ASC`;
+            ORDER BY ${orderBy}`;
           queryValues = [parseInt(storeId), parseInt(productId)];
         }
         
@@ -7221,13 +7235,13 @@ async function startServer() {
     app.post("/api/topup/products/:productId/remove-image", async (req, res) => {
       try {
         const { productId } = req.params;
-        const { store_id, image_url } = req.body;
+        const { store_id, image_url, image_id } = req.body;
 
-        if (!store_id || !image_url) {
-          return res.status(400).json({ error: "Missing store_id or image_url" });
+        if (!store_id || (!image_url && !image_id)) {
+          return res.status(400).json({ error: "Missing store_id or image reference" });
         }
 
-        console.log(`ًں—‘ï¸ڈ Deleting image: ${image_url}`);
+        console.log('Deleting image:', { productId, store_id, image_id, image_url });
 
         // Get current images array from product
         const productResult = await pool.query(
@@ -7242,10 +7256,12 @@ async function startServer() {
         const currentImages = productResult.rows[0].images || [];
         
         // Remove this image from the array
-        const updatedImages = currentImages.filter((img: string) => img !== image_url);
+        const updatedImages = image_url
+          ? currentImages.filter((img: string) => img !== image_url)
+          : currentImages;
 
         // Delete the file from filesystem if it's from our uploads
-        if (image_url.includes('/uploads/')) {
+        if (image_url && image_url.includes('/uploads/')) {
           try {
             const filePath = path.join(__dirname, image_url);
             if (fs.existsSync(filePath)) {
@@ -7267,21 +7283,35 @@ async function startServer() {
         const hasTopupProductId = availableColumns.has('topup_product_id');
         const hasStoreId = availableColumns.has('store_id');
         const hasProductId = availableColumns.has('product_id');
+        const hasId = availableColumns.has('id');
+        const hasImageUrl = availableColumns.has('image_url');
 
         // Delete from topup_product_images table
         try {
-          if (hasTopupProductId) {
+          if (image_id && hasId && hasTopupProductId) {
+            await pool.query(
+              `DELETE FROM topup_product_images WHERE id = $1 AND topup_product_id = $2`,
+              [image_id, productId]
+            );
+          } else if (image_id && hasId && hasStoreId && hasProductId) {
+            await pool.query(
+              `DELETE FROM topup_product_images WHERE id = $1 AND store_id = $2 AND product_id = $3`,
+              [image_id, store_id, productId]
+            );
+          } else if (hasTopupProductId && hasImageUrl) {
             await pool.query(
               `DELETE FROM topup_product_images WHERE topup_product_id = $1 AND image_url = $2`,
               [productId, image_url]
             );
-          } else if (hasStoreId && hasProductId) {
+          } else if (hasStoreId && hasProductId && hasImageUrl) {
             await pool.query(
               `DELETE FROM topup_product_images WHERE store_id = $1 AND product_id = $2 AND image_url = $3`,
               [store_id, productId, image_url]
             );
+          } else {
+            return res.status(500).json({ error: "No supported delete path for current topup_product_images schema" });
           }
-          console.log(`âœ… Deleted from topup_product_images: ${image_url}`);
+          console.log('Deleted from topup_product_images:', { image_id, image_url });
         } catch (dbErr) {
           console.warn(`âڑ ï¸ڈ Could not delete from database: ${image_url}`, dbErr);
         }
