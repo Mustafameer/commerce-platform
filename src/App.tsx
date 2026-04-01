@@ -73,11 +73,11 @@ const AnimatedLogoFrame = ({
 }) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.92, y: 6 }}
-    animate={{ opacity: 1, scale: [1, 1.06, 1], y: 0 }}
+    animate={{ opacity: [1, 0.35, 1], scale: [1, 1.06, 1], y: 0 }}
     transition={{
-      opacity: { duration: 0.45, ease: 'easeOut' },
       y: { duration: 0.45, ease: 'easeOut' },
       scale: { duration: 2.8, repeat: Infinity, ease: 'easeInOut' },
+      opacity: { duration: 2.8, repeat: Infinity, ease: 'easeInOut' },
     }}
     whileHover={{ scale: 1.1, y: -2 }}
     className={cn('relative isolate overflow-hidden', className)}
