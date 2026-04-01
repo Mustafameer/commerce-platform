@@ -10215,6 +10215,11 @@ const MerchantTopupDashboard = () => {
   const [customers, setCustomers] = useState<any[]>([]);
   const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0, totalCodes: 0, activeCodes: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const lastCompaniesRef = useRef<any[]>([]);
+  const lastProductsRef = useRef<any[]>([]);
+  const lastCustomersRef = useRef<any[]>([]);
+  const lastOrdersRef = useRef<any[]>([]);
+  const refreshRequestIdRef = useRef(0);
 
   // Modal states
   const [showCompanyModal, setShowCompanyModal] = useState(false);
@@ -10308,6 +10313,9 @@ const MerchantTopupDashboard = () => {
 
   // Function to refresh dashboard data
   const refreshDashboardData = async () => {
+    const requestId = refreshRequestIdRef.current + 1;
+    refreshRequestIdRef.current = requestId;
+
     try {
       // ⛔ CRITICAL: Validate topupStoreId before making ANY API calls
       if (!topupStoreId || topupStoreId === null || topupStoreId === undefined) {
@@ -10317,65 +10325,88 @@ const MerchantTopupDashboard = () => {
 
       console.log('🔄 Refreshing dashboard data for store:', topupStoreId);
 
-      // Add timeout to prevent hanging
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('API request timeout')), 10000)
-      );
-
-      const fetchWithTimeout = (url: string) =>
-        Promise.race([
-          fetch(url)
-            .then(r => {
-              if (!r.ok) {
-                console.error(`❌ API returned ${r.status}:`, r.statusText);
-                throw new Error(`HTTP ${r.status}`);
-              }
-              return r.json();
-            }),
-          timeout
+      const timestamp = Date.now();
+      const fetchWithTimeout = async (url: string) => {
+        const response = await Promise.race([
+          fetch(`${url}${url.includes('?') ? '&' : '?'}_t=${timestamp}`, { cache: 'no-store' }),
+          new Promise<Response>((_, reject) =>
+            setTimeout(() => reject(new Error('API request timeout')), 10000)
+          )
         ]);
+
+        if (!response.ok) {
+          console.error(`❌ API returned ${response.status}:`, response.statusText);
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        return response.json();
+      };
 
       const [comp, prod, cust, ordersData] = await Promise.all([
         fetchWithTimeout(`/api/topup/companies/${topupStoreId}`).catch((err) => {
           console.error('❌ Companies fetch failed:', err.message);
-          return [];
+          return null;
         }),
         fetchWithTimeout(`/api/topup/products/${topupStoreId}`).catch((err) => {
           console.error('❌ Products fetch failed:', err.message);
-          return [];
+          return null;
         }),
         fetchWithTimeout(`/api/topup/customers/${topupStoreId}`).catch((err) => {
           console.error('❌ Customers fetch failed:', err.message);
-          return [];
+          return null;
         }),
         fetchWithTimeout(`/api/topup/orders?storeId=${topupStoreId}`).catch((err) => {
           console.error('❌ Orders fetch failed:', err.message);
-          return [];
+          return null;
         }),
       ]);
 
+      if (refreshRequestIdRef.current !== requestId) {
+        console.log('⏭️ Ignoring stale dashboard response for store:', topupStoreId, 'request:', requestId);
+        return;
+      }
+
+      const nextCompanies = Array.isArray(comp)
+        ? (comp.length > 0 || lastCompaniesRef.current.length === 0 ? comp : lastCompaniesRef.current)
+        : lastCompaniesRef.current;
+      const nextProducts = Array.isArray(prod)
+        ? (prod.length > 0 || lastProductsRef.current.length === 0 ? prod : lastProductsRef.current)
+        : lastProductsRef.current;
+      const nextCustomers = Array.isArray(cust)
+        ? (cust.length > 0 || lastCustomersRef.current.length === 0 ? cust : lastCustomersRef.current)
+        : lastCustomersRef.current;
+      const nextOrders = Array.isArray(ordersData)
+        ? (ordersData.length > 0 || lastOrdersRef.current.length === 0 ? ordersData : lastOrdersRef.current)
+        : lastOrdersRef.current;
+
+      lastCompaniesRef.current = nextCompanies;
+      lastProductsRef.current = nextProducts;
+      lastCustomersRef.current = nextCustomers;
+      lastOrdersRef.current = nextOrders;
+
       console.log('📊 Dashboard Data Loaded:', {
-        companies: comp,
-        products: prod,
-        customers: cust,
-        orders: ordersData
+        companies: nextCompanies,
+        products: nextProducts,
+        customers: nextCustomers,
+        orders: nextOrders,
+        requestId,
       });
 
-      setCompanies(Array.isArray(comp) ? comp : []);
-      setProducts(Array.isArray(prod) ? prod : []);
-      setCustomers(Array.isArray(cust) ? cust : []);
-      setOrders(Array.isArray(ordersData) ? ordersData : []);
+      setCompanies(nextCompanies);
+      setProducts(nextProducts);
+      setCustomers(nextCustomers);
+      setOrders(nextOrders);
 
       // Calculate stats with both products and orders
       const calculatedStats = calculateStats(
-        Array.isArray(prod) ? prod : [],
-        Array.isArray(ordersData) ? ordersData : []
+        nextProducts,
+        nextOrders
       );
 
       console.log('📈 Calculated Stats:', calculatedStats);
 
       setStats({
-        totalOrders: Array.isArray(ordersData) ? ordersData.length : 0,
+        totalOrders: nextOrders.length,
         totalRevenue: calculatedStats.totalRevenue,
         totalCodes: calculatedStats.totalCodes,
         activeCodes: calculatedStats.totalCodes - calculatedStats.usedCodes
