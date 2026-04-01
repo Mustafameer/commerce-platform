@@ -10220,6 +10220,7 @@ const MerchantTopupDashboard = () => {
   const lastCustomersRef = useRef<any[]>([]);
   const lastOrdersRef = useRef<any[]>([]);
   const refreshRequestIdRef = useRef(0);
+  const catalogRequestIdRef = useRef(0);
 
   // Modal states
   const [showCompanyModal, setShowCompanyModal] = useState(false);
@@ -10453,6 +10454,49 @@ const MerchantTopupDashboard = () => {
     }
   };
 
+  const refreshMerchantCatalogData = async () => {
+    const targetStoreId = effectiveTopupStoreId;
+    const requestId = catalogRequestIdRef.current + 1;
+    catalogRequestIdRef.current = requestId;
+
+    if (!targetStoreId) {
+      return;
+    }
+
+    try {
+      const timestamp = Date.now();
+      const [companiesResponse, productsResponse] = await Promise.all([
+        fetch(`/api/topup/companies/${targetStoreId}?_t=${timestamp}`, { cache: 'no-store' }),
+        fetch(`/api/topup/products/${targetStoreId}?_t=${timestamp}`, { cache: 'no-store' }),
+      ]);
+
+      const [companiesData, productsData] = await Promise.all([
+        companiesResponse.ok ? companiesResponse.json() : Promise.resolve(null),
+        productsResponse.ok ? productsResponse.json() : Promise.resolve(null),
+      ]);
+
+      if (catalogRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      if (Array.isArray(companiesData)) {
+        lastCompaniesRef.current = companiesData;
+        setCompanies(companiesData);
+      }
+
+      if (Array.isArray(productsData)) {
+        lastProductsRef.current = productsData;
+        setProducts(productsData);
+      }
+
+      if (Array.isArray(companiesData) || Array.isArray(productsData)) {
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error('❌ Error refreshing merchant catalog data:', error);
+    }
+  };
+
   const handleLogout = () => {
     setUser(null);
     useSettingsStore.getState().resetSettings();
@@ -10562,6 +10606,16 @@ const MerchantTopupDashboard = () => {
 
     return () => clearInterval(interval);
   }, [section, effectiveTopupStoreId, user, user?.id]);
+
+  useEffect(() => {
+    if (!effectiveTopupStoreId) {
+      return;
+    }
+
+    if (currentSection === 'companies' || currentSection === 'products' || currentSection === 'overview') {
+      refreshMerchantCatalogData();
+    }
+  }, [currentSection, effectiveTopupStoreId]);
 
   // Fetch store settings on mount
   useEffect(() => {
