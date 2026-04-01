@@ -1588,7 +1588,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                     {availableCodes.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {availableCodes.map((imageObj: any, cIdx: number) => {
-                          const imageUrl = imageObj.display_url || imageObj.image_url || imageObj;
+                          const imageUrl = imageObj.image_url || imageObj.display_url || imageObj;
                           return (
                             <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImage(imageUrl); setShowImageModal(true); }}>
                               <img src={imageUrl} alt={`صورة ${cIdx + 1}`} className="w-16 h-16 object-cover rounded-lg border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(e: any) => e.target.style.display = 'none'} />
@@ -1653,7 +1653,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
                           {availableCodes.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                               {availableCodes.map((imageObj: any, cIdx: number) => {
-                                const imageUrl = imageObj.display_url || imageObj.image_url || imageObj;
+                                const imageUrl = imageObj.image_url || imageObj.display_url || imageObj;
                                 return (
                                   <div key={cIdx} className="cursor-pointer" onClick={() => { setSelectedImage(imageUrl); setShowImageModal(true); }}>
                                     <img src={imageUrl} alt={`صورة ${cIdx + 1}`} className="w-12 h-12 object-cover rounded border border-gray-300 hover:border-blue-500 hover:scale-105 transition-all" onError={(e: any) => e.target.style.display = 'none'} />

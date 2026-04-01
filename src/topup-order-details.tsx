@@ -230,7 +230,7 @@ export const TopupOrderDetails = () => {
             {orderImages.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {orderImages.map((image, idx) => {
-                  const imageUrl = image.display_url || image.image_url || image;
+                  const imageUrl = image.image_url || image.display_url || image;
                   const imageTitle = image.product_name || image.amount || `صورة ${idx + 1}`;
                   return (
                     <button
