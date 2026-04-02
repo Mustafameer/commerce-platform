@@ -103,12 +103,40 @@ const MerchantDashboard = () => {
     c.name && c.name.toLowerCase().includes(dashboardQuery.toLowerCase())
   ) : [];
 
-  const filteredOrders = Array.isArray(orders) ? orders.filter(o => true) : [];
+  const normalizedDashboardQuery = dashboardQuery.trim().toLowerCase();
+  const matchesDashboardQuery = (value: unknown) => String(value ?? '').toLowerCase().includes(normalizedDashboardQuery);
 
-  const filteredCustomers = Array.isArray(customers) ? customers.filter(c => 
-    (c.name && c.name.toLowerCase().includes(dashboardQuery.toLowerCase())) ||
-    (c.phone || '').includes(dashboardQuery)
-  ) : [];
+  const filteredOrders = Array.isArray(orders) ? orders.filter(order => {
+    if (!normalizedDashboardQuery) return true;
+
+    const searchableValues = [
+      order.id,
+      order.status,
+      order.payment_status,
+      order.total_amount,
+      order.total,
+      order.phone,
+      order.customer_phone,
+      order.name,
+      order.customer_name,
+      order.address,
+      order.customer_address,
+      order.notes,
+      order.created_at ? new Date(order.created_at).toLocaleDateString('en-US') : '',
+      order.status === 'pending' ? 'بانتظار التجهيز' : '',
+      order.status === 'pending' ? 'لم يتم الشحن بعد' : '',
+      order.status === 'completed' ? 'تم التجهيز' : '',
+      order.status === 'completed' ? 'تم الشحن' : '',
+      order.status === 'cancelled' ? 'ملغي' : ''
+    ];
+
+    return searchableValues.some(matchesDashboardQuery);
+  }) : [];
+
+  const filteredCustomers = Array.isArray(customers) ? customers.filter(customer => {
+    if (!normalizedDashboardQuery) return true;
+    return matchesDashboardQuery(customer.phone);
+  }) : [];
 
   const filteredCoupons = Array.isArray(coupons) ? coupons.filter(c => 
     (c.code && c.code.toLowerCase().includes(dashboardQuery.toLowerCase()))
@@ -1765,7 +1793,7 @@ const MerchantDashboard = () => {
         </div>
         <div className="flex items-center gap-3">
           <div className={cn("px-4 py-1.5 rounded-full text-xs font-normal", isDarkMode ? "bg-indigo-900/30 text-indigo-300" : "bg-indigo-50 text-indigo-700")}>
-            {customers.length} عميل
+            {filteredCustomers.length} عميل
           </div>
           {isTopupStore && (
             <Button 
@@ -1805,13 +1833,13 @@ const MerchantDashboard = () => {
             </tr>
           </thead>
           <tbody className={cn(isDarkMode ? "divide-gray-800" : "divide-gray-50")}> 
-            {customers.length === 0 ? (
+            {filteredCustomers.length === 0 ? (
               <tr>
                 <td colSpan={isTopupStore ? 6 : 4} className="px-6 py-12 text-center">
-                  <div className="text-gray-400 text-sm font-normal">{isTopupStore ? 'لا توجد عملاء بعد. أضف عميلاً جديداً' : 'لا توجد طلبات عملاء لعرضها بعد'}</div>
+                  <div className="text-gray-400 text-sm font-normal">{dashboardQuery ? 'لا توجد نتائج تطابق رقم الهاتف.' : (isTopupStore ? 'لا توجد عملاء بعد. أضف عميلاً جديداً' : 'لا توجد طلبات عملاء لعرضها بعد')}</div>
                 </td>
               </tr>
-            ) : customers.map((cust) => {
+            ) : filteredCustomers.map((cust) => {
               if (isTopupStore) {
                 // Topup Store View
                 return (
