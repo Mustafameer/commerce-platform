@@ -3171,18 +3171,16 @@ const AdminDashboard = () => {
       adminCommission: stats.adminCommission || 0,
       adminCommissionPercentage: stats.adminCommissionPercentage || 0,
       totalUsers: stats.totalUsers || 0,
-      totalCustomers: stats.totalCustomers || 0,
       totalOrders: stats.totalOrders || 0,
       totalStores: stats.totalStores || 0,
     };
 
     return (
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
         {[
-          { label: 'إجمالي المبيعات', value: formatCurrency(safeStats.totalRevenue), icon: CreditCard, color: 'bg-indigo-600', textColor: 'text-indigo-600' },
+          { label: 'إجمالي المبيعات', value: formatCurrency(safeStats.totalRevenue), icon: CreditCard, color: 'bg-indigo-600', textColor: 'text-indigo-600', subtext: 'للمتاجر الخاضعة للنسبة' },
           { label: 'عمولة الآدمن', value: formatCurrency(safeStats.adminCommission), icon: TrendingUp, color: 'bg-emerald-600', textColor: 'text-emerald-600', subtext: `${safeStats.adminCommissionPercentage}%` },
-          { label: 'إجمالي العملاء', value: safeStats.totalCustomers, icon: Users, color: 'bg-purple-600', textColor: 'text-purple-600' },
-          { label: 'إجمالي الطلبات', value: safeStats.totalOrders, icon: ShoppingCart, color: 'bg-amber-600', textColor: 'text-amber-600' },
+          { label: 'إجمالي الطلبات', value: safeStats.totalOrders, icon: ShoppingCart, color: 'bg-amber-600', textColor: 'text-amber-600', subtext: 'للمتاجر الخاضعة للنسبة' },
           { label: 'عدد المتاجر', value: safeStats.totalStores, icon: StoreIcon, color: 'bg-blue-600', textColor: 'text-blue-600' },
         ].map((stat) => (
           <Card key={stat.label} className={cn("p-6 flex flex-col items-start gap-3", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-black/5")}> 
@@ -6110,14 +6108,15 @@ const MerchantDashboard = () => {
             </div>
 
             <div className="space-y-2">
-               <label className="text-sm font-normal text-gray-700 block mr-1">حد الاستخدام (اختياري)</label>
+              <label className={cn("text-sm font-semibold block mr-1 leading-6", isDarkMode ? "text-white" : "text-gray-800")}>حد الاستخدام (اختياري)</label>
                <input 
                 type="number" 
                 value={couponForm.usage_limit}
                 onChange={(e) => setCouponForm({...couponForm, usage_limit: e.target.value})}
                 placeholder="مثلاً: 100 مرة"
-                className="w-full px-5 py-4 bg-gray-50 border border-black/5 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-normal outline-none"
+                className={cn("w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium outline-none placeholder:opacity-100", isDarkMode ? "bg-slate-700 border-slate-500 text-white placeholder:text-slate-200" : "bg-gray-50 border-black/5 text-gray-900 placeholder:text-gray-500")}
               />
+              <p className={cn("text-xs mr-1", isDarkMode ? "text-slate-200" : "text-gray-500")}>اتركه فارغاً إذا لم ترد تحديد عدد مرات الاستخدام.</p>
             </div>
           </div>
 
@@ -7884,19 +7883,6 @@ const CustomerStorefront = () => {
     return matchesSearch && matchesCategory && matchesNew;
   });
 
-  console.log('📊 AFTER FILTER - Filtered products count:', filteredProducts.length);
-  console.log('🔍 FILTERED PRODUCTS DEBUG:', filteredProducts.slice(0, 5).map(p => ({
-    id: p.id,
-    name: p.name,
-    image_url: p.image_url,
-    image_url_length: p.image_url ? String(p.image_url).length : 0,
-    has_image: !!p.image_url,
-    category_name: (p as any).category_name
-  })));
-  filteredProducts.slice(0, 3).forEach(p => {
-    console.log('  Product item:', { id: p.id, name: p.name, image_url: p.image_url, hasImage: !!p.image_url });
-  });
-
   useEffect(() => {
     // Always load admin settings first for the main page
     fetch('/api/settings?role=admin')
@@ -7918,24 +7904,24 @@ const CustomerStorefront = () => {
       try {
         console.log('🔄 Loading store and products for store reference:', storeId);
         const storeRes = await fetch(`/api/stores/slug/${storeId}`).then(r => r.json());
-        
+
         if (storeRes && storeRes.error) {
           console.error('Store not found:', storeRes.error);
           setProducts([]);
           return;
         }
-        
+
         console.log('✅ Store loaded:', { id: storeRes.id, name: storeRes.store_name, type: storeRes.store_type });
-        
+
         // If this is a regular (non-topup) store, clear topup customer data
         if (storeRes.store_type !== 'topup') {
           console.log('🧹 Clearing topupCustomer as entering regular store');
           localStorage.removeItem('topupCustomer');
         }
-        
+
         let productsRes = [];
         const actualStoreId = storeRes.id;
-        
+
         // Use the correct endpoint based on store type
         if (storeRes && storeRes.store_type === 'topup') {
           // Topup store: Use /api/topup/products endpoint (includes retail_price & wholesale_price)
@@ -7957,9 +7943,9 @@ const CustomerStorefront = () => {
               store_type: 'regular',
               image_url: p.image_url || ''
             };
-            console.log('🔄 MAPPED Product:', { 
-              id: mapped.id, 
-              name: mapped.name, 
+            console.log('🔄 MAPPED Product:', {
+              id: mapped.id,
+              name: mapped.name,
               image_url: mapped.image_url,
               image_url_exists: !!p.image_url,
               original_p: p
@@ -7975,7 +7961,7 @@ const CustomerStorefront = () => {
           setDisplayLogoUrl(storeRes.store_logo || storeRes.logo_url || '');
           const isTopup = storeRes.store_type === 'topup';
           setStoreType(isTopup ? 'topup' : 'regular');
-          
+
           // اذا كان المتجر topup، اعد التوجيه إلى TopupStorefront
           if (isTopup) {
             console.log('🔄 Store is topup, redirecting to /topup/:storeId');
@@ -7987,7 +7973,7 @@ const CustomerStorefront = () => {
         const rows = Array.isArray(productsRes) ? productsRes : [];
         console.log('✅ Products loaded:', { count: rows.length, samples: rows.slice(0, 2).map(p => ({ id: p.id, name: p.name, image_url: p.image_url })) });
         setProducts(rows);
-        
+
         // Reset selectedProduct when products are loaded to avoid stale state
         setSelectedProduct(null);
       } catch (err) {
@@ -8511,9 +8497,9 @@ const CustomerStorefront = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-3">
                   {productsByCategory[category].map((product) => {
                     const hasImage = !!product.image_url;
-                    console.log('🎨 RENDERING CARD:', { 
-                      id: product.id, 
-                      name: product.name, 
+                    console.log('🎨 RENDERING CARD:', {
+                      id: product.id,
+                      name: product.name,
                       image_url: product.image_url,
                       image_url_type: typeof product.image_url,
                       image_url_length: product.image_url ? String(product.image_url).length : 0,
@@ -13418,9 +13404,8 @@ const TopupStorefront = () => {
       let storeId = rawStoreId;
       const storeNum = parseInt(rawStoreId || '0');
 
-      console.log(`🔍 Determining store ID from rawStoreId: "${rawStoreId}" (parsed: ${storeNum})`);
-
       if (!isNaN(storeNum) && storeNum > 0) {
+        console.log(`🔍 Determining store ID from rawStoreId: "${rawStoreId}" (parsed: ${storeNum})`);
         storeId = String(storeNum);
         console.log(`✅ Using explicit numeric topup store ID: ${storeId}`);
       } else if (isNaN(storeNum)) {
@@ -13429,15 +13414,15 @@ const TopupStorefront = () => {
           console.log(`🔍 Looking up store by slug/name: "${rawStoreId}"`);
           const res = await fetch('/api/stores?page=1&pageSize=100');
           const stores = await res.json();
-          
+
           // Try to find by store_name or slug
-          const foundStore = Array.isArray(stores) ? stores.find((s: any) => 
-            s.store_name === rawStoreId || 
-            s.slug === rawStoreId || 
+          const foundStore = Array.isArray(stores) ? stores.find((s: any) =>
+            s.store_name === rawStoreId ||
+            s.slug === rawStoreId ||
             s.name === rawStoreId ||
             (s.store_name && s.store_name.toLowerCase().includes(rawStoreId.toLowerCase()))
           ) : null;
-          
+
           if (foundStore) {
             storeId = String(foundStore.id);
             console.log(`✅ Found store by name: ${storeId}`);
@@ -14569,7 +14554,7 @@ const TopupStorefront = () => {
               <div className="flex-1 text-center">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-normal leading-tight">
                   {storeInfo?.store_name ? storeInfo.store_name : 'متجر بطاقات الشحن'}
-                  {console.log('🔍 Store Name Debug:', { store_name: storeInfo?.store_name, storeInfo })}
+                    {console.log('🔍 Store Name Debug:', { store_name: storeInfo?.store_name, storeInfo })}
                 </h1>
                 <p className={cn("mt-1 text-xs sm:text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>
                   {storeInfo?.description || 'اختر شركتك المفضلة وقيمة الشحن'}
@@ -14950,7 +14935,7 @@ const TopupStorefront = () => {
                   ? product.images.filter((img: any) => img && String(img).length > 0)
                   : [];
                 const imagesCount = productImages.length;
-                
+
                 // Log all products for debugging
                 console.log(`📋 Product ${product.id}: amount=${product.amount}, price=${product.price}, images=${imagesCount}`, product);
 

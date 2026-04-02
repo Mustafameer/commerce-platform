@@ -3477,10 +3477,28 @@ async function startServer() {
       try {
         const salesStatuses = ['pending', 'completed'];
         const storesResult = await pool.query("SELECT COUNT(*) as count FROM stores");
-        const ordersResult = await pool.query("SELECT COUNT(*) as count FROM orders WHERE status = ANY($1::text[])", [salesStatuses]);
+        const ordersResult = await pool.query(
+          `SELECT COUNT(*) as count
+           FROM orders o
+           INNER JOIN stores s ON o.store_id = s.id
+           WHERE o.status = ANY($1::text[])
+             AND s.percentage_enabled = true
+             AND s.commission_enabled_at IS NOT NULL
+             AND o.created_at >= s.commission_enabled_at`,
+          [salesStatuses]
+        );
         const customersResult = await pool.query("SELECT COUNT(DISTINCT customer_id) as count FROM orders WHERE customer_id IS NOT NULL AND status = ANY($1::text[])", [salesStatuses]);
         const usersResult = await pool.query("SELECT COUNT(*) as count FROM users");
-        const revenueResult = await pool.query("SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE status = ANY($1::text[])", [salesStatuses]);
+        const revenueResult = await pool.query(
+          `SELECT COALESCE(SUM(o.total_amount), 0) as total
+           FROM orders o
+           INNER JOIN stores s ON o.store_id = s.id
+           WHERE o.status = ANY($1::text[])
+             AND s.percentage_enabled = true
+             AND s.commission_enabled_at IS NOT NULL
+             AND o.created_at >= s.commission_enabled_at`,
+          [salesStatuses]
+        );
         
         // Calculate commission from stores that have percentage_enabled = true across sales orders.
         const commissionPerStoreResult = await pool.query(`
