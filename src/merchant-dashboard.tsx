@@ -604,6 +604,11 @@ const MerchantDashboard = () => {
     await fetchSalesReport({ from: salesDateFrom, to: salesDateTo, saleType: salesTypeFilter });
   };
 
+  const handleSalesTypeFilterChange = async (saleType: 'all' | 'order' | 'auction') => {
+    setSalesTypeFilter(saleType);
+    await fetchSalesReport({ from: salesDateFrom, to: salesDateTo, saleType });
+  };
+
   const handleResetSalesFilters = async () => {
     setSalesDateFrom('');
     setSalesDateTo('');
@@ -2645,6 +2650,8 @@ const MerchantDashboard = () => {
       saleType: salesTypeFilter
     };
     const countLabel = reportSummary.saleType === 'auction' ? 'عدد المزادات' : reportSummary.saleType === 'order' ? 'عدد الطلبات' : 'عدد العمليات';
+    const averageLabel = reportSummary.saleType === 'auction' ? 'متوسط المزاد' : reportSummary.saleType === 'order' ? 'متوسط الطلب' : 'متوسط العملية';
+    const itemCountLabel = reportSummary.saleType === 'auction' ? 'مزاد' : reportSummary.saleType === 'order' ? 'طلب' : 'عملية';
 
     return (
     <AnimatePresence>
@@ -2708,7 +2715,7 @@ const MerchantDashboard = () => {
                     {[
                       { label: 'إجمالي المبيعات', value: formatCurrency(reportSummary.totalRevenue || 0), color: 'from-blue-500/25 to-blue-700/10' },
                       { label: countLabel, value: reportSummary.totalOrders || 0, color: 'from-emerald-500/25 to-emerald-700/10' },
-                      { label: 'متوسط الطلب', value: formatCurrency(reportSummary.averageOrder || 0), color: 'from-indigo-500/25 to-indigo-700/10' },
+                      { label: averageLabel, value: formatCurrency(reportSummary.averageOrder || 0), color: 'from-indigo-500/25 to-indigo-700/10' },
                     ].map((stat) => (
                       <div key={stat.label} className={cn("p-4 rounded-2xl border border-slate-700 bg-gradient-to-br min-h-[118px] flex flex-col justify-center", stat.color)}>
                         <p className="text-[11px] font-normal text-slate-200 mb-2">{stat.label}</p>
@@ -2779,12 +2786,14 @@ const MerchantDashboard = () => {
                         ] as const).map((option) => (
                           <button
                             key={option.value}
-                            onClick={() => setSalesTypeFilter(option.value)}
+                            onClick={() => handleSalesTypeFilterChange(option.value)}
+                            disabled={isLoadingSalesData}
                             className={cn(
                               "px-3 py-2 rounded-xl font-normal text-sm transition-all border",
                               salesTypeFilter === option.value
                                 ? "bg-emerald-600 text-white border-emerald-600"
-                                : "border-slate-600 text-white hover:bg-slate-700"
+                                : "border-slate-600 text-white hover:bg-slate-700",
+                              isLoadingSalesData && "opacity-60 cursor-not-allowed"
                             )}
                           >
                             {option.label}
@@ -2831,7 +2840,7 @@ const MerchantDashboard = () => {
                               ></motion.div>
                             </div>
                             <div className="flex justify-between text-[10px] text-slate-300 font-normal">
-                              <span>{item.order_count} عملية</span>
+                              <span>{item.order_count} {itemCountLabel}</span>
                               <span>{(percentage).toFixed(1)}%</span>
                             </div>
                           </div>
