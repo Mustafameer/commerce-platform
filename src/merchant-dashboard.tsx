@@ -2150,6 +2150,8 @@ const MerchantDashboard = () => {
 
   const renderCouponModal = () => {
     if (!showCouponModal) return null;
+    const couponModalLabelClass = cn("text-sm font-bold block mr-1 leading-6 tracking-tight", isDarkMode ? "!text-white drop-shadow-sm" : "text-gray-900");
+
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 font-sans" dir="rtl">
         <motion.div 
@@ -2169,7 +2171,7 @@ const MerchantDashboard = () => {
 
           <div className="p-8 space-y-6">
             <div className="space-y-2">
-              <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`رمز الخصم (Code)`}</label>
+              <label className={couponModalLabelClass}>{`رمز الخصم (Code)`}</label>
               <input 
                 type="text" 
                 value={couponForm.code}
@@ -2181,7 +2183,7 @@ const MerchantDashboard = () => {
 
             <div className="grid grid-cols-2 gap-4">
                <div className="space-y-2">
-                  <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`نوع الخصم`}</label>
+                <label className={couponModalLabelClass}>{`نوع الخصم`}</label>
                   <select 
                     value={couponForm.discount_type}
                     onChange={(e) => setCouponForm({...couponForm, discount_type: e.target.value})}
@@ -2192,7 +2194,7 @@ const MerchantDashboard = () => {
                   </select>
                </div>
                <div className="space-y-2">
-                  <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`قيمة الخصم`}</label>
+                  <label className={couponModalLabelClass}>{`قيمة الخصم`}</label>
                   <input 
                     type="number" 
                     value={Math.floor(parseFloat(String(couponForm.discount_value) || '0'))}
@@ -2205,7 +2207,7 @@ const MerchantDashboard = () => {
 
             <div className="grid grid-cols-2 gap-4">
                <div className="space-y-2">
-                  <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`الحد الأدنى للطلب`}</label>
+            <label className={couponModalLabelClass}>{`الحد الأدنى للطلب`}</label>
                   <input 
                     type="number" 
                     value={Math.floor(parseFloat(String(couponForm.min_order_value) || '0'))}
@@ -2215,7 +2217,7 @@ const MerchantDashboard = () => {
                   />
                </div>
                <div className="space-y-2">
-                  <label className={cn("text-sm font-normal block mr-1", isDarkMode ? "text-gray-300" : "text-gray-700")}>{`تاريخ الانتهاء`}</label>
+                  <label className={couponModalLabelClass}>{`تاريخ الانتهاء`}</label>
                   <div className="relative">
                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input 
@@ -2229,14 +2231,15 @@ const MerchantDashboard = () => {
             </div>
 
             <div className="space-y-2">
-               <label className="text-sm font-normal text-gray-700 block mr-1">حد الاستخدام (اختياري)</label>
+              <label className={couponModalLabelClass}>حد الاستخدام (اختياري)</label>
                <input 
                 type="number" 
                 value={couponForm.usage_limit}
                 onChange={(e) => setCouponForm({...couponForm, usage_limit: e.target.value})}
                 placeholder="مثلاً: 100 مرة"
-                className="w-full px-5 py-4 bg-gray-50 border border-black/5 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-normal outline-none"
+                className={cn("w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium outline-none placeholder:opacity-100", isDarkMode ? "bg-slate-700 border-slate-500 text-white placeholder:text-slate-200" : "bg-gray-50 border-black/5 text-gray-900 placeholder:text-gray-500")}
               />
+              <p className={cn("text-xs mr-1", isDarkMode ? "text-slate-200" : "text-gray-500")}>اتركه فارغاً إذا لم ترد تحديد عدد مرات الاستخدام.</p>
             </div>
           </div>
 
