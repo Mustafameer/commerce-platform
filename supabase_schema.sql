@@ -192,6 +192,17 @@ CREATE TABLE IF NOT EXISTS topup_products (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS order_images (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  topup_product_id INTEGER REFERENCES topup_products(id) ON DELETE SET NULL,
+  image_url TEXT NOT NULL,
+  image_data TEXT,
+  is_used BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(order_id, topup_product_id, image_url)
+);
+
 -- ==========================================
 -- AUCTIONS TABLE
 -- ==========================================

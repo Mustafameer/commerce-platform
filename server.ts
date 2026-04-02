@@ -661,6 +661,17 @@ async function initDb() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE TABLE IF NOT EXISTS order_images (
+        id SERIAL PRIMARY KEY,
+        order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        topup_product_id INTEGER REFERENCES topup_products(id) ON DELETE SET NULL,
+        image_url TEXT NOT NULL,
+        image_data TEXT,
+        is_used BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(order_id, topup_product_id, image_url)
+      );
+
       CREATE TABLE IF NOT EXISTS auctions (
         id SERIAL PRIMARY KEY,
         product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
@@ -835,6 +846,67 @@ async function runMigrations() {
       WHERE percentage_enabled = true AND commission_enabled_at IS NULL
     `);
     console.log("âœ… Migration: Backfilled commission_enabled_at for enabled stores");
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS order_images (
+        id SERIAL PRIMARY KEY,
+        order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        topup_product_id INTEGER REFERENCES topup_products(id) ON DELETE SET NULL,
+        image_url TEXT NOT NULL,
+        image_data TEXT,
+        is_used BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(order_id, topup_product_id, image_url)
+      )
+    `);
+    await pool.query(`ALTER TABLE order_images ADD COLUMN IF NOT EXISTS image_data TEXT`);
+    await pool.query(`ALTER TABLE order_images ADD COLUMN IF NOT EXISTS is_used BOOLEAN DEFAULT FALSE`);
+    await pool.query(`ALTER TABLE order_images ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+    await pool.query(`ALTER TABLE order_images ALTER COLUMN image_url TYPE TEXT`);
+
+    await pool.query(`
+      DELETE FROM order_images oi
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM orders o
+        WHERE o.id = oi.order_id
+      )
+    `);
+    await pool.query(`
+      DELETE FROM order_images oi
+      WHERE oi.topup_product_id IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM topup_products tp
+          WHERE tp.id = oi.topup_product_id
+        )
+    `);
+
+    await pool.query(`
+      DELETE FROM order_images a
+      USING order_images b
+      WHERE a.id < b.id
+        AND a.order_id = b.order_id
+        AND COALESCE(a.topup_product_id, -1) = COALESCE(b.topup_product_id, -1)
+        AND a.image_url = b.image_url
+    `);
+
+    await pool.query(`ALTER TABLE order_images DROP CONSTRAINT IF EXISTS order_images_order_id_fkey`);
+    await pool.query(`ALTER TABLE order_images DROP CONSTRAINT IF EXISTS order_images_topup_product_id_fkey`);
+    await pool.query(`
+      ALTER TABLE order_images
+      ADD CONSTRAINT order_images_order_id_fkey
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+    `);
+    await pool.query(`
+      ALTER TABLE order_images
+      ADD CONSTRAINT order_images_topup_product_id_fkey
+      FOREIGN KEY (topup_product_id) REFERENCES topup_products(id) ON DELETE SET NULL
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_order_images_order_id ON order_images(order_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_order_images_topup_product_id ON order_images(topup_product_id)`);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_order_images_unique_entry ON order_images(order_id, topup_product_id, image_url)`);
+    console.log("âœ… Migration: order_images cleaned and protected with cascading foreign keys");
 
     // Fix orders foreign key to support cascading delete
     try {

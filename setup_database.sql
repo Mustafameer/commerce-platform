@@ -99,6 +99,17 @@ CREATE TABLE IF NOT EXISTS order_items (
     price DECIMAL(10, 2)
 );
 
+CREATE TABLE IF NOT EXISTS order_images (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    topup_product_id INTEGER,
+    image_url TEXT NOT NULL,
+    image_data TEXT,
+    is_used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(order_id, topup_product_id, image_url)
+);
+
 CREATE TABLE IF NOT EXISTS app_settings (
     id SERIAL PRIMARY KEY,
     store_id INTEGER UNIQUE REFERENCES stores(id) ON DELETE CASCADE,
@@ -139,6 +150,7 @@ CREATE INDEX IF NOT EXISTS idx_categories_store_id ON categories(store_id);
 CREATE INDEX IF NOT EXISTS idx_orders_store_id ON orders(store_id);
 CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_images_order_id ON order_images(order_id);
 
 -- Display success message
 SELECT 'Database setup completed successfully!' as status;
