@@ -3788,26 +3788,84 @@ async function startServer() {
 
     // Delete store (hard delete - remove from database)
     app.delete("/api/admin/delete-store/:id", async (req, res) => {
+      const client = await pool.connect();
       try {
         const { id } = req.params;
-        
-        // Hard delete: actually remove the store from database
-        const result = await pool.query(
+        const storeId = parseInt(id);
+
+        if (isNaN(storeId) || storeId <= 0) {
+          return res.status(400).json({ error: "Invalid store ID" });
+        }
+
+        await client.query('BEGIN');
+
+        const storeLookup = await client.query(
+          "SELECT id, owner_id, store_name FROM stores WHERE id = $1",
+          [storeId]
+        );
+
+        if (storeLookup.rows.length === 0) {
+          await client.query('ROLLBACK');
+          return res.status(404).json({ error: "Store not found" });
+        }
+
+        const store = storeLookup.rows[0];
+        const ownerId = store.owner_id ? Number(store.owner_id) : null;
+
+        // Hard delete: actually remove the store and all cascaded store data
+        const result = await client.query(
           "DELETE FROM stores WHERE id = $1 RETURNING id, store_name",
-          [parseInt(id)]
+          [storeId]
         );
         
         if (result.rows.length === 0) {
+          await client.query('ROLLBACK');
           return res.status(404).json({ error: "Store not found" });
         }
+
+        let deletedMerchantUserId: number | null = null;
+        if (ownerId) {
+          const merchantDelete = await client.query(
+            `DELETE FROM users u
+             WHERE u.id = $1
+               AND u.role = 'merchant'
+               AND NOT EXISTS (
+                 SELECT 1
+                 FROM stores s
+                 WHERE s.owner_id = u.id OR s.id = u.store_id
+               )
+             RETURNING u.id`,
+            [ownerId]
+          );
+          deletedMerchantUserId = merchantDelete.rows[0]?.id || null;
+        }
+
+        const deletedCustomersResult = await client.query(
+          `DELETE FROM users u
+           WHERE u.role = 'customer'
+             AND NOT EXISTS (
+               SELECT 1
+               FROM orders o
+               WHERE o.customer_id = u.id
+             )
+           RETURNING u.id`,
+          []
+        );
+
+        await client.query('COMMIT');
         
         res.json({ 
           message: "Store deleted successfully", 
           storeId: result.rows[0].id,
-          storeName: result.rows[0].store_name 
+          storeName: result.rows[0].store_name,
+          deletedMerchantUserId,
+          deletedCustomerUsers: deletedCustomersResult.rowCount || 0,
         });
       } catch (error) {
+        await client.query('ROLLBACK');
         res.status(500).json({ error: (error as any).message });
+      } finally {
+        client.release();
       }
     });
 
