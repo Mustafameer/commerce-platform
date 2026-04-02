@@ -2824,7 +2824,7 @@ async function startServer() {
             <title>فاتورة الطلب #${order.id}</title>
             <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;700&display=swap" rel="stylesheet">
             <style>
-              body { font-family: 'El Messiri', 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 14px; margin: 20px; direction: rtl; }
+              body { font-family: 'El Messiri', 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 16px; margin: 20px; direction: rtl; }
               .invoice { max-width: 600px; margin: 0 auto; }
               .header { text-align: center; margin-bottom: 30px; }
               .header { display: flex; flex-direction: column; align-items: center; gap: 15px; }
