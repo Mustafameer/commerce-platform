@@ -525,6 +525,7 @@ async function initDb() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         is_active BOOLEAN DEFAULT FALSE,
         percentage_enabled BOOLEAN DEFAULT FALSE,
+        commission_enabled_at TIMESTAMP,
         subscription_paid BOOLEAN DEFAULT FALSE,
         commission_percentage DECIMAL(5, 2) DEFAULT 0,
         primary_color TEXT DEFAULT '#4F46E5'
@@ -783,6 +784,12 @@ async function runMigrations() {
       ADD COLUMN IF NOT EXISTS percentage_enabled BOOLEAN DEFAULT FALSE;
     `);
     console.log("âœ… Migration: percentage_enabled column ensured in stores");
+
+    await pool.query(`
+      ALTER TABLE stores
+      ADD COLUMN IF NOT EXISTS commission_enabled_at TIMESTAMP;
+    `);
+    console.log("âœ… Migration: commission_enabled_at column ensured in stores");
     
     // Add subscription_paid column to stores if it doesn't exist
     await pool.query(`
@@ -821,6 +828,13 @@ async function runMigrations() {
         END
     `);
     console.log("âœ… Migration: Set default percentage_enabled and commission_percentage");
+
+    await pool.query(`
+      UPDATE stores
+      SET commission_enabled_at = COALESCE(commission_enabled_at, updated_at, created_at, CURRENT_TIMESTAMP)
+      WHERE percentage_enabled = true AND commission_enabled_at IS NULL
+    `);
+    console.log("âœ… Migration: Backfilled commission_enabled_at for enabled stores");
 
     // Fix orders foreign key to support cascading delete
     try {
@@ -3192,11 +3206,12 @@ async function startServer() {
 
         // Get store info for commission calculation
         const storeResult = await pool.query(
-          "SELECT percentage_enabled, commission_percentage, total_regular_sales, store_type FROM stores WHERE id = $1",
+          "SELECT percentage_enabled, commission_percentage, commission_enabled_at, total_regular_sales, store_type FROM stores WHERE id = $1",
           [storeIdNum]
         );
         const percentageEnabled = storeResult.rows.length > 0 ? storeResult.rows[0].percentage_enabled : false;
         const commissionPercentage = storeResult.rows.length > 0 ? parseFloat(storeResult.rows[0].commission_percentage) : 0;
+        const commissionEnabledAt = storeResult.rows.length > 0 ? storeResult.rows[0].commission_enabled_at : null;
         const auctionSalesRevenue = await syncStoreAuctionSalesTotal(storeIdNum);
         const storeType = storeResult.rows.length > 0 ? storeResult.rows[0].store_type : null;
 
@@ -3210,8 +3225,17 @@ async function startServer() {
         
         // Calculate admin commission
         let adminCommission = 0;
-        if (percentageEnabled && commissionPercentage > 0) {
-          adminCommission = Math.floor(totalRevenue * (commissionPercentage / 100));
+        if (percentageEnabled && commissionPercentage > 0 && commissionEnabledAt) {
+          const commissionableOrdersResult = await pool.query(
+            "SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE store_id = $1 AND status = 'completed' AND created_at >= $2",
+            [storeIdNum, commissionEnabledAt]
+          );
+          const commissionableAuctionsResult = await pool.query(
+            "SELECT COALESCE(SUM(final_sale_price), 0) as total FROM auctions WHERE store_id = $1 AND sold_at IS NOT NULL AND sold_at >= $2",
+            [storeIdNum, commissionEnabledAt]
+          );
+          const commissionableRevenue = parseFloat(commissionableOrdersResult.rows[0].total) + parseFloat(commissionableAuctionsResult.rows[0].total);
+          adminCommission = Math.floor(commissionableRevenue * (commissionPercentage / 100));
         }
         const netRevenue = totalRevenue - adminCommission;
 
@@ -3464,11 +3488,15 @@ async function startServer() {
             s.id,
             s.percentage_enabled,
             s.commission_percentage,
+            s.commission_enabled_at,
             COALESCE(SUM(o.total_amount), 0) as store_revenue
           FROM stores s
-          LEFT JOIN orders o ON s.id = o.store_id AND o.status = ANY($1::text[])
+          LEFT JOIN orders o ON s.id = o.store_id
+            AND o.status = ANY($1::text[])
+            AND s.commission_enabled_at IS NOT NULL
+            AND o.created_at >= s.commission_enabled_at
           WHERE s.is_active = true
-          GROUP BY s.id, s.percentage_enabled, s.commission_percentage
+          GROUP BY s.id, s.percentage_enabled, s.commission_percentage, s.commission_enabled_at
         `, [salesStatuses]);
         
         let totalAdminCommission = 0;
@@ -3476,8 +3504,9 @@ async function startServer() {
           const storeRevenue = parseFloat(row.store_revenue);
           const commissionPercent = parseFloat(row.commission_percentage);
           const percentageEnabled = row.percentage_enabled;
+          const commissionEnabledAt = row.commission_enabled_at;
           
-          if (percentageEnabled && commissionPercent > 0 && storeRevenue > 0) {
+          if (percentageEnabled && commissionEnabledAt && commissionPercent > 0 && storeRevenue > 0) {
             const commission = Math.floor(storeRevenue * (commissionPercent / 100));
             totalAdminCommission += commission;
             console.log(`ًں“ٹ Store ${row.id}: Revenue=${storeRevenue}, Commission%=${commissionPercent}, Commission=${commission}`);
@@ -3713,11 +3742,12 @@ async function startServer() {
             s.subscription_paid,
             s.percentage_enabled,
             s.commission_percentage,
+            s.commission_enabled_at,
             COALESCE(s.owner_name, u.name, 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ') as owner_name,
             s.owner_phone,
             c.name as customer_name,
             CASE 
-              WHEN s.percentage_enabled = true AND s.commission_percentage > 0 THEN 
+              WHEN s.percentage_enabled = true AND s.commission_percentage > 0 AND s.commission_enabled_at IS NOT NULL AND o.created_at >= s.commission_enabled_at THEN 
                 FLOOR(CAST(o.total_amount AS DECIMAL) * (CAST(s.commission_percentage AS DECIMAL) / 100))
               ELSE 0 
             END as commission_amount
@@ -4929,6 +4959,17 @@ async function startServer() {
         if (isNaN(storeId) || storeId <= 0) {
           return res.status(400).json({ error: "Invalid store ID" });
         }
+
+        const existingStoreResult = await pool.query(
+          "SELECT percentage_enabled FROM stores WHERE id = $1",
+          [storeId]
+        );
+
+        if (existingStoreResult.rows.length === 0) {
+          return res.status(404).json({ error: "Store not found" });
+        }
+
+        const wasPercentageEnabled = existingStoreResult.rows[0].percentage_enabled === true;
         
         // Build the update query dynamically based on provided fields
         const updates = [];
@@ -4953,9 +4994,16 @@ async function startServer() {
         }
         
         if (percentage_enabled !== undefined) {
+          const nextPercentageEnabled = percentage_enabled === true;
           updates.push(`percentage_enabled = $${paramCount}`);
-          values.push(percentage_enabled);
+          values.push(nextPercentageEnabled);
           paramCount++;
+
+          if (!wasPercentageEnabled && nextPercentageEnabled) {
+            updates.push(`commission_enabled_at = CURRENT_TIMESTAMP`);
+          } else if (wasPercentageEnabled && !nextPercentageEnabled) {
+            updates.push(`commission_enabled_at = NULL`);
+          }
         }
         
         if (updates.length === 0) {
