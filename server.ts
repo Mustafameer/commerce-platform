@@ -2816,12 +2816,15 @@ async function startServer() {
         
         const html = `
           <!DOCTYPE html>
-          <html>
+          <html lang="ar" dir="rtl">
           <head>
             <meta charset="UTF-8">
+            <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>فاتورة الطلب #${order.id}</title>
             <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;700&display=swap" rel="stylesheet">
             <style>
-              body { font-family: 'El Messiri', serif; font-size: 14px; margin: 20px; direction: rtl; }
+              body { font-family: 'El Messiri', 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 14px; margin: 20px; direction: rtl; }
               .invoice { max-width: 600px; margin: 0 auto; }
               .header { text-align: center; margin-bottom: 30px; }
               .header { display: flex; flex-direction: column; align-items: center; gap: 15px; }
@@ -2830,7 +2833,7 @@ async function startServer() {
               .customer-info { margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px; }
               .customer-info h3 { margin: 0 0 10px 0; font-size: 14px; font-weight: bold; }
               .info { margin-bottom: 20px; }
-              .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+              .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; gap: 12px; }
               table { width: 100%; border-collapse: collapse; margin: 20px 0; }
               th, td { padding: 10px; text-align: right; border-bottom: 1px solid #ddd; }
               th { background: #f5f5f5; }
@@ -2838,36 +2841,36 @@ async function startServer() {
               .footer { text-align: center; margin-top: 30px; color: #666; }
             </style>
           </head>
-          <body dir="rtl">
+          <body>
             <div class="invoice">
               <div class="header">
-                ${order.logo_url ? `<img src="${order.logo_url}" alt="ط´ط¹ط§ط± ط§ظ„ظ…طھط¬ط±">` : ''}
-                <h1>${order.store_name || 'ظ…طھط¬ط±'}</h1>
+                ${order.logo_url ? `<img src="${order.logo_url}" alt="شعار المتجر">` : ''}
+                <h1>${order.store_name || 'متجر'}</h1>
               </div>
-              <div class="info" dir="rtl">
+              <div class="info">
                 <div class="info-row">
-                  <span>ط±ظ‚ظ… ط§ظ„ط·ظ„ط¨: ${order.id}</span>
-                  <span>ط§ظ„طھط§ط±ظٹط®: ${new Date(order.created_at).toLocaleDateString('ar-SA')}</span>
+                  <span>رقم الطلب: ${order.id}</span>
+                  <span>التاريخ: ${new Date(order.created_at).toLocaleDateString('ar-SA')}</span>
                 </div>
                 <div class="info-row">
-                  <span>ط§ظ„ظ…طھط¬ط±: ${order.store_name || 'ظ…طھط¬ط±'}</span>
-                  <span>ط§ظ„ط­ط§ظ„ط©: ${order.status}</span>
+                  <span>المتجر: ${order.store_name || 'متجر'}</span>
+                  <span>الحالة: ${order.status}</span>
                 </div>
               </div>
               <div class="customer-info">
-                <h3>ًں”¹ ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ط¹ظ…ظٹظ„</h3>
+                <h3>معلومات العميل</h3>
                 <div class="info-row">
-                  <span>ط§ظ„ظ‡ط§طھظپ: ${order.phone || '---'}</span>
+                  <span>الهاتف: ${order.phone || '---'}</span>
                 </div>
                 <div class="info-row">
-                  <span>ط§ظ„ط¹ظ†ظˆط§ظ†: ${order.address || 'ظ„ظ… ظٹطھظ… طھط­ط¯ظٹط¯ ط¹ظ†ظˆط§ظ†'}</span>
+                  <span>العنوان: ${order.address || 'لم يتم تحديد عنوان'}</span>
                 </div>
               </div>
-              <table dir="rtl" style="text-align: right;">
+              <table>
                 <tr>
-                  <th>ط§ظ„ظ…ظ†طھط¬</th>
-                  <th>ط§ظ„ظƒظ…ظٹط©</th>
-                  <th>ط§ظ„ط³ط¹ط±</th>
+                  <th>المنتج</th>
+                  <th>الكمية</th>
+                  <th>السعر</th>
                 </tr>
                 ${itemsResult.rows.map(item => `
                   <tr>
@@ -2877,20 +2880,20 @@ async function startServer() {
                   </tr>
                 `).join('')}
                 <tr style="font-weight: bold; background: #f5f5f5;">
-                  <td>ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ</td>
+                  <td>الإجمالي</td>
                   <td></td>
                   <td>${formatCurrency(order.total_amount)}</td>
                 </tr>
                 ${order.discount_amount > 0 ? `
                   <tr style="color: green;">
-                    <td>ط§ظ„ط®طµظ…</td>
+                    <td>الخصم</td>
                     <td></td>
                     <td>-${formatCurrency(order.discount_amount)}</td>
                   </tr>
                 ` : ''}
               </table>
               <div class="footer">
-                <p>ط´ظƒط±ط§ظ‹ ظ„طھط¹ط§ظ…ظ„ظƒ ظ…ط¹ظ†ط§</p>
+                <p>شكراً لتعاملك معنا</p>
               </div>
             </div>
             <script>
