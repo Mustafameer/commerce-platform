@@ -711,6 +711,8 @@ export const DashboardLayout = ({ children, title, role, counts }: { children: R
 // --- Pages ---
 
 type CartMode = 'regular' | 'topup';
+const TOPUP_ORDER_CONFIRMATION_STORAGE_KEY = 'topupOrderConfirmation';
+const LEGACY_TOPUP_ORDER_CONFIRMATION_STORAGE_KEY = 'orderConfirmation';
 
 const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
   const regularCart = useRegularCartStore();
@@ -744,7 +746,15 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
     let isMounted = true;
 
     const loadSavedOrderConfirmation = async () => {
-      const savedOrderConfirmation = localStorage.getItem('orderConfirmation');
+      if (!isTopupCart) {
+        if (isMounted) {
+          setOrderConfirmation(null);
+        }
+        return;
+      }
+
+      const savedOrderConfirmation = localStorage.getItem(TOPUP_ORDER_CONFIRMATION_STORAGE_KEY)
+        || localStorage.getItem(LEGACY_TOPUP_ORDER_CONFIRMATION_STORAGE_KEY);
       if (!savedOrderConfirmation) {
         return;
       }
@@ -757,6 +767,8 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
         }
 
         setOrderConfirmation(hydratedConfirmation);
+        localStorage.setItem(TOPUP_ORDER_CONFIRMATION_STORAGE_KEY, JSON.stringify(confirmation));
+        localStorage.removeItem(LEGACY_TOPUP_ORDER_CONFIRMATION_STORAGE_KEY);
         console.log('📦 Loaded order confirmation from localStorage:', hydratedConfirmation);
       } catch (err) {
         console.error('Error loading order confirmation from localStorage:', err);
@@ -768,7 +780,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isTopupCart]);
 
   // Debug: Log cart items to console
   useEffect(() => {
@@ -1143,6 +1155,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 
       // Show verification modal with customer details
       setVerificationModal({
+        customer_id: customerData?.id || null,
         name: verifiedCustomer.name || phone.trim() || 'عميل',
         phone: phone.trim(),
         address: address.trim(),
@@ -1163,42 +1176,19 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
 
     setIsConfirmingOrder(true);
     try {
-      // First try to get customer_id from localStorage (topup customer data)
-      let customerId = null;
-      const savedCustomer = isTopupCart ? localStorage.getItem('topupCustomer') : null;
-      if (savedCustomer) {
-        try {
-          const topupCustData = JSON.parse(savedCustomer);
-          customerId = topupCustData.id;
-        } catch (e) {
-          console.error('Error parsing topupCustomer:', e);
-        }
-      }
-      
-      // Fallback to user.id or try to create guest customer
-      if (!customerId && user?.id) {
-        customerId = user.id;
-      }
-      
-      if (!customerId) {
-        try {
-          const guestRes = await fetch('/api/admin/add-user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: name.trim() || phone.trim(),
-              phone: phone.trim(),
-              role: 'customer',
-              password: 'guest123'
-            })
-          });
-          
-          if (guestRes.ok) {
-            const guestUser = await guestRes.json();
-            customerId = guestUser.id;
+      let customerId = Number(verificationModal.customer_id) || null;
+
+      // Topup checkout may use saved topup customer context; regular checkout must not
+      // fall back to users.id because orders.customer_id is constrained to customers.id.
+      if (isTopupCart) {
+        const savedCustomer = localStorage.getItem('topupCustomer');
+        if (savedCustomer) {
+          try {
+            const topupCustData = JSON.parse(savedCustomer);
+            customerId = topupCustData.id || customerId;
+          } catch (e) {
+            console.error('Error parsing topupCustomer:', e);
           }
-        } catch (err) {
-          console.error('Failed to create guest customer:', err);
         }
       }
       
@@ -1364,10 +1354,12 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
         const confirmation = await hydrateOrderConfirmationImages(rawConfirmation);
         setOrderConfirmation(confirmation);
         // حفظ في localStorage حتى يتمكن العميل من الوصول للأكواد لاحقاً
-        localStorage.setItem('orderConfirmation', JSON.stringify(rawConfirmation));
+        localStorage.setItem(TOPUP_ORDER_CONFIRMATION_STORAGE_KEY, JSON.stringify(rawConfirmation));
+        localStorage.removeItem(LEGACY_TOPUP_ORDER_CONFIRMATION_STORAGE_KEY);
         console.log('💾 Saved order confirmation to localStorage');
       } else {
         clearCart();
+        setOrderConfirmation(null);
         alert(`تم تقديم الطلب بنجاح! تم إنشاء ${Object.keys(itemsByStore).length} طلب`);
         navigate('/');
       }
@@ -1643,7 +1635,7 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
   };
 
   // عرض تأكيد الطلب مع الأكواد
-  if (orderConfirmation) {
+  if (isTopupCart && orderConfirmation) {
     return (
       <div className={cn("w-full min-h-screen p-4 sm:p-8", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900")} dir="rtl">
         <div className="max-w-4xl mx-auto">
@@ -1780,7 +1772,8 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
               onClick={() => {
                 clearCart();
                 setOrderConfirmation(null);
-                localStorage.removeItem('orderConfirmation');
+                localStorage.removeItem(TOPUP_ORDER_CONFIRMATION_STORAGE_KEY);
+                localStorage.removeItem(LEGACY_TOPUP_ORDER_CONFIRMATION_STORAGE_KEY);
                 // For topup orders, navigate back to the store; otherwise go to home
                 const topupStoreSlug = localStorage.getItem('topupStoreSlug');
                 if (isTopupCart && topupStoreSlug) {
