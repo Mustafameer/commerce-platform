@@ -2649,9 +2649,13 @@ const MerchantDashboard = () => {
       averageOrder: merchantStats.orderStats.total > 0 ? merchantStats.totalRevenue / merchantStats.orderStats.total : 0,
       saleType: salesTypeFilter
     };
-    const countLabel = reportSummary.saleType === 'auction' ? 'عدد المزادات' : reportSummary.saleType === 'order' ? 'عدد الطلبات' : 'عدد العمليات';
-    const averageLabel = reportSummary.saleType === 'auction' ? 'متوسط المزاد' : reportSummary.saleType === 'order' ? 'متوسط الطلب' : 'متوسط العملية';
+    const periodTitle = selectedPeriod === 'daily' ? 'اليومية' : selectedPeriod === 'weekly' ? 'الأسبوعية' : 'الشهرية';
+    const periodCountLabel = selectedPeriod === 'daily' ? 'عدد الأيام' : selectedPeriod === 'weekly' ? 'عدد الأسابيع' : 'عدد الأشهر';
+    const averageLabel = selectedPeriod === 'daily' ? 'متوسط اليوم' : selectedPeriod === 'weekly' ? 'متوسط الأسبوع' : 'متوسط الشهر';
     const itemCountLabel = reportSummary.saleType === 'auction' ? 'مزاد' : reportSummary.saleType === 'order' ? 'طلب' : 'عملية';
+    const totalItemsCount = currentSalesItems.reduce((sum: number, item: any) => sum + (Number(item.order_count) || 0), 0);
+    const totalPeriodRevenue = currentSalesItems.reduce((sum: number, item: any) => sum + (parseFloat(item.total) || 0), 0);
+    const averagePeriodRevenue = currentSalesItems.length > 0 ? totalPeriodRevenue / currentSalesItems.length : 0;
 
     return (
     <AnimatePresence>
@@ -2713,13 +2717,14 @@ const MerchantDashboard = () => {
                     </div>
 
                     {[
-                      { label: 'إجمالي المبيعات', value: formatCurrency(reportSummary.totalRevenue || 0), color: 'from-blue-500/25 to-blue-700/10' },
-                      { label: countLabel, value: reportSummary.totalOrders || 0, color: 'from-emerald-500/25 to-emerald-700/10' },
-                      { label: averageLabel, value: formatCurrency(reportSummary.averageOrder || 0), color: 'from-indigo-500/25 to-indigo-700/10' },
+                      { label: 'إجمالي المبيعات', value: formatCurrency(totalPeriodRevenue || 0), color: 'from-blue-500/25 to-blue-700/10' },
+                      { label: periodCountLabel, value: currentSalesItems.length || 0, color: 'from-emerald-500/25 to-emerald-700/10', sublabel: `${totalItemsCount} ${itemCountLabel}` },
+                      { label: averageLabel, value: formatCurrency(averagePeriodRevenue || 0), color: 'from-indigo-500/25 to-indigo-700/10' },
                     ].map((stat) => (
                       <div key={stat.label} className={cn("p-4 rounded-2xl border border-slate-700 bg-gradient-to-br min-h-[118px] flex flex-col justify-center", stat.color)}>
                         <p className="text-[11px] font-normal text-slate-200 mb-2">{stat.label}</p>
                         <p className="text-lg font-normal text-white leading-tight">{stat.value}</p>
+                        {'sublabel' in stat && stat.sublabel ? <p className="text-[11px] font-normal text-slate-300 mt-2">{stat.sublabel}</p> : null}
                       </div>
                     ))}
                   </div>
@@ -2805,7 +2810,8 @@ const MerchantDashboard = () => {
                 </div>
 
                 <div className="rounded-2xl p-5 border border-slate-700 bg-slate-800/90 h-full flex flex-col">
-                  <h3 className="font-normal text-lg mb-4 text-white">بيانات المبيعات</h3>
+                  <h3 className="font-normal text-lg mb-1 text-white">بيانات المبيعات {periodTitle}</h3>
+                  <p className="text-xs text-slate-300 mb-4">التجميع الحالي حسب {selectedPeriod === 'daily' ? 'اليوم' : selectedPeriod === 'weekly' ? 'الأسبوع' : 'الشهر'}</p>
                   <div className="space-y-3">
                     {isLoadingSalesData ? (
                       <div className="text-center py-12 text-slate-300">
