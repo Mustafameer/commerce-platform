@@ -2608,6 +2608,37 @@ const normalizeTopupCustomerData = (customer: any, fallbackStoreId?: number | st
   };
 };
 
+const getActiveTopupSessionStoreId = () => {
+  const rawStoreId = sessionStorage.getItem('activeTopupStoreId');
+  const parsedStoreId = Number(rawStoreId);
+  return parsedStoreId > 0 ? parsedStoreId : null;
+};
+
+const hasReusableTopupSession = (rawCustomer: any, targetStoreId?: number | string | null) => {
+  const normalizedCustomer = normalizeTopupCustomerData(rawCustomer, targetStoreId);
+  if (!normalizedCustomer?.customer_id) {
+    return false;
+  }
+
+  const sessionStoreId = getActiveTopupSessionStoreId();
+  if (!sessionStoreId) {
+    return false;
+  }
+
+  const customerStoreId = Number(normalizedCustomer.store_id || 0);
+  const requestedStoreId = Number(targetStoreId ?? customerStoreId ?? 0);
+
+  if (requestedStoreId > 0 && sessionStoreId !== requestedStoreId) {
+    return false;
+  }
+
+  if (customerStoreId > 0 && sessionStoreId !== customerStoreId) {
+    return false;
+  }
+
+  return true;
+};
+
 const AdminDashboard = () => {
   const { isDarkMode } = useTheme();
   const [stores, setStores] = useState<(Store & { owner_name?: string; status?: string; owner_phone?: string; slug?: string })[]>([]);
@@ -13515,13 +13546,12 @@ const TopupStorefront = () => {
   const [customerTransactions, setCustomerTransactions] = useState<any[]>([]);
   const [isLoadingCustomerTransactions, setIsLoadingCustomerTransactions] = useState(false);
 
-  const applyTopupCustomer = (rawCustomer: any, fallbackStoreId?: number | string | null) => {
+  const applyTopupDraftData = (rawCustomer: any, fallbackStoreId?: number | string | null) => {
     const normalizedCustomer = normalizeTopupCustomerData(rawCustomer, fallbackStoreId ?? storeId);
     if (!normalizedCustomer) {
       return null;
     }
 
-    setCustomer(normalizedCustomer);
     setPurchaseForm(prev => ({
       ...prev,
       name: normalizedCustomer.name || '',
@@ -13529,6 +13559,17 @@ const TopupStorefront = () => {
       customer_type: normalizedCustomer.customer_type || 'cash'
     }));
     setPhone(normalizedCustomer.phone || '');
+
+    return normalizedCustomer;
+  };
+
+  const applyTopupCustomer = (rawCustomer: any, fallbackStoreId?: number | string | null) => {
+    const normalizedCustomer = applyTopupDraftData(rawCustomer, fallbackStoreId ?? storeId);
+    if (!normalizedCustomer) {
+      return null;
+    }
+
+    setCustomer(normalizedCustomer);
 
     return normalizedCustomer;
   };
@@ -13545,6 +13586,7 @@ const TopupStorefront = () => {
 
     if (normalizedVerifiedCustomer) {
       localStorage.setItem('topupCustomer', JSON.stringify(normalizedVerifiedCustomer));
+      sessionStorage.setItem('activeTopupStoreId', String(normalizedVerifiedCustomer.store_id || verifiedTopupState.verifiedStoreId || actualStoreId || storeId));
       console.log('✅ Applied verified topup customer from navigation state');
     }
   }, [verifiedTopupState, actualStoreId, storeId]);
@@ -13563,14 +13605,17 @@ const TopupStorefront = () => {
 
     let isMounted = true;
 
-    const fetchData = async () => {
+    const fetchData = async (options?: { background?: boolean }) => {
       console.log('📋 fetchData: Starting fetch operation for store:', storeId);
+      const isBackgroundRefresh = options?.background === true;
 
       if (!isMounted) {
         return;
       }
 
-      setLoading(true);
+      if (!isBackgroundRefresh) {
+        setLoading(true);
+      }
 
       try {
         let resolvedStoreId = Number.parseInt(storeId, 10);
@@ -13655,13 +13700,13 @@ const TopupStorefront = () => {
         }
       } catch (error) {
         console.error('❌ Error loading TopupStorefront data:', error);
-        if (isMounted) {
+        if (isMounted && !isBackgroundRefresh) {
           setCompanies([]);
           setCategories([]);
           setProducts([]);
         }
       } finally {
-        if (isMounted) {
+        if (isMounted && !isBackgroundRefresh) {
           setLoading(false);
         }
       }
@@ -13671,7 +13716,7 @@ const TopupStorefront = () => {
 
     const refreshInterval = setInterval(() => {
       if (isMounted) {
-        fetchData();
+        fetchData({ background: true });
       }
     }, 30000);
 
@@ -13687,8 +13732,14 @@ const TopupStorefront = () => {
     if (savedCustomer) {
       try {
         const customerData = normalizeTopupCustomerData(JSON.parse(savedCustomer), storeId);
-        applyTopupCustomer(customerData, storeId);
-        console.log('✅ Loaded customer from topupCustomer:', customerData);
+        if (hasReusableTopupSession(customerData, storeId)) {
+          applyTopupCustomer(customerData, storeId);
+          console.log('✅ Loaded customer from active topup session:', customerData);
+        } else {
+          setCustomer(null);
+          applyTopupDraftData(customerData, storeId);
+          console.log('ℹ️ Ignoring persisted topup login because there is no active session');
+        }
       } catch (err) {
         console.error('⚠️ Error parsing topupCustomer:', err);
       }
@@ -13698,7 +13749,7 @@ const TopupStorefront = () => {
       if (fallbackData) {
         try {
           const data = normalizeTopupCustomerData(JSON.parse(fallbackData), storeId);
-          applyTopupCustomer(data, storeId);
+          applyTopupDraftData(data, storeId);
           console.log('✅ Loaded purchase form from customerData:', data);
         } catch (err) {
           console.error('⚠️ Error parsing customerData:', err);
@@ -13787,8 +13838,14 @@ const TopupStorefront = () => {
       if (topupData) {
         try {
           const customerData = normalizeTopupCustomerData(JSON.parse(topupData), storeId);
-          console.log('✅ TopupStorefront: Updated customer from topupCustomer:', customerData);
-          applyTopupCustomer(customerData, storeId);
+          if (hasReusableTopupSession(customerData, storeId)) {
+            console.log('✅ TopupStorefront: Updated customer from active topup session:', customerData);
+            applyTopupCustomer(customerData, storeId);
+          } else {
+            setCustomer(null);
+            applyTopupDraftData(customerData, storeId);
+            console.log('ℹ️ TopupStorefront: Ignored persisted login because there is no active session');
+          }
         } catch (err) {
           console.error('⚠️ TopupStorefront: Error parsing topupCustomer:', err);
         }
@@ -13814,21 +13871,6 @@ const TopupStorefront = () => {
     };
   }, []);
 
-  // Refetch products and companies when customer logs in
-  useEffect(() => {
-    if (customer && customer.customer_id && !loading) {
-      console.log('🔄 Customer logged in or changed - refetching products/companies...');
-      setLoading(true);
-      
-      // Re-trigger the data fetch
-      const timer = setTimeout(() => {
-        setLoading(false);
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [customer?.customer_id]);
-
   // راقب عند إغلاق نموذج الدخول للتأكد من تحميل البيانات مباشرة
   useEffect(() => {
     if (!showAuthForm) {
@@ -13838,9 +13880,14 @@ const TopupStorefront = () => {
       if (topupData) {
         try {
           const customerData = normalizeTopupCustomerData(JSON.parse(topupData), storeId);
-          console.log('✅ Found customer data in localStorage:', customerData);
-          // تحديث customer بغض النظر عن الحالة السابقة
-          applyTopupCustomer(customerData, storeId);
+          if (hasReusableTopupSession(customerData, storeId)) {
+            console.log('✅ Found customer data in active session:', customerData);
+            applyTopupCustomer(customerData, storeId);
+          } else {
+            setCustomer(null);
+            applyTopupDraftData(customerData, storeId);
+            console.log('ℹ️ Skipping automatic customer restore because the session has ended');
+          }
         } catch (err) {
           console.error('⚠️ Error loading from localStorage:', err);
         }
@@ -14073,6 +14120,9 @@ const TopupStorefront = () => {
     setCustomer(null);
     localStorage.removeItem('topupCustomer');
     localStorage.removeItem('customerData');
+    sessionStorage.removeItem('activeTopupStoreId');
+    sessionStorage.removeItem('lastTopupCustomer');
+    sessionStorage.removeItem('lastTopupCustomerInTopupStorefront');
     useSettingsStore.getState().resetSettings(); // Reset settings when logging out
     setAuthPhone('');
     setAuthPassword('');
@@ -14927,7 +14977,7 @@ const TopupStorefront = () => {
           {/* Product Images Gallery - 100% Width */}
           <div className="w-full mx-auto">
             <h2 className={cn("text-2xl font-normal mb-6", isDarkMode ? "text-white" : "text-gray-900")}>� المنتجات المتاحة للشراء</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4" key={`products-list-${products.length}-${Date.now()}`}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
               {filteredProducts
                 .map((product: any) => {
                 // Get images count for this product
