@@ -5571,10 +5571,10 @@ async function startServer() {
       try {
         const { phone, password, store_id } = req.body;
 
-        console.log('ًں”گ /api/topup/auth received:', { phone, store_id, passwordLength: password?.length });
+        console.log('Topup auth request received:', { phone, store_id, passwordLength: password?.length });
 
         if (!phone || !password || !store_id) {
-          return res.status(400).json({ error: "ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ظˆظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظˆظ…ط¹ط±ظپ ط§ظ„ظ…طھط¬ط± ظ…ط·ظ„ظˆط¨ط©" });
+          return res.status(400).json({ error: "رقم الهاتف وكلمة المرور ومعرف المتجر مطلوبة" });
         }
 
         // Check if customer exists in the registered customers list for this topup store
@@ -5586,7 +5586,7 @@ async function startServer() {
           [parseInt(store_id), phone]
         );
 
-        console.log('ًں”گ Customer lookup result:', { 
+        console.log('Topup auth customer lookup result:', { 
           found: customerResult.rows.length > 0, 
           store_id, 
           phone,
@@ -5595,13 +5595,13 @@ async function startServer() {
 
         if (customerResult.rows.length === 0) {
           return res.status(403).json({ 
-            error: `â‌Œ ط¹ط°ط±ط§ظ‹طŒ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ${phone} ط؛ظٹط± ظ…ط³ط¬ظ„ ظپظٹ ط§ظ„ظ…طھط¬ط± #${store_id}. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ظ…طھط¬ط± ظ„ظ„طھط³ط¬ظٹظ„.` 
+            error: `عذراً، رقم الهاتف ${phone} غير مسجل في هذا المتجر. يرجى التواصل مع المتجر للتسجيل.`
           });
         }
 
         const customer = customerResult.rows[0];
 
-        console.log('ًں”گ Customer found:', { 
+        console.log('Topup auth customer found:', { 
           name: customer.name, 
           is_active: customer.is_active,
           has_password: !!customer.password,
@@ -5610,19 +5610,19 @@ async function startServer() {
 
         if (!customer.is_active) {
           return res.status(403).json({ 
-            error: "â‌Œ ط­ط³ط§ط¨ظƒ ط؛ظٹط± ظ…ظپط¹ظ‘ظ„. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ظ…طھط¬ط±." 
+            error: "حسابك غير مفعل. يرجى التواصل مع المتجر."
           });
         }
 
         // Verify password matches
         if (!customer.password || customer.password !== password) {
-          console.log('ًں”گ Password mismatch:', { provided: password, stored: customer.password, match: customer.password === password });
+          console.log('Topup auth password mismatch:', { provided: password, stored: customer.password, match: customer.password === password });
           return res.status(403).json({ 
-            error: `â‌Œ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط؛ظٹط± طµط­ظٹط­ط© ظ„ظ„ط±ظ‚ظ… ${phone}. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.` 
+            error: `كلمة المرور غير صحيحة للرقم ${phone}. يرجى المحاولة مرة أخرى.`
           });
         }
         
-        console.log('âœ… Auth successful for:', customer.name);
+        console.log('Topup auth successful for:', customer.name);
         res.json({
           success: true,
           customer_id: customer.customer_id,
@@ -5632,10 +5632,10 @@ async function startServer() {
           customer_type: customer.customer_type,
           credit_limit: customer.credit_limit,
           current_debt: customer.current_debt,
-          message: "طھظ… ط§ظ„طھط­ظ‚ظ‚ ط¨ظ†ط¬ط§ط­ âœ“"
+          message: "تم التحقق بنجاح"
         });
       } catch (error) {
-        console.error('â‌Œ /api/topup/auth error:', error);
+        console.error('/api/topup/auth error:', error);
         res.status(500).json({ error: (error as any).message });
       }
     });
