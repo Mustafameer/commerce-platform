@@ -13574,6 +13574,15 @@ const TopupStorefront = () => {
     return normalizedCustomer;
   };
 
+  const promptTopupAuth = (prefillPhone?: string | null) => {
+    if (prefillPhone) {
+      setAuthPhone(prefillPhone);
+    }
+    setAuthPassword('');
+    setShowPurchaseForm(false);
+    setShowAuthForm(true);
+  };
+
   useEffect(() => {
     if (!verifiedTopupState?.verifiedCustomer) {
       return;
@@ -13738,6 +13747,7 @@ const TopupStorefront = () => {
         } else {
           setCustomer(null);
           applyTopupDraftData(customerData, storeId);
+          promptTopupAuth(customerData?.phone || '');
           console.log('ℹ️ Ignoring persisted topup login because there is no active session');
         }
       } catch (err) {
@@ -13750,6 +13760,7 @@ const TopupStorefront = () => {
         try {
           const data = normalizeTopupCustomerData(JSON.parse(fallbackData), storeId);
           applyTopupDraftData(data, storeId);
+          promptTopupAuth(data?.phone || '');
           console.log('✅ Loaded purchase form from customerData:', data);
         } catch (err) {
           console.error('⚠️ Error parsing customerData:', err);
@@ -13841,14 +13852,19 @@ const TopupStorefront = () => {
           if (hasReusableTopupSession(customerData, storeId)) {
             console.log('✅ TopupStorefront: Updated customer from active topup session:', customerData);
             applyTopupCustomer(customerData, storeId);
+            setShowAuthForm(false);
           } else {
             setCustomer(null);
             applyTopupDraftData(customerData, storeId);
+            promptTopupAuth(customerData?.phone || '');
             console.log('ℹ️ TopupStorefront: Ignored persisted login because there is no active session');
           }
         } catch (err) {
           console.error('⚠️ TopupStorefront: Error parsing topupCustomer:', err);
         }
+      } else {
+        setCustomer(null);
+        promptTopupAuth(purchaseForm.phone || phone || '');
       }
     };
 
@@ -13886,16 +13902,28 @@ const TopupStorefront = () => {
           } else {
             setCustomer(null);
             applyTopupDraftData(customerData, storeId);
+            promptTopupAuth(customerData?.phone || '');
             console.log('ℹ️ Skipping automatic customer restore because the session has ended');
           }
         } catch (err) {
           console.error('⚠️ Error loading from localStorage:', err);
         }
       } else {
+        if (!customer?.customer_id) {
+          promptTopupAuth(purchaseForm.phone || phone || '');
+        }
         console.log('❌ No customer data in localStorage');
       }
     }
-  }, [showAuthForm]);
+  }, [showAuthForm, customer?.customer_id, purchaseForm.phone, phone]);
+
+  useEffect(() => {
+    if (isLoadingStore || loading || customer?.customer_id || showAuthForm) {
+      return;
+    }
+
+    promptTopupAuth(purchaseForm.phone || phone || '');
+  }, [isLoadingStore, loading, customer?.customer_id, showAuthForm, purchaseForm.phone, phone]);
 
   // Filter companies and categories - show ALL companies/categories for adding products
   const companiesWithProducts = companies; // عرض جميع الشركات
@@ -14972,6 +15000,84 @@ const TopupStorefront = () => {
                 </div>
               </div>
             </Card>
+          )}
+
+          {showAuthForm && (
+            <div className={cn("fixed inset-0 z-50 flex items-center justify-center p-4", isDarkMode ? "bg-black/70" : "bg-black/45")}>
+              <Card className={cn("w-full max-w-sm border shadow-2xl", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
+                <div className="p-6 space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>تسجيل دخول العميل</h3>
+                      <p className={cn("text-sm mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                        يجب تسجيل الدخول في كل جلسة قبل متابعة الشراء من متجر الشحن.
+                      </p>
+                    </div>
+                    {customer ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowAuthForm(false)}
+                        className={cn("text-xl leading-none", isDarkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700")}
+                        aria-label="إغلاق"
+                      >
+                        ×
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>📱 رقم الهاتف</label>
+                    <input
+                      type="tel"
+                      value={authPhone}
+                      onChange={(e) => setAuthPhone(e.target.value)}
+                      placeholder="07xxxxxxxxx"
+                      className={cn("w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2", isDarkMode ? "bg-gray-700 border-gray-600 text-white focus:ring-blue-500/30" : "bg-white border-gray-200 text-gray-900 focus:ring-indigo-500/20")}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>🔐 كلمة المرور</label>
+                    <input
+                      type="password"
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword(e.target.value)}
+                      placeholder="أدخل كلمة المرور"
+                      className={cn("w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2", isDarkMode ? "bg-gray-700 border-gray-600 text-white focus:ring-blue-500/30" : "bg-white border-gray-200 text-gray-900 focus:ring-indigo-500/20")}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !isAuthenticating) {
+                          void handleAuth();
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleAuth();
+                      }}
+                      disabled={isAuthenticating}
+                      className={cn("py-2.5 rounded-lg text-white font-normal text-sm transition-all", isAuthenticating ? "opacity-60 cursor-not-allowed" : "hover:opacity-90")}
+                      style={{ backgroundColor: primaryColor }}
+                    >
+                      {isAuthenticating ? 'جاري التحقق...' : 'تسجيل الدخول'}
+                    </button>
+
+                    {!customer ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate('/stores')}
+                        className={cn("py-2.5 rounded-lg font-normal text-sm transition-all", isDarkMode ? "bg-gray-700 text-gray-100 hover:bg-gray-600" : "bg-gray-100 text-gray-700 hover:bg-gray-200")}
+                      >
+                        العودة إلى المتاجر
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              </Card>
+            </div>
           )}
 
           {/* Product Images Gallery - 100% Width */}
