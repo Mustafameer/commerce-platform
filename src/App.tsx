@@ -15129,7 +15129,7 @@ const TopupStorefront = () => {
                     {/* Price info */}
                     <div className="mb-2">
                       <div className="text-xs font-bold text-green-700">
-                        السعر: {formatNumber(displayPrice || 0)} د.ع {imagesCount > 0 ? `• ${imagesCount} صورة` : '• بدون صور'}
+                        السعر: {formatNumber(displayPrice || 0)} د.ع
                       </div>
                     </div>
 
@@ -15150,9 +15150,6 @@ const TopupStorefront = () => {
                               : "bg-white border-gray-300 text-gray-900 focus:border-indigo-500"
                           )}
                         />
-                        <span className={cn("text-xs font-normal leading-6 px-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                          max: {imagesCount}
-                        </span>
                       </div>
                     </div>
 
