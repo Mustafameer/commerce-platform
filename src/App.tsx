@@ -13836,7 +13836,7 @@ const TopupStorefront = () => {
         } else {
           setCustomer(null);
           applyTopupDraftData(customerData, storeId);
-          setShowAuthForm(false);
+          setShowAuthForm(true);
           console.log('ℹ️ Ignoring persisted topup login because there is no active session');
         }
       } catch (err) {
@@ -13849,11 +13849,13 @@ const TopupStorefront = () => {
         try {
           const data = normalizeTopupCustomerData(JSON.parse(fallbackData), storeId);
           applyTopupDraftData(data, storeId);
-          setShowAuthForm(false);
+          setShowAuthForm(true);
           console.log('✅ Loaded purchase form from customerData:', data);
         } catch (err) {
           console.error('⚠️ Error parsing customerData:', err);
         }
+      } else {
+        setShowAuthForm(true);
       }
     }
   }, [storeId]);
@@ -13945,7 +13947,7 @@ const TopupStorefront = () => {
           } else {
             setCustomer(null);
             applyTopupDraftData(customerData, storeId);
-            setShowAuthForm(false);
+            setShowAuthForm(true);
             console.log('ℹ️ TopupStorefront: Ignored persisted login because there is no active session');
           }
         } catch (err) {
@@ -13953,7 +13955,7 @@ const TopupStorefront = () => {
         }
       } else {
         setCustomer(null);
-        setShowAuthForm(false);
+        setShowAuthForm(true);
       }
     };
 
@@ -15089,9 +15091,9 @@ const TopupStorefront = () => {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setShowAuthForm(false)}
+                    onClick={() => navigate('/stores')}
                     className={cn("text-xl leading-none", isDarkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700")}
-                    aria-label="إغلاق"
+                    aria-label="العودة إلى المتاجر"
                   >
                     ×
                   </button>
@@ -15140,10 +15142,10 @@ const TopupStorefront = () => {
                   {!customer ? (
                     <button
                       type="button"
-                      onClick={() => setShowAuthForm(false)}
+                      onClick={() => navigate('/stores')}
                       className={cn("py-2.5 rounded-lg font-normal text-sm transition-all", isDarkMode ? "bg-gray-700 text-gray-100 hover:bg-gray-600" : "bg-gray-100 text-gray-700 hover:bg-gray-200")}
                     >
-                      متابعة التصفح
+                      العودة إلى المتاجر
                     </button>
                   ) : null}
                 </div>
@@ -15151,7 +15153,15 @@ const TopupStorefront = () => {
             </Card>
           )}
 
-          {/* Product Images Gallery - 100% Width */}
+          {!customer && showAuthForm ? (
+            <Card className={cn("mt-6 border-dashed", isDarkMode ? "bg-gray-800/70 border-gray-700" : "bg-gray-50 border-gray-200") }>
+              <div className="p-6 text-center space-y-2">
+                <p className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>تسجيل دخول العميل مطلوب</p>
+                <p className={cn("text-sm", isDarkMode ? "text-gray-400" : "text-gray-600")}>لن تظهر منتجات متجر الشحن عبر الرابط المباشر إلا بعد تسجيل دخول العميل المشترك.</p>
+              </div>
+            </Card>
+          ) : (
+          /* Product Images Gallery - 100% Width */
           <div className="w-full mx-auto">
             <h2 className={cn("text-2xl font-normal mb-6", isDarkMode ? "text-white" : "text-gray-900")}>� المنتجات المتاحة للشراء</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
@@ -15297,6 +15307,7 @@ const TopupStorefront = () => {
               </div>
             )}
           </div>
+          )}
         </div>
       <StorePageMobileFooter storeSlug={storeId} isTopup={true} />
     </div>
