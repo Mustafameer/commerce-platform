@@ -43,6 +43,7 @@ import {
   Edit,
   Home,
   ArrowRight,
+  Camera,
   Zap,
   Power,
   PowerOff,
@@ -10320,6 +10321,8 @@ const MerchantTopupDashboard = () => {
   const [isLoadingCodesTableImages, setIsLoadingCodesTableImages] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const productCameraInputRef = useRef<HTMLInputElement | null>(null);
+  const codeCameraInputRef = useRef<HTMLInputElement | null>(null);
   const [customerForm, setCustomerForm] = useState({ name: '', phone: '', password: '', starting_balance: '', credit_limit: '', notes: '', customer_type: 'cash' });
   const [storeSettings, setStoreSettings] = useState({ store_name: '', logo_url: '' });
   const [storeLogoBg, setStoreLogoFile] = useState<File | null>(null);
@@ -11302,6 +11305,38 @@ const MerchantTopupDashboard = () => {
     setProductImages(files);
   };
 
+  const appendSelectedProductImages = (files: File[]) => {
+    setProductImagePreviews((prev) => [...prev, ...files.map((file) => URL.createObjectURL(file))]);
+    setProductImages((prev) => [...prev, ...files]);
+  };
+
+  const collectValidImageFiles = (files: File[]) => {
+    const validFiles: File[] = [];
+    let hasError = false;
+
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        alert(`الملف "${file.name}" ليس صورة. الرجاء اختيار ملفات صور فقط.`);
+        hasError = true;
+      } else {
+        console.log(`📁 Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+        validFiles.push(file);
+      }
+    }
+
+    return hasError ? [] : validFiles;
+  };
+
+  const handleCodeImageSelection = (files: File[], append: boolean = false) => {
+    const validFiles = collectValidImageFiles(files);
+
+    if (validFiles.length === 0) {
+      return;
+    }
+
+    setUploadedFiles((prev) => (append ? [...prev, ...validFiles] : validFiles));
+  };
+
   const clearSelectedProductImages = () => {
     setProductImagePreviews((prev) => {
       prev.forEach((url) => URL.revokeObjectURL(url));
@@ -12178,6 +12213,20 @@ const MerchantTopupDashboard = () => {
                       {/* Row 3: Images Upload Section */}
                       <div>
                         <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-white" : "text-gray-700")}>🖼️ صور البطاقات (اختياري)</label>
+                        <input
+                          ref={productCameraInputRef}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            if (files.length > 0) {
+                              appendSelectedProductImages(files);
+                            }
+                            e.target.value = '';
+                          }}
+                        />
                         <label className={cn("border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all", productImages.length > 0 ? "border-blue-500 bg-blue-50/10" : isDarkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-200 hover:border-gray-300")}>
                           <input
                             type="file"
@@ -12185,6 +12234,7 @@ const MerchantTopupDashboard = () => {
                             onChange={(e) => {
                               const files = Array.from(e.target.files || []);
                               replaceSelectedProductImages(files);
+                              e.target.value = '';
                             }}
                             className="hidden"
                             accept="image/*"
@@ -12212,6 +12262,20 @@ const MerchantTopupDashboard = () => {
                             </div>
                           )}
                         </label>
+
+                        <button
+                          type="button"
+                          onClick={() => productCameraInputRef.current?.click()}
+                          className={cn(
+                            "mt-3 w-full px-4 py-3 rounded-lg border text-sm font-normal transition-all flex items-center justify-center gap-2",
+                            isDarkMode
+                              ? "border-emerald-600 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/50"
+                              : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                          )}
+                        >
+                          <Camera size={18} />
+                          التقاط صورة بالكاميرا
+                        </button>
 
                         {productImagePreviews.length > 0 && (
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-3">
@@ -12797,30 +12861,24 @@ const MerchantTopupDashboard = () => {
               <p className={cn("text-sm", isDarkMode ? "text-white" : "text-gray-600")}>
                 رفع صور بطاقات الشحن (الكود والسيريال مطبوع على الصورة)
               </p>
+              <input
+                ref={codeCameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  handleCodeImageSelection(Array.from(e.target.files || []), true);
+                  e.target.value = '';
+                }}
+              />
               <label className={cn("border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all", uploadedFiles.length > 0 ? "border-green-500 bg-green-50/10" : isDarkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-200 hover:border-gray-300")}>
                 <input
                   type="file"
                   multiple
                   onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    const validFiles: File[] = [];
-                    let hasError = false;
-
-                    for (const file of files) {
-                      // ✅ REMOVED 500KB limit - support large files with multipart/form-data!
-                      // Check MIME type only
-                      if (!file.type.startsWith('image/')) {
-                        alert(`الملف "${file.name}" ليس صورة. الرجاء اختيار ملفات صور فقط.`);
-                        hasError = true;
-                      } else {
-                        console.log(`📁 Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
-                        validFiles.push(file);
-                      }
-                    }
-
-                    if (!hasError) {
-                      setUploadedFiles(validFiles);
-                    }
+                    handleCodeImageSelection(Array.from(e.target.files || []));
+                    e.target.value = '';
                   }}
                   className="hidden"
                   accept="image/*"
@@ -12844,6 +12902,19 @@ const MerchantTopupDashboard = () => {
                   </div>
                 )}
               </label>
+              <button
+                type="button"
+                onClick={() => codeCameraInputRef.current?.click()}
+                className={cn(
+                  "w-full py-3 rounded-lg border text-sm font-normal transition-all flex items-center justify-center gap-2",
+                  isDarkMode
+                    ? "border-emerald-600 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/50"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                )}
+              >
+                <Camera size={18} />
+                التقاط صورة بالكاميرا مباشرة
+              </button>
               <button 
                 onClick={handleUploadCodes} 
                 disabled={isUploadingImage || uploadedFiles.length === 0}
