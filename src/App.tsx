@@ -14560,9 +14560,11 @@ const TopupStorefront = () => {
   );
 
   return (
-    <div className={cn("min-h-[100dvh] flex flex-col overflow-x-hidden", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900")} dir="rtl">
-      {/* Main scrollable container for header and content */}
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
+    <div
+      className={cn("min-h-[100dvh] overflow-x-hidden", isDarkMode ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900")}
+      dir="rtl"
+      style={{ touchAction: 'pan-y' }}
+    >
         {/* Header with Auth */}
         <div className={cn("border-b sticky top-0 z-30 backdrop-blur-sm", isDarkMode ? "border-gray-700 bg-gray-900/95" : "border-gray-200 bg-white/95")}>
           <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
@@ -15000,9 +15002,10 @@ const TopupStorefront = () => {
             </div>
           )}
         </div>
+        </div>
         
         {/* Filters and Products Content */}
-        <div className="max-w-6xl mx-auto px-4 py-0 pb-4">
+        <div className="max-w-6xl mx-auto px-4 py-0 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))]">
           {/* Products Grid */}
           {showPurchaseForm && selectedProduct && !customer && (
             <Card className={cn("mt-6 border-2", isDarkMode ? "bg-gray-800 border-indigo-700" : "bg-indigo-50 border-indigo-200")}> 
@@ -15295,19 +15298,7 @@ const TopupStorefront = () => {
             )}
           </div>
         </div>
-      </div>
-
-      {/* Closing flex-1 overflow-y-auto div */}
-      </div>
-      <div
-        className="md:hidden flex-shrink-0 border-t"
-        style={{
-          borderColor: isDarkMode ? '#374151' : '#f3f4f6',
-          height: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))'
-        }}
-      >
-        <StorePageMobileFooter storeSlug={storeId} isTopup={true} />
-      </div>
+      <StorePageMobileFooter storeSlug={storeId} isTopup={true} />
     </div>
   );
 };
