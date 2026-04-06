@@ -13603,6 +13603,7 @@ const TopupStorefront = () => {
   const [authPhone, setAuthPhone] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const authFormRef = useRef<HTMLDivElement | null>(null);
   const [customer, setCustomer] = useState<any>(null);
   const [showAccountStatement, setShowAccountStatement] = useState(false);
   const [statementTransactions, setStatementTransactions] = useState<any[]>([]);
@@ -13660,6 +13661,16 @@ const TopupStorefront = () => {
     setShowPurchaseForm(false);
     setShowAuthForm(true);
   };
+
+  useEffect(() => {
+    if (!showAuthForm) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      authFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [showAuthForm]);
 
   useEffect(() => {
     if (!verifiedTopupState?.verifiedCustomer) {
@@ -15061,79 +15072,80 @@ const TopupStorefront = () => {
           )}
 
           {showAuthForm && (
-            <div className={cn("fixed inset-0 z-50 flex items-center justify-center p-4", isDarkMode ? "bg-black/70" : "bg-black/45")}>
-              <Card className={cn("w-full max-w-sm border shadow-2xl", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
-                <div className="p-6 space-y-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>تسجيل دخول العميل</h3>
-                      <p className={cn("text-sm mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                        يمكنك تسجيل الدخول لاستعادة بياناتك ومتابعة الشراء بشكل أسرع.
-                      </p>
-                    </div>
+            <Card
+              ref={authFormRef}
+              className={cn("mt-6 border-2 scroll-mt-24", isDarkMode ? "bg-gray-800 border-indigo-700" : "bg-white border-indigo-200")}
+            >
+              <div className="p-6 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>تسجيل دخول العميل</h3>
+                    <p className={cn("text-sm mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                      يمكنك تسجيل الدخول لاستعادة بياناتك ومتابعة الشراء بشكل أسرع.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAuthForm(false)}
+                    className={cn("text-xl leading-none", isDarkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700")}
+                    aria-label="إغلاق"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>📱 رقم الهاتف</label>
+                  <input
+                    type="tel"
+                    value={authPhone}
+                    onChange={(e) => setAuthPhone(e.target.value)}
+                    placeholder="07xxxxxxxxx"
+                    className={cn("w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2", isDarkMode ? "bg-gray-700 border-gray-600 text-white focus:ring-blue-500/30" : "bg-white border-gray-200 text-gray-900 focus:ring-indigo-500/20")}
+                  />
+                </div>
+
+                <div>
+                  <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>🔐 كلمة المرور</label>
+                  <input
+                    type="password"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    placeholder="أدخل كلمة المرور"
+                    className={cn("w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2", isDarkMode ? "bg-gray-700 border-gray-600 text-white focus:ring-blue-500/30" : "bg-white border-gray-200 text-gray-900 focus:ring-indigo-500/20")}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !isAuthenticating) {
+                        void handleAuth();
+                      }
+                    }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleAuth();
+                    }}
+                    disabled={isAuthenticating}
+                    className={cn("py-2.5 rounded-lg text-white font-normal text-sm transition-all", isAuthenticating ? "opacity-60 cursor-not-allowed" : "hover:opacity-90")}
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    {isAuthenticating ? 'جاري التحقق...' : 'تسجيل الدخول'}
+                  </button>
+
+                  {!customer ? (
                     <button
                       type="button"
                       onClick={() => setShowAuthForm(false)}
-                      className={cn("text-xl leading-none", isDarkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700")}
-                      aria-label="إغلاق"
+                      className={cn("py-2.5 rounded-lg font-normal text-sm transition-all", isDarkMode ? "bg-gray-700 text-gray-100 hover:bg-gray-600" : "bg-gray-100 text-gray-700 hover:bg-gray-200")}
                     >
-                      ×
+                      متابعة التصفح
                     </button>
-                  </div>
-
-                  <div>
-                    <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>📱 رقم الهاتف</label>
-                    <input
-                      type="tel"
-                      value={authPhone}
-                      onChange={(e) => setAuthPhone(e.target.value)}
-                      placeholder="07xxxxxxxxx"
-                      className={cn("w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2", isDarkMode ? "bg-gray-700 border-gray-600 text-white focus:ring-blue-500/30" : "bg-white border-gray-200 text-gray-900 focus:ring-indigo-500/20")}
-                    />
-                  </div>
-
-                  <div>
-                    <label className={cn("block text-sm font-normal mb-2", isDarkMode ? "text-gray-300" : "text-gray-700")}>🔐 كلمة المرور</label>
-                    <input
-                      type="password"
-                      value={authPassword}
-                      onChange={(e) => setAuthPassword(e.target.value)}
-                      placeholder="أدخل كلمة المرور"
-                      className={cn("w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2", isDarkMode ? "bg-gray-700 border-gray-600 text-white focus:ring-blue-500/30" : "bg-white border-gray-200 text-gray-900 focus:ring-indigo-500/20")}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !isAuthenticating) {
-                          void handleAuth();
-                        }
-                      }}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void handleAuth();
-                      }}
-                      disabled={isAuthenticating}
-                      className={cn("py-2.5 rounded-lg text-white font-normal text-sm transition-all", isAuthenticating ? "opacity-60 cursor-not-allowed" : "hover:opacity-90")}
-                      style={{ backgroundColor: primaryColor }}
-                    >
-                      {isAuthenticating ? 'جاري التحقق...' : 'تسجيل الدخول'}
-                    </button>
-
-                    {!customer ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowAuthForm(false)}
-                        className={cn("py-2.5 rounded-lg font-normal text-sm transition-all", isDarkMode ? "bg-gray-700 text-gray-100 hover:bg-gray-600" : "bg-gray-100 text-gray-700 hover:bg-gray-200")}
-                      >
-                        متابعة التصفح
-                      </button>
-                    ) : null}
-                  </div>
+                  ) : null}
                 </div>
-              </Card>
-            </div>
+              </div>
+            </Card>
           )}
 
           {/* Product Images Gallery - 100% Width */}
