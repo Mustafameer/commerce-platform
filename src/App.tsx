@@ -1053,9 +1053,9 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
     // إذا كان المنتج topup (له retail_price أو wholesale_price)
     if (item.retail_price || item.wholesale_price) {
       if (pricingCustomerType === 'reseller') {
-        return item.retail_price || item.wholesale_price || item.price || 0;
+        return item.wholesale_price || item.retail_price || item.price || 0;
       } else {
-        return item.wholesale_price || item.price || 0;
+        return item.retail_price || item.wholesale_price || item.price || 0;
       }
     }
     
@@ -14169,7 +14169,7 @@ const TopupStorefront = () => {
     }
 
     try {
-      const purchaseAmount = selectedProduct.price * quantity;
+      const purchaseAmount = getDisplayPrice() * quantity;
       const creditRes = await fetch(`/api/customers/${customer.customer_id}/check-credit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -14224,25 +14224,25 @@ const TopupStorefront = () => {
       customer: customer
     });
     
-    // For reseller customers, use retail_price (which should be different from wholesale for topup)
-    // For cash customers, use wholesale_price
+    // نقطة البيع تأخذ سعر الجملة، والمفرد يأخذ سعر المفرد.
     if (customerType === 'reseller') {
-      // Try retail_price first, then wholesale_price, then base price
-      if (selectedProduct.retail_price && selectedProduct.retail_price > 0) {
-        console.log(`✅ Reseller: Using retail_price = ${selectedProduct.retail_price}`);
-        return selectedProduct.retail_price;
-      } else if (selectedProduct.wholesale_price && selectedProduct.wholesale_price > 0) {
-        console.log(`⚠️ Reseller: retail_price not available, using wholesale_price = ${selectedProduct.wholesale_price}`);
+      if (selectedProduct.wholesale_price && selectedProduct.wholesale_price > 0) {
+        console.log(`✅ Reseller: Using wholesale_price = ${selectedProduct.wholesale_price}`);
         return selectedProduct.wholesale_price;
+      } else if (selectedProduct.retail_price && selectedProduct.retail_price > 0) {
+        console.log(`⚠️ Reseller: wholesale_price not available, using retail_price = ${selectedProduct.retail_price}`);
+        return selectedProduct.retail_price;
       } else if (selectedProduct.price && selectedProduct.price > 0) {
         console.log(`⚠️ Reseller: Using base price = ${selectedProduct.price}`);
         return selectedProduct.price;
       }
     }
     
-    // For cash customers, use wholesale_price
-    if (selectedProduct.wholesale_price && selectedProduct.wholesale_price > 0) {
-      console.log(`✅ Cash: Using wholesale_price = ${selectedProduct.wholesale_price}`);
+    if (selectedProduct.retail_price && selectedProduct.retail_price > 0) {
+      console.log(`✅ Cash: Using retail_price = ${selectedProduct.retail_price}`);
+      return selectedProduct.retail_price;
+    } else if (selectedProduct.wholesale_price && selectedProduct.wholesale_price > 0) {
+      console.log(`⚠️ Cash: retail_price not available, using wholesale_price = ${selectedProduct.wholesale_price}`);
       return selectedProduct.wholesale_price;
     } else if (selectedProduct.price && selectedProduct.price > 0) {
       console.log(`✅ Cash: Using base price = ${selectedProduct.price}`);
@@ -15097,16 +15097,13 @@ const TopupStorefront = () => {
 
                 // Calculate price based on customer type
                 const displayPrice = (() => {
-                  // If customer is not logged in, use wholesale price
-                  if (!customer) {
-                    return product.wholesale_price || product.price || 0;
+                  const effectiveCustomerType = customer?.customer_type || purchaseForm.customer_type;
+
+                  if (effectiveCustomerType === 'reseller') {
+                    return product.wholesale_price || product.retail_price || product.price || 0;
                   }
-                  // If customer is reseller and has retail price, use it
-                  if (customer.customer_type === 'reseller' && product.retail_price) {
-                    return product.retail_price;
-                  }
-                  // Otherwise use wholesale price
-                  return product.wholesale_price || product.price || 0;
+
+                  return product.retail_price || product.wholesale_price || product.price || 0;
                 })();
                 
                 return (
