@@ -1052,11 +1052,17 @@ const CartPageContent = ({ cartMode }: { cartMode: CartMode }) => {
   const getItemPrice = (item: any, pricingCustomerType: string | null | undefined) => {
     // إذا كان المنتج topup (له retail_price أو wholesale_price)
     if (item.retail_price || item.wholesale_price) {
+      const retailPrice = Number(item.retail_price || 0);
+      const wholesalePrice = Number(item.wholesale_price || 0);
+      const basePrice = Number(item.price || 0);
+
       if (pricingCustomerType === 'reseller') {
-        return item.wholesale_price || item.retail_price || item.price || 0;
-      } else {
-        return item.retail_price || item.wholesale_price || item.price || 0;
+        return wholesalePrice || retailPrice || basePrice || 0;
       }
+
+      if (retailPrice > 0 && retailPrice !== wholesalePrice) return retailPrice;
+      if (basePrice > 0) return basePrice;
+      return retailPrice || wholesalePrice || basePrice || 0;
     }
     
     // للمنتجات العادية
@@ -4641,8 +4647,8 @@ const MerchantDashboard = () => {
       return;
     }
 
-    if (!productForm.price) {
-      alert("❌ يرجى إدخال سعر المنتج");
+    if (isTopupStore ? !productForm.retail_price : !productForm.price) {
+      alert(isTopupStore ? "❌ يرجى إدخال سعر البيع" : "❌ يرجى إدخال سعر المنتج");
       return;
     }
 
@@ -4678,8 +4684,9 @@ const MerchantDashboard = () => {
       
       body.company_id = parseInt(productForm.company_id);
       body.amount = parseInt(productForm.amount);
-      body.price = Math.floor(parseFloat(productForm.price) || 0);
-      body.bulk_price = Math.floor(parseFloat(productForm.wholesale_price) || 0);
+      body.price = Math.floor(parseFloat(productForm.retail_price || productForm.price) || 0);
+      body.retail_price = Math.floor(parseFloat(productForm.retail_price || productForm.price) || 0);
+      body.wholesale_price = Math.floor(parseFloat(productForm.wholesale_price || productForm.retail_price || productForm.price) || 0);
       body.quantity_type = productForm.quantity_type || 'riyal';
     } else {
       const auctionDateInput = document.querySelector('input[name="auction_date"]') as HTMLInputElement | null;
@@ -14224,29 +14231,36 @@ const TopupStorefront = () => {
       customer: customer
     });
     
+    const retailPrice = Number(selectedProduct.retail_price || 0);
+    const wholesalePrice = Number(selectedProduct.wholesale_price || 0);
+    const basePrice = Number(selectedProduct.price || 0);
+
     // نقطة البيع تأخذ سعر الجملة، والمفرد يأخذ سعر المفرد.
     if (customerType === 'reseller') {
-      if (selectedProduct.wholesale_price && selectedProduct.wholesale_price > 0) {
-        console.log(`✅ Reseller: Using wholesale_price = ${selectedProduct.wholesale_price}`);
-        return selectedProduct.wholesale_price;
-      } else if (selectedProduct.retail_price && selectedProduct.retail_price > 0) {
-        console.log(`⚠️ Reseller: wholesale_price not available, using retail_price = ${selectedProduct.retail_price}`);
-        return selectedProduct.retail_price;
-      } else if (selectedProduct.price && selectedProduct.price > 0) {
-        console.log(`⚠️ Reseller: Using base price = ${selectedProduct.price}`);
-        return selectedProduct.price;
+      if (wholesalePrice > 0) {
+        console.log(`✅ Reseller: Using wholesale_price = ${wholesalePrice}`);
+        return wholesalePrice;
+      } else if (retailPrice > 0) {
+        console.log(`⚠️ Reseller: wholesale_price not available, using retail_price = ${retailPrice}`);
+        return retailPrice;
+      } else if (basePrice > 0) {
+        console.log(`⚠️ Reseller: Using base price = ${basePrice}`);
+        return basePrice;
       }
     }
     
-    if (selectedProduct.retail_price && selectedProduct.retail_price > 0) {
-      console.log(`✅ Cash: Using retail_price = ${selectedProduct.retail_price}`);
-      return selectedProduct.retail_price;
-    } else if (selectedProduct.wholesale_price && selectedProduct.wholesale_price > 0) {
-      console.log(`⚠️ Cash: retail_price not available, using wholesale_price = ${selectedProduct.wholesale_price}`);
-      return selectedProduct.wholesale_price;
-    } else if (selectedProduct.price && selectedProduct.price > 0) {
-      console.log(`✅ Cash: Using base price = ${selectedProduct.price}`);
-      return selectedProduct.price;
+    if (retailPrice > 0 && retailPrice !== wholesalePrice) {
+      console.log(`✅ Cash: Using retail_price = ${retailPrice}`);
+      return retailPrice;
+    } else if (basePrice > 0) {
+      console.log(`✅ Cash: Using base price = ${basePrice}`);
+      return basePrice;
+    } else if (retailPrice > 0) {
+      console.log(`⚠️ Cash: fallback to retail_price = ${retailPrice}`);
+      return retailPrice;
+    } else if (wholesalePrice > 0) {
+      console.log(`⚠️ Cash: retail/base not available, using wholesale_price = ${wholesalePrice}`);
+      return wholesalePrice;
     }
     
     console.error('❌ Could not determine price!');
@@ -15098,12 +15112,16 @@ const TopupStorefront = () => {
                 // Calculate price based on customer type
                 const displayPrice = (() => {
                   const effectiveCustomerType = customer?.customer_type || purchaseForm.customer_type;
+                  const retailPrice = Number(product.retail_price || 0);
+                  const wholesalePrice = Number(product.wholesale_price || 0);
+                  const basePrice = Number(product.price || 0);
 
                   if (effectiveCustomerType === 'reseller') {
-                    return product.wholesale_price || product.retail_price || product.price || 0;
+                    return wholesalePrice || retailPrice || basePrice || 0;
                   }
 
-                  return product.retail_price || product.wholesale_price || product.price || 0;
+                  if (retailPrice > 0 && retailPrice !== wholesalePrice) return retailPrice;
+                  return basePrice || retailPrice || wholesalePrice || 0;
                 })();
                 
                 return (

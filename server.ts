@@ -7201,7 +7201,7 @@ async function startServer() {
     // Create topup product
     app.post("/api/topup/products", async (req, res) => {
       try {
-        const { store_id, company_id, amount, price, bulk_price, quantity_type, category_id } = req.body;
+        const { store_id, company_id, amount, price, bulk_price, retail_price, wholesale_price, quantity_type, category_id } = req.body;
         
         console.log('ًں“¦ Product POST received:', { store_id, company_id, amount, price });
         
@@ -7244,10 +7244,13 @@ async function startServer() {
           }
         }
         
+        const retailPriceValue = Math.floor(Number(retail_price ?? price ?? 0));
+        const wholesalePriceValue = Math.floor(Number(wholesale_price ?? bulk_price ?? retailPriceValue));
+
         const result = await pool.query(
           `INSERT INTO topup_products (store_id, company_id, category_id, amount, price, retail_price, wholesale_price) 
            VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-          [store_id, company_id, finalCategoryId, amount, price, bulk_price || price, bulk_price || price]
+          [store_id, company_id, finalCategoryId, amount, retailPriceValue, retailPriceValue, wholesalePriceValue]
         );
         
         console.log('âœ… Product created:', result.rows[0]);
@@ -7276,24 +7279,18 @@ async function startServer() {
           updates.push(`amount = $${paramCount++}`);
           values.push(amount);
         }
-        if (price !== undefined) {
+        const effectiveRetailPrice = retail_price !== undefined ? retail_price : price;
+        const effectiveWholesalePrice = wholesale_price !== undefined ? wholesale_price : bulk_price;
+
+        if (effectiveRetailPrice !== undefined) {
           updates.push(`price = $${paramCount++}`);
-          values.push(price);
-        }
-        if (bulk_price !== undefined) {
+          values.push(effectiveRetailPrice);
           updates.push(`retail_price = $${paramCount++}`);
+          values.push(effectiveRetailPrice);
+        }
+        if (effectiveWholesalePrice !== undefined) {
           updates.push(`wholesale_price = $${paramCount++}`);
-          values.push(bulk_price);
-          values.push(bulk_price);
-        } else if (retail_price !== undefined || wholesale_price !== undefined) {
-          if (retail_price !== undefined) {
-            updates.push(`retail_price = $${paramCount++}`);
-            values.push(retail_price);
-          }
-          if (wholesale_price !== undefined) {
-            updates.push(`wholesale_price = $${paramCount++}`);
-            values.push(wholesale_price);
-          }
+          values.push(effectiveWholesalePrice);
         }
         if (available_codes !== undefined) {
           updates.push(`available_codes = $${paramCount++}`);

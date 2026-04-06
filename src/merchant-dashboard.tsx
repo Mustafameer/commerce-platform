@@ -811,8 +811,9 @@ const MerchantDashboard = () => {
       
       body.company_id = parseInt(productForm.company_id);
       body.amount = parseInt(productForm.amount);
-      body.price = Math.floor(parseFloat(productForm.price) || 0);
-      body.bulk_price = Math.floor(parseFloat(productForm.wholesale_price) || 0);
+      body.price = Math.floor(parseFloat(productForm.retail_price || productForm.price) || 0);
+      body.retail_price = Math.floor(parseFloat(productForm.retail_price || productForm.price) || 0);
+      body.wholesale_price = Math.floor(parseFloat(productForm.wholesale_price || productForm.retail_price || productForm.price) || 0);
       body.quantity_type = productForm.quantity_type || 'riyal';
     } else {
       const auctionDateInput = document.querySelector('input[name="auction_date"]') as HTMLInputElement | null;
