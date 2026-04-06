@@ -13825,7 +13825,7 @@ const TopupStorefront = () => {
         } else {
           setCustomer(null);
           applyTopupDraftData(customerData, storeId);
-          promptTopupAuth(customerData?.phone || '');
+          setShowAuthForm(false);
           console.log('ℹ️ Ignoring persisted topup login because there is no active session');
         }
       } catch (err) {
@@ -13838,7 +13838,7 @@ const TopupStorefront = () => {
         try {
           const data = normalizeTopupCustomerData(JSON.parse(fallbackData), storeId);
           applyTopupDraftData(data, storeId);
-          promptTopupAuth(data?.phone || '');
+          setShowAuthForm(false);
           console.log('✅ Loaded purchase form from customerData:', data);
         } catch (err) {
           console.error('⚠️ Error parsing customerData:', err);
@@ -13934,7 +13934,7 @@ const TopupStorefront = () => {
           } else {
             setCustomer(null);
             applyTopupDraftData(customerData, storeId);
-            promptTopupAuth(customerData?.phone || '');
+            setShowAuthForm(false);
             console.log('ℹ️ TopupStorefront: Ignored persisted login because there is no active session');
           }
         } catch (err) {
@@ -13942,7 +13942,7 @@ const TopupStorefront = () => {
         }
       } else {
         setCustomer(null);
-        promptTopupAuth(purchaseForm.phone || phone || '');
+        setShowAuthForm(false);
       }
     };
 
@@ -13964,44 +13964,6 @@ const TopupStorefront = () => {
       clearInterval(checkInterval);
     };
   }, []);
-
-  // راقب عند إغلاق نموذج الدخول للتأكد من تحميل البيانات مباشرة
-  useEffect(() => {
-    if (!showAuthForm) {
-      console.log('💡 Auth form closed - checking localStorage');
-      // تحقق من localStorage عندما يُغلق نموذج الدخول (بغض النظر عن customer state)
-      const topupData = localStorage.getItem('topupCustomer');
-      if (topupData) {
-        try {
-          const customerData = normalizeTopupCustomerData(JSON.parse(topupData), storeId);
-          if (hasReusableTopupSession(customerData, storeId)) {
-            console.log('✅ Found customer data in active session:', customerData);
-            applyTopupCustomer(customerData, storeId);
-          } else {
-            setCustomer(null);
-            applyTopupDraftData(customerData, storeId);
-            promptTopupAuth(customerData?.phone || '');
-            console.log('ℹ️ Skipping automatic customer restore because the session has ended');
-          }
-        } catch (err) {
-          console.error('⚠️ Error loading from localStorage:', err);
-        }
-      } else {
-        if (!customer?.customer_id) {
-          promptTopupAuth(purchaseForm.phone || phone || '');
-        }
-        console.log('❌ No customer data in localStorage');
-      }
-    }
-  }, [showAuthForm, customer?.customer_id, purchaseForm.phone, phone]);
-
-  useEffect(() => {
-    if (isLoadingStore || loading || customer?.customer_id || showAuthForm) {
-      return;
-    }
-
-    promptTopupAuth(purchaseForm.phone || phone || '');
-  }, [isLoadingStore, loading, customer?.customer_id, showAuthForm, purchaseForm.phone, phone]);
 
   // Filter companies and categories - show ALL companies/categories for adding products
   const companiesWithProducts = companies; // عرض جميع الشركات
@@ -14781,7 +14743,18 @@ const TopupStorefront = () => {
                 )}
 
               </>
-            ) : null}
+            ) : (
+              <div className="w-full lg:w-auto order-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => promptTopupAuth(purchaseForm.phone || phone || '')}
+                  className={cn("px-4 py-2 rounded-lg text-sm font-normal text-white transition-all hover:opacity-90", isDarkMode ? "shadow-lg" : "shadow")}
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  تسجيل دخول العميل
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Account Statement Modal */}
@@ -15095,19 +15068,17 @@ const TopupStorefront = () => {
                     <div>
                       <h3 className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>تسجيل دخول العميل</h3>
                       <p className={cn("text-sm mt-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                        يجب تسجيل الدخول في كل جلسة قبل متابعة الشراء من متجر الشحن.
+                        يمكنك تسجيل الدخول لاستعادة بياناتك ومتابعة الشراء بشكل أسرع.
                       </p>
                     </div>
-                    {customer ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowAuthForm(false)}
-                        className={cn("text-xl leading-none", isDarkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700")}
-                        aria-label="إغلاق"
-                      >
-                        ×
-                      </button>
-                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => setShowAuthForm(false)}
+                      className={cn("text-xl leading-none", isDarkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700")}
+                      aria-label="إغلاق"
+                    >
+                      ×
+                    </button>
                   </div>
 
                   <div>
@@ -15153,10 +15124,10 @@ const TopupStorefront = () => {
                     {!customer ? (
                       <button
                         type="button"
-                        onClick={() => navigate('/stores')}
+                        onClick={() => setShowAuthForm(false)}
                         className={cn("py-2.5 rounded-lg font-normal text-sm transition-all", isDarkMode ? "bg-gray-700 text-gray-100 hover:bg-gray-600" : "bg-gray-100 text-gray-700 hover:bg-gray-200")}
                       >
-                        العودة إلى المتاجر
+                        متابعة التصفح
                       </button>
                     ) : null}
                   </div>
