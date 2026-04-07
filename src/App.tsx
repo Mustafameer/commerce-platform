@@ -14789,248 +14789,6 @@ const TopupStorefront = () => {
             )}
           </div>
 
-          {/* Account Statement Modal */}
-          {showAccountStatement && customer && (
-            <div
-              className={cn(
-                "fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-3 md:p-4 overflow-hidden backdrop-blur-sm",
-                isDarkMode ? "bg-black/70" : "bg-black/45"
-              )}
-            >
-              <Card
-                className={cn(
-                  "w-full max-w-4xl overflow-hidden flex flex-col shadow-2xl md:w-fit md:max-w-[calc(100vw-4rem)]",
-                  isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-                )}
-                style={{ maxHeight: 'calc(100dvh - 1rem - env(safe-area-inset-bottom, 0px))' }}
-              >
-                <div className={cn("p-6 border-b sticky top-0 z-10", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white")}>
-                  <div className="flex justify-between items-center">
-                    <h3 className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>
-                      📋 كشف الحساب الكامل
-                    </h3>
-                    <button
-                      onClick={() => setShowAccountStatement(false)}
-                      className={cn("text-xl font-bold", isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-500 hover:text-gray-700")}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="p-4 md:p-6 space-y-6 flex-1 overflow-y-auto min-h-0">
-                  <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-gray-700/30" : "bg-gray-50")}>
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className={cn("text-xs mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>العميل</p>
-                        <p className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>{customer.name}</p>
-                        <p className={cn("text-xs mt-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>{customer.phone}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-blue-900/20 border-blue-600" : "bg-blue-50 border-blue-300")}>
-                      <p className={cn("text-[11px] font-normal mb-1", isDarkMode ? "text-blue-400" : "text-blue-600")}>حد الائتمان</p>
-                      <p className={cn("text-sm md:text-base font-bold", isDarkMode ? "text-blue-300" : "text-blue-600")}>
-                        {Math.round(Number(customer.credit_limit) || 0).toLocaleString('en-US')} د.ع
-                      </p>
-                    </div>
-
-                    <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-yellow-900/20 border-yellow-600" : "bg-yellow-50 border-yellow-300")}>
-                      <p className={cn("text-[11px] font-normal mb-1", isDarkMode ? "text-yellow-400" : "text-yellow-600")}>الديون الحالية</p>
-                      <p className={cn("text-sm md:text-base font-bold", (() => {
-                        let currentDebt = Number(customer.current_debt || 0);
-                        if (statementTransactions && statementTransactions.length > 0) {
-                          currentDebt = Number(statementTransactions[0]?.balance || customer.current_debt || 0);
-                        }
-                        return currentDebt > Number(customer.credit_limit || 0)
-                          ? (isDarkMode ? "text-red-400" : "text-red-600")
-                          : (isDarkMode ? "text-yellow-300" : "text-yellow-700");
-                      })())}>
-                        {(() => {
-                          if (statementTransactions && statementTransactions.length > 0) {
-                            const lastTransaction = statementTransactions[0];
-                            const finalDebt = Math.round(Number(lastTransaction.balance) || 0);
-                            return finalDebt.toLocaleString('en-US');
-                          }
-
-                          return Math.round(Number(customer.current_debt) || 0).toLocaleString('en-US');
-                        })()} د.ع
-                      </p>
-                    </div>
-
-                    <div className={cn("p-3 rounded-lg border-2", (() => {
-                      const currentDebt = statementTransactions && statementTransactions.length > 0
-                        ? Number(statementTransactions[0]?.balance || 0)
-                        : Number(customer.current_debt || 0);
-                      return (Number(customer.credit_limit || 0) - currentDebt) <= 0
-                        ? (isDarkMode ? "bg-red-900/20 border-red-600" : "bg-red-50 border-red-300")
-                        : (isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300");
-                    })())}>
-                      <p className={cn("text-[11px] font-normal mb-1", (() => {
-                        const currentDebt = statementTransactions && statementTransactions.length > 0
-                          ? Number(statementTransactions[0]?.balance || 0)
-                          : Number(customer.current_debt || 0);
-                        return (Number(customer.credit_limit || 0) - currentDebt) <= 0
-                          ? (isDarkMode ? "text-red-400" : "text-red-600")
-                          : (isDarkMode ? "text-green-400" : "text-green-600");
-                      })())}>الرصيد المتاح</p>
-                      <p className={cn("text-sm md:text-base font-bold", (() => {
-                        const currentDebt = statementTransactions && statementTransactions.length > 0
-                          ? Number(statementTransactions[0]?.balance || 0)
-                          : Number(customer.current_debt || 0);
-                        return (Number(customer.credit_limit || 0) - currentDebt) <= 0
-                          ? (isDarkMode ? "text-red-300" : "text-red-600")
-                          : (isDarkMode ? "text-green-300" : "text-green-600");
-                      })())}>
-                        {(() => {
-                          const currentDebt = statementTransactions && statementTransactions.length > 0
-                            ? Number(statementTransactions[0]?.balance || 0)
-                            : Number(customer.current_debt || 0);
-                          return Math.round(Math.max(0, Number(customer.credit_limit || 0) - currentDebt)).toLocaleString('en-US');
-                        })()} د.ع
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Transactions Table */}
-                  <div className="min-h-0 flex flex-col">
-                    <h4 className={cn("text-sm font-bold mb-3", isDarkMode ? "text-white" : "text-gray-900")}>
-                      📊 المعاملات {isLoadingStatement && <span className="text-xs font-normal">(جاري التحميل...)</span>}
-                    </h4>
-                    <div className={cn("border rounded-lg overflow-hidden min-h-0", isDarkMode ? "border-gray-700 bg-gray-900/30" : "border-gray-200 bg-gray-50")}>
-                      {isLoadingStatement ? (
-                        <div className="p-8 text-center">
-                          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2" style={{borderColor: primaryColor}}></div>
-                          <p className={cn("mt-2 text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>جاري تحميل البيانات...</p>
-                        </div>
-                      ) : !statementTransactions || statementTransactions.length === 0 ? (
-                        <div className={cn("p-8 text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>
-                          <p className="text-sm font-semibold mb-2">⚠️ لا توجد معاملات</p>
-                          <p className="text-xs">قد لم يتم تحميل البيانات بعد. حاول مرة أخرى.</p>
-                        </div>
-                      ) : (
-                        <div className="w-full overflow-x-auto overflow-y-auto max-h-[16rem] md:max-h-[18.5rem] overscroll-x-contain">
-                        <table className="min-w-max w-max text-xs border-collapse table-auto">
-                          <thead className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
-                            <tr>
-                              <th className={cn("min-w-[6.5rem] px-3 py-2 text-right font-bold border whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
-                              <th className={cn("min-w-[14rem] md:min-w-[9rem] px-3 py-2 text-right font-bold border whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
-                              <th className={cn("min-w-[6rem] px-3 py-2 text-center font-bold border whitespace-nowrap", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>
-                                <span className="block">مدين</span>
-                                <span className="hidden md:block">(Debit)</span>
-                              </th>
-                              <th className={cn("min-w-[6rem] px-3 py-2 text-center font-bold border whitespace-nowrap", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>
-                                <span className="block">دائن</span>
-                                <span className="hidden md:block">(Credit)</span>
-                              </th>
-                              <th className={cn("min-w-[6rem] px-3 py-2 text-center font-bold border whitespace-nowrap", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الرصيد</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {statementTransactions && statementTransactions.map((transaction, idx) => {
-                              const txDate = transaction.created_at || transaction.date || transaction.transaction_date;
-                              const txType = transaction.type || transaction.transaction_type || 'unknown';
-                              let txDescription = normalizeStatementDescriptionText(transaction.description)
-                                || normalizeStatementDescriptionText(transaction.notes)
-                                || normalizeStatementDescriptionText(transaction.detail)
-                                || `معاملة #${idx + 1}`;
-                              
-                              // Translate transaction types to Arabic
-                              if (txType === 'opening') {
-                                txDescription = normalizeStatementDescriptionText(transaction.description) || 'ديون سابقة';
-                              } else if (txType === 'debit') {
-                                txDescription = 'خصم';
-                              } else if (txType === 'topup') {
-                                txDescription = normalizeStatementDescriptionText(transaction.description) || 'بطاقة شحن';
-                              } else if (txType === 'payment') {
-                                txDescription = '✓ دفعة';
-                              }
-                              
-                              const txAmount = Math.round(Number(transaction.amount || transaction.value || 0));
-                              const txBalance = Math.round(Number(transaction.balance || transaction.current_balance || 0));
-                              // Payments (دفعات) are CREDIT (دائن) - they reduce debt
-                              // Opening balance (ديون سابقة) and Topup are DEBIT - they increase debt
-                              const isPayment = transaction.is_payment === true || txType === 'payment' || txType === 'payment_received';
-                              const isDebit = !isPayment && (transaction.type === 'topup' || txType === 'debit' || txType === 'مدين' || txType === 'خصم' || txType === 'opening');
-                              const isCredit = isPayment || txType === 'credit' || txType === 'رصيد' || txType === 'دائن' || txType === 'إيداع';
-                              
-                              // Debug logging for topup transactions
-                              if (txType === 'topup') {
-                                console.log(`📊 [MerchantDashboard Statement] Topup TX #${idx}:`, {
-                                  type: txType,
-                                  amount: transaction.amount,
-                                  txAmount: txAmount,
-                                  is_payment: transaction.is_payment,
-                                  isPayment: isPayment,
-                                  isDebit: isDebit,
-                                  isCredit: isCredit
-                                });
-                              }
-                              
-                              // Only show ONE value per row: either debit OR credit, not both
-                              let debitAmount = 0;
-                              let creditAmount = 0;
-                              
-                              // CRITICAL FIX: For topup transactions, ALWAYS show debit amount
-                              if (txType === 'topup') {
-                                debitAmount = Math.abs(txAmount);
-                                creditAmount = 0;
-                              } else if (isDebit && txAmount !== 0) {
-                                debitAmount = Math.abs(txAmount);
-                                creditAmount = 0;
-                              } else if (isCredit && txAmount !== 0) {
-                                debitAmount = 0;
-                                creditAmount = Math.abs(txAmount);
-                              }
-                              
-                              return (
-                                <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-100")}>
-                                  <td className={cn("min-w-[6.5rem] px-3 py-2 border text-right whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
-                                    {txDate ? new Date(txDate).toLocaleDateString('ar-IQ') : '—'}
-                                  </td>
-                                  <td className={cn("min-w-[14rem] md:min-w-[9rem] px-3 py-2 border text-right whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
-                                    {txDescription}
-                                  </td>
-                                  <td className={cn("min-w-[6rem] px-3 py-2 border text-center font-bold whitespace-nowrap", debitAmount > 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"))}>
-                                    {debitAmount > 0 ? debitAmount.toLocaleString('en-US') : '—'}
-                                  </td>
-                                  <td className={cn("min-w-[6rem] px-3 py-2 border text-center font-bold whitespace-nowrap", creditAmount > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"))}>
-                                    {creditAmount > 0 ? creditAmount.toLocaleString('en-US') : '—'}
-                                  </td>
-                                  <td className={cn("min-w-[6rem] px-3 py-2 border text-center font-bold whitespace-nowrap", isDarkMode ? "text-blue-300" : "text-blue-700")}>
-                                    {txBalance.toLocaleString('en-US')}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Buttons */}
-                  <div className="grid grid-cols-1 gap-3 mt-6">
-                    <button
-                      onClick={handleLogout}
-                      className={cn("py-2 px-3 rounded text-sm font-normal hidden", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
-                    >
-                      خروج
-                    </button>
-                    <button
-                      onClick={() => setShowAccountStatement(false)}
-                      className={cn("py-2 px-3 rounded text-sm font-normal text-white transition-colors", isDarkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-400 hover:bg-gray-500")}
-                    >
-                      إغلاق
-                    </button>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          )}
         </div>
         </div>
         
@@ -15337,6 +15095,243 @@ const TopupStorefront = () => {
           </div>
           )}
         </div>
+
+      {/* Account Statement Modal */}
+      {showAccountStatement && customer && (
+        <div
+          className={cn(
+            "fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-3 md:p-4 overflow-hidden backdrop-blur-sm",
+            isDarkMode ? "bg-black/70" : "bg-black/45"
+          )}
+        >
+          <Card
+            className={cn(
+              "w-full max-w-4xl overflow-hidden flex flex-col shadow-2xl md:w-fit md:max-w-[calc(100vw-4rem)]",
+              isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+            )}
+            style={{ maxHeight: 'calc(100dvh - 1rem - env(safe-area-inset-bottom, 0px))' }}
+          >
+            <div className={cn("p-6 border-b sticky top-0 z-10", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white")}>
+              <div className="flex justify-between items-center">
+                <h3 className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>
+                  📋 كشف الحساب الكامل
+                </h3>
+                <button
+                  onClick={() => setShowAccountStatement(false)}
+                  className={cn("text-xl font-bold", isDarkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-500 hover:text-gray-700")}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-4 md:p-6 space-y-6 flex-1 overflow-y-auto min-h-0">
+              <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-gray-700/30" : "bg-gray-50")}>
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <p className={cn("text-xs mb-1", isDarkMode ? "text-gray-400" : "text-gray-600")}>العميل</p>
+                    <p className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>{customer.name}</p>
+                    <p className={cn("text-xs mt-2", isDarkMode ? "text-gray-400" : "text-gray-600")}>{customer.phone}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-blue-900/20 border-blue-600" : "bg-blue-50 border-blue-300")}>
+                  <p className={cn("text-[11px] font-normal mb-1", isDarkMode ? "text-blue-400" : "text-blue-600")}>حد الائتمان</p>
+                  <p className={cn("text-sm md:text-base font-bold", isDarkMode ? "text-blue-300" : "text-blue-600")}>
+                    {Math.round(Number(customer.credit_limit) || 0).toLocaleString('en-US')} د.ع
+                  </p>
+                </div>
+
+                <div className={cn("p-3 rounded-lg border-2", isDarkMode ? "bg-yellow-900/20 border-yellow-600" : "bg-yellow-50 border-yellow-300")}>
+                  <p className={cn("text-[11px] font-normal mb-1", isDarkMode ? "text-yellow-400" : "text-yellow-600")}>الديون الحالية</p>
+                  <p className={cn("text-sm md:text-base font-bold", (() => {
+                    let currentDebt = Number(customer.current_debt || 0);
+                    if (statementTransactions && statementTransactions.length > 0) {
+                      currentDebt = Number(statementTransactions[0]?.balance || customer.current_debt || 0);
+                    }
+                    return currentDebt > Number(customer.credit_limit || 0)
+                      ? (isDarkMode ? "text-red-400" : "text-red-600")
+                      : (isDarkMode ? "text-yellow-300" : "text-yellow-700");
+                  })())}>
+                    {(() => {
+                      if (statementTransactions && statementTransactions.length > 0) {
+                        const lastTransaction = statementTransactions[0];
+                        const finalDebt = Math.round(Number(lastTransaction.balance) || 0);
+                        return finalDebt.toLocaleString('en-US');
+                      }
+
+                      return Math.round(Number(customer.current_debt) || 0).toLocaleString('en-US');
+                    })()} د.ع
+                  </p>
+                </div>
+
+                <div className={cn("p-3 rounded-lg border-2", (() => {
+                  const currentDebt = statementTransactions && statementTransactions.length > 0
+                    ? Number(statementTransactions[0]?.balance || 0)
+                    : Number(customer.current_debt || 0);
+                  return (Number(customer.credit_limit || 0) - currentDebt) <= 0
+                    ? (isDarkMode ? "bg-red-900/20 border-red-600" : "bg-red-50 border-red-300")
+                    : (isDarkMode ? "bg-green-900/20 border-green-600" : "bg-green-50 border-green-300");
+                })())}>
+                  <p className={cn("text-[11px] font-normal mb-1", (() => {
+                    const currentDebt = statementTransactions && statementTransactions.length > 0
+                      ? Number(statementTransactions[0]?.balance || 0)
+                      : Number(customer.current_debt || 0);
+                    return (Number(customer.credit_limit || 0) - currentDebt) <= 0
+                      ? (isDarkMode ? "text-red-400" : "text-red-600")
+                      : (isDarkMode ? "text-green-400" : "text-green-600");
+                  })())}>الرصيد المتاح</p>
+                  <p className={cn("text-sm md:text-base font-bold", (() => {
+                    const currentDebt = statementTransactions && statementTransactions.length > 0
+                      ? Number(statementTransactions[0]?.balance || 0)
+                      : Number(customer.current_debt || 0);
+                    return (Number(customer.credit_limit || 0) - currentDebt) <= 0
+                      ? (isDarkMode ? "text-red-300" : "text-red-600")
+                      : (isDarkMode ? "text-green-300" : "text-green-600");
+                  })())}>
+                    {(() => {
+                      const currentDebt = statementTransactions && statementTransactions.length > 0
+                        ? Number(statementTransactions[0]?.balance || 0)
+                        : Number(customer.current_debt || 0);
+                      return Math.round(Math.max(0, Number(customer.credit_limit || 0) - currentDebt)).toLocaleString('en-US');
+                    })()} د.ع
+                  </p>
+                </div>
+              </div>
+
+              {/* Transactions Table */}
+              <div className="min-h-0 flex flex-col">
+                <h4 className={cn("text-sm font-bold mb-3", isDarkMode ? "text-white" : "text-gray-900")}>
+                  📊 المعاملات {isLoadingStatement && <span className="text-xs font-normal">(جاري التحميل...)</span>}
+                </h4>
+                <div className={cn("border rounded-lg overflow-hidden min-h-0", isDarkMode ? "border-gray-700 bg-gray-900/30" : "border-gray-200 bg-gray-50")}>
+                  {isLoadingStatement ? (
+                    <div className="p-8 text-center">
+                      <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2" style={{borderColor: primaryColor}}></div>
+                      <p className={cn("mt-2 text-xs", isDarkMode ? "text-gray-400" : "text-gray-600")}>جاري تحميل البيانات...</p>
+                    </div>
+                  ) : !statementTransactions || statementTransactions.length === 0 ? (
+                    <div className={cn("p-8 text-center", isDarkMode ? "text-gray-400" : "text-gray-600")}>
+                      <p className="text-sm font-semibold mb-2">⚠️ لا توجد معاملات</p>
+                      <p className="text-xs">قد لم يتم تحميل البيانات بعد. حاول مرة أخرى.</p>
+                    </div>
+                  ) : (
+                    <div className="w-full overflow-x-auto overflow-y-auto max-h-[16rem] md:max-h-[18.5rem] overscroll-x-contain">
+                    <table className="min-w-max w-max text-xs border-collapse table-auto">
+                      <thead className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
+                        <tr>
+                          <th className={cn("min-w-[6.5rem] px-3 py-2 text-right font-bold border whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>التاريخ</th>
+                          <th className={cn("min-w-[14rem] md:min-w-[9rem] px-3 py-2 text-right font-bold border whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-600" : "text-gray-600 border-gray-300")}>البيان</th>
+                          <th className={cn("min-w-[6rem] px-3 py-2 text-center font-bold border whitespace-nowrap", isDarkMode ? "text-red-400 border-gray-600" : "text-red-600 border-gray-300")}>
+                            <span className="block">مدين</span>
+                            <span className="hidden md:block">(Debit)</span>
+                          </th>
+                          <th className={cn("min-w-[6rem] px-3 py-2 text-center font-bold border whitespace-nowrap", isDarkMode ? "text-green-400 border-gray-600" : "text-green-600 border-gray-300")}>
+                            <span className="block">دائن</span>
+                            <span className="hidden md:block">(Credit)</span>
+                          </th>
+                          <th className={cn("min-w-[6rem] px-3 py-2 text-center font-bold border whitespace-nowrap", isDarkMode ? "text-blue-400 border-gray-600" : "text-blue-600 border-gray-300")}>الرصيد</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {statementTransactions && statementTransactions.map((transaction, idx) => {
+                          const txDate = transaction.created_at || transaction.date || transaction.transaction_date;
+                          const txType = transaction.type || transaction.transaction_type || 'unknown';
+                          let txDescription = normalizeStatementDescriptionText(transaction.description)
+                            || normalizeStatementDescriptionText(transaction.notes)
+                            || normalizeStatementDescriptionText(transaction.detail)
+                            || `معاملة #${idx + 1}`;
+                          
+                          if (txType === 'opening') {
+                            txDescription = normalizeStatementDescriptionText(transaction.description) || 'ديون سابقة';
+                          } else if (txType === 'debit') {
+                            txDescription = 'خصم';
+                          } else if (txType === 'topup') {
+                            txDescription = normalizeStatementDescriptionText(transaction.description) || 'بطاقة شحن';
+                          } else if (txType === 'payment') {
+                            txDescription = '✓ دفعة';
+                          }
+                          
+                          const txAmount = Math.round(Number(transaction.amount || transaction.value || 0));
+                          const txBalance = Math.round(Number(transaction.balance || transaction.current_balance || 0));
+                          const isPayment = transaction.is_payment === true || txType === 'payment' || txType === 'payment_received';
+                          const isDebit = !isPayment && (transaction.type === 'topup' || txType === 'debit' || txType === 'مدين' || txType === 'خصم' || txType === 'opening');
+                          const isCredit = isPayment || txType === 'credit' || txType === 'رصيد' || txType === 'دائن' || txType === 'إيداع';
+                          
+                          if (txType === 'topup') {
+                            console.log(`📊 [MerchantDashboard Statement] Topup TX #${idx}:`, {
+                              type: txType,
+                              amount: transaction.amount,
+                              txAmount: txAmount,
+                              is_payment: transaction.is_payment,
+                              isPayment: isPayment,
+                              isDebit: isDebit,
+                              isCredit: isCredit
+                            });
+                          }
+                          
+                          let debitAmount = 0;
+                          let creditAmount = 0;
+                          
+                          if (txType === 'topup') {
+                            debitAmount = Math.abs(txAmount);
+                            creditAmount = 0;
+                          } else if (isDebit && txAmount !== 0) {
+                            debitAmount = Math.abs(txAmount);
+                            creditAmount = 0;
+                          } else if (isCredit && txAmount !== 0) {
+                            debitAmount = 0;
+                            creditAmount = Math.abs(txAmount);
+                          }
+                          
+                          return (
+                            <tr key={idx} className={cn("border-t", isDarkMode ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-100")}>
+                              <td className={cn("min-w-[6.5rem] px-3 py-2 border text-right whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
+                                {txDate ? new Date(txDate).toLocaleDateString('ar-IQ') : '—'}
+                              </td>
+                              <td className={cn("min-w-[14rem] md:min-w-[9rem] px-3 py-2 border text-right whitespace-nowrap", isDarkMode ? "text-gray-300 border-gray-700" : "text-gray-700 border-gray-200")}>
+                                {txDescription}
+                              </td>
+                              <td className={cn("min-w-[6rem] px-3 py-2 border text-center font-bold whitespace-nowrap", debitAmount > 0 ? (isDarkMode ? "text-red-400" : "text-red-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"))}>
+                                {debitAmount > 0 ? debitAmount.toLocaleString('en-US') : '—'}
+                              </td>
+                              <td className={cn("min-w-[6rem] px-3 py-2 border text-center font-bold whitespace-nowrap", creditAmount > 0 ? (isDarkMode ? "text-green-400" : "text-green-600") : (isDarkMode ? "text-gray-500" : "text-gray-400"))}>
+                                {creditAmount > 0 ? creditAmount.toLocaleString('en-US') : '—'}
+                              </td>
+                              <td className={cn("min-w-[6rem] px-3 py-2 border text-center font-bold whitespace-nowrap", isDarkMode ? "text-blue-300" : "text-blue-700")}>
+                                {txBalance.toLocaleString('en-US')}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 mt-6">
+                <button
+                  onClick={handleLogout}
+                  className={cn("py-2 px-3 rounded text-sm font-normal hidden", isDarkMode ? "bg-red-900 text-red-100 hover:bg-red-800" : "bg-red-100 text-red-700 hover:bg-red-200")}
+                >
+                  خروج
+                </button>
+                <button
+                  onClick={() => setShowAccountStatement(false)}
+                  className={cn("py-2 px-3 rounded text-sm font-normal text-white transition-colors", isDarkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-400 hover:bg-gray-500")}
+                >
+                  إغلاق
+                </button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
       <StorePageMobileFooter storeSlug={storeId} isTopup={true} />
     </div>
   );
