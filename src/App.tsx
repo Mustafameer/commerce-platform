@@ -14774,8 +14774,19 @@ const TopupStorefront = () => {
 
           {/* Account Statement Modal */}
           {showAccountStatement && customer && (
-            <div className={cn("fixed inset-0 flex items-center justify-center z-50 p-4 overflow-hidden", isDarkMode ? "bg-black/50" : "bg-black/30")}>
-              <Card className={cn("w-[calc(100vw-1rem)] md:w-fit md:max-w-[calc(100vw-4rem)] max-h-[90vh] overflow-hidden flex flex-col", isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}>
+            <div
+              className={cn(
+                "fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-2 pt-3 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:items-center md:p-4",
+                isDarkMode ? "bg-black/50" : "bg-black/30"
+              )}
+            >
+              <Card
+                className={cn(
+                  "w-full max-w-4xl overflow-hidden flex flex-col md:w-fit md:max-w-[calc(100vw-4rem)]",
+                  isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                )}
+                style={{ maxHeight: 'calc(100dvh - 7rem - env(safe-area-inset-bottom, 0px))' }}
+              >
                 <div className={cn("p-6 border-b sticky top-0 z-10", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white")}>
                   <div className="flex justify-between items-center">
                     <h3 className={cn("text-lg font-bold", isDarkMode ? "text-white" : "text-gray-900")}>
@@ -14790,7 +14801,7 @@ const TopupStorefront = () => {
                   </div>
                 </div>
                 
-                <div className="p-6 space-y-6 flex-1 overflow-hidden min-h-0">
+                <div className="p-4 md:p-6 space-y-6 flex-1 overflow-y-auto min-h-0">
                   <div className={cn("p-4 rounded-lg", isDarkMode ? "bg-gray-700/30" : "bg-gray-50")}>
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -14883,7 +14894,7 @@ const TopupStorefront = () => {
                           <p className="text-xs">قد لم يتم تحميل البيانات بعد. حاول مرة أخرى.</p>
                         </div>
                       ) : (
-                        <div className="w-full overflow-x-auto overflow-y-auto max-h-[18rem] md:max-h-[18.5rem] overscroll-x-contain">
+                        <div className="w-full overflow-x-auto overflow-y-auto max-h-[16rem] md:max-h-[18.5rem] overscroll-x-contain">
                         <table className="min-w-max w-max text-xs border-collapse table-auto">
                           <thead className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-100")}>
                             <tr>
