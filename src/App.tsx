@@ -13673,6 +13673,23 @@ const TopupStorefront = () => {
   }, [showAuthForm]);
 
   useEffect(() => {
+    if (!showAccountStatement) {
+      return;
+    }
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [showAccountStatement]);
+
+  useEffect(() => {
     if (!verifiedTopupState?.verifiedCustomer) {
       return;
     }
@@ -14776,16 +14793,16 @@ const TopupStorefront = () => {
           {showAccountStatement && customer && (
             <div
               className={cn(
-                "fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-2 pt-3 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:items-center md:p-4",
-                isDarkMode ? "bg-black/50" : "bg-black/30"
+                "fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-3 md:p-4 overflow-hidden backdrop-blur-sm",
+                isDarkMode ? "bg-black/70" : "bg-black/45"
               )}
             >
               <Card
                 className={cn(
-                  "w-full max-w-4xl overflow-hidden flex flex-col md:w-fit md:max-w-[calc(100vw-4rem)]",
+                  "w-full max-w-4xl overflow-hidden flex flex-col shadow-2xl md:w-fit md:max-w-[calc(100vw-4rem)]",
                   isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
                 )}
-                style={{ maxHeight: 'calc(100dvh - 7rem - env(safe-area-inset-bottom, 0px))' }}
+                style={{ maxHeight: 'calc(100dvh - 1rem - env(safe-area-inset-bottom, 0px))' }}
               >
                 <div className={cn("p-6 border-b sticky top-0 z-10", isDarkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-white")}>
                   <div className="flex justify-between items-center">
